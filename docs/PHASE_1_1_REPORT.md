@@ -133,7 +133,7 @@ Bir test, son işlemin yalnızca WAL'da bulunduğunu ve ana dosya tek başına a
 4. **Hazırlama.** Aynı dosya sistemi içinde `.restore/staged.db` oluşturuluyor (0600, `F_FULLFSYNC`) ve yeniden doğrulanıyor.
 5. **Kenara taşıma.** Mevcut `lazis.db` ve `-wal`/`-shm`/`-journal` dosyaları siliniyor değil, `.restore/previous/` içine taşınıyor.
 6. **Kurulum ve doğrulama.** Hazırlanan kopya yerine konup bir kez daha doğrulanıyor.
-7. **Commit noktası.** `previous` klasörü `backups/pre-restore-<zaman>/` adına atomik olarak taşınıyor; son 3 kopya tutuluyor.
+7. **Commit noktası.** `previous` klasörü `backups/pre-restore-<zaman>/` adına atomik olarak taşınıyor; son 3 kopya tutuluyor. *(Sonradan düzeltildi: commit noktası artık işlem günlüğünün `committed` durumuna atomik olarak yazılması; bkz. Bölüm O.)*
 8. **Temizlik.**
 
 7. adımdan önceki her hata hemen geri alınıyor. Çökme olursa bir sonraki açılış (`open_storage`) geri alıyor; durum hangi dosyaların bulunduğundan çıkarıldığı için kurtarma deterministik ve tekrarlanabilir. Kurtarma denetim kaydına yazılıyor (`backup/restore_recovered`).
@@ -480,3 +480,88 @@ Commit hash: **`6d18a4f434163b8d0f765d3763a427f0b333a7ee`** (`6d18a4f`). Bu sat�
 - FileVault kararınız.
 
 **Faz 2'ye başlamadım; açık onayınızı bekliyorum.**
+
+---
+
+## O. Ek: Bağımsız inceleme sonrası düzeltme (geri yükleme commit durumu)
+
+Faz 1.1 kaynak kodunun bağımsız incelemesi, `recover_interrupted_restore()` ve `restore_snapshot()` içinde bir sınır durumunun kontrol edilmesini istedi. Kodu değiştirmeden önce sorunu gerçek süreç çökmeleriyle (`os._exit`) doğruladım.
+
+### O.1 Doğrulanan davranış (düzeltmeden önce)
+
+| Senaryo | Kurtarmanın kararı | Sonuç | Değerlendirme |
+|---|---|---|---|
+| Boş profil (`lazis.db` yok); `staged.db` yerleştirildikten sonra, commit'ten önce çökme (`installed` ya da `verified` adımı) | `cleaned` | Commit edilmemiş ve son doğrulaması yapılmamış kopya `lazis.db` olarak **kabul edildi** | "Commit öncesi çökme geri alınır" garantisine **aykırı** |
+| Ana dosya yok ama sahipsiz `-wal`/`-shm` dosyaları var; kurulumdan sonra çökme | `rolled_back` (yanıltıcı) | Geri yüklenen `lazis.db` kaldı ve eski WAL **yanına geri konuldu** | SQLite yabancı WAL'ı yeni dosyaya uygulayabilir; **bozulma riski** |
+| Var olan veritabanı; yalnızca bazı dosyaları taşınmışken çökme | `rolled_back` | Bütün orijinaller bayt bayt geri geldi | Doğru çalışıyordu |
+
+**Kök neden:** Durum dosyaların varlığından çıkarılıyordu ve commit noktası "`previous/` klasörünü `backups/` içine taşımak"tı. Taşınacak dosya olmadığında `previous/` boş kalıyordu. Bu durumda "kurulum yapıldı mı, commit edildi mi?" sorusunun cevabı dosyalardan okunamıyordu.
+
+### O.2 Sorulan sorular ve yanıtları
+
+- **Önceki veritabanı yokken kurtarma ne yapıyordu?** Yerleştirilmiş kopyayı olduğu gibi bırakıyor ve kabul ediyordu.
+- **İşlem tamamlanmamışken yeni veritabanı kabul edilebiliyor muydu?** Evet; boş profilde ve sahipsiz WAL durumunda.
+- **Bu, atomiklik garantisiyle tutarlı mıydı?** Hayır. Garanti "commit'ten önceki her çökme geri alınır" diyordu.
+- **Açık bir commit durumu veya işlem günlüğü gerekli mi?** Evet. Yalnızca dosyalara bakılarak bu durumlar ayırt edilemiyor.
+- **Kısmi taşıma sırasındaki çökme doğru kurtarılıyor muydu?** Var olan bir veritabanı için evet. Sahipsiz WAL ile kurulum sonrası çökmede hayır.
+
+### O.3 Düzeltme (mimari korundu, en küçük güvenilir değişiklik)
+
+1. Hiçbir dosya taşınmadan önce kalıcı bir işlem günlüğü yazılıyor: `.restore/journal.json`. Atomik yazılıyor ve `F_FULLFSYNC` ile diske işleniyor. İçeriği:
+   - durum: `swapping`;
+   - **taşınacak dosyaların tam listesi**;
+   - önceki kopyanın adı.
+2. **Commit noktası:** Yerleştirilen dosya doğrulandıktan sonra günlüğün atomik olarak `committed` durumuna yeniden yazılması.
+3. Kurtarma, dosyalardan tahmin yürütmek yerine günlüğe göre karar veriyor:
+   - **`committed`:** işlem tamamlanıyor (`completed`).
+   - **Commit yapılmamış:** `lazis.db` konumundaki dosya, taşınacak listede olup henüz taşınmamışsa orijinaldir; aksi halde geri yüklenen kopyadır. Geri yüklenen kopya ve onun yan dosyaları siliniyor; bütün orijinaller geri taşınıyor (`rolled_back`).
+   - **Günlük yok ve hiçbir şey taşınmamış:** yalnızca hazırlama kalıntıları temizleniyor (`cleaned`).
+   - **Günlük okunamıyorsa:** hedefteki dosya yalnızca orijinal ana dosyanın `previous/` içinde güvende olduğu kanıtlanabiliyorsa siliniyor. Orijinali kaybetme riski hiçbir zaman alınmıyor.
+
+Değişen dosyalar:
+
+- `core/src/lazis/storage/backup.py`;
+- `core/tests/integration/test_restore_safety.py`;
+- belgeler: ADR-0003 Ek 2, `SECURITY_MODEL.md` §5.1, `ARCHITECTURE.md`, `DEVELOPER_GUIDE.md`, `TESTING_STRATEGY.md`.
+
+### O.4 Regresyon testleri (gerçek süreç çökmesi, `os._exit`)
+
+Yeni testlerin 4'ü düzeltmeden önce kırmızıydı; düzeltmeden sonra hepsi geçiyor. Bu dosyada toplam 52 test var; 16'sı yeni.
+
+| Test | Çökme noktaları | Beklenen ve doğrulanan |
+|---|---|---|
+| Boş profil, commit öncesi | `staging`, `staged`, `journal`, `installed`, `verified` | Veritabanı yok; sonraki açılış boş bir veritabanı oluşturuyor |
+| Boş profil, commit sonrası | `committed` | Geri yüklenen veri korunuyor; temizlik tamamlanıyor |
+| Sahipsiz WAL/SHM | `journal`, her iki taşıma, `installed` | Orijinal sahipsiz dosyalar bayt bayt geri geliyor; `lazis.db` yok |
+| Var olan veritabanı, kısmi taşıma | `journal`, her dosyanın taşınmasından sonra, `installed` | Bütün orijinal dosyalar bayt bayt aynı; en yeni (yalnızca WAL'da bulunan) değer okunuyor |
+| Bozuk günlük | `installed` + bozulmuş `journal.json` | Orijinal korunuyor |
+
+### O.5 `make check` sonucu (çıkış kodu 0)
+
+| Takım | Sonuç |
+|---|---|
+| Arka uç | **162 geçti** (önceki 146 + 16 yeni) |
+| Arayüz birim | 21 geçti |
+| Arayüz bütünleşik | 3 geçti |
+| Rust birim | 19 geçti (1 isteğe bağlı test ayrıca çalıştırıldı: geçti) |
+| Rust yaşam döngüsü | 7 geçti |
+| **Toplam** | **213 / 213**; başarısız yok, atlanan yok |
+
+Statik denetimler de temiz: ruff, ruff format, pyright strict, import-linter, vue-tsc, rustfmt ve clippy `-D warnings`.
+
+### O.6 Faz 2 kararı (güncel): **SINIRLAMALARLA HAZIR (READY WITH LIMITATIONS)**
+
+Bu sınır durumu bir veri bütünlüğü açığıydı ve kapatıldı. Faz 2'yi engelleyen bilinen bir hata kalmadı.
+
+Sınırlamalar Bölüm N'dekilerle aynı:
+
+1. FileVault kapalı; Faz 3'ten önce açılması öneriliyor.
+2. SEC-14 ve ENG-04/08/09 kısmen doğrulandı.
+3. Model indirme arka uçtan değil, açık bir kurulum adımıyla ve sizin izninizle yapılmalı.
+4. İmzalı ve bağımsız paket P15'te.
+
+Bunlara iki doğrulama sınırı da ekleniyor:
+
+- Gerçek elektrik kesintisi test edilmedi. Protokol, atomik yeniden adlandırma ve `F_FULLFSYNC` üzerine kurulu.
+- Geri yükleme için hâlâ arayüz yok.
+

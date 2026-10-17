@@ -522,3 +522,91 @@ def test_restore_yields_a_logically_identical_database(
         restored.db.close()
     assert actual == expected  # every table, including history and audit_log
     assert expected["settings"][0] == 25 and expected["history"][0] >= 25
+
+
+# ----- Phase 1.1 review: empty profiles and partial state (explicit commit journal) -----
+def _crash_restore(snapshot: Path, target: Path, key: SecretBytes, step: str) -> None:
+    args = {"snapshot": str(snapshot), "target": str(target), "key": key.hex(), "step": step}
+    proc = subprocess.run(
+        [sys.executable, "-c", CRASH], input=json.dumps(args) + "\n", text=True, timeout=60
+    )
+    assert proc.returncode == 77, f"no crash at {step}"
+
+
+@pytest.mark.parametrize("step", ["staging", "staged", "journal", "installed", "verified"])
+def test_empty_profile_crash_before_commit_leaves_no_database(
+    crashed: tuple[StorageSection, Path], key: SecretBytes, tmp_path: Path, step: str
+) -> None:
+    """There was no database before the restore: an uncommitted restore must not be accepted
+    just because nothing had to be moved aside."""
+    _, snapshot = crashed
+    fresh = StorageSection(data_dir=tmp_path / "fresh")
+    fresh.data_dir.mkdir(mode=0o700)
+    _crash_restore(snapshot, fresh.database_path, key, step)
+    with DataDirLock(fresh.data_dir):
+        recover_interrupted_restore(fresh.database_path)
+    assert not fresh.database_path.exists()
+    assert sorted(p.name for p in fresh.data_dir.iterdir()) == [".lazis-core.lock"]
+    assert _read_value(fresh, key) is None  # a fresh, empty database — not the snapshot
+
+
+def test_empty_profile_crash_after_commit_keeps_the_restored_database(
+    crashed: tuple[StorageSection, Path], key: SecretBytes, tmp_path: Path
+) -> None:
+    _, snapshot = crashed
+    fresh = StorageSection(data_dir=tmp_path / "fresh")
+    fresh.data_dir.mkdir(mode=0o700)
+    _crash_restore(snapshot, fresh.database_path, key, "committed")
+    assert _read_value(fresh, key) == SNAPSHOT_VALUE
+    assert not (fresh.data_dir / RESTORE_DIRNAME).exists()
+
+
+@pytest.mark.parametrize(
+    "step", ["journal", "moved:lazis.db-wal", "moved:lazis.db-shm", "installed"]
+)
+def test_orphan_side_files_never_end_up_next_to_the_restored_database(
+    crashed: tuple[StorageSection, Path], key: SecretBytes, tmp_path: Path, step: str
+) -> None:
+    """A WAL/SHM without its main file must go back exactly as it was; a foreign WAL next to
+    the restored file could be replayed into it."""
+    _, snapshot = crashed
+    odd = StorageSection(data_dir=tmp_path / "odd")
+    odd.data_dir.mkdir(mode=0o700)
+    (odd.data_dir / "lazis.db-wal").write_bytes(b"orphan wal from an older database")
+    (odd.data_dir / "lazis.db-shm").write_bytes(b"orphan shm")
+    before = _fingerprint(odd.data_dir)
+    _crash_restore(snapshot, odd.database_path, key, step)
+    with DataDirLock(odd.data_dir):
+        assert recover_interrupted_restore(odd.database_path) == "rolled_back"
+    assert not odd.database_path.exists()
+    assert _fingerprint(odd.data_dir) == before
+
+
+@pytest.mark.parametrize(
+    "step", ["journal", "moved:lazis.db-wal", "moved:lazis.db-shm", "moved:lazis.db", "installed"]
+)
+def test_crash_mid_move_restores_every_original_file_and_nothing_else(
+    crashed: tuple[StorageSection, Path], key: SecretBytes, step: str
+) -> None:
+    section, snapshot = crashed
+    before = _fingerprint(section.data_dir)
+    _crash_restore(snapshot, section.database_path, key, step)
+    with DataDirLock(section.data_dir):
+        assert recover_interrupted_restore(section.database_path) == "rolled_back"
+    assert _fingerprint(section.data_dir) == before
+    assert _read_value(section, key) == LATEST_VALUE
+
+
+def test_unreadable_journal_is_treated_conservatively(
+    crashed: tuple[StorageSection, Path], key: SecretBytes
+) -> None:
+    """A damaged journal must never cause the original to be discarded."""
+    section, snapshot = crashed
+    before = _fingerprint(section.data_dir)
+    _crash_restore(snapshot, section.database_path, key, "installed")
+    journal = section.data_dir / RESTORE_DIRNAME / "journal.json"
+    assert journal.exists()
+    journal.write_text("{ not json")
+    with DataDirLock(section.data_dir):
+        assert recover_interrupted_restore(section.database_path) == "rolled_back"
+    assert _fingerprint(section.data_dir) == before

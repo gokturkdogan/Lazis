@@ -92,7 +92,7 @@ FTS5 cost of encryption: negligible.
 3. A durable (`F_FULLFSYNC`) staged copy inside the data directory, re-verified.
 4. The current files are *moved* (renamed) aside, never deleted.
 5. Install and verify the staged copy.
-6. **Commit point:** an atomic directory rename of the moved files to `backups/pre-restore-<stamp>/`; the last 3 are kept.
+6. **Commit point:** an atomic rewrite of the durable journal `.restore/journal.json` to state `committed` (see Amendment 2); afterwards the moved files are renamed to `backups/pre-restore-<stamp>/`, the last 3 kept.
 
 Errors before the commit roll back immediately. Crashes before the commit are rolled back by `recover_interrupted_restore`, which `open_storage` runs before opening anything; the state is inferred from which files exist, so recovery is idempotent. Snapshots also became stricter:
 
@@ -129,3 +129,37 @@ Errors before the commit roll back immediately. Crashes before the commit are ro
 - A real power cut, which was not tested.
 - The guarantee assumes the data directory is one local APFS volume, where `rename` is atomic.
 - A restore UI does not exist yet; restore is a library function until P6.
+
+## Amendment 2 (Phase 1.1 review, 2026-10-17): explicit restore journal
+
+**Problem found in an independent review and confirmed with real crashes.** Amendment 1 inferred the restore state from which files existed, with the commit point "rename `previous/` into `backups/`". If nothing had been moved aside, `previous/` was empty, and the files alone could not show whether an install had happened. Two cases broke:
+
+- **Fresh profile** (no `lazis.db` yet), crash after `staged.db` was installed but before the commit: recovery reported `cleaned` and **accepted the uncommitted, not-yet-verified restored file**.
+- **Orphan `-wal`/`-shm`** (no main file), crash after the install: recovery reported `rolled_back` but **left the restored `lazis.db` in place and moved the old orphan WAL next to it**, where SQLite could replay foreign frames into it.
+
+A crash in the middle of moving an existing database's files was already handled correctly; regression tests now cover it explicitly.
+
+**Decision (smallest reliable fix; the architecture is unchanged).** Before anything is moved, the restore writes a durable journal `.restore/journal.json`:
+
+- state `swapping`;
+- the exact list of files to be moved;
+- the name of the pre-restore copy.
+
+The **commit point** is the atomic rewrite of that journal to state `committed`, made after the installed file is verified.
+
+Recovery follows the journal:
+
+- **`committed`:** finish. Move `previous/` to `backups/`, then clean up.
+- **Swap started, not committed:** the file at `lazis.db` is the restored copy unless it was due to be moved and has not been moved yet. Remove the restored copy and its side files, then move every original back.
+- **No journal and nothing moved:** only staging leftovers; clean up.
+- **Unreadable or missing journal while files were moved:** discard the target file only if the original main file is provably in `previous/`.
+
+**Evidence** (16 tests added in `test_restore_safety.py`, 52 tests in that file; all are real process exits through `os._exit`):
+
+- **Fresh profile:**
+  - a crash at `staging`, `staged`, `journal`, `installed` or `verified` leaves no database, and the next open creates an empty one;
+  - a crash after `committed` keeps the restored database.
+- **Orphan WAL/SHM:** a crash at `journal`, while moving either file, or after the install restores exactly the original orphan files and no `lazis.db`.
+- **Existing database:** a crash at `journal`, after each individual move, or after the install restores every original file byte for byte.
+- **Damaged journal:** never causes the original to be discarded.
+

@@ -13,16 +13,20 @@ data directory (one filesystem, so every rename is atomic):
 3. validate the snapshot: manifest present and matching, opens with the key, integrity
    checks pass, LAZIS schema not newer than this application;
 4. stage: durable copy to ``.restore/staged.db`` (0600) and verify the copy again;
-5. move the current ``lazis.db`` and its ``-wal``/``-shm``/``-journal`` files into
-   ``.restore/previous/`` (renames, nothing deleted — un-checkpointed WAL data survives);
+5. write the journal ``.restore/journal.json`` (state ``swapping`` + the exact list of files
+   about to be moved), then move the current ``lazis.db`` and its ``-wal``/``-shm``/``-journal``
+   files into ``.restore/previous/`` (renames, nothing deleted — un-checkpointed WAL data
+   survives);
 6. install: rename ``staged.db`` → ``lazis.db`` and verify the installed file;
-7. **commit point:** rename ``.restore/previous/`` → ``backups/pre-restore-<stamp>/``;
-8. remove ``.restore/``.
+7. **commit point:** atomically rewrite the journal with state ``committed``;
+8. finish: rename ``.restore/previous/`` → ``backups/pre-restore-<stamp>/`` (if anything was
+   moved) and remove ``.restore/``.
 
-An error in steps 4–6 rolls back immediately. A crash anywhere before step 7 is rolled back
-at the next start (``open_storage`` calls :func:`recover_interrupted_restore`); a crash after
-it only leaves cleanup. The state is derived from which files exist, so recovery is
-deterministic and idempotent.
+An error before step 7 rolls back immediately. A crash before step 7 is rolled back at the
+next start (``open_storage`` calls :func:`recover_interrupted_restore`); a crash after it is
+completed. Recovery reads the journal instead of guessing from which files exist: with an
+empty previous directory (fresh profile, or only orphan ``-wal``/``-shm`` files) the files
+alone cannot tell an uncommitted install from a finished one. Recovery is idempotent.
 """
 
 from __future__ import annotations
@@ -53,6 +57,8 @@ KEY_VERSION = "v1"
 RESTORE_DIRNAME = ".restore"
 PRE_RESTORE_PREFIX = "pre-restore-"
 PRE_RESTORE_KEEP = 3
+JOURNAL_NAME = "journal.json"
+_PRE_RESTORE_NAME = re.compile(r"^pre-restore-[0-9]{8}T[0-9]{12}Z$")
 _LABEL = re.compile(r"^[a-z0-9-]{1,40}$")
 _CHUNK = 1 << 20
 
@@ -276,31 +282,83 @@ def _database_files(target: Path) -> list[str]:
     return present
 
 
-def recover_interrupted_restore(target: Path) -> str | None:
-    """Undo a restore that stopped before its commit point. Safe to call at any time while
-    holding the data-directory lock. Returns ``None`` (nothing to do), ``"rolled_back"`` or
-    ``"cleaned"`` (only staging leftovers, or a restore that had already committed)."""
+def _read_journal(work: Path) -> dict[str, object] | None:
+    """The restore journal, ``None`` if absent, ``{}`` if unreadable (treated conservatively)."""
+    path = work / JOURNAL_NAME
+    if not path.exists():
+        return None
+    try:
+        raw: object = json.loads(path.read_text("utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return cast("dict[str, object]", raw) if isinstance(raw, dict) else {}
+
+
+def _finish_commit(work: Path, backup_dir: Path, previous_name: str) -> Path | None:
+    """After the commit point: keep the replaced files, remove the work directory.
+    Idempotent — a crash in here is simply finished again at the next start."""
+    previous = work / "previous"
+    previous_copy: Path | None = None
+    if previous.is_dir() and any(previous.iterdir()):
+        ensure_private_dir(backup_dir)
+        previous_copy = backup_dir / previous_name
+        os.replace(previous, previous_copy)
+        _fsync_path(backup_dir)
+    shutil.rmtree(work)
+    _fsync_path(work.parent)
+    if previous_copy is not None:
+        _apply_pre_restore_retention(backup_dir)
+    return previous_copy
+
+
+def recover_interrupted_restore(target: Path, backup_dir: Path | None = None) -> str | None:
+    """Finish or undo a restore interrupted by a crash. Call while holding the data-directory
+    lock. Returns ``None`` (nothing to do), ``"cleaned"`` (only staging leftovers),
+    ``"rolled_back"`` (an uncommitted restore was undone) or ``"completed"`` (a committed
+    restore was finished)."""
     data_dir = target.parent
+    backup_dir = backup_dir or data_dir / "backups"
     target.with_name(f".{target.name}.restore").unlink(missing_ok=True)  # Phase 1 temp name
     work = data_dir / RESTORE_DIRNAME
     if not work.exists():
         return None
+    journal = _read_journal(work)
     previous = work / "previous"
-    outcome = "cleaned"
+
+    if journal is not None and journal.get("state") == "committed":
+        name = journal.get("previous_copy")
+        if not isinstance(name, str) or not _PRE_RESTORE_NAME.match(name):
+            name = PRE_RESTORE_PREFIX + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        _finish_commit(work, backup_dir, name)
+        return "completed"
+
     saved = sorted(previous.iterdir()) if previous.is_dir() else []
-    if saved:
-        if (previous / target.name).exists():
-            # The original main file was moved aside, so whatever sits at ``target`` now is
-            # the unconfirmed restored copy (a copy of a snapshot that still exists).
-            for path in (target, *(Path(f"{target}{s}") for s in SIDE_FILES)):
-                path.unlink(missing_ok=True)
-        for item in saved:
-            os.replace(item, data_dir / item.name)
+    if journal is None and not saved:
+        shutil.rmtree(work)  # the swap never started: only staging leftovers
         _fsync_path(data_dir)
-        outcome = "rolled_back"
+        return "cleaned"
+
+    # The swap started but did not commit: put the original files back, exactly.
+    moved = journal.get("moved") if journal else None
+    if isinstance(moved, list) and all(isinstance(n, str) for n in moved):  # pyright: ignore[reportUnknownVariableType]
+        # A main file at ``target`` is the restored copy unless it was due to be moved and
+        # has not been moved yet. This also covers fresh profiles (no main file to move).
+        main_is_restored = target.name not in moved or (previous / target.name).exists()
+    else:
+        # No or unreadable journal: discard the file at ``target`` only if the original main
+        # file is provably safe in ``previous`` — never risk deleting the original.
+        main_is_restored = (previous / target.name).exists()
+    if main_is_restored and target.exists():
+        # Every original was moved before the install, so anything at the target paths
+        # belongs to the unconfirmed restored copy (a copy of a snapshot that still exists).
+        for path in (target, *(Path(f"{target}{s}") for s in SIDE_FILES)):
+            path.unlink(missing_ok=True)
+    for item in saved:
+        os.replace(item, data_dir / item.name)
+    _fsync_path(data_dir)
     shutil.rmtree(work)
     _fsync_path(data_dir)
-    return outcome
+    return "rolled_back"
 
 
 def restore_snapshot(
@@ -327,7 +385,7 @@ def restore_snapshot(
     elif not lock.held:
         raise RestoreError("restore requires the data directory lock")
     try:
-        recover_interrupted_restore(target)
+        recover_interrupted_restore(target, backup_dir)
         expected_sha = _validate_snapshot(snapshot, key)
         work = ensure_private_dir(data_dir / RESTORE_DIRNAME)
         staged = work / "staged.db"
@@ -339,8 +397,17 @@ def restore_snapshot(
                 raise RestoreError("staged copy does not match the snapshot")
             _verify_for_restore(staged, key)
             ensure_private_dir(previous)
-            _fsync_path(work)
-            for name in _database_files(target):
+            moved = _database_files(target)
+            stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+            journal: dict[str, Any] = {
+                "format": 1,
+                "state": "swapping",
+                "moved": moved,
+                "previous_copy": f"{PRE_RESTORE_PREFIX}{stamp}",
+            }
+            _write_json_durable(work / JOURNAL_NAME, journal)
+            _fault(fault, "journal")
+            for name in moved:
                 os.replace(data_dir / name, previous / name)
                 _fault(fault, f"moved:{name}")
             _fsync_path(previous)
@@ -351,9 +418,10 @@ def restore_snapshot(
             _fault(fault, "installed")
             _verify_for_restore(target, key)
             _fault(fault, "verified")
+            _write_json_durable(work / JOURNAL_NAME, {**journal, "state": "committed"})
         except Exception as exc:
             try:
-                recover_interrupted_restore(target)
+                recover_interrupted_restore(target, backup_dir)
             except Exception as rollback_exc:
                 # The previous files are still under .restore/previous; the next start
                 # (open_storage) retries the rollback before opening anything.
@@ -364,19 +432,9 @@ def restore_snapshot(
                 raise exc from None
             raise RestoreError(f"restore aborted and rolled back ({type(exc).__name__})") from exc
 
-        # Commit point: from here on the restored database is the current one.
-        previous_copy: Path | None = None
-        if any(previous.iterdir()):
-            ensure_private_dir(backup_dir)
-            stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
-            previous_copy = backup_dir / f"{PRE_RESTORE_PREFIX}{stamp}"
-            os.replace(previous, previous_copy)
-            _fsync_path(backup_dir)
+        # Committed (the journal says so): from here on the restored database is current.
         _fault(fault, "committed")
-        shutil.rmtree(work)
-        _fsync_path(data_dir)
-        if previous_copy is not None:
-            _apply_pre_restore_retention(backup_dir)
+        previous_copy = _finish_commit(work, backup_dir, journal["previous_copy"])
         return RestoreResult(restored_from=snapshot, previous_copy=previous_copy)
     finally:
         if owned:
