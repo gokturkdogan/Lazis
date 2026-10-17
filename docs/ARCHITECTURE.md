@@ -1,6 +1,7 @@
 # LAZIS — System Architecture
 
-> Status: Phase 0.1 (revised) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), updated with the Phase 1 implementation · Last updated: 2026-10-17
+> Phase 1 as built: [PHASE_1_REPORT.md](PHASE_1_REPORT.md) (Turkish) and [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md). Where this blueprint and the code differ, §3.1, §11.1, §12 and §13.1 describe the implemented state.
 > Decisions referenced here are justified in [TECHNOLOGY_DECISIONS.md](TECHNOLOGY_DECISIONS.md). Phase numbers (P1–P15) follow [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md). Coding rules: [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md).
 
 ## 1. Architectural style
@@ -14,7 +15,7 @@
 | **Ollama** (external daemon) | Owns LLM and embedding model lifecycle on the GPU: MLX runner for MLX-format tags, llama.cpp runner for GGUF tags (which one serves each tag is verified in P2). Crash isolation; swappable via the provider abstraction. |
 | **lazis-audio** (Swift helper, P13) | Real-time audio I/O through macOS Voice-Processing I/O for system-grade echo cancellation. Python callbacks are not real-time safe. |
 | **Document parser worker** (subprocess of lazis-core, P11) | Parses untrusted PDF/HTML/Markdown files under resource limits, isolated from the main process. |
-| **SearXNG** (optional Docker container, P12) | A self-hosted metasearch for privacy-preserving research. Entirely optional. |
+| **SearXNG** (optional native install, P12; no Docker) | A self-hosted metasearch for privacy-preserving research. Entirely optional; the default providers need no extra service. |
 
 Why not microservices: one user, one machine. Distributed state would add failure modes (network partitions, eventual consistency) and buy nothing.
 Why not "everything in Rust/Tauri": the local-AI ecosystem (MLX, mlx-audio, mlx-whisper, ONNX models, trafilatura, sqlite-vec bindings) is strongest in Python, and development speed matters over a multi-year horizon. Rust stays a thin shell.
@@ -50,13 +51,24 @@ sequenceDiagram
     C-->>T: ready on 127.0.0.1:{port} (stdout handshake)
     T->>T: load UI with {port, token}
     Note over C,A: P13+: C spawns lazis-audio on first voice session
-    Note over T,C: P1–P3 (no app yet): C runs standalone and reads the same Keychain item via KeyProvider
-    T->>C: SIGTERM on quit → graceful shutdown (flush jobs, WAL checkpoint)
+    T->>C: on quit: close stdin (lifeline) → graceful shutdown (WAL checkpoint, audit, lock release)
 ```
+
+### 3.1 Implemented in P1
+
+The desktop shell already exists in P1 (the Phase 1 brief required it), so the "core runs standalone with its own Keychain access" stage was dropped. **Only the Rust shell touches the Keychain**; `lazis-core` never does.
+
+1. The shell resolves the **profile** (`default` for release builds, `dev` for debug builds; `LAZIS_PROFILE` overrides): separate data dir, logs, config, desktop state and Keychain item per profile.
+2. **Key resolution:** Keychain item present → use it. Missing and no database → generate 32 bytes with `SecRandomCopyBytes`, store, read back, and only then start the backend (a database can never be created with a key that was not persisted). Missing but a database exists → `needs_recovery` (no new key). Keychain denied → `keychain_denied`.
+3. **Spawn:** `core/.venv/bin/python -I -m lazis serve --stdin-secrets --environment … --data-dir … --log-dir … --config …` with a cleared environment (HOME, TMPDIR, LANG, a fixed PATH). The session token (per launch) and the key are written to stdin as one JSON line; **stdin then stays open as a lifeline**.
+4. **Handshake:** stdout `LAZIS_READY {protocol, port, pid, api_version, …}` or `LAZIS_FATAL {code}` (exit 3). Timeout 30 s. `database_key_invalid` → `needs_recovery`.
+5. **Shutdown:** the shell closes stdin → the backend stops gracefully (checkpoint, audit `app.stopped`, lock release); escalation SIGTERM (after 7 s) → SIGKILL (after 3 s more); the child is always reaped. If the shell dies (even SIGKILL), the kernel closes the pipe and the backend exits by itself (measured: 0.35 s). A parent-PID watcher is a second guard.
+6. **Duplicates and ports:** the Tauri single-instance plugin focuses the existing window; the backend holds a per-profile `flock` (`instance_already_running`); the port is chosen by the OS (`port=0`) and reported in the handshake, so there are no port conflicts.
+7. **Supervision in P1:** an unexpected backend exit is detected (stdout EOF) and shown as `backend_exited` with a retry action. Automatic restart with backoff stays in P4.
 
 - **Supervision:** Tauri restarts `lazis-core` with backoff if it crashes (max 3 in 60 s, then ERROR state with diagnostics). `lazis-core` restarts `lazis-audio` the same way.
 - **Ollama:** treated as an external dependency. If it is unreachable, the system enters ERROR with a recoverable reason (`llm_unavailable`) and retries. LAZIS sets the required environment (`OLLAMA_NO_CLOUD=1`, `OLLAMA_HOST=127.0.0.1`) through a launch agent created by the setup script.
-- **Development mode:** each process can run standalone (`just core`, `just ui`), and the UI can run in a normal browser against the core.
+- **Development mode:** `make dev` (`pnpm tauri dev`) runs the shell with the `dev` profile and the Vite dev server; the backend then allows the extra origin `http://localhost:1420`. The backend can also be started alone for tests (`python -m lazis serve --stdin-secrets`).
 
 ## 4. Module map (lazis-core)
 
@@ -327,6 +339,8 @@ Transport: HTTP/1.1 REST + one WebSocket on `127.0.0.1:{random port}`. Auth: a p
 | Backup | `GET/POST /backups`, `POST /backups/{id}/restore`, `POST /backups/purge` |
 | Voice | `GET /voice/devices`, `POST /voice/session {mode}`, `DELETE /voice/session` |
 
+**Implemented in P1** (all require the bearer token; OpenAPI snapshot in `apps/desktop/ui/src/api/openapi.json`, drift-tested): `GET /health`, `GET /app/info`, `GET /system/status` (backend, database encryption/integrity, privacy flags, AI placeholder, platform), `GET /settings` (effective non-secret settings, read-only). Every request passes `LocalApiGuard` in this order: rate limit (token bucket) → `Host` must be `127.0.0.1:{port}` (DNS-rebinding defense) → `Origin` allowlist (`tauri://localhost`; plus `http://localhost:1420` in development) → CORS preflight answered without a token → bearer token (constant-time compare) → body limit 64 KiB. Interactive docs and `/openapi.json` are disabled. Errors are `{error: {code, message (Turkish), recoverable, request_id}}` with no stack traces; denials are written to the audit log.
+
 API versioning: the `/api/v1` prefix; additive changes within v1; a breaking change means `/api/v2` with a deprecation window. Event payloads carry `schema_version` ([ENGINEERING_STANDARDS.md §6](ENGINEERING_STANDARDS.md)).
 
 ### 8.2 WebSocket events
@@ -383,7 +397,7 @@ Error messages to the user are Turkish message keys (`errors.llm_unavailable`), 
 ## 11. Configuration management
 
 Layers (later overrides earlier), all validated by Pydantic models:
-1. `config/defaults.toml` (repo, versioned): paths, ports, model IDs and digests, budgets, thresholds.
+1. Defaults (P1: in the Pydantic models in `core/src/lazis/config/model.py`; a versioned `config/defaults.toml` arrives when model IDs and budgets exist, P2+).
 2. `~/Library/Application Support/LAZIS/config.toml`: user/machine overrides.
 3. Environment variables `LAZIS_*`: development and testing.
 4. `settings` table in `lazis.db`: UI-editable preferences (voice, privacy toggles, persona preferences), versioned and backed up with the data.
@@ -394,6 +408,13 @@ Content-like configuration lives in versioned files under `config/`:
 - registries: `predicates.yaml`, `relationships.yaml`;
 - lexicons: `lexicons/kinship.tr.yaml`, `roles.tr.yaml`, `memory_commands.tr.yaml`, `banned_phrases.tr.yaml`, `hedges.tr.yaml`;
 - research: `research/domain_categories.yaml`.
+
+### 11.1 Implemented in P1
+
+- Sections: `app`, `backend`, `storage`, `logging`, `network`, `research`, `models`, `voice`. Unknown keys are rejected (`extra="forbid"`); all models are frozen.
+- Safety-relevant values are **type-locked**, not just defaulted: `network.egress_enabled: Literal[False]`, `voice.enabled: Literal[False]`, `voice.microphone_always_on: Literal[False]`. `research.mode` defaults to `offline_only` and any other value is rejected before P12. `backend.host` and `models.endpoint` must be loopback.
+- Precedence: user TOML (`<profile root>/config.toml`) → environment `LAZIS_SECTION__FIELD` (JSON values) → command-line overrides from the shell (`--data-dir`, `--log-dir`, `--environment`). The shell starts the backend with a cleared environment, so `LAZIS_*` variables apply only to standalone/test runs.
+- Errors return field paths and messages only, never the offending values (`config_invalid`).
 
 These files are loaded at startup and hash-stamped into every decision and extraction record (`prompt_version`, `policy_version`), so any behavior change can be traced.
 
@@ -415,6 +436,16 @@ User-adjustable policy settings (validated, audited when permission-relevant):
 | `~/Library/Logs/LAZIS/` | Redacted rotating logs |
 | Ollama model store (default `~/.ollama/models`) | LLM and embedding weights (pinned digests) |
 | `~/Library/Application Support/LAZIS/models/` | STT/TTS/VAD weights (hash-verified) |
+
+P1 adds, per profile (the `dev` profile lives under `…/LAZIS/dev/` and `~/Library/Logs/LAZIS/dev/`):
+
+| Path | Contents |
+|---|---|
+| `…/data.noindex/.lazis-core.lock` | Backend instance lock (`flock`) |
+| `…/LAZIS/desktop-state.json` | Non-secret shell state: whether the recovery code was acknowledged (0600) |
+| `…/LAZIS/config.toml` | Optional user config (not created automatically) |
+| `~/Library/Logs/LAZIS/{core,desktop}.log` | Backend JSON log / shell log, rotated, secrets redacted |
+| Keychain: service `com.lazis.app`, account `database-key-v1` (`-dev`, `-<profile>`) | The 32-byte database key (login keychain, not synchronizable) |
 
 Directories are `0700` and files `0600`. Data files are kept out of Spotlight: they live in a `data.noindex/` subfolder, and the exclusion mechanism must be verified on macOS 27. They can optionally be excluded from Time Machine (`tmutil addexclusion`), since LAZIS manages its own encrypted backups.
 
@@ -459,6 +490,39 @@ lazis/
 │   └── reports/                   # dated results (committed), used by ADRs
 └── scripts/                       # setup.sh, pull-and-verify-models, launch agent install
 ```
+
+### 13.1 Implemented in P1
+
+```
+lazis/
+├── Makefile                       # make help · setup · dev · build · check · test · lint · audit
+├── core/
+│   ├── pyproject.toml · uv.lock · .python-version
+│   ├── src/lazis/
+│   │   ├── app/        cli.py · server.py (lifecycle, lock, lifeline) · handshake.py
+│   │   ├── api/        app_factory.py · security.py (LocalApiGuard) · schemas.py
+│   │   ├── config/     model.py · loader.py
+│   │   ├── observability/ logging.py · redaction.py
+│   │   ├── security/   secrets.py (stdin protocol) · network_guard.py · recovery.py (LZR1)
+│   │   ├── storage/    driver.py (only sqlcipher3 import) · database.py · unit_of_work.py ·
+│   │   │               repositories.py · backup.py · migrations/{__init__.py, lazis/0001_system.sql}
+│   │   └── errors.py · i18n.py · ids.py · fsutil.py
+│   ├── tests/{unit,integration,security}/ · fixtures/recovery_vectors.json (shared with Rust)
+│   ├── spikes/spk05_storage.py · spikes/results/
+│   └── typings/sqlcipher3/        # type stubs for pyright strict
+├── apps/desktop/
+│   ├── package.json · pnpm-lock.yaml · vite/vitest/tsconfig
+│   ├── src-tauri/
+│   │   ├── src/ lib.rs (commands, plugins) · controller.rs (lifecycle, recovery) · backend.rs (process)
+│   │   │        keystore.rs (Keychain) · secrets.rs · recovery.rs · paths.rs (profiles) · state_file.rs · errors.rs
+│   │   ├── tests/lifecycle.rs     # shell ↔ real backend
+│   │   ├── capabilities/main.json · permissions/autogenerated/ · tauri.conf.json · icons/
+│   └── ui/src/ api/ (client, openapi.json, schema.d.ts) · platform/tauri.ts · stores/connection.ts ·
+│              components/ · views/{Overview,Settings,Diagnostics} · i18n/tr.ts · styles/theme.css
+└── scripts/make_icon.py
+```
+
+Differences from the target tree above: migrations live inside the package (`importlib.resources`, so they ship with the wheel); there is no `config/` or `schemas/` directory yet (P2/P3); `jobs/`, `state/` and the event bus arrive with their first consumers in P3; the task runner is `make` (no extra tool) instead of `just`.
 
 ## 14. Cross-cutting concerns
 

@@ -1,0 +1,105 @@
+{
+  "machine": "arm64 macOS 27.0.1",
+  "python": "3.13.16",
+  "rows": 50000,
+  "dim": 768,
+  "k": 10,
+  "spk04": {
+    "stdlib_sqlite_version": "3.53.1",
+    "stdlib_has_enable_load_extension": true,
+    "stdlib_vec_version": "v0.1.9",
+    "cipher_version": "4.19.0 community",
+    "sqlite_version": "3.53.4",
+    "compile_fts5": true,
+    "compile_omit_load_extension": false,
+    "sqlcipher_vec_version": "v0.1.9",
+    "sql_load_extension_after_disable": "refused",
+    "fts5_works": true
+  },
+  "vectors": {
+    "float32_plain": {
+      "insert_s": 1.0,
+      "size_mb": 155.5,
+      "plaintext_header": true,
+      "cache_2mb": {
+        "first_query_ms": 20.2,
+        "p50_ms": 19.56,
+        "p95_ms": 20.15,
+        "max_ms": 20.54
+      },
+      "cache_256mb": {
+        "first_query_ms": 19.9,
+        "p50_ms": 19.65,
+        "p95_ms": 20.27,
+        "max_ms": 20.56
+      }
+    },
+    "float32_encrypted": {
+      "insert_s": 1.24,
+      "size_mb": 158.5,
+      "plaintext_header": false,
+      "cache_2mb": {
+        "first_query_ms": 161.2,
+        "p50_ms": 160.08,
+        "p95_ms": 162.33,
+        "max_ms": 176.37
+      },
+      "cache_256mb": {
+        "first_query_ms": 165.2,
+        "p50_ms": 5.41,
+        "p95_ms": 5.57,
+        "max_ms": 5.66
+      }
+    },
+    "int8_encrypted": {
+      "insert_s": 0.38,
+      "size_mb": 40.5,
+      "plaintext_header": false,
+      "cache_2mb": {
+        "first_query_ms": 41.2,
+        "p50_ms": 40.7,
+        "p95_ms": 41.43,
+        "max_ms": 42.35
+      },
+      "cache_256mb": {
+        "first_query_ms": 43.8,
+        "p50_ms": 2.35,
+        "p95_ms": 2.39,
+        "max_ms": 2.5
+      }
+    }
+  },
+  "fts5": {
+    "plain": {
+      "insert_s": 0.42,
+      "size_mb": 37.6,
+      "plaintext_header": true,
+      "single_term": {
+        "p50_ms": 0.24,
+        "p95_ms": 0.29,
+        "max_ms": 0.39
+      },
+      "two_terms_or": {
+        "p50_ms": 0.46,
+        "p95_ms": 0.51,
+        "max_ms": 0.53
+      }
+    },
+    "encrypted": {
+      "insert_s": 0.44,
+      "size_mb": 39.6,
+      "plaintext_header": false,
+      "single_term": {
+        "p50_ms": 0.25,
+        "p95_ms": 0.29,
+        "max_ms": 0.92
+      },
+      "two_terms_or": {
+        "p50_ms": 0.46,
+        "p95_ms": 0.5,
+        "max_ms": 0.5
+      }
+    }
+  },
+  "max_rss_mb": 578.7
+}

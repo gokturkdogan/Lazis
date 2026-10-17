@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). **P1 implemented 2026-10-17, awaiting the owner's approval** ([PHASE_1_REPORT.md](PHASE_1_REPORT.md)) · Last updated: 2026-10-17
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -89,6 +89,21 @@ The phases run **sequentially in numeric order**. The graph shows true dependenc
 - **Testable result:** `just ci` runs green on a clean checkout. An encrypted DB is created, migrated, backed up and restored by tests.
 - **Exit conditions:** all tests executed and reported; encryption proven, **or** the SPK-05 fallback decision recorded by the user in ADR-0003.
 
+### P1 as implemented (2026-10-17)
+
+The Phase 1 brief widened and narrowed this plan. Differences, all documented in [PHASE_1_REPORT.md](PHASE_1_REPORT.md):
+
+| Planned above | Implemented | Why |
+|---|---|---|
+| No UI; core reads the Keychain via `KeyProvider` (`security` tool) | **Tauri 2 shell + basic Turkish status UI** (identity, backend/DB status, version, system info, conversation placeholder, read-only settings, diagnostics, recovery flows). **Only the Rust shell touches the Keychain**; key + token reach the core over stdin | The brief required a desktop bootstrap in P1. The CLI-only key stage became unnecessary |
+| Durable job queue + scheduler, event bus, DI container, `state` skeleton, `cache.db` | **Deferred to P3** (with their first consumers) | No consumer exists in P1; empty skeletons would be untested scaffolding |
+| Egress gateway skeleton | **Process-wide network guard** (PEP 578 audit hook, deny-all except loopback/AF_UNIX) + `network.egress_enabled: Literal[False]` | Same guarantee with less code; the policy gateway arrives in P12 |
+| `core/migrations/…`, `config/defaults.toml` | Migrations inside the package (`lazis/storage/migrations/lazis/0001_system.sql`); defaults in the Pydantic models | Migrations ship with the package; no model/budget values exist yet |
+| `0001_system`: `schema_migrations`, `settings`, `jobs`, `change_sets`, `history`, `audit_log` | `schema_migrations` (runner), `app_meta`, `settings`, `change_sets`, `history`, `audit_log`; no `jobs` | Jobs deferred (above) |
+| `justfile` / `just ci` | `Makefile` / `make check` | No extra tool to install |
+
+Exit evidence: backend 100 tests, UI 19 unit + 3 integration (against a real backend), shell 18 unit + 7 lifecycle (against a real backend) + 1 opt-in real-Keychain test — all executed and passing; ruff, pyright strict, import-linter, vue-tsc, rustfmt, clippy `-D warnings` clean; SPK-04/05 passed ([ADR-0003](adr/0003-storage-driver-and-encryption.md)); release `LAZIS.app` built, launched, measured and shut down cleanly.
+
 ## P2 — Local AI integration and benchmarking (M)
 
 - **Objective:** a provider abstraction and an **evidence-based model decision** for this Mac.
@@ -113,6 +128,7 @@ The phases run **sequentially in numeric order**. The graph shows true dependenc
 - **Objective:** streaming multi-turn Turkish text conversation through API and CLI, with append-only context management.
 - **Prerequisites:** P2 (ADR-0001, ADR-0004).
 - **Scope:**
+  - *Moved here from P1:* in-process event bus, DI container (`app/container.py`), `state` package, durable job queue + scheduler, `cache.db` (metrics) — introduced together with their first consumers (turn events, compaction jobs, per-turn telemetry).
   - Persistence and lifecycle: conversations/messages/segments; `ConversationEngine` (turn lifecycle, streaming, cancellation, turn IDs).
   - Context: prompt assembler (S0–S3 + history + context note, canonical serialization, prefix hash check); token accounting; idle compaction + pre-warm; overflow guard; current date/time context.
   - Placeholder **persona v0** (a short neutral Turkish block, replaced in P5); language-drift guard; tool-loop framework (registry, capability checks, taint flag) with no tools enabled.
@@ -137,12 +153,12 @@ The phases run **sequentially in numeric order**. The graph shows true dependenc
 - **Objective:** a usable desktop app for testing conversations, viewing state and diagnostics, and monitoring errors ([UI_ARCHITECTURE.md §0](UI_ARCHITECTURE.md)).
 - **Prerequisites:** P3.
 - **Scope:**
-  - Tauri shell: sidecar spawn and supervision; token + key handoff over stdin; Keychain read; single instance; tray with state color; minimal capabilities; strict CSP.
+  - Tauri shell: *done in P1* — backend spawn, stdin token + key handoff with lifeline, Keychain key management and recovery-code flows, single instance, minimal capabilities (app command ACL), strict CSP, unexpected-exit detection with manual retry. *Remaining for P4:* automatic restart with backoff (max 3 in 60 s), tray with state color, WebSocket support in the CSP/client.
   - Vue app: router, `tr` i18n, Pinia, generated API types, WebSocket client (turn filtering, reconnect).
   - Views: Conversation; `PulseIndicator` (2D, five state colors); Diagnostics panel (per-turn trace, cache reuse, model/runner status, memory, error console, prompt inspector in dev mode); basic Settings; System view; privacy HUD.
 - **Exclusions:** Three.js core, memory UI (P6), voice (P13).
 - **Modules affected:** `apps/desktop/src-tauri`, `apps/desktop/ui`, `api` (system endpoints).
-- **Expected files/components:** `src-tauri/src/{main,sidecar,keychain,commands}.rs`, `capabilities/default.json`, `tauri.conf.json`, `ui/src/{app,api,stores,features/{conversation,diagnostics,settings,system},state-visual/PulseIndicator.vue}`.
+- **Expected files/components:** existing `src-tauri/src/{lib,controller,backend,keystore}.rs` and `capabilities/main.json` extended, `ui/src/{app,api,stores,features/{conversation,diagnostics,settings,system},state-visual/PulseIndicator.vue}`.
 - **Database changes:** settings keys only.
 - **Required tests:** Vitest (stores, WebSocket client); Playwright WebKit E2E (chat, cancel, diagnostics values, core-down and Ollama-down errors, state colors); Rust unit tests (restart policy; key never logged); manual Tauri smoke checklist; CSP and capabilities review.
 - **Acceptance criteria:** UI-01, UI-05, UI-07, UI-08, PLT-07, SEC-06.
@@ -293,12 +309,12 @@ The phases run **sequentially in numeric order**. The graph shows true dependenc
 - **Prerequisites:** P7 (entity visibility), P5, P3, P1 (egress skeleton).
 - **Scope:**
   - Permissions: permission engine (four modes, query classes, rules); intent detection; query builder + classifier + scrubber.
-  - Retrieval: egress hardening (SSRF, DNS rebinding, limits); providers (SearXNG script, Wikipedia, ddgs); fetch + trafilatura.
+  - Retrieval: egress hardening (SSRF, DNS rebinding, limits); providers (Wikipedia, ddgs; optional native SearXNG helper — no Docker); fetch + trafilatura.
   - Verification: quarantined reader; quote verification; injection screening; taint enforcement; credibility; cited synthesis.
   - Support: TTL cache and freshness; offline fallback; research audit; research log UI and indicators; `cache.db` research tables.
 - **Exclusions:** JavaScript rendering, paid APIs, autonomous browsing.
 - **Modules affected:** `research`, `security` (egress), `conversation` (tool), `api`, `ui`.
-- **Expected files/components:** `research/{intent,permissions,classify,scrub,providers,fetch,reader,verify,synthesize,cache}.py`, `config/research/domain_categories.yaml`, `scripts/searxng.sh`, UI `features/research`.
+- **Expected files/components:** `research/{intent,permissions,classify,scrub,providers,fetch,reader,verify,synthesize,cache}.py`, `config/research/domain_categories.yaml`, `scripts/searxng-native.sh` (optional), UI `features/research`.
 - **Database changes:** `0010_research` (audit fields); `cache.db` research tables.
 - **Required tests:** classification confusion matrix (gate: no private query auto-sent); scrubber property tests; permission-matrix tables; egress integration (fake servers); injection corpus (≥ 100 pages); audit completeness; offline behavior; fixture E2E.
 - **Acceptance criteria:** RES-01…RES-13, SEC-07, PLT-05.

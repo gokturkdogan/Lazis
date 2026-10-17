@@ -1,6 +1,6 @@
 # LAZIS — Technology Decisions
 
-> Status: Phase 0.1 (revised) · Research date: 2026-10-17 · Target: MacBook Pro M4 Pro (14 CPU / 20 GPU cores, Metal 4), 24 GB, macOS 27.0.1
+> Status: Phase 0.1 (revised), updated after Phase 1 (§12: stack as built; SPK-04/05 done) · Research date: 2026-10-17 · Target: MacBook Pro M4 Pro (14 CPU / 20 GPU cores, Metal 4), 24 GB, macOS 27.0.1
 > Convention: **Decision** = adopted for implementation. **Provisional** = adopted pending a named measurement (spike `SPK-xx`, §10). **Rejected** = considered and declined, with the reason.
 > Figures marked *(est.)* are engineering estimates, not measurements. **Nothing in this document has been benchmarked on the target machine yet.** Everything marked **VERIFY** is a scheduled spike. The measurement protocol and pass/fail gates are in [BENCHMARK_PLAN.md](BENCHMARK_PLAN.md).
 
@@ -12,7 +12,7 @@
 | OS | macOS 27.0.1 (26A434) |
 | GPU wired limit | `iogpu.wired_limit_mb = 0` (system default) |
 | Ollama | 0.40.4 installed, no models pulled; exposes `OLLAMA_NO_CLOUD`, `OLLAMA_KV_CACHE_TYPE`, `OLLAMA_CONTEXT_LENGTH`, `OLLAMA_KEEP_ALIVE`, `OLLAMA_NUM_PARALLEL` |
-| Toolchains | Rust 1.99.1, Node 24.10, pnpm 10.28, Swift 6.4, Docker 28.4, Homebrew Python 3.14/3.15 (system 3.9.6 is unsuitable); `uv` not installed |
+| Toolchains | Rust 1.99.1, Node 24.10, pnpm 10.28, Swift 6.4, Docker 28.4 (installed but **not used**: LAZIS must not depend on Docker), Homebrew Python 3.14/3.15 (system 3.9.6 is unsuitable); `uv` not installed at Phase 0 — P1 installed uv 0.13.1, which manages CPython 3.13.16 |
 | Disk | 121 GiB free (model set needs ~30–40 GB) |
 | Power | Laptop, on battery at time of check → benchmarks must run on AC power |
 
@@ -170,12 +170,12 @@ Phase 0 made the prompt **append-only** so that each turn would only prefill new
 | Env and packaging | **uv** (lockfile, Python management) | Poetry: slower, no Python management |
 | Web framework | **FastAPI** + uvicorn, Pydantic v2 | Litestar (fine, smaller ecosystem) |
 | HTTP client | **httpx** (async, timeouts, used only by the egress gateway and the provider adapters) | aiohttp |
-| SQLite driver | stdlib `sqlite3` if the uv-managed CPython allows `enable_load_extension`; otherwise **`apsw`** — **VERIFY (SPK-04)** | |
-| Encryption | **SQLCipher** via `sqlcipher3`, key from Keychain — **VERIFY (SPK-05)** that sqlite-vec + FTS5 load under SQLCipher; encrypted by default ([SECURITY_MODEL.md §5.1](SECURITY_MODEL.md)) | Field-level encryption: breaks search |
+| SQLite driver | **Decision (SPK-04, ADR-0003): `sqlcipher3` 0.6.4** (DB-API 2, same interface as `sqlite3`), imported only by `storage/driver.py`. The uv-managed stdlib `sqlite3` can also load extensions, but it cannot encrypt, so it is never used for data | `apsw`: not needed |
+| Encryption | **Decision (SPK-05 passed, ADR-0003): SQLCipher 4.19.0 community** (SQLite 3.53.4, bundled OpenSSL 3.6.0 in the official `sqlcipher3` wheel), raw 256-bit key from the Keychain via the Rust shell; sqlite-vec 0.1.9 and FTS5 work under it; encrypted by default ([SECURITY_MODEL.md §5.1](SECURITY_MODEL.md)) | Field-level encryption: breaks search |
 | Migrations | **Custom forward-only SQL runner** (numbered files, checksums, `schema_migrations` table, pre-migration backup) | Alembic/SQLAlchemy: heavy, and the virtual tables are raw SQL anyway |
 | Typing / lint | pyright (strict) or mypy `--strict`, ruff, `import-linter` for module contracts | |
 | Tests | pytest, pytest-asyncio, hypothesis | |
-| Config | TOML + pydantic-settings | |
+| Config | TOML + Pydantic v2 models with a small custom loader (TOML → `LAZIS_*` env → overrides) | pydantic-settings: not needed for three layers; the custom loader also controls error messages (no values leaked) |
 | Turkish NLP | own `text` module + **PyStemmer** (Snowball Turkish), `rapidfuzz` (Jaro-Winkler) | Zemberek (JVM): too heavy. Full morphological analysis deferred. |
 
 ---
@@ -245,7 +245,7 @@ Known constraints from Apple's guidance and developer reports: voice processing 
 
 | Concern | Decision |
 |---|---|
-| Search | **SearXNG** self-hosted (Docker, bound to 127.0.0.1) as the recommended backend; **`ddgs`** no-key fallback (scraping-based, fragile); **Wikipedia** API (tr + en) for reference queries; optional user-supplied free-tier key providers (never required) |
+| Search | **Docker-free and provider-agnostic** (owner requirement, Phase 1 brief): pluggable Python `SearchProvider` adapters. Defaults: **Wikipedia** API (tr + en) for reference queries and **`ddgs`** as the no-key web search (scraping-based, fragile, isolated behind the port); optional user-supplied free-tier key providers (never required); optional **SearXNG installed natively** in its own virtualenv (never Docker, never required). The Phase 0 recommendation "SearXNG in Docker" is **withdrawn** |
 | Fetch | httpx through the egress gateway: timeouts, size caps, content-type allowlist, no cookies, no JS |
 | Extraction | **trafilatura** (main-content extraction + metadata) |
 | JS-heavy pages | Deferred (Playwright is heavy); skip and report |
@@ -330,8 +330,8 @@ Spike IDs are phase-independent (Phase 0's `S1-x`/`S8-x` IDs are retired). Proto
 
 | ID | Phase | Question | Method | Blocks |
 |---|---|---|---|---|
-| SPK-04 | P1 | Do sqlite-vec + FTS5 load with uv-managed CPython 3.13 (`enable_load_extension`), or is `apsw` needed? | smoke test | storage driver ADR |
-| SPK-05 | P1 | SQLCipher + sqlite-vec + FTS5 compatibility; KNN/FTS performance on an encrypted 50k DB; page-cache sizing; Keychain item creation and access path | smoke + perf test | encryption-by-default ADR |
+| SPK-04 | P1 | Do sqlite-vec + FTS5 load with uv-managed CPython 3.13 (`enable_load_extension`), or is `apsw` needed? | smoke test | storage driver ADR — **done 2026-10-17: yes (stdlib and sqlcipher3); `apsw` not needed** |
+| SPK-05 | P1 | SQLCipher + sqlite-vec + FTS5 compatibility; KNN/FTS performance on an encrypted 50k DB; page-cache sizing; Keychain item creation and access path | smoke + perf test | encryption-by-default ADR — **done 2026-10-17: passed, see ADR-0003** |
 | SPK-01 | P2 | Turkish quality, tools and JSON across Qwen3.5-9B / Gemma 4 12B / Qwen3-14B / Qwen3-8B | bake-off B1–B8 | primary model ADR |
 | SPK-02 | P2 | Is JSON-schema `format` grammar-enforced on each Ollama runner, or only validated? | schema-violation stress test | extraction design |
 | SPK-03 | P2 | Prefix-cache reuse for append-only prompts per runner; tokenization round-trip drift (03b); compaction pre-warm; `prompt_eval_count` semantics | B3 | prompt layout, gate G4 |
@@ -359,3 +359,17 @@ Spike IDs are phase-independent (Phase 0's `S1-x`/`S8-x` IDs are retired). Proto
 - Silero VAD: https://github.com/snakers4/silero-vad/releases · Smart Turn: https://github.com/pipecat-ai/smart-turn, https://www.daily.co/blog/announcing-smart-turn-v3-with-cpu-inference-in-just-12ms/
 - Apple voice processing (WWDC19 session 510): https://developer.apple.com/videos/play/wwdc2019/510/ · AEC convergence thread: https://developer.apple.com/forums/thread/829784 · speech-swift: https://github.com/soniqo/speech-swift
 - Embeddings: Qwen3 Embedding paper https://arxiv.org/abs/2506.05176 · EmbeddingGemma: https://deepmind.google/models/gemma/embeddinggemma/
+
+## 12. Phase 1 stack as built (2026-10-17)
+
+Exact versions are locked in `core/uv.lock`, `apps/desktop/pnpm-lock.yaml` and `apps/desktop/src-tauri/Cargo.lock`.
+
+| Layer | Components (resolved versions) |
+|---|---|
+| Backend | CPython 3.13.16 (uv 0.13.1) · FastAPI 0.143.3 · uvicorn 0.54.0 · Pydantic 2.14.1 · sqlcipher3 0.6.4 (SQLCipher 4.19.0, SQLite 3.53.4) |
+| Backend dev | pytest 9.1.1 · httpx (TestClient) · ruff 0.17.1 · pyright 1.1.414 (strict) · import-linter 2.15 · pip-audit 2.10.1 · sqlite-vec 0.1.9 (spike group only) |
+| Shell | Rust 1.99.1 (edition 2024, MSRV 1.90) · Tauri 2.12.4 · tauri-plugin-single-instance 2.5.4 · tauri-plugin-log 2.10.1 · security-framework 3.7.0 (Keychain, `SecRandomCopyBytes`) · sha2 0.10 · zeroize 1.9 · libc 0.2 |
+| UI | Node 24.10 · pnpm 10.28.2 · Vue 3.5.44 · Pinia 4.1.0 · vue-i18n 11.4.14 · @tauri-apps/api 2.12.4 · TypeScript 5.9.3 · Vite 8.3.4 · Vitest 5.0.5 · happy-dom 21.0.3 · vue-tsc 3.3.13 · openapi-typescript 7.13.0 |
+| Task runner | GNU make (ships with the Command Line Tools); the planned `just` was not adopted to avoid an extra tool |
+
+Not used in P1: httpx at runtime (no outbound HTTP), Ollama, any model, Playwright (P4), Three.js (P14), Docker (never).

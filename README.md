@@ -2,13 +2,28 @@
 
 A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs.
 
-**Current phase:** Phase 0.1 complete (architecture revision and implementation readiness). No application code yet. Phase 1 starts only after explicit approval.
+**Current phase:** Phase 1 (foundation, secure storage, desktop bootstrap) implemented and verified — **awaiting the owner's approval**. Phase 2 has not started.
+
+What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. There is no AI model, conversation, memory, voice or internet access yet — by design.
+
+## Quick start
+
+```bash
+make setup   # needs uv, pnpm (Node 24+), Rust stable, Xcode Command Line Tools
+make dev     # run the desktop app (isolated "dev" profile)
+make check   # all linters and automated tests
+```
+
+Details: [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).
 
 ## Documentation
 
 | Document | Contents |
 |---|---|
-| [PHASE_0_FINAL_REVIEW.md](docs/PHASE_0_FINAL_REVIEW.md) | **Start here.** Implementation readiness report (Turkish): changes, final architecture, roadmap, risks, decisions, Phase 1 readiness |
+| [PHASE_1_REPORT.md](docs/PHASE_1_REPORT.md) | **Start here.** Phase 1 report (Turkish): what was built, how it was verified, measurements, security review, known issues, Phase 2 readiness |
+| [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Setup, commands, process lifecycle, profiles, database, keys and recovery, API, troubleshooting |
+| [adr/0003-storage-driver-and-encryption.md](docs/adr/0003-storage-driver-and-encryption.md) | ADR-0003: `sqlcipher3` driver, encryption by default, SPK-04/05 results |
+| [PHASE_0_FINAL_REVIEW.md](docs/PHASE_0_FINAL_REVIEW.md) | Implementation readiness report (Turkish): changes, final architecture, roadmap, risks, decisions, Phase 1 readiness |
 | [PROJECT_VISION.md](docs/PROJECT_VISION.md) | Vision, defining capability, pillars, principles, non-goals |
 | [REQUIREMENTS.md](docs/REQUIREMENTS.md) | Functional and non-functional requirements (IDs, priorities, phases P1–P15) |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Processes, module map and dependency rules, data flows, cache-aware prompt layout, API contracts, state machine, errors, configuration, repository structure |

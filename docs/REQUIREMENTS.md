@@ -158,7 +158,7 @@ It builds this knowledge progressively, from conversations and from authorized l
 | ID | Requirement | Pri | Phase |
 |---|---|---|---|
 | RES-01 | Detects when external information is needed (current events, recent technology, unknown facts, verification). | M | P12 |
-| RES-02 | No mandatory paid search API. Default backends: self-hosted SearXNG, Wikipedia, a no-key fallback. | M | P12 |
+| RES-02 | No mandatory paid search API and no Docker. Default backends: Wikipedia and a no-key search library; self-hosted SearXNG (native install) is optional. Providers are pluggable. | M | P12 |
 | RES-03 ★ | Privacy scrubbing: private entities, personal context, identifiers and confidential project names are removed. Public entity names needed for the search are kept. The exact sent query is visible. | M | P12 |
 | RES-04 | Content extraction, source citations and cross-source verification. | M | P12 |
 | RES-05 | Prompt-injection defenses: quarantined reading without tools, quote verification, taint enforcement. Research content can never issue instructions, change settings or trigger actions. | M | P12 |

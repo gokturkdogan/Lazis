@@ -1,0 +1,108 @@
+/* LAZIS — dark, calm, futuristic. Functionality first; effects are subtle and optional. */
+:root {
+  --bg: #060a13;
+  --bg-elevated: #0b1221;
+  --panel: rgba(16, 26, 46, 0.72);
+  --panel-border: rgba(92, 146, 255, 0.18);
+  --panel-border-strong: rgba(92, 146, 255, 0.38);
+  --text: #e6edf8;
+  --text-muted: #8c9bb6;
+  --text-faint: #5c6a85;
+  /* State colors (UI_ARCHITECTURE §4.2): shared with the future neural core. */
+  --state-idle: #3aa0ff;
+  --state-listening: #9b5cff;
+  --state-thinking: #ffc83a;
+  --state-speaking: #3dff9a;
+  --state-error: #ff3b3b;
+  --ok: #3ddc97;
+  --warn: #ffc83a;
+  --danger: #ff5a5a;
+  --radius: 14px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(1200px 700px at 15% -10%, rgba(58, 160, 255, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 110% 110%, rgba(155, 92, 255, 0.07), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--state-idle);
+  outline-offset: 2px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+}
+
+.btn {
+  border: 1px solid var(--panel-border-strong);
+  background: rgba(58, 160, 255, 0.12);
+  padding: 8px 16px;
+  border-radius: 10px;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(58, 160, 255, 0.22);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, rgba(58, 160, 255, 0.85), rgba(110, 120, 255, 0.85));
+  border-color: transparent;
+  color: #fff;
+}
+
+.mono {
+  font-family: var(--mono);
+  user-select: text;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

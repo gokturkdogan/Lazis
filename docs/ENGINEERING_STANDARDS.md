@@ -55,7 +55,7 @@ Audio I/O only (VPIO capture/playback, resampling, levels, devices). No ML, no b
 - **`import-linter` contracts (CI gate):**
   - layered: interface → orchestration → domain → platform;
   - the domain DAG ([ARCHITECTURE.md §4](ARCHITECTURE.md));
-  - only `security.egress` makes non-loopback HTTP calls (local inference adapters may call loopback only; research providers, including the local SearXNG, always go through the gateway);
+  - only `security.egress` makes non-loopback HTTP calls (local inference adapters may call loopback only; research providers, including an optional local SearXNG, always go through the gateway);
   - only `storage` imports the SQLite driver;
   - only `graph` writes entity/alias/relationship/mention tables.
 - Modules communicate through their public interfaces and domain types, never through each other's tables or internal classes.
@@ -81,7 +81,7 @@ Updates are deliberate (a batch review per phase gate), with changelog review. `
 | MIT, BSD-2/3, Apache-2.0, ISC, PSF, Zlib, Unlicense | Allowed |
 | MPL-2.0 | Allowed if unmodified (file-level copyleft) |
 | LGPL | Review required (dynamic linking only) |
-| GPL / AGPL | **Not linked** into LAZIS processes. A separate, unmodified process is acceptable (e.g., SearXNG in Docker). PyMuPDF (AGPL) is rejected |
+| GPL / AGPL | **Not linked** into LAZIS processes. A separate, unmodified process is acceptable (e.g., an optional natively installed SearXNG). LAZIS never depends on Docker. PyMuPDF (AGPL) is rejected |
 | Model licenses (Apache-2.0 models, Gemma terms, OpenRAIL-M, CPML, CC-BY-NC) | Recorded per model. Non-commercial licenses are acceptable **only** as optional candidates under the personal-use assumption, and are flagged |
 
 `THIRD_PARTY_LICENSES.md` is generated per release (P15) from the lockfiles and the model manifest.

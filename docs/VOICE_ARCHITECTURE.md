@@ -3,6 +3,7 @@
 > Status: Phase 0.1 (revised) · Last updated: 2026-10-17 · Delivered in **P13**. A feasibility smoke test (memory + RTF only) runs in P2 (SPK-07)
 > Technology rationale: [TECHNOLOGY_DECISIONS.md §6](TECHNOLOGY_DECISIONS.md) · Evaluation suites, gates and decision rules: [BENCHMARK_PLAN.md §7](BENCHMARK_PLAN.md)
 > **No voice component has been measured on the target machine.** STT and TTS engines are *candidates* until the P13 tests choose them.
+> P1 status: no audio code exists. The config type-locks `voice.enabled = false` and `voice.microphone_always_on = false` (other values fail validation), and the app bundle declares no `NSMicrophoneUsageDescription`, so macOS cannot grant microphone access to this build at all. The microphone must never stay open while voice is disabled; in P13 it opens only for push-to-talk or an explicit hands-free session.
 
 ## 1. Goals and targets
 

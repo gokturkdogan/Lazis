@@ -1,6 +1,8 @@
 # LAZIS — Research Architecture
 
-> Status: Phase 0.1 (revised) · Last updated: 2026-10-17 · Delivered in **P12**
+> Status: Phase 0.1 (revised), aligned with the Phase 1 requirements · Last updated: 2026-10-17 · Delivered in **P12**
+> Owner requirements (Phase 1 brief): research is **Python-based, provider-agnostic, lightweight, Docker-free and privacy-controlled**, and internet access is **disabled by default**. LAZIS never requires Docker, for research or anything else.
+> P1 status: only the configuration exists — `research.mode` defaults to `offline_only` and any other value is rejected until P12; the backend's network guard blocks every non-loopback connection.
 > Principles: **the internet is an optional, controlled, visible capability.** Public information may be searched freely once the user enables it. Private information does not leave the device without an authorization policy. Web content never becomes trusted personal memory, and it never issues instructions.
 
 ## 1. Permission model
@@ -9,7 +11,7 @@
 
 | Mode | Behavior | Default |
 |---|---|---|
-| `offline` | No network access at all. Research needs are answered from local knowledge, with a staleness caveat | **Yes, until the user enables research** |
+| `offline_only` | No network access at all. Research needs are answered from local knowledge, with a staleness caveat | **Yes, until the user enables research** |
 | `ask_per_session` | LAZIS shows the planned queries once per **research session**, and the user approves or declines them as a group | — |
 | `auto_public` | Ordinary **public-information** searches run automatically, with no confirmation. Queries that are private, sensitive or ambiguous still ask (§1.2) | Recommended once the user enables research |
 | `custom` | Ordered user rules decide per query (§1.3) | — |
@@ -18,7 +20,7 @@ A **research session** is the set of queries and fetches generated to answer one
 
 ### 1.2 Decision table by query class
 
-| Query class (§3) | `offline` | `ask_per_session` | `auto_public` | `custom` |
+| Query class (§3) | `offline_only` | `ask_per_session` | `auto_public` | `custom` |
 |---|---|---|---|---|
 | **public** (no private context) | none | ask once per session | **automatic** | rules |
 | **mixed**: private context that can be removed (query rewritten without it) | none | ask | **automatic after scrubbing** (the sent query is shown) | rules |
@@ -31,12 +33,12 @@ A **research session** is the set of queries and fetches generated to answer one
 
 ```toml
 [research]
-mode = "offline"                    # offline | ask_per_session | auto_public | custom
+mode = "offline_only"               # offline_only | ask_per_session | auto_public | custom
 sensitive_topics = "ask"            # ask | deny | allow
 max_queries_per_session = 4
 max_fetches_per_session = 6
 session_timeout_s = 20
-providers = ["searxng", "wikipedia", "ddgs"]   # in priority order
+providers = ["wikipedia", "ddgs"]  # in priority order; "searxng" can be added if the user runs it natively
 show_sent_queries = true            # always show the exact outbound query in the UI
 
 [[research.rules]]                  # evaluated top-down, first match wins (custom mode; other modes use built-ins)
@@ -66,7 +68,7 @@ flowchart TD
     T[User turn] --> ND{Search intent detection}
     ND -- not needed --> LOCAL[Answer from local knowledge + memory]
     ND -- needed --> MODE{research.mode}
-    MODE -- offline --> OFF[Offline answer<br/>+ staleness caveat]
+    MODE -- offline_only --> OFF[Offline answer<br/>+ staleness caveat]
     MODE -- online modes --> QB[Query builder<br/>LLM: 1–3 queries, Turkish and/or English]
     QB --> QC[Query classification<br/>public · mixed · private · sensitive · ambiguous · restricted]
     QC --> SCR[Privacy scrubber<br/>remove private entities and context;<br/>keep public names]
@@ -127,14 +129,16 @@ Deterministic and applied to every query in every mode:
 - Never sends conversation text, memory content or document passages, and sends no referrer headers.
 - If the scrubbed query loses the information need (e.g., "X kimdir?" about a private person), the query is reclassified as **private** and the permission decision applies.
 
-## 4. Search providers (no mandatory paid APIs)
+## 4. Search providers (no mandatory paid APIs, no Docker)
+
+Providers are plain Python adapters behind one `SearchProvider` port, so they can be added, removed or reordered without touching the research pipeline. Nothing in this list needs Docker, and none is required: research degrades to "no provider available" rather than failing the app.
 
 | Provider | Setup | Privacy | Notes |
 |---|---|---|---|
-| **SearXNG** (recommended) | Docker container bound to `127.0.0.1:8888`, managed by `scripts/searxng.sh` | Queries proxied with no user identity; engines configurable | AGPL; unmodified self-host |
 | **Wikipedia** (tr, en) | none (public API) | Low sensitivity | Reference and encyclopedic queries; strong source type |
 | **ddgs** (fallback) | none (Python library) | Direct to DuckDuckGo endpoints | Scraping-based, so it can break; isolated behind `SearchProvider` |
 | User-supplied key providers | optional, user's own free-tier key | per provider | Never required, never default |
+| **SearXNG** (optional, advanced) | **Native** install in its own Python virtualenv (no Docker), bound to `127.0.0.1:8888`; P12 provides a helper script and docs. Treated like any other loopback service that forwards queries to the internet, so it still goes through the egress policy | Queries proxied with no user identity; engines configurable | AGPL; run as a separate, unmodified process, never linked into LAZIS. Not installed by default (it is a heavier dependency than the lightweight default set) |
 
 Providers return normalized `SearchHit{url, title, snippet, provider, rank, published_at?}`. Ranking merges by reciprocal rank, dedupes by canonical URL, caps results per domain at 2 (diversity), and applies the credibility prior (§6).
 

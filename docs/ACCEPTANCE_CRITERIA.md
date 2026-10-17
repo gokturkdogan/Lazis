@@ -143,7 +143,7 @@
 
 | ID | Criterion | Method |
 |---|---|---|
-| RES-08 | Default mode is `offline` on a fresh install. In `auto_public`, 100% of public-class fixture queries run without a prompt. In `ask_per_session`, exactly one approval per session | permission tests |
+| RES-08 | Default mode is `offline_only` on a fresh install. In `auto_public`, 100% of public-class fixture queries run without a prompt. In `ask_per_session`, exactly one approval per session | permission tests |
 | RES-09 | Classification set (≥ 300): **0** private-class queries sent automatically; public recall ≥ 95% | confusion matrix |
 | RES-03 | 0 private entity names, aliases or identifiers in outbound queries across the scrubber suite (≥ 500 generated cases); public names preserved in ≥ 98% of public cases | property tests |
 | RES-10 | Sensitive-topic queries ask in `auto_public` in 100% of cases (default config); restricted data blocked in 100% of cases in every mode | permission tests |
@@ -153,7 +153,7 @@
 | RES-13 | No cached result past its TTL is used online; offline use of stale cache always carries the caveat | cache tests |
 | RES-06 | Offline: research requests degrade to a caveated answer within 1 s, with no network attempts | offline test |
 | RES-07 | Research never creates or modifies personal knowledge without explicit promotion | invariant test |
-| RES-02 | Research works with SearXNG and, when SearXNG is unavailable, with the Wikipedia + ddgs fallback; no paid key is ever required | integration tests |
+| RES-02 | Research works with the default Docker-free providers (Wikipedia + ddgs) and, when the user has installed it natively, with SearXNG; no paid key and no Docker are ever required | integration tests |
 | RES-11 | The credibility prior changes ranking as specified (fixture ranking test); single-source claims are phrased as unverified in 100% of fixture answers | fixture tests |
 
 ## 10. UI
@@ -177,7 +177,7 @@
 | SEC-14 | Every listed event category writes an audit row; audit rows contain no message or memory content | audit tests + content scan |
 | SEC-15 | Trust-class tests: T0–T2 evidence never yields Level A for high-impact personal facts; web content never yields any memory | policy tests |
 | SEC-06 | Requests without the token or with a foreign Origin are rejected (401/403); the backend is not reachable from another host | security tests |
-| SEC-07 | Only `security.egress` can open non-loopback connections, and all research traffic (including to local SearXNG) passes through it (CI socket guard); deny-all until research is enabled | CI test |
+| SEC-07 | Only `security.egress` can open non-loopback connections, and all research traffic (including to an optional local SearXNG) passes through it (CI socket guard); deny-all until research is enabled | CI test |
 | SEC-08 | Tool permission matrix tests: no tool executes shell or writes files; tainted turns cannot invoke write tools; settings cannot be changed via tools | tool policy tests |
 | SEC-10 | Seeded secrets and bootstrap names never appear in log files at the default level | log-redaction test |
 | SEC-11 | Startup verifies model hashes; pickle-based weight files are refused | test |
