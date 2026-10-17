@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from lazis.config.model import ResearchMode
+from lazis.security.network_guard import SandboxStatus
 
 
 class _Schema(BaseModel):
@@ -74,6 +75,9 @@ class PrivacyStatus(_Schema):
     research_mode: ResearchMode
     microphone: Literal["off"]
     voice_enabled: bool
+    # "enforced": the OS denies this process (and its children) network access to other
+    # hosts. "not_enforced"/"unknown": only the application-level guard applies.
+    os_network_sandbox: SandboxStatus
 
 
 class AiStatus(_Schema):

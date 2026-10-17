@@ -71,3 +71,61 @@ FTS5 cost of encryption: negligible.
 - **`apsw` with a SQLCipher build:** unnecessary; `sqlcipher3` works and keeps the DB-API interface.
 - **Field-level encryption:** rejected; breaks FTS5 and vector search.
 - **Separate plaintext vector index:** rejected; embeddings can leak content.
+
+## Amendment 1 (Phase 1.1, 2026-10-17): crash-safe restore
+
+**Problem found in review.** `restore_snapshot` (Phase 1) had four weaknesses:
+
+- **WAL deleted before the replace.** It deleted the target's `-wal`/`-shm`/`-journal` *before* `os.replace`. If the replace then failed, the newest committed transactions, which may exist only in the WAL, were gone. A test now shows such data is absent from the main file alone.
+- **No copy of the replaced database** was kept.
+- **No durability:** there was no `fsync` of the copy or the directory.
+- **No interlock or recovery:** nothing stopped a restore while a backend had the database open, and an interrupted restore had no recovery path.
+
+**Decision.** The protocol in the module docstring of `core/src/lazis/storage/backup.py` and [SECURITY_MODEL.md §5.1](../SECURITY_MODEL.md):
+
+1. The data-directory lock (now owned by `storage` and held for as long as a database is open).
+2. Validation:
+   - the manifest is required and its SHA-256 must match;
+   - the snapshot must open with the key;
+   - `quick_check` and `cipher_integrity_check` must pass;
+   - the LAZIS schema must be present and not newer than the app.
+3. A durable (`F_FULLFSYNC`) staged copy inside the data directory, re-verified.
+4. The current files are *moved* (renamed) aside, never deleted.
+5. Install and verify the staged copy.
+6. **Commit point:** an atomic directory rename of the moved files to `backups/pre-restore-<stamp>/`; the last 3 are kept.
+
+Errors before the commit roll back immediately. Crashes before the commit are rolled back by `recover_interrupted_restore`, which `open_storage` runs before opening anything; the state is inferred from which files exist, so recovery is idempotent. Snapshots also became stricter:
+
+- a failed export leaves no partial file;
+- the manifest is written atomically;
+- labels are validated.
+
+**Evidence** (`core/tests/integration/test_restore_safety.py`, synthetic data, 36 tests):
+
+- Backup → restore yields a logically identical database: same row count and checksum for every table, including history and the audit log (SEC-05).
+- The successful path keeps the replaced database *including its WAL* and reopens it with the newest value.
+- Restore into an empty directory works.
+- 8 kinds of bad backup and a wrong key are rejected with the database byte-for-byte unchanged. The 8 kinds:
+  - random bytes;
+  - a bit flip with the manifest unchanged;
+  - a bit flip with the manifest rewritten (caught by the page HMAC);
+  - a missing manifest;
+  - a truncated file;
+  - a plaintext SQLite file;
+  - a non-LAZIS database;
+  - a newer schema.
+- Injected failures at 7 steps roll back to an identical original. The steps are:
+  - ENOSPC while staging;
+  - errors after staging;
+  - EACCES/EIO while moving each file;
+  - after install;
+  - after verification.
+- Real process exits (`os._exit`) at the same 7 steps are rolled back at the next start. A crash after the commit keeps the restored database.
+- A really read-only data directory leaves the original intact, and the next start cleans up.
+- A restore is refused while the database is open. Recovery is audited (`backup/restore_recovered`).
+
+**Not covered** (documented in the Phase 1.1 report):
+
+- A real power cut, which was not tested.
+- The guarantee assumes the data directory is one local APFS volume, where `rename` is atomic.
+- A restore UI does not exist yet; restore is a library function until P6.

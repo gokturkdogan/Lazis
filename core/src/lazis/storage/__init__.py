@@ -11,9 +11,10 @@ from lazis.config.model import StorageSection
 from lazis.observability.logging import get_logger, log_event
 from lazis.security.secrets import SecretBytes
 from lazis.storage import driver
-from lazis.storage.backup import create_snapshot
+from lazis.storage.backup import create_snapshot, recover_interrupted_restore
 from lazis.storage.database import Database
 from lazis.storage.driver import Connection
+from lazis.storage.lock import DataDirLock
 from lazis.storage.migrations import Migration, MigrationResult, load_migrations, migrate
 from lazis.storage.repositories import ensure_instance_meta, write_audit
 
@@ -44,9 +45,20 @@ def open_storage(
         sqlite_version=sqlite_version,
     )
 
-    db = Database(section.database_path, key)
-    db.open()
+    # The data-directory lock is held for as long as the database is open (released by
+    # Database.close): a second backend or a restore is refused while it is held.
+    lock = DataDirLock(section.data_dir)
+    lock.acquire()
     try:
+        recovered = recover_interrupted_restore(section.database_path)
+    except BaseException:
+        lock.release()
+        raise
+    if recovered is not None:
+        log_event(_log, logging.WARNING, "storage.interrupted_restore_recovered", outcome=recovered)
+    db = Database(section.database_path, key, lock=lock)
+    try:
+        db.open()
         steps = list(migrations) if migrations is not None else load_migrations("lazis")
 
         def _backup_before(conn: Connection, current: int, pending: Sequence[Migration]) -> None:
@@ -93,6 +105,17 @@ def open_storage(
             )
 
         meta = db.run_sync(lambda conn: ensure_instance_meta(conn, app_version=app_version))
+        if recovered is not None:
+            outcome = recovered
+            db.run_sync(
+                lambda conn: write_audit(
+                    conn,
+                    category="backup",
+                    action="restore_recovered",
+                    outcome="success",
+                    reason_code=outcome,
+                )
+            )
         db.assert_encrypted_on_disk()
         db.fix_permissions()
         if section.quick_check_on_startup:

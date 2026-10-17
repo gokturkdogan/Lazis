@@ -42,6 +42,14 @@ export const tr = {
     python: "Python",
     network: "İnternet erişimi",
     networkOff: "Kapalı",
+    osSandbox: "İşletim sistemi ağ kısıtı",
+    osSandboxOn: "Etkin",
+    osSandboxOff: "Yok (yalnızca uygulama kısıtı)",
+    osSandboxUnknown: "Doğrulanamadı",
+    fileVault: "FileVault disk şifreleme",
+    fileVaultOn: "Açık",
+    fileVaultOff: "Kapalı — Sistem Ayarları › Gizlilik ve Güvenlik",
+    fileVaultUnknown: "Bilinmiyor",
     research: "Araştırma modu",
     researchOffline: "Yalnızca çevrimdışı",
     microphone: "Mikrofon",
@@ -103,6 +111,10 @@ export const tr = {
     warning:
       "Bu kodu parola yöneticinizde veya güvenli bir yerde saklayın. Kodu bilen herkes " +
       "verilerinizi açabilir. Kod kaybolursa ve anahtar silinirse veriler kurtarılamaz.",
+    clipboard:
+      "Kodu kopyalarsanız, parola yöneticinize yapıştırdıktan sonra panoya başka bir şey " +
+      "kopyalayın: Pano geçmişi uygulamaları ve Evrensel Pano kodu başka yerlere taşıyabilir. " +
+      "LAZIS kodu hiçbir yere göndermez ve bir kopyasını saklamaz.",
     reveal: "Kodu göster",
     confirm: "Kodu güvenli bir yere kaydettim",
     done: "Devam et",
@@ -144,6 +156,9 @@ export const tr = {
     not_found: "İstenen kaynak bulunamadı.",
     validation_error: "İstek doğrulanamadı.",
     network_blocked: "Ağ erişimi kapalı.",
+    network_sandbox_unavailable:
+      "İşletim sistemi ağ kısıtı uygulanamadı. Güvenlik nedeniyle arka uç başlatılmadı.",
+    restore_failed: "Yedek geri yüklenemedi. Mevcut veritabanınız değiştirilmedi.",
   },
 } as const;
 

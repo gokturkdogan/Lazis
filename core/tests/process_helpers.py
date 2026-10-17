@@ -53,11 +53,14 @@ def start_backend(
     send_secrets: bool = True,
     extra_args: list[str] | None = None,
     timeout: float = 30,
+    prefix: list[str] | None = None,
+    pass_fds: tuple[int, ...] = (),
 ) -> Backend:
     token = token or secrets.token_hex(32)
     key_hex = key_hex or secrets.token_hex(32)
     data_dir, log_dir = root / "data", root / "logs"
     args = [
+        *(prefix or []),
         sys.executable,
         "-I",
         "-m",
@@ -76,7 +79,11 @@ def start_backend(
     ]
     started = time.monotonic()
     proc = subprocess.Popen(
-        args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        args,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        pass_fds=pass_fds,
     )
     backend = Backend(proc, token, key_hex, data_dir, log_dir)
     assert proc.stdin is not None and proc.stdout is not None

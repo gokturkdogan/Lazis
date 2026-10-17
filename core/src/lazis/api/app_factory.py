@@ -39,6 +39,7 @@ from lazis.api.security import LocalApiGuard, TokenBucket, error_payload
 from lazis.config.model import Settings
 from lazis.errors import LazisError
 from lazis.observability.logging import get_logger, log_event
+from lazis.security.network_guard import SandboxStatus
 from lazis.storage import StorageHandle
 
 _log = get_logger("api")
@@ -62,6 +63,7 @@ class ApiContext:
     on_startup: Callable[[], None] | None = None
     on_shutdown: Callable[[], None] | None = None
     on_denied: Callable[[str], None] | None = None
+    os_network_sandbox: SandboxStatus = "unknown"
 
     def require_storage(self) -> StorageHandle:
         if self.storage is None:
@@ -74,6 +76,14 @@ def _json_error(status: int, code: str, recoverable: bool, request: Request) -> 
     return JSONResponse(
         status_code=status, content=json.loads(error_payload(code, recoverable, request_id))
     )
+
+
+def _platform_label() -> str:
+    # platform.platform() would run `uname -p` in a subprocess on macOS; the backend never
+    # starts other programs (the guard refuses it), so build the same label directly.
+    if sys.platform == "darwin":
+        return f"macOS-{platform.mac_ver()[0]}"
+    return f"{platform.system()}-{platform.release()}"
 
 
 def create_app(ctx: ApiContext) -> FastAPI:
@@ -151,7 +161,7 @@ def create_app(ctx: ApiContext) -> FastAPI:
                 uptime_seconds=round(time.monotonic() - ctx.started_monotonic, 3),
                 peak_rss_bytes=int(peak_rss),
                 python_version=platform.python_version(),
-                platform=platform.platform(terse=True),
+                platform=_platform_label(),
                 machine=platform.machine(),
             ),
             database=DatabaseStatusModel(
@@ -173,6 +183,7 @@ def create_app(ctx: ApiContext) -> FastAPI:
                 research_mode=ctx.settings.research.mode,
                 microphone="off",
                 voice_enabled=ctx.settings.voice.enabled,
+                os_network_sandbox=ctx.os_network_sandbox,
             ),
             ai=AiStatus(
                 configured=False,

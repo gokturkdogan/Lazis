@@ -82,6 +82,19 @@ fn wait_until(timeout: Duration, mut condition: impl FnMut() -> bool) -> bool {
     condition()
 }
 
+/// Contents of every database file in the profile (the lock file is excluded).
+fn data_fingerprint(profile: &Profile) -> Vec<(String, Vec<u8>)> {
+    let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(&profile.data_dir)
+        .unwrap()
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().starts_with("lazis.db"))
+        .map(|e| (e.file_name().to_string_lossy().into_owned(), std::fs::read(e.path()).unwrap()))
+        .collect();
+    files.sort();
+    assert!(!files.is_empty());
+    files
+}
+
 fn assert_encrypted_database(profile: &Profile) {
     let db = std::fs::read(profile.data_dir.join("lazis.db")).expect("database file");
     assert!(db.len() >= 4096);
@@ -105,6 +118,9 @@ fn first_run_restart_and_recovery_flow() {
     let (status, body) = http_get(port, "/api/v1/system/status", Some(&token));
     assert_eq!(status, 200, "{body}");
     assert!(body.contains("\"encrypted\":true"), "{body}");
+    // The backend runs under the OS network sandbox and confirmed it itself.
+    assert!(body.contains("\"os_network_sandbox\":\"enforced\""), "{body}");
+    assert!(["on", "off", "unknown"].contains(&dto.file_vault));
     assert_eq!(http_get(port, "/api/v1/health", None).0, 401);
     let key = store.load().unwrap().expect("key stored before the database was created");
     let code = c.reveal_recovery_code().unwrap();
@@ -139,13 +155,21 @@ fn first_run_restart_and_recovery_flow() {
     assert!(empty.load().unwrap().is_none());
     assert_eq!(c.retry().phase, Phase::NeedsRecovery);
 
+    let before = data_fingerprint(&profile);
     // 3a. Malformed code.
     assert_eq!(c.restore_from_recovery_code("LZR1-NOPE").unwrap_err().code, "recovery_code_invalid");
+    // 3a'. Right length, one character changed (checksum catches it).
+    let mut corrupted: Vec<char> = code.chars().collect();
+    corrupted[10] = if corrupted[10] == 'X' { 'Y' } else { 'X' };
+    let corrupted: String = corrupted.into_iter().collect();
+    assert_eq!(c.restore_from_recovery_code(&corrupted).unwrap_err().code, "recovery_code_invalid");
     // 3b. Well-formed code for a different key: refused, nothing stored.
     let other = recovery::encode(&DbKey::generate().unwrap());
     assert_eq!(c.restore_from_recovery_code(&other).unwrap_err().code, "recovery_code_wrong_database");
     assert_eq!(c.snapshot().phase, Phase::NeedsRecovery);
     assert!(empty.load().unwrap().is_none());
+    // Failed attempts never modify the encrypted database.
+    assert_eq!(data_fingerprint(&profile), before, "a failed recovery attempt changed the database");
     // 3c. Correct code (typed sloppily): database opens, key is stored again.
     let sloppy = code.to_lowercase().replace('-', " ");
     let dto = c.restore_from_recovery_code(&sloppy).unwrap();
@@ -163,7 +187,9 @@ fn wrong_key_in_keychain_needs_recovery() {
     let c = controller(home.path(), Arc::clone(&store));
     assert_eq!(c.start().phase, Phase::Ready);
     c.shutdown();
+    let profile = c.profile().clone();
     drop(c);
+    let before = data_fingerprint(&profile);
 
     let wrong = Arc::new(MemoryKeyStore::with_key(DbKey::generate().unwrap()));
     let c = controller(home.path(), wrong);
@@ -171,6 +197,7 @@ fn wrong_key_in_keychain_needs_recovery() {
     assert_eq!(dto.phase, Phase::NeedsRecovery);
     assert_eq!(dto.error_code.as_deref(), Some("database_key_invalid"));
     assert!(c.backend_pid().is_none());
+    assert_eq!(data_fingerprint(&profile), before, "opening with a wrong key changed the database");
 }
 
 #[test]

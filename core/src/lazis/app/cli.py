@@ -24,6 +24,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
             log_dir=args.log_dir,
             config_path=args.config,
             secrets_timeout=args.secrets_timeout,
+            require_os_sandbox=args.require_os_sandbox,
         )
     )
 
@@ -66,6 +67,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--log-dir", type=Path)
     serve.add_argument("--config", type=Path, help="user config TOML (optional)")
     serve.add_argument("--secrets-timeout", type=float)
+    serve.add_argument(
+        "--require-os-sandbox",
+        action="store_true",
+        help="refuse to start unless the OS network sandbox is in effect (set by the shell)",
+    )
     serve.set_defaults(func=_cmd_serve)
 
     sub.add_parser("openapi", help="print the OpenAPI schema").set_defaults(func=_cmd_openapi)

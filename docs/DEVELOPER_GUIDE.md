@@ -1,6 +1,6 @@
 # LAZIS — Developer Guide
 
-> Status: Phase 1 (foundation) · Last updated: 2026-10-17
+> Status: Phase 1 (foundation) + Phase 1.1 hardening · Last updated: 2026-10-17
 > What exists today: an encrypted local backend, a Tauri desktop shell that owns the database key, and a Turkish status UI. There is **no AI, no conversation, no memory, no voice and no internet access** yet. Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · Security: [SECURITY_MODEL.md](SECURITY_MODEL.md) · Phase report (Turkish): [PHASE_1_REPORT.md](PHASE_1_REPORT.md).
 
 ## 1. Prerequisites
@@ -46,13 +46,16 @@ See [ARCHITECTURE.md §13.1](ARCHITECTURE.md). In short: `core/` is the Python b
 ## 4. How the pieces start and stop
 
 ```
-LAZIS.app (Rust)                                   lazis-core (Python)
- ├─ resolve profile (default | dev | LAZIS_PROFILE)
+LAZIS.app (Rust)                                   lazis-core (Python, under sandbox-exec)
+ ├─ resolve profile (default | dev | LAZIS_PROFILE); read FileVault state (fdesetup)
  ├─ Keychain: load key  ── missing & no DB → generate, store, read back
  │                      └─ missing & DB exists → needs_recovery (UI asks for the recovery code)
- ├─ spawn  python -I -m lazis serve --stdin-secrets …  (cleared environment)
+ ├─ spawn  sandbox-exec -p sandbox/backend.sb  python -I -m lazis serve
+ │         --stdin-secrets --require-os-sandbox …     → close descriptors inherited from the shell
+ │         (cleared environment)                      → verify the OS network sandbox (else FATAL)
  ├─ stdin  {"version":1,"session_token":…,"db_key":…}\n   → reads secrets (10 s timeout)
- │  (stdin stays open = lifeline)                          → flock instance lock
+ │  (stdin stays open = lifeline)                          → data-directory lock (flock)
+ │                                                          → roll back an interrupted restore, if any
  │                                                          → open SQLCipher DB, verify encryption,
  │                                                            pre-migration backup, migrate
  ├─ stdout ← LAZIS_READY {"port":…,"pid":…}   or  LAZIS_FATAL {"code":…} (exit 3)
@@ -62,6 +65,8 @@ LAZIS.app (Rust)                                   lazis-core (Python)
 ```
 
 If the shell dies without cleanup, the pipe closes and the backend shuts itself down; a parent-PID watcher is a second guard. Ports are chosen by the OS (`port=0`), so there are no conflicts.
+
+The backend refuses to start other programs and to open sockets to non-loopback addresses (application guard), and — when started by the shell — cannot reach another host at all (OS sandbox, [ADR-0009](adr/0009-backend-network-sandbox.md)). Never add code that needs either; P12 research will run in a separate helper.
 
 Running the backend alone (tests do this): `cd core && uv run python -m lazis serve --stdin-secrets --data-dir /tmp/x --log-dir /tmp/x` and write the secrets JSON line to stdin. Without `--stdin-secrets` it refuses to start. `uv run python -m lazis check-driver` prints the SQLCipher version; `uv run python -m lazis openapi` prints the API schema.
 
@@ -92,7 +97,8 @@ Never delete the Keychain item of a profile whose data you want to keep unless y
 - **Opening:** driver check (`cipher_version`) → refuse a plaintext file → key → wrong key = `database_key_invalid` → pragmas → migrate → header must not be plaintext → permissions 0600 → `quick_check` + `cipher_integrity_check`.
 - **Migrations:** `core/src/lazis/storage/migrations/lazis/NNNN_name.sql`, contiguous numbers, forward only, each applied atomically, checksums recorded in `schema_migrations`. A changed or unknown applied migration stops startup (`migration_failed`). Before pending migrations run on an existing database, an encrypted snapshot is taken into `data.noindex/backups/` (retention 10). Add a migration by adding the next file — never edit an applied one.
 - **Change sets:** write user-visible data inside `UnitOfWork(conn, actor=…, kind=…)`; call `snapshot()` before and `record()` after each change. `revert_change_set()` restores earlier versions and reports conflicts instead of overwriting later edits. Only tables listed in `REVERTIBLE_TABLES` take part (P1: `settings`).
-- **Backups:** `create_snapshot` (`sqlcipher_export` into an encrypted file + SHA-256 manifest), `verify_snapshot`, `restore_snapshot` (verifies before an atomic replace).
+- **Backups:** `create_snapshot` (`sqlcipher_export` into an encrypted, durable, verified file + atomically written SHA-256 manifest; nothing left behind on failure) and `verify_snapshot` (key, `quick_check`, `cipher_integrity_check`, LAZIS schema, optional max schema version).
+- **Restore:** `restore_snapshot(snapshot, db_path, key)` takes the data-directory lock (fails with `instance_already_running` while any process has the DB open), requires the manifest, stages and re-verifies a copy, moves the current DB and its `-wal`/`-shm` aside, installs, verifies and commits by renaming the old files to `backups/pre-restore-<stamp>/` (last 3 kept). Failures roll back; crashes are rolled back by the next `open_storage`. The `fault=` argument is a test seam for failure injection. Details and evidence: [ADR-0003, Amendment 1](adr/0003-storage-driver-and-encryption.md).
 
 ## 7. Keys and recovery
 
@@ -118,6 +124,9 @@ Base `http://127.0.0.1:{port}/api/v1`; every request needs `Authorization: Beare
 | `keychain_denied` | the Keychain prompt was denied or the keychain is locked → unlock, then "Yeniden dene" |
 | `database_key_missing` / `database_key_invalid` | the Keychain item is gone or does not match → enter the recovery code |
 | `encryption_unavailable` | the `sqlcipher3` wheel is not the SQLCipher build → `make setup` again |
+| `network_sandbox_unavailable` | `/usr/bin/sandbox-exec` is missing or the profile did not take effect; the backend is never run without it (see ADR-0009) |
+| `restore_failed` | a restore was rejected or rolled back; the previous database is unchanged (details in `core.log`) |
+| FileVault "Kapalı" in the privacy card | disk encryption is off: SQLCipher still protects the database, but logs, swap and other files are not encrypted at rest → enable it in System Settings › Privacy & Security |
 
 ## 10. Rules worth repeating
 
@@ -133,4 +142,6 @@ Base `http://127.0.0.1:{port}/api/v1`; every request needs `Authorization: Beare
 - The recovery code cannot be shown again after acknowledgement (re-display behind Touch ID/password is a later feature).
 - Keychain item uses the login keychain without the "this device only" class (needs a signed app with entitlements).
 - `pnpm tauri dev` window can't be quit via AppleScript (it is not a bundle); use the window's close button or Ctrl+C in the terminal.
+- The OS sandbox does not restrict *listening* addresses (Seatbelt limitation); loopback-only listening is enforced by the backend itself. `sandbox-exec` is deprecated by Apple; if it disappears the app fails closed (ADR-0009).
+- Restore has no UI yet (library function, fully tested); a restore UI arrives with the memory UI (P6).
 - Starlette prints a deprecation warning about `httpx` in the test client (tests only).

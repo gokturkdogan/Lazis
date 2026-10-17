@@ -59,6 +59,39 @@ describe("App", () => {
     expect(wrapper.find('[data-testid="recovery-dialog"]').exists()).toBe(true);
   });
 
+  it("shows the OS network sandbox and FileVault state in the privacy card", async () => {
+    const { wrapper } = await mountWith();
+    const privacy = wrapper.get('[data-testid="card-privacy"]').text();
+    expect(privacy).toContain("İşletim sistemi ağ kısıtı");
+    expect(privacy).toContain("Etkin");
+    expect(privacy).toContain("FileVault disk şifreleme");
+    expect(privacy).toContain("Açık");
+
+    const off = await mountWith(connection({ fileVault: "off" }));
+    expect(off.wrapper.get('[data-testid="card-privacy"]').text()).toContain(
+      "Kapalı — Sistem Ayarları",
+    );
+  });
+
+  it("reveals the recovery code only on request and keeps it out of the store", async () => {
+    const { wrapper, store } = await mountWith(connection({ recoveryPending: true }));
+    const dialog = () => wrapper.get('[data-testid="recovery-dialog"]');
+    expect(dialog().find('[data-testid="recovery-code"]').exists()).toBe(false);
+
+    await dialog().get("button.btn:not(.btn-primary)").trigger("click");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(dialog().get('[data-testid="recovery-code"]').text()).toBe("LZR1-TEST0-CODE0");
+    expect(dialog().get('[data-testid="recovery-clipboard"]').text()).toContain("Evrensel Pano");
+    expect(JSON.stringify(store.$state)).not.toContain("LZR1-TEST0-CODE0");
+
+    await dialog().get('input[type="checkbox"]').setValue(true);
+    await dialog().get("button.btn-primary").trigger("click");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(wrapper.find('[data-testid="recovery-dialog"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("LZR1-TEST0-CODE0");
+    expect(JSON.stringify(store.$state)).not.toContain("LZR1-TEST0-CODE0");
+  });
+
   it("switches to settings and diagnostics views", async () => {
     const { wrapper } = await mountWith();
     await wrapper.get('[data-testid="tab-settings"]').trigger("click");

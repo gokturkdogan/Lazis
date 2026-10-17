@@ -36,6 +36,10 @@ MESSAGES_TR: dict[str, str] = {
     "not_found": "İstenen kaynak bulunamadı.",
     "validation_error": "İstek doğrulanamadı.",
     "network_blocked": "Ağ erişimi kapalı (çevrimdışı mod).",
+    "network_sandbox_unavailable": (
+        "İşletim sistemi ağ kısıtı uygulanamadı. Güvenlik nedeniyle arka uç başlatılmadı."
+    ),
+    "restore_failed": "Yedek geri yüklenemedi. Mevcut veritabanınız değiştirilmedi.",
 }
 
 

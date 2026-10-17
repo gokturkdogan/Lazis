@@ -27,6 +27,7 @@ from lazis.fsutil import ensure_private_dir, ensure_private_file
 from lazis.security.secrets import SecretBytes
 from lazis.storage import driver
 from lazis.storage.driver import Connection
+from lazis.storage.lock import DataDirLock
 
 T = TypeVar("T")
 
@@ -58,9 +59,10 @@ class DatabaseStatus:
 
 
 class Database:
-    def __init__(self, path: Path, key: SecretBytes) -> None:
+    def __init__(self, path: Path, key: SecretBytes, *, lock: DataDirLock | None = None) -> None:
         self.path = path
         self._key = key
+        self._lock = lock  # held while open; released by close()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="lazis-db")
         self._conn: Connection | None = None
         self.cipher_version = ""
@@ -103,10 +105,6 @@ class Database:
         self.fix_permissions()
 
     def close(self) -> None:
-        if self._conn is None:
-            self._executor.shutdown(wait=True)
-            return
-
         def _close(conn: Connection) -> None:
             try:
                 conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
@@ -114,10 +112,13 @@ class Database:
                 conn.close()
 
         try:
-            self._executor.submit(_close, self._conn).result()
+            if self._conn is not None:
+                self._executor.submit(_close, self._conn).result()
         finally:
             self._conn = None
             self._executor.shutdown(wait=True)
+            if self._lock is not None:
+                self._lock.release()
 
     # ----- execution -------------------------------------------------------------------
     def _require_conn(self) -> Connection:

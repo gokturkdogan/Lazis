@@ -158,3 +158,19 @@ def test_denied_requests_are_audited(tmp_path: Path, storage: StorageHandle, tok
     _, asgi = build_asgi(ctx)
     TestClient(asgi, base_url=f"http://127.0.0.1:{TEST_PORT}").get("/api/v1/health")
     assert storage.db.run_sync(lambda c: count_audit(c, "security", "request_denied")) == 1
+
+
+@pytest.mark.parametrize("with_token", [False, True])
+def test_websocket_upgrades_are_refused_until_an_authenticated_endpoint_exists(
+    client: TestClient, token: str, with_token: bool
+) -> None:
+    """Phase 1 passed non-HTTP scopes straight to the app, skipping every check."""
+    from starlette.websockets import WebSocketDisconnect
+
+    headers = {**_auth(token), "Origin": "tauri://localhost"} if with_token else {}
+    with (
+        pytest.raises(WebSocketDisconnect) as excinfo,
+        client.websocket_connect("/api/v1/ws", headers=headers),
+    ):
+        pass
+    assert excinfo.value.code == 1008

@@ -234,6 +234,11 @@ export interface components {
              */
             network_egress: "disabled";
             /**
+             * Os Network Sandbox
+             * @enum {string}
+             */
+            os_network_sandbox: "enforced" | "not_enforced" | "unknown";
+            /**
              * Research Mode
              * @enum {string}
              */

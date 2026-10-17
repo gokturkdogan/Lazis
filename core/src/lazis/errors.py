@@ -59,6 +59,19 @@ class MigrationError(StorageError):
     code = "migration_failed"
 
 
+class RestoreError(StorageError):
+    """A backup could not be restored. The previous database is left (or put back) in place."""
+
+    code = "restore_failed"
+    recoverable = True
+
+
+class NetworkSandboxError(LazisError):
+    """The OS-level network sandbox required by the desktop shell is not in effect."""
+
+    code = "network_sandbox_unavailable"
+
+
 class AuthError(LazisError):
     code = "unauthorized"
     http_status = 401

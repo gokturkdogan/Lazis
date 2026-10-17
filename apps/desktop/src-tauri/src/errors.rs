@@ -28,6 +28,7 @@ fn message_for(code: &str) -> &'static str {
         "backend_start_failed" => "Arka uç başlatılamadı.",
         "backend_start_timeout" => "Arka uç zamanında yanıt vermedi.",
         "backend_exited" => "Arka uç beklenmedik biçimde kapandı.",
+        "network_sandbox_unavailable" => "İşletim sistemi ağ kısıtı uygulanamadı; arka uç başlatılmadı.",
         "keychain_unavailable" => "macOS Anahtar Zinciri'ne erişilemedi.",
         "keychain_denied" => "Anahtar Zinciri erişimi reddedildi.",
         "recovery_code_invalid" => "Kurtarma kodu geçersiz.",

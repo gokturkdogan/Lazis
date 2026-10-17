@@ -1,6 +1,6 @@
 # LAZIS — System Architecture
 
-> Status: Phase 0.1 (revised), updated with the Phase 1 implementation · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), updated with the Phase 1 implementation and Phase 1.1 hardening · Last updated: 2026-10-17
 > Phase 1 as built: [PHASE_1_REPORT.md](PHASE_1_REPORT.md) (Turkish) and [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md). Where this blueprint and the code differ, §3.1, §11.1, §12 and §13.1 describe the implemented state.
 > Decisions referenced here are justified in [TECHNOLOGY_DECISIONS.md](TECHNOLOGY_DECISIONS.md). Phase numbers (P1–P15) follow [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md). Coding rules: [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md).
 
@@ -60,11 +60,12 @@ The desktop shell already exists in P1 (the Phase 1 brief required it), so the "
 
 1. The shell resolves the **profile** (`default` for release builds, `dev` for debug builds; `LAZIS_PROFILE` overrides): separate data dir, logs, config, desktop state and Keychain item per profile.
 2. **Key resolution:** Keychain item present → use it. Missing and no database → generate 32 bytes with `SecRandomCopyBytes`, store, read back, and only then start the backend (a database can never be created with a key that was not persisted). Missing but a database exists → `needs_recovery` (no new key). Keychain denied → `keychain_denied`.
-3. **Spawn:** `core/.venv/bin/python -I -m lazis serve --stdin-secrets --environment … --data-dir … --log-dir … --config …` with a cleared environment (HOME, TMPDIR, LANG, a fixed PATH). The session token (per launch) and the key are written to stdin as one JSON line; **stdin then stays open as a lifeline**.
+3. **Spawn:** `/usr/bin/sandbox-exec -p <sandbox/backend.sb> core/.venv/bin/python -I -m lazis serve --stdin-secrets --require-os-sandbox --environment … --data-dir … --log-dir … --config …` with a cleared environment (HOME, TMPDIR, LANG, a fixed PATH). `sandbox-exec` applies the OS network sandbox (no connection to another host, no DNS — [SECURITY_MODEL.md §5.3](SECURITY_MODEL.md)) and execs Python in the same process. The backend closes descriptors inherited from the shell, verifies the sandbox itself and refuses to start without it. The session token (per launch) and the key are written to stdin as one JSON line; **stdin then stays open as a lifeline**. The shell also reads FileVault's state (`fdesetup isactive`) for the privacy card.
 4. **Handshake:** stdout `LAZIS_READY {protocol, port, pid, api_version, …}` or `LAZIS_FATAL {code}` (exit 3). Timeout 30 s. `database_key_invalid` → `needs_recovery`.
 5. **Shutdown:** the shell closes stdin → the backend stops gracefully (checkpoint, audit `app.stopped`, lock release); escalation SIGTERM (after 7 s) → SIGKILL (after 3 s more); the child is always reaped. If the shell dies (even SIGKILL), the kernel closes the pipe and the backend exits by itself (measured: 0.35 s). A parent-PID watcher is a second guard.
-6. **Duplicates and ports:** the Tauri single-instance plugin focuses the existing window; the backend holds a per-profile `flock` (`instance_already_running`); the port is chosen by the OS (`port=0`) and reported in the handshake, so there are no port conflicts.
+6. **Duplicates and ports:** the Tauri single-instance plugin focuses the existing window; the backend holds a per-profile `flock` on the data directory for as long as the database is open (`instance_already_running`; since P1.1 owned by `storage` so restores respect it too); the port is chosen by the OS (`port=0`) and reported in the handshake, so there are no port conflicts and no port metadata is written to disk.
 7. **Supervision in P1:** an unexpected backend exit is detected (stdout EOF) and shown as `backend_exited` with a retry action. Automatic restart with backoff stays in P4.
+8. **Restore (P1.1, no UI yet):** `storage.backup.restore_snapshot` takes the same lock, validates, stages, moves the current files aside, installs, verifies and commits by renaming the old files into `backups/pre-restore-<stamp>/`. `open_storage` first finishes or rolls back any restore interrupted by a crash ([SECURITY_MODEL.md §5.1](SECURITY_MODEL.md)).
 
 - **Supervision:** Tauri restarts `lazis-core` with backoff if it crashes (max 3 in 60 s, then ERROR state with diagnostics). `lazis-core` restarts `lazis-audio` the same way.
 - **Ollama:** treated as an external dependency. If it is unreachable, the system enters ERROR with a recoverable reason (`llm_unavailable`) and retries. LAZIS sets the required environment (`OLLAMA_NO_CLOUD=1`, `OLLAMA_HOST=127.0.0.1`) through a launch agent created by the setup script.
@@ -441,7 +442,9 @@ P1 adds, per profile (the `dev` profile lives under `…/LAZIS/dev/` and `~/Libr
 
 | Path | Contents |
 |---|---|
-| `…/data.noindex/.lazis-core.lock` | Backend instance lock (`flock`) |
+| `…/data.noindex/.lazis-core.lock` | Data-directory lock (`flock`): held while the database is open; restores take it too |
+| `…/data.noindex/.restore/` | Only during a restore (staged copy, files moved aside); a leftover is rolled back at the next start |
+| `…/data.noindex/backups/pre-restore-<stamp>/` | The database (with its WAL) that a restore replaced; last 3 kept |
 | `…/LAZIS/desktop-state.json` | Non-secret shell state: whether the recovery code was acknowledged (0600) |
 | `…/LAZIS/config.toml` | Optional user config (not created automatically) |
 | `~/Library/Logs/LAZIS/{core,desktop}.log` | Backend JSON log / shell log, rotated, secrets redacted |
@@ -503,9 +506,10 @@ lazis/
 │   │   ├── api/        app_factory.py · security.py (LocalApiGuard) · schemas.py
 │   │   ├── config/     model.py · loader.py
 │   │   ├── observability/ logging.py · redaction.py
-│   │   ├── security/   secrets.py (stdin protocol) · network_guard.py · recovery.py (LZR1)
-│   │   ├── storage/    driver.py (only sqlcipher3 import) · database.py · unit_of_work.py ·
-│   │   │               repositories.py · backup.py · migrations/{__init__.py, lazis/0001_system.sql}
+│   │   ├── security/   secrets.py (stdin protocol) · network_guard.py (audit hook, sandbox probe, fd cleanup) · recovery.py (LZR1)
+│   │   ├── storage/    driver.py (only sqlcipher3 import) · database.py · lock.py · unit_of_work.py ·
+│   │   │               repositories.py · backup.py (snapshots, crash-safe restore) ·
+│   │   │               migrations/{__init__.py, lazis/0001_system.sql}
 │   │   └── errors.py · i18n.py · ids.py · fsutil.py
 │   ├── tests/{unit,integration,security}/ · fixtures/recovery_vectors.json (shared with Rust)
 │   ├── spikes/spk05_storage.py · spikes/results/
@@ -514,7 +518,8 @@ lazis/
 │   ├── package.json · pnpm-lock.yaml · vite/vitest/tsconfig
 │   ├── src-tauri/
 │   │   ├── src/ lib.rs (commands, plugins) · controller.rs (lifecycle, recovery) · backend.rs (process)
-│   │   │        keystore.rs (Keychain) · secrets.rs · recovery.rs · paths.rs (profiles) · state_file.rs · errors.rs
+│   │   │        keystore.rs (Keychain) · secrets.rs · recovery.rs · paths.rs (profiles) · state_file.rs · system.rs (FileVault) · errors.rs
+│   │   ├── sandbox/backend.sb     # OS network sandbox profile (shared with the Python tests)
 │   │   ├── tests/lifecycle.rs     # shell ↔ real backend
 │   │   ├── capabilities/main.json · permissions/autogenerated/ · tauri.conf.json · icons/
 │   └── ui/src/ api/ (client, openapi.json, schema.d.ts) · platform/tauri.ts · stores/connection.ts ·

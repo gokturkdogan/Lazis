@@ -18,6 +18,8 @@ export interface BackendConnection {
   profile: string;
   dataDir: string;
   logDir: string;
+  /** FileVault disk encryption as reported by `fdesetup isactive`. */
+  fileVault: "on" | "off" | "unknown";
 }
 
 export interface Platform {

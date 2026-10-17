@@ -46,6 +46,9 @@ onBeforeUnmount(() => {
       <p>{{ t("recovery.intro") }}</p>
       <p class="warning">{{ t("recovery.warning") }}</p>
       <div v-if="code" class="code mono" data-testid="recovery-code">{{ code }}</div>
+      <p v-if="code" class="muted" data-testid="recovery-clipboard">
+        {{ t("recovery.clipboard") }}
+      </p>
       <button v-else class="btn" type="button" @click="reveal">{{ t("recovery.reveal") }}</button>
       <label v-if="code" class="confirm">
         <input v-model="confirmed" type="checkbox" />

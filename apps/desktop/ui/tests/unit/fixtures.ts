@@ -14,6 +14,7 @@ export function connection(overrides: Partial<BackendConnection> = {}): BackendC
     profile: "dev",
     dataDir: "/tmp/lazis/data.noindex",
     logDir: "/tmp/lazis/logs",
+    fileVault: "on",
     ...overrides,
   };
 }
@@ -47,6 +48,7 @@ export const statusFixture = {
     research_mode: "offline_only" as const,
     microphone: "off" as const,
     voice_enabled: false,
+    os_network_sandbox: "enforced" as const,
   },
   ai: { configured: false, provider: "ollama", available_from_phase: "P2" },
 };

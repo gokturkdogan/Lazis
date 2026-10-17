@@ -6,6 +6,11 @@
 //!   shuts down gracefully. Secrets never appear in argv or the environment.
 //! * stdout: `LAZIS_READY {...}` or `LAZIS_FATAL {...}`; nothing secret is ever written there.
 //! * stderr: drained into the shell log (truncated; the backend writes no secrets there).
+//!
+//! The backend always runs under the OS network sandbox (`sandbox/backend.sb`, applied with
+//! `/usr/bin/sandbox-exec`): the kernel refuses every connection to another host, for the
+//! backend and anything it starts, including native code. The backend re-checks this itself
+//! (`--require-os-sandbox`) and refuses to start if it is not in effect.
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -26,6 +31,9 @@ const FATAL_PREFIX: &str = "LAZIS_FATAL ";
 const PROTOCOL: u32 = 1;
 pub const API_VERSION: &str = "v1";
 const MAX_STDERR_LINE: usize = 500;
+pub const SANDBOX_EXEC: &str = "/usr/bin/sandbox-exec";
+/// Seatbelt profile, shared with the Python tests (core/tests/security/test_os_sandbox.py).
+pub const SANDBOX_PROFILE: &str = include_str!("../sandbox/backend.sb");
 
 #[derive(Debug, Clone)]
 pub struct BackendLaunch {
@@ -42,6 +50,8 @@ pub struct BackendLaunch {
 pub enum StartError {
     /// The Python environment is missing (`uv sync` not run).
     NotFound,
+    /// `/usr/bin/sandbox-exec` is missing: the backend is never started without the sandbox.
+    SandboxUnavailable,
     /// The backend refused to start and said why (e.g. `database_key_invalid`).
     Fatal(String),
     Timeout,
@@ -53,6 +63,7 @@ impl StartError {
     pub fn code(&self) -> &str {
         match self {
             Self::NotFound => "backend_not_found",
+            Self::SandboxUnavailable => "network_sandbox_unavailable",
             Self::Fatal(code) => code,
             Self::Timeout => "backend_start_timeout",
             Self::Failed => "backend_start_failed",
@@ -132,10 +143,19 @@ pub fn start(
         log::error!("backend.not_found python={}", launch.python.display());
         return Err(StartError::NotFound);
     }
+    if !std::path::Path::new(SANDBOX_EXEC).exists() {
+        log::error!("backend.sandbox_unavailable path={SANDBOX_EXEC}");
+        return Err(StartError::SandboxUnavailable);
+    }
     let started = Instant::now();
-    let mut command = Command::new(&launch.python);
+    // sandbox-exec applies the profile and then execs Python in the same process (same pid).
+    let mut command = Command::new(SANDBOX_EXEC);
     command
-        .args(["-I", "-m", "lazis", "serve", "--stdin-secrets", "--environment", launch.environment])
+        .arg("-p")
+        .arg(SANDBOX_PROFILE)
+        .arg(&launch.python)
+        .args(["-I", "-m", "lazis", "serve", "--stdin-secrets", "--require-os-sandbox"])
+        .args(["--environment", launch.environment])
         .arg("--data-dir")
         .arg(&launch.data_dir)
         .arg("--log-dir")

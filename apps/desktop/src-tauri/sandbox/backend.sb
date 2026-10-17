@@ -1,0 +1,20 @@
+;; LAZIS backend network sandbox — macOS Seatbelt profile, applied by the desktop shell with
+;; /usr/bin/sandbox-exec. The kernel enforces it for the backend and every process it starts,
+;; including native code that bypasses Python. Verified by core/tests/security/test_os_sandbox.py
+;; and apps/desktop/src-tauri/tests/lifecycle.rs.
+;;
+;; * Outbound: only to this machine. In a *remote* filter "localhost" matches loopback and this
+;;   host's own addresses, so no connection or datagram can reach another host.
+;; * DNS: the resolver daemon's Unix socket falls under (deny network*), so no name can be
+;;   resolved.
+;; * Bind / inbound: Seatbelt cannot express "127.0.0.1 only" (in a *local* filter "localhost"
+;;   means any local address). Loopback-only listening is enforced inside the backend
+;;   (validated config + the audit-hook guard), not by this profile.
+;; * Everything else (files, Keychain, processes) is unrestricted here; file permissions and the
+;;   backend's own guard cover those.
+(version 1)
+(allow default)
+(deny network*)
+(allow network-bind (local ip "localhost:*"))
+(allow network-inbound (local ip "localhost:*"))
+(allow network-outbound (remote ip "localhost:*"))

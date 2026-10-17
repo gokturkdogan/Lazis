@@ -53,14 +53,30 @@ const systemRows = computed<StatusRow[]>(() => {
   ];
 });
 
+function sandboxRow(status: "enforced" | "not_enforced" | "unknown"): StatusRow {
+  const label = t("overview.osSandbox");
+  if (status === "enforced") return { label, value: t("overview.osSandboxOn"), tone: "ok" };
+  if (status === "not_enforced") return { label, value: t("overview.osSandboxOff"), tone: "warn" };
+  return { label, value: t("overview.osSandboxUnknown"), tone: "warn" };
+}
+
+function fileVaultRow(state: "on" | "off" | "unknown"): StatusRow {
+  const label = t("overview.fileVault");
+  if (state === "on") return { label, value: t("overview.fileVaultOn"), tone: "ok" };
+  if (state === "off") return { label, value: t("overview.fileVaultOff"), tone: "warn" };
+  return { label, value: t("overview.fileVaultUnknown"), tone: "muted" };
+}
+
 const privacyRows = computed<StatusRow[]>(() => {
   const p = store.status?.privacy;
   if (!p) return loading(t("overview.privacy"));
   return [
     { label: t("overview.network"), value: t("overview.networkOff"), tone: "ok" },
+    sandboxRow(p.os_network_sandbox),
     { label: t("overview.research"), value: t("overview.researchOffline"), tone: "ok" },
     { label: t("overview.microphone"), value: t("overview.microphoneOff"), tone: "ok" },
     { label: t("overview.voice"), value: t("overview.voiceOff"), tone: "muted" },
+    fileVaultRow(store.connection?.fileVault ?? "unknown"),
   ];
 });
 

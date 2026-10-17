@@ -11,7 +11,13 @@ DNS-rebinding or cross-origin requests. Therefore every request must pass, in or
 5. request bodies are capped
 
 CORS preflights from allowed origins are answered without a token (browsers never attach
-credentials to preflights); everything else requires the token.
+credentials to preflights); everything else requires the token. WebSocket connections are
+refused outright until an authenticated WebSocket endpoint exists (P3).
+
+Limits (SECURITY_MODEL §5.2): this authenticates the *desktop app*, not the user. Another
+process running as the same macOS user cannot read the token from argv, environment, logs or
+disk, but it can still use the port (rate-limited, 401 without the token) and, with enough
+privileges (debugging rights, accessibility control of the window), act through the app.
 """
 
 from __future__ import annotations
@@ -103,7 +109,13 @@ class LocalApiGuard:
         self._on_denied = on_denied
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] == "websocket":
+            # No WebSocket endpoint exists yet. Until one is added together with its own
+            # authentication (P3), every upgrade is refused — never passed through unchecked.
+            self._report(AuthError("websocket not available"), scope)
+            await send({"type": "websocket.close", "code": 1008})
+            return
+        if scope["type"] != "http":  # lifespan
             await self._app(scope, receive, send)
             return
 

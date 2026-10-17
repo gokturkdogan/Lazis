@@ -41,6 +41,8 @@ def test_system_status_reports_verified_encryption_and_privacy(
         "research_mode": "offline_only",
         "microphone": "off",
         "voice_enabled": False,
+        # In-process test app: no shell, so no OS sandbox was applied.
+        "os_network_sandbox": "unknown",
     }
     assert body["ai"]["configured"] is False
     assert body["backend"]["pid"] == os.getpid()

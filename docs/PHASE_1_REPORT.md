@@ -1,6 +1,7 @@
 # LAZIS — Faz 1 Raporu: Temel Altyapı, Güvenli Depolama ve Masaüstü Başlangıcı
 
 > Tarih: 2026-10-17 · Durum: **Faz 1 uygulandı ve doğrulandı; onayınızı bekliyor.** Faz 2'ye başlanmadı.
+> **Faz 1.1 notu:** Bu rapor tarihsel kayıttır. Bazı güvenlik ifadeleri Faz 1.1 incelemesinde düzeltildi. Örneğin Bölüm A ve D'deki "internet erişimi süreç düzeyinde engelli" ifadesi uygulama düzeyindeki bir korumayı abartıyordu. Güncel ve doğrulanmış durum için [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md) dosyasına bakın.
 > Hedef makine: MacBook Pro M4 Pro (14 CPU / 20 GPU), 24 GB, macOS 27.0.1.
 > İlgili belgeler: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) (geliştirici rehberi), [ADR-0003](adr/0003-storage-driver-and-encryption.md) (depolama ve şifreleme kararı), [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY_MODEL.md](SECURITY_MODEL.md).
 

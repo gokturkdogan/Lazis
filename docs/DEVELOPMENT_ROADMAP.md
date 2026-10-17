@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). **P1 implemented 2026-10-17, awaiting the owner's approval** ([PHASE_1_REPORT.md](PHASE_1_REPORT.md)) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). **P1 implemented and hardened (P1.1) 2026-10-17, awaiting the owner's approval** ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)) · Last updated: 2026-10-17
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.

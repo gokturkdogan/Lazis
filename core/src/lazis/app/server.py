@@ -2,10 +2,12 @@
 
 Startup order (fail closed at every step, reporting a code through the handshake):
 
-1. umask 077 → configuration → logging (redacting) → network guard
-2. startup secrets from stdin (token + database key) → registered for redaction
-3. single-instance lock on the data directory
-4. encrypted storage (driver check, open, migrate with pre-migration backup, verify)
+1. umask 077 → close inherited descriptors → configuration → logging (redacting)
+2. OS network sandbox check (required when started by the desktop shell) → network and
+   process guard (audit hook)
+3. startup secrets from stdin (token + database key) → registered for redaction
+4. encrypted storage: data-directory lock (single instance), recovery of an interrupted
+   restore, driver check, open, migrate with pre-migration backup, verify
 5. bind 127.0.0.1:0 (OS-assigned port) → serve; READY handshake after app startup
 
 Shutdown is triggered by stdin EOF (the shell exited or closed the lifeline), the parent
@@ -16,7 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import fcntl
 import logging
 import os
 import signal
@@ -35,17 +36,20 @@ from lazis.api.app_factory import ApiContext, build_asgi
 from lazis.app.handshake import EXIT_FATAL, EXIT_OK, emit_fatal, emit_ready
 from lazis.config import Settings, load_settings
 from lazis.config.model import APP_SUPPORT
-from lazis.errors import ConfigError, InstanceLockedError, LazisError
-from lazis.fsutil import ensure_private_dir
+from lazis.errors import ConfigError, LazisError, NetworkSandboxError
 from lazis.ids import utc_now_iso
 from lazis.observability import SecretRegistry, get_logger, log_event, setup_logging
-from lazis.security.network_guard import install_network_guard
+from lazis.security.network_guard import (
+    SandboxStatus,
+    close_inherited_descriptors,
+    install_network_guard,
+    os_network_sandbox_status,
+)
 from lazis.security.secrets import StartupSecrets, read_secrets_from_fd
 from lazis.storage import StorageHandle, open_storage
 from lazis.storage.repositories import write_audit
 
 _log = get_logger("app")
-LOCK_FILENAME = ".lazis-core.lock"
 
 
 @dataclass(frozen=True)
@@ -55,6 +59,7 @@ class ServeOptions:
     log_dir: Path | None = None
     config_path: Path | None = None
     secrets_timeout: float | None = None
+    require_os_sandbox: bool = False
 
 
 def _overrides(options: ServeOptions) -> dict[str, dict[str, object]]:
@@ -68,32 +73,6 @@ def _overrides(options: ServeOptions) -> dict[str, dict[str, object]]:
     if options.secrets_timeout:
         result.setdefault("backend", {})["secrets_timeout_seconds"] = options.secrets_timeout
     return result
-
-
-class InstanceLock:
-    """Exclusive advisory lock so two backends can never open the same database."""
-
-    def __init__(self, data_dir: Path) -> None:
-        ensure_private_dir(data_dir)
-        self._path = data_dir / LOCK_FILENAME
-        self._fd: int | None = None
-
-    def acquire(self) -> None:
-        fd = os.open(self._path, os.O_RDWR | os.O_CREAT, 0o600)
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            os.close(fd)
-            raise InstanceLockedError("another backend holds the data directory lock") from None
-        os.ftruncate(fd, 0)
-        os.write(fd, str(os.getpid()).encode())
-        self._fd = fd
-
-    def release(self) -> None:
-        if self._fd is not None:
-            fcntl.flock(self._fd, fcntl.LOCK_UN)
-            os.close(self._fd)
-            self._fd = None
 
 
 def _watch_lifeline(fd: int, stop: Callable[[str], None]) -> None:
@@ -125,6 +104,8 @@ def _bind_loopback(settings: Settings) -> socket.socket:
 
 def serve(options: ServeOptions, *, stdin_fd: int | None = None) -> int:
     os.umask(0o077)
+    keep = frozenset({0, 1, 2} | ({stdin_fd} if stdin_fd is not None else set()))
+    inherited_closed = close_inherited_descriptors(keep)
     registry = SecretRegistry()
     user_config = options.config_path or (APP_SUPPORT / "config.toml")
     try:
@@ -138,6 +119,7 @@ def serve(options: ServeOptions, *, stdin_fd: int | None = None) -> int:
         return EXIT_FATAL
 
     file_handler = setup_logging(settings.logging, registry)
+    sandbox = os_network_sandbox_status()
     log_event(
         _log,
         logging.INFO,
@@ -145,25 +127,28 @@ def serve(options: ServeOptions, *, stdin_fd: int | None = None) -> int:
         version=__version__,
         environment=settings.app.environment,
         pid=os.getpid(),
+        os_network_sandbox=sandbox,
+        inherited_descriptors_closed=len(inherited_closed),
+        inherited_descriptor_kinds=inherited_closed,
     )
     install_network_guard(
         on_block=lambda event, _target: log_event(
-            _log, logging.WARNING, "security.network_blocked", audit_event=event
+            _log, logging.WARNING, "security.policy_blocked", audit_event=event
         )
     )
 
-    lock = InstanceLock(settings.storage.data_dir)
     storage: StorageHandle | None = None
     try:
+        if options.require_os_sandbox and sandbox != "enforced":
+            raise NetworkSandboxError(f"OS network sandbox status: {sandbox}")
         secrets: StartupSecrets = read_secrets_from_fd(
             sys.stdin.fileno() if stdin_fd is None else stdin_fd,
             settings.backend.secrets_timeout_seconds,
         )
         registry.register(secrets.session_token)
         registry.register(secrets.db_key.hex())
-        lock.acquire()
         storage = open_storage(settings.storage, secrets.db_key, app_version=__version__)
-        return _run_server(settings, secrets, storage, stdin_fd)
+        return _run_server(settings, secrets, storage, stdin_fd, sandbox)
     except LazisError as exc:
         log_event(_log, logging.ERROR, "app.startup_failed", code=exc.code)
         emit_fatal(exc.code)
@@ -174,15 +159,18 @@ def serve(options: ServeOptions, *, stdin_fd: int | None = None) -> int:
         return EXIT_FATAL
     finally:
         if storage is not None:
-            storage.db.close()
+            storage.db.close()  # also releases the data-directory lock
             log_event(_log, logging.INFO, "storage.closed")
-        lock.release()
         log_event(_log, logging.INFO, "app.stopped")
         file_handler.flush()
 
 
 def _run_server(
-    settings: Settings, secrets: StartupSecrets, storage: StorageHandle, stdin_fd: int | None
+    settings: Settings,
+    secrets: StartupSecrets,
+    storage: StorageHandle,
+    stdin_fd: int | None,
+    sandbox: SandboxStatus,
 ) -> int:
     db = storage.db
     db.run_sync(
@@ -216,6 +204,7 @@ def _run_server(
         port=port,
         started_at=utc_now_iso(),
         on_denied=_on_denied,
+        os_network_sandbox=sandbox,
     )
     _, asgi = build_asgi(ctx)
 

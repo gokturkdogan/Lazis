@@ -13,6 +13,7 @@ use crate::paths::Profile;
 use crate::recovery;
 use crate::secrets::{DbKey, SessionToken};
 use crate::state_file::{DesktopState, now_unix};
+use crate::system;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -36,6 +37,8 @@ pub struct ConnectionDto {
     pub profile: String,
     pub data_dir: String,
     pub log_dir: String,
+    /// "on" | "off" | "unknown" (`fdesetup isactive`); shown as a privacy warning when off.
+    pub file_vault: &'static str,
 }
 
 type Notifier = Box<dyn Fn(ConnectionDto) + Send + Sync>;
@@ -59,6 +62,7 @@ pub struct Controller {
     /// Serializes start / restore so two backends can never be launched at once.
     op: Mutex<()>,
     shutting_down: AtomicBool,
+    file_vault: OnceLock<&'static str>,
     weak_self: Weak<Controller>,
 }
 
@@ -83,6 +87,7 @@ impl Controller {
                 generation: 0,
             }),
             op: Mutex::new(()),
+            file_vault: OnceLock::new(),
             shutting_down: AtomicBool::new(false),
             weak_self: weak.clone(),
         })
@@ -108,6 +113,7 @@ impl Controller {
             profile: self.profile.name.clone(),
             data_dir: self.profile.data_dir.display().to_string(),
             log_dir: self.profile.log_dir.display().to_string(),
+            file_vault: self.file_vault.get().copied().unwrap_or("unknown"),
         }
     }
 
@@ -134,6 +140,12 @@ impl Controller {
     /// Initial start (called once from a background thread at app launch).
     pub fn start(&self) -> ConnectionDto {
         let _op = lock(&self.op);
+        let file_vault = *self.file_vault.get_or_init(system::filevault_status);
+        if file_vault == "on" {
+            log::info!("shell.filevault status=on");
+        } else {
+            log::warn!("shell.filevault status={file_vault}");
+        }
         let _ = self.start_locked(None);
         self.snapshot()
     }

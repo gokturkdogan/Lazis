@@ -1,6 +1,6 @@
 # LAZIS — Testing Strategy
 
-> Status: Phase 0.1 (revised) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised); §11 lists the implemented suites (Phase 1.1) · Last updated: 2026-10-17
 > Rule: **no result is reported as passing unless the test was executed.** Phase reports include the exact commands and outputs.
 > Benchmark protocols and gates: [BENCHMARK_PLAN.md](BENCHMARK_PLAN.md). Coding and test conventions: [ENGINEERING_STANDARDS.md §9](ENGINEERING_STANDARDS.md).
 
@@ -97,3 +97,21 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 - Pre-commit: ruff, pyright/mypy (changed files), eslint, vue-tsc, cargo fmt/clippy, secret scan.
 - CI: local-first (the `just ci` target). GitHub Actions on macOS runners is optional if the repository is hosted. Live evals are never part of blocking CI (they need the GPU and real models).
 - **Reporting template** per phase: commands run, pass/fail counts, failures with explanations, skipped tests with reasons, eval metrics vs. thresholds, known issues.
+
+## 11. Implemented suites (Phase 1 + 1.1)
+
+`make check` runs everything below except the opt-in Keychain test. Counts are from the Phase 1.1 run ([PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md) §J).
+
+| Suite | Command | Count | What it proves |
+|---|---|---|---|
+| Backend unit | `make test-core` (`core/tests/unit`) | part of 146 | config layering and locked values, redaction, LZR1 codec vs shared vectors, data-directory lock |
+| Backend integration | `core/tests/integration` | part of 146 | encryption six ways, migrations, change sets, backup/restore incl. SEC-05 logical equality (row counts + checksums of every table), **restore failure injection** (`test_restore_safety.py`: bad backups, wrong key, injected failures and real `os._exit` crashes at every step, read-only directory, open-database refusal), API endpoints + OpenAPI drift, real backend processes (lifeline, signals, duplicates, secrets) |
+| Backend security | `core/tests/security` | part of 146 | API guard (token, Host, Origin, preflight, body/rate limits, WebSocket refusal, error hygiene, audit), application network/process guard, **OS sandbox** (`test_os_sandbox.py`: native `libc` connect, child process, UDP and DNS refused by the kernel; backend refuses to start without the sandbox) |
+| UI unit | `make test-ui` | 21 | store phases, API client errors, Turkish strings cover every backend code, privacy card (sandbox, FileVault), recovery code only on request and never in the store |
+| UI integration | `make test-ui-integration` | 3 | the TypeScript client against a real backend process |
+| Shell unit | `make test-shell` (lib) | 19 | Rust LZR1 codec vs the Python vectors, key resolution, profiles, state file, handshake parsing, FileVault probe |
+| Shell lifecycle | `make test-shell` (`tests/lifecycle.rs`) | 7 | the real backend under the real sandbox: first run → restart → lost key → malformed/corrupted/wrong-database codes (database bytes unchanged) → recovery; wrong key; crash detection + retry; missing runtime; drop-safety; duplicates; secrets absent from argv/env (kernel) and logs |
+| Keychain (opt-in) | `make test-keychain` | 1 | write/read/delete of a dedicated test item in the real login Keychain |
+
+Rules that apply to these suites: synthetic data only; no test contacts another host (refused targets are TEST-NET-1 `192.0.2.1`, `2001:db8::/32` and the reserved `.invalid` TLD); destructive tests run only in temporary directories, never against a real profile.
+

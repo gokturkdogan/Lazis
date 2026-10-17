@@ -1,6 +1,6 @@
 # LAZIS — Risk Assessment
 
-> Status: Phase 0.1 (revised) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), R31–R32 added in Phase 1.1 · Last updated: 2026-10-17
 > Likelihood (L) and Impact (I) on a 1–5 scale; **score = L × I**. Reviewed at every phase gate. Phases refer to the 15-phase roadmap.
 
 | # | Risk | L | I | Score | Mitigation | Owner phase | Trigger to escalate |
@@ -35,6 +35,8 @@
 | R28 | **Learning-policy miscalibration** (confidence numbers do not match real precision) | 3 | 4 | 12 | Deterministic, explainable formula; reliability diagram on held-out data; recalibration ADR; calibration review mode | P9 | bucket precision > 5 points off its label |
 | R29 | **Key loss → permanent data loss** (Keychain reset, new Mac, lost recovery code) | 2 | 5 | 10 | Recovery code at setup with explicit acknowledgment; versioned keys; restore drills in tests; clear warnings | P1, P15 | user declines the recovery code (warn again at backup creation) |
 | R30 | **Model reload storms** from inconsistent request options (`num_ctx`, other runner-affecting parameters) | 2 | 3 | 6 | One constant context configuration; reload detection test (AIE-07) | P2, P3 | any reload event in a session log |
+| R31 | **`sandbox-exec` removed or changed by a macOS update** (deprecated tool behind the backend's OS network sandbox, ADR-0009) | 2 | 3 | 6 | Fail closed (`network_sandbox_unavailable`) instead of running unprotected; the sandbox is re-verified by tests and by the backend at every start; long-term: App Sandbox for a signed, packaged backend (P15) | P1.1, P15 | the profile fails to apply or the probe stops reporting `enforced` on a new macOS |
+| R32 | **FileVault off on the target Mac** (found in P1.1): logs, swap and any non-database file are unencrypted at rest | 3 | 3 | 9 | SQLCipher protects the database regardless; the privacy card shows FileVault's state as a warning; the owner decides whether to enable it | P1.1 (visibility) | the owner keeps it off when real personal data arrives (P3) |
 
 ## Top risks (score ≥ 12) and response plan
 

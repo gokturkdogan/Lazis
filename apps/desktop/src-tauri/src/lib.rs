@@ -11,6 +11,7 @@ pub mod paths;
 pub mod recovery;
 pub mod secrets;
 pub mod state_file;
+pub mod system;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -18,6 +19,7 @@ use std::time::Duration;
 
 use tauri::{Emitter, Manager, RunEvent, State};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
+use zeroize::Zeroizing;
 
 use crate::backend::BackendLaunch;
 use crate::controller::{ConnectionDto, Controller};
@@ -65,6 +67,9 @@ async fn restore_from_recovery_code(
     state: State<'_, Shared>,
     code: String,
 ) -> Result<ConnectionDto, ShellError> {
+    // The code is equivalent to the key: wipe this copy when done (the IPC layer's own
+    // buffers are outside our control).
+    let code = Zeroizing::new(code);
     blocking(&state, move |c| c.restore_from_recovery_code(&code)).await
 }
 
