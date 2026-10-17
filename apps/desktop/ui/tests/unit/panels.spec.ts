@@ -174,6 +174,19 @@ describe("Menu bar and navigation", () => {
     expect(wrapper.find('[data-testid="settings-view"]').exists()).toBe(true);
   });
 
+  it("works in main.ts order: store started (not awaited) before the app mounts", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const platform = fakePlatform(connection(), { initialView: vi.fn().mockReturnValue("settings") });
+    void useConnectionStore().start({ platform, clientFactory: () => fakeClient() });
+    const wrapper = mount(App, { global: { plugins: [pinia, createAppI18n()] } });
+    await flushPromises();
+    expect(platform.onNavigate).toHaveBeenCalledTimes(1);
+    expect(platform.getPreferences).toHaveBeenCalledTimes(1);
+    expect(platform.setTrayStatus).toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="settings-view"]').exists()).toBe(true);
+  });
+
   it("the state is described in text, not by colour alone", async () => {
     const { wrapper } = await mountView(App);
     expect(wrapper.get('[data-testid="presence"]').attributes("data-state")).toBe("idle");

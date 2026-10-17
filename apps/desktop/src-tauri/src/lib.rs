@@ -152,8 +152,10 @@ fn show_main_window(app: &AppHandle, view: Option<&str>) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
-        if let Some(view) = view {
-            let _ = app.emit_to(MAIN_WINDOW, NAVIGATE_EVENT, view);
+        if let Some(view) = view
+            && let Err(e) = app.emit_to(MAIN_WINDOW, NAVIGATE_EVENT, view)
+        {
+            log::warn!("shell.emit_failed {e}");
         }
     }
 }
@@ -309,6 +311,7 @@ pub fn run() {
         // second shell (the backend additionally holds a per-profile file lock).
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             let view = argv.iter().find_map(|a| desktop::parse_view(a));
+            log::info!("shell.second_launch view={}", view.unwrap_or("-"));
             show_main_window(app, view);
         }))
         .plugin(log_plugin(&profile, debug))
