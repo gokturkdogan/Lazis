@@ -327,3 +327,62 @@ class ActivityResponse(_Schema):
     background: BackgroundActivityModel | None
     cached_conversation_id: str | None
     pending_compaction: list[str]
+
+
+# ----- diagnostics (P4) ------------------------------------------------------------------
+class DiagRuntimeModel(_Schema):
+    available: bool
+    version: str | None
+    error_code: str | None
+
+
+class DiagLoadedModel(_Schema):
+    name: str
+    size_bytes: int
+    context_length: int | None
+    expires_at: str | None
+
+
+class DiagModelModel(_Schema):
+    primary: str | None
+    fallback: str | None
+    active: str | None
+    active_installed: bool
+    fallback_installed: bool
+    automatic_fallback: bool
+    loaded: DiagLoadedModel | None
+    keep_alive: str
+    num_ctx: int
+
+
+class DiagLastTurnModel(_Schema):
+    at: str
+    outcome: str
+    ttft_ms: float | None
+    total_ms: float | None
+    context_prep_ms: float | None
+    runtime_ttft_ms: float | None
+    prompt_tokens: int | None
+    output_tokens: int | None
+    decode_tps: float | None
+
+
+class DiagPrewarmModel(_Schema):
+    state: Literal["idle", "running", "done", "failed", "cancelled"]
+    scope: Literal["context", "model_only"] | None = None
+    at: str | None = None
+    duration_ms: int | None = None
+    prompt_tokens: int | None = None
+    code: str | None = None
+
+
+class DiagnosticsResponse(_Schema):
+    """Technical state for the diagnostics panel. Never contains message content."""
+
+    runtime: DiagRuntimeModel
+    model: DiagModelModel
+    last_turn: DiagLastTurnModel | None
+    prewarm: DiagPrewarmModel
+    cache_expected_warm: bool
+    background: Literal["prewarm", "compaction"] | None
+    turn_active: bool

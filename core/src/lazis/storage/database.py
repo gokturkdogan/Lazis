@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -33,6 +34,7 @@ T = TypeVar("T")
 
 PLAINTEXT_HEADER = b"SQLite format 3\x00"
 SIDE_FILES = ("-wal", "-shm", "-journal")
+QUICK_CHECK_TTL_S = 600.0
 
 
 def file_is_plaintext_sqlite(path: Path) -> bool:
@@ -67,6 +69,7 @@ class Database:
         self._conn: Connection | None = None
         self.cipher_version = ""
         self.sqlite_version = ""
+        self._quick_check_cache: tuple[float, str] | None = None
 
     # ----- lifecycle -------------------------------------------------------------------
     def open(self) -> None:
@@ -173,7 +176,14 @@ class Database:
             raise DatabaseCorruptError("integrity check failed")
 
     def _status_fn(self, conn: Connection) -> DatabaseStatus:
-        rows = conn.execute("PRAGMA quick_check").fetchall()
+        # quick_check reads every page: run it at most every QUICK_CHECK_TTL_S for status
+        # views (the startup integrity check always runs in full).
+        now = time.monotonic()
+        cached = self._quick_check_cache
+        if cached is None or now - cached[0] > QUICK_CHECK_TTL_S:
+            rows = conn.execute("PRAGMA quick_check").fetchall()
+            cached = (now, "ok" if rows == [("ok",)] else "failed")
+            self._quick_check_cache = cached
         provider_row = conn.execute("PRAGMA cipher_provider").fetchone()
         return DatabaseStatus(
             path=str(self.path),
@@ -184,7 +194,7 @@ class Database:
             cipher_provider=str(provider_row[0]) if provider_row else "",
             sqlite_version=self.sqlite_version,
             journal_mode=str(conn.execute("PRAGMA journal_mode").fetchone()[0]),
-            quick_check="ok" if rows == [("ok",)] else "failed",
+            quick_check=cached[1],
         )
 
     def status(self) -> DatabaseStatus:

@@ -115,6 +115,7 @@ class TurnHandle:
     )
     task: asyncio.Task[None] | None = None
     stage: str = "queued"
+    accepted_monotonic: float = field(default_factory=time.monotonic)
     active_request_id: str | None = None
     cancel_requested: bool = False
     shutdown: bool = False
@@ -235,6 +236,9 @@ class ConversationEngine:
         self._start_lock = asyncio.Lock()
         self._closing = False
         self.recovered_interrupted = 0
+        # Diagnostics only: numbers and states, never message content.
+        self.prewarm_status: dict[str, Any] = {"state": "idle"}
+        self.last_turn: dict[str, Any] | None = None
 
     # ----- lifecycle -------------------------------------------------------------------
     async def ensure_started(self) -> None:
@@ -702,6 +706,8 @@ class ConversationEngine:
         metrics: GenerationMetrics | None = None
         built: AssembledPrompt | None = None
         loaded: Loaded | None = None
+        sent_at: float | None = None
+        first_at: float | None = None
         try:
             await self._emit(
                 handle,
@@ -759,12 +765,14 @@ class ConversationEngine:
                     cache_expected="warm" if warm else "cold",
                     context_version=loaded.state.context_version,
                 )
+                sent_at = time.monotonic()
                 async for event in llm.stream(request):
                     if isinstance(event, TextDelta):
                         if event.kind != "content" or not event.text:
                             continue
                         if not parts:
                             handle.stage = "generating"
+                            first_at = time.monotonic()
                         parts.append(event.text)
                         await self._emit(handle, {"type": "delta", "text": event.text})
                         size = sum(len(p) for p in parts)
@@ -858,9 +866,44 @@ class ConversationEngine:
             )
         finally:
             handle.active_request_id = None
+            self._record_last_turn(handle, metrics, sent_at, first_at, len(parts) > 0)
             if self._turn is handle:
                 self._turn = None
             await handle.queue.put(None)
+
+    def _record_last_turn(
+        self,
+        handle: TurnHandle,
+        metrics: GenerationMetrics | None,
+        sent_at: float | None,
+        first_at: float | None,
+        produced: bool,
+    ) -> None:
+        """Numbers for the diagnostics panel. No content, ids only of the session."""
+        now = time.monotonic()
+        accepted = handle.accepted_monotonic
+
+        def ms(a: float | None, b: float | None) -> float | None:
+            return None if a is None or b is None else round((b - a) * 1000, 1)
+
+        status = "completed" if metrics is not None and produced else handle.stage
+        if handle.cancel_requested:
+            status = "cancelled"
+        self.last_turn = {
+            "at": utc_now_iso(),
+            "outcome": status,
+            "ttft_ms": ms(accepted, first_at),
+            "total_ms": ms(accepted, now),
+            "context_prep_ms": ms(accepted, sent_at),
+            "runtime_ttft_ms": None
+            if metrics is None or metrics.ttft_ms is None
+            else round(metrics.ttft_ms, 1),
+            "prompt_tokens": None if metrics is None else metrics.prompt_tokens,
+            "output_tokens": None if metrics is None else metrics.output_tokens,
+            "decode_tps": None
+            if metrics is None or metrics.decode_tps is None
+            else round(metrics.decode_tps, 1),
+        }
 
     async def _fit_for_turn(
         self,
@@ -1370,7 +1413,25 @@ class ConversationEngine:
         target = CacheKey(model, self.num_ctx, conversation_id, built.prefix_hash, last_seq)
         version = loaded.state.context_version
 
+        scope = "context" if last_seq > 0 else "model_only"
+
         async def work(job: BackgroundJob) -> bool:
+            try:
+                return await warm(job)
+            except LlmCancelledError:
+                self.prewarm_status = {"state": "cancelled", "scope": scope, "at": utc_now_iso()}
+                raise
+            except LlmError as exc:
+                self.prewarm_status = {
+                    "state": "failed",
+                    "scope": scope,
+                    "code": exc.code,
+                    "at": utc_now_iso(),
+                }
+                log_event(_log, logging.WARNING, "prewarm.failed", code=exc.code)
+                return False
+
+        async def warm(job: BackgroundJob) -> bool:
             started = time.monotonic()
             if model not in {m.name for m in await llm.loaded_models()}:
                 job.check()
@@ -1412,20 +1473,97 @@ class ConversationEngine:
                             )
 
                 await self._q(write)
+            duration = round((time.monotonic() - started) * 1000)
+            self.prewarm_status = {
+                "state": "done",
+                "scope": scope,
+                "at": utc_now_iso(),
+                "duration_ms": duration,
+                "prompt_tokens": None if metrics is None else metrics.prompt_tokens,
+            }
             log_event(
                 _log,
                 logging.INFO,
                 "prewarm.completed",
                 conversation_id=conversation_id,
+                scope=scope,
                 prompt_tokens=None if metrics is None else metrics.prompt_tokens,
-                duration_ms=round((time.monotonic() - started) * 1000),
+                duration_ms=duration,
             )
             return True
 
         started_job = self.scheduler.start_background(
             "prewarm", conversation_id, work, target=target
         )
+        if started_job is not None:
+            self.prewarm_status = {"state": "running", "scope": scope, "at": utc_now_iso()}
         return {"state": "warming" if started_job is not None else "busy", **info}
+
+    async def diagnostics(self) -> dict[str, Any]:
+        """Technical state for the diagnostics panel: model, runtime, last turn, pre-warm and
+        cache. Contains no message text."""
+        await self.ensure_started()
+        llm = self._get_llm()
+        runtime: dict[str, Any] = {
+            "available": False,
+            "version": None,
+            "error_code": "llm_unavailable",
+        }
+        loaded_model: dict[str, Any] | None = None
+        installed: list[str] = []
+        if llm is not None:
+            health = await llm.health()
+            runtime = {
+                "available": health.available,
+                "version": health.version,
+                "error_code": health.error_code,
+            }
+            if health.available:
+                try:
+                    installed = [m.name for m in await llm.list_models()]
+                    loaded = await llm.loaded_models()
+                    if loaded:
+                        first = loaded[0]
+                        loaded_model = {
+                            "name": first.name,
+                            "size_bytes": first.size_bytes,
+                            "context_length": first.context_length,
+                            "expires_at": first.expires_at,
+                        }
+                except LlmError as exc:
+                    runtime["error_code"] = exc.code
+        session = await self._q(repository.get_active_session)
+        active_model = session.model if session is not None else self._models.primary_model
+        cache_ok = False
+        if session is not None and active_model is not None:
+            built = self._assemble(await self._load(session.id), active_model)
+            cache_ok = self.scheduler.holds(
+                active_model, self.num_ctx, session.id, built.prefix_hash
+            )
+        job = self.scheduler.background
+        return {
+            "runtime": runtime,
+            "model": {
+                "primary": self._models.primary_model,
+                "fallback": self._models.fallback_model,
+                "active": active_model,
+                "active_installed": active_model in installed if active_model else False,
+                "fallback_installed": self._models.fallback_model in installed
+                if self._models.fallback_model
+                else False,
+                "automatic_fallback": False,
+                "loaded": loaded_model,
+                "keep_alive": self._models.keep_alive,
+                "num_ctx": self.num_ctx,
+            },
+            "last_turn": self.last_turn,
+            "prewarm": self.prewarm_status,
+            # True only while nothing else has used the runtime since the last request for
+            # this session; the runtime itself cannot confirm it (no cache introspection).
+            "cache_expected_warm": cache_ok,
+            "background": None if job is None else job.kind,
+            "turn_active": self._turn is not None,
+        }
 
     def activity(self) -> dict[str, Any]:
         turn = self._turn

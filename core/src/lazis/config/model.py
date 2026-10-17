@@ -107,6 +107,8 @@ class ModelsSection(_Section):
     # ADR-0001 (Accepted): primary gemma4:12b-it-qat, fallback qwen3.5:9b-q4_K_M.
     # The UI preselects the primary model when installed.
     primary_model: str | None = "gemma4:12b-it-qat"
+    # Shown in diagnostics; LAZIS never switches models on its own (the user picks one).
+    fallback_model: str | None = "qwen3.5:9b-q4_K_M"
     # Named context sizes (tokens). Requests choose a name, never a raw num_ctx: each distinct
     # num_ctx makes Ollama's llama.cpp runner reload the model (measured 0.9–2.8 s). Measured
     # memory differs by ≤ 0.3 GB between 8K and 16K for the recommended models, so short and

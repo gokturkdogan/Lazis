@@ -23,6 +23,7 @@ from fastapi.responses import StreamingResponse
 from lazis.api.schemas import (
     ActivityResponse,
     AssistantStateResponse,
+    DiagnosticsResponse,
     MessageModel,
     PrepareRequest,
     PrepareResponse,
@@ -102,6 +103,10 @@ def build_conversation_router(
         session = await eng.active_session()
         result = await eng.prepare(None if session is None else session.id, body.model)
         return PrepareResponse(**result)
+
+    @router.get("/diagnostics", response_model=DiagnosticsResponse)
+    async def diagnostics() -> DiagnosticsResponse:  # pyright: ignore[reportUnusedFunction]
+        return DiagnosticsResponse(**await engine().diagnostics())
 
     @router.get("/chat/activity", response_model=ActivityResponse)
     async def activity() -> ActivityResponse:  # pyright: ignore[reportUnusedFunction]

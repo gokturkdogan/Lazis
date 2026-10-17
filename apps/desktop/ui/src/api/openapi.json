@@ -605,6 +605,410 @@
         "title": "DatabaseStatusModel",
         "type": "object"
       },
+      "DiagLastTurnModel": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "context_prep_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Prep Ms"
+          },
+          "decode_tps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decode Tps"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "runtime_ttft_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Ttft Ms"
+          },
+          "total_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Ms"
+          },
+          "ttft_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft Ms"
+          }
+        },
+        "required": [
+          "at",
+          "outcome",
+          "ttft_ms",
+          "total_ms",
+          "context_prep_ms",
+          "runtime_ttft_ms",
+          "prompt_tokens",
+          "output_tokens",
+          "decode_tps"
+        ],
+        "title": "DiagLastTurnModel",
+        "type": "object"
+      },
+      "DiagLoadedModel": {
+        "additionalProperties": false,
+        "properties": {
+          "context_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Length"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "size_bytes",
+          "context_length",
+          "expires_at"
+        ],
+        "title": "DiagLoadedModel",
+        "type": "object"
+      },
+      "DiagModelModel": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "active_installed": {
+            "title": "Active Installed",
+            "type": "boolean"
+          },
+          "automatic_fallback": {
+            "title": "Automatic Fallback",
+            "type": "boolean"
+          },
+          "fallback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback"
+          },
+          "fallback_installed": {
+            "title": "Fallback Installed",
+            "type": "boolean"
+          },
+          "keep_alive": {
+            "title": "Keep Alive",
+            "type": "string"
+          },
+          "loaded": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiagLoadedModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "num_ctx": {
+            "title": "Num Ctx",
+            "type": "integer"
+          },
+          "primary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary"
+          }
+        },
+        "required": [
+          "primary",
+          "fallback",
+          "active",
+          "active_installed",
+          "fallback_installed",
+          "automatic_fallback",
+          "loaded",
+          "keep_alive",
+          "num_ctx"
+        ],
+        "title": "DiagModelModel",
+        "type": "object"
+      },
+      "DiagPrewarmModel": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "enum": [
+                  "context",
+                  "model_only"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          },
+          "state": {
+            "enum": [
+              "idle",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "DiagPrewarmModel",
+        "type": "object"
+      },
+      "DiagRuntimeModel": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "available",
+          "version",
+          "error_code"
+        ],
+        "title": "DiagRuntimeModel",
+        "type": "object"
+      },
+      "DiagnosticsResponse": {
+        "additionalProperties": false,
+        "description": "Technical state for the diagnostics panel. Never contains message content.",
+        "properties": {
+          "background": {
+            "anyOf": [
+              {
+                "enum": [
+                  "prewarm",
+                  "compaction"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background"
+          },
+          "cache_expected_warm": {
+            "title": "Cache Expected Warm",
+            "type": "boolean"
+          },
+          "last_turn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiagLastTurnModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "$ref": "#/components/schemas/DiagModelModel"
+          },
+          "prewarm": {
+            "$ref": "#/components/schemas/DiagPrewarmModel"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/DiagRuntimeModel"
+          },
+          "turn_active": {
+            "title": "Turn Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "runtime",
+          "model",
+          "last_turn",
+          "prewarm",
+          "cache_expected_warm",
+          "background",
+          "turn_active"
+        ],
+        "title": "DiagnosticsResponse",
+        "type": "object"
+      },
       "EffectiveSettingsResponse": {
         "additionalProperties": false,
         "description": "Non-secret, read-only view of the effective configuration (Phase 1).",
@@ -1729,6 +2133,24 @@
           }
         },
         "summary": "Chat Stream"
+      }
+    },
+    "/api/v1/diagnostics": {
+      "get": {
+        "operationId": "diagnostics_api_v1_diagnostics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Diagnostics"
       }
     },
     "/api/v1/health": {

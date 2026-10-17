@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnostics */
+        get: operations["diagnostics_api_v1_diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -452,6 +469,101 @@ export interface components {
              * @constant
              */
             state: "ready";
+        };
+        /** DiagLastTurnModel */
+        DiagLastTurnModel: {
+            /** At */
+            at: string;
+            /** Context Prep Ms */
+            context_prep_ms: number | null;
+            /** Decode Tps */
+            decode_tps: number | null;
+            /** Outcome */
+            outcome: string;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Prompt Tokens */
+            prompt_tokens: number | null;
+            /** Runtime Ttft Ms */
+            runtime_ttft_ms: number | null;
+            /** Total Ms */
+            total_ms: number | null;
+            /** Ttft Ms */
+            ttft_ms: number | null;
+        };
+        /** DiagLoadedModel */
+        DiagLoadedModel: {
+            /** Context Length */
+            context_length: number | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Name */
+            name: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /** DiagModelModel */
+        DiagModelModel: {
+            /** Active */
+            active: string | null;
+            /** Active Installed */
+            active_installed: boolean;
+            /** Automatic Fallback */
+            automatic_fallback: boolean;
+            /** Fallback */
+            fallback: string | null;
+            /** Fallback Installed */
+            fallback_installed: boolean;
+            /** Keep Alive */
+            keep_alive: string;
+            loaded: components["schemas"]["DiagLoadedModel"] | null;
+            /** Num Ctx */
+            num_ctx: number;
+            /** Primary */
+            primary: string | null;
+        };
+        /** DiagPrewarmModel */
+        DiagPrewarmModel: {
+            /** At */
+            at?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Prompt Tokens */
+            prompt_tokens?: number | null;
+            /** Scope */
+            scope?: ("context" | "model_only") | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "idle" | "running" | "done" | "failed" | "cancelled";
+        };
+        /** DiagRuntimeModel */
+        DiagRuntimeModel: {
+            /** Available */
+            available: boolean;
+            /** Error Code */
+            error_code: string | null;
+            /** Version */
+            version: string | null;
+        };
+        /**
+         * DiagnosticsResponse
+         * @description Technical state for the diagnostics panel. Never contains message content.
+         */
+        DiagnosticsResponse: {
+            /** Background */
+            background: ("prewarm" | "compaction") | null;
+            /** Cache Expected Warm */
+            cache_expected_warm: boolean;
+            last_turn: components["schemas"]["DiagLastTurnModel"] | null;
+            model: components["schemas"]["DiagModelModel"];
+            prewarm: components["schemas"]["DiagPrewarmModel"];
+            runtime: components["schemas"]["DiagRuntimeModel"];
+            /** Turn Active */
+            turn_active: boolean;
         };
         /**
          * EffectiveSettingsResponse
@@ -964,6 +1076,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diagnostics_api_v1_diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticsResponse"];
                 };
             };
         };

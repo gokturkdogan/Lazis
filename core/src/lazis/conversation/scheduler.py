@@ -78,8 +78,11 @@ class InferenceScheduler:
         """True if the runtime's cache should hold this conversation's current prefix (the
         history only grows within one prefix, so the cached part is reusable)."""
         c = self.cache
+        # A pre-warm of an empty session (system prompt only) measurably did not speed up
+        # the first turn (PHASE_3_REPORT §13.D): never report that as a warm conversation.
         return (
             c is not None
+            and c.last_seq > 0
             and c.model == model
             and c.num_ctx == num_ctx
             and c.conversation_id == conversation_id
