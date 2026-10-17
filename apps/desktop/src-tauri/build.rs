@@ -6,6 +6,11 @@ const COMMANDS: &[&str] = &[
     "reveal_recovery_code",
     "acknowledge_recovery",
     "restore_from_recovery_code",
+    "get_preferences",
+    "set_preferences",
+    "set_tray_status",
+    "open_external_url",
+    "process_metrics",
 ];
 
 fn main() {

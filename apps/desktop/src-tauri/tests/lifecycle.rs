@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use lazis_desktop_lib::backend::{self, BackendLaunch, StopOutcome};
-use lazis_desktop_lib::controller::{Controller, Phase};
+use lazis_desktop_lib::controller::{Controller, Phase, RestartPolicy};
 use lazis_desktop_lib::keystore::{KeyStore, MemoryKeyStore};
 use lazis_desktop_lib::paths::{self, Profile};
 use lazis_desktop_lib::recovery;
@@ -208,23 +208,87 @@ fn wrong_key_in_keychain_needs_recovery() {
     assert_eq!(data_fingerprint(&profile), before, "opening with a wrong key changed the database");
 }
 
-#[test]
-fn unexpected_backend_exit_is_reported_and_retry_recovers() {
-    let home = tempfile::tempdir().unwrap();
-    let c = controller(home.path(), Arc::new(MemoryKeyStore::default()));
-    assert_eq!(c.start().phase, Phase::Ready);
-    let pid = c.backend_pid().unwrap();
-    // SAFETY: SIGKILL to the backend we just started.
+fn kill(pid: u32) {
+    // SAFETY: SIGKILL to a backend this test started.
     unsafe {
         libc::kill(pid as i32, libc::SIGKILL);
     }
+}
+
+#[test]
+fn unexpected_backend_exit_restarts_automatically() {
+    let home = tempfile::tempdir().unwrap();
+    let c = controller(home.path(), Arc::new(MemoryKeyStore::default()));
+    c.set_restart_policy(RestartPolicy {
+        base_delay: Duration::from_millis(300),
+        ..RestartPolicy::default()
+    });
+    assert_eq!(c.start().phase, Phase::Ready);
+    let pid = c.backend_pid().unwrap();
+    kill(pid);
+    // Reported first (the UI shows the failure and the pending restart)…
+    assert!(wait_until(Duration::from_secs(10), || c.snapshot().restart_attempt == 1));
+    let dto = c.snapshot();
+    assert_eq!((dto.phase, dto.error_code.as_deref()), (Phase::Failed, Some("backend_exited")));
+    assert!(dto.token.is_none() && dto.restart_limit == 3);
+    // …then restarted without user action: a new backend, a new session token.
+    assert!(wait_until(Duration::from_secs(40), || c.snapshot().phase == Phase::Ready));
+    let new_pid = c.backend_pid().unwrap();
+    assert_ne!(new_pid, pid);
+    assert!(!process_alive(pid));
+    assert_eq!(c.snapshot().restart_attempt, 0);
+    c.shutdown();
+    assert!(!process_alive(new_pid));
+}
+
+#[test]
+fn restart_budget_is_bounded_and_manual_retry_resets_it() {
+    let home = tempfile::tempdir().unwrap();
+    let c = controller(home.path(), Arc::new(MemoryKeyStore::default()));
+    c.set_restart_policy(RestartPolicy {
+        max_restarts: 1,
+        window: Duration::from_secs(60),
+        base_delay: Duration::from_millis(100),
+    });
+    assert_eq!(c.start().phase, Phase::Ready);
+    let first = c.backend_pid().unwrap();
+    kill(first);
+    assert!(wait_until(Duration::from_secs(40), || {
+        c.snapshot().phase == Phase::Ready && c.backend_pid().is_some_and(|p| p != first)
+    }));
+    // A second crash inside the window exceeds the budget: no loop, a clear error instead.
+    let pid = c.backend_pid().unwrap();
+    kill(pid);
     assert!(wait_until(Duration::from_secs(10), || c.snapshot().phase == Phase::Failed));
-    assert_eq!(c.snapshot().error_code.as_deref(), Some("backend_exited"));
-    assert!(c.snapshot().token.is_none());
-    let dto = c.retry();
-    assert_eq!(dto.phase, Phase::Ready, "{dto:?}");
+    std::thread::sleep(Duration::from_millis(600)); // longer than any backoff would be
+    let dto = c.snapshot();
+    assert_eq!(dto.error_code.as_deref(), Some("backend_restart_limit"), "{dto:?}");
+    assert_eq!((dto.phase, dto.restart_attempt), (Phase::Failed, 0));
+    assert!(c.backend_pid().is_none());
+    // The user retries manually: works, and the budget is available again.
+    assert_eq!(c.retry().phase, Phase::Ready);
     assert_ne!(c.backend_pid(), Some(pid));
     c.shutdown();
+}
+
+#[test]
+fn no_restart_once_the_app_is_quitting() {
+    let home = tempfile::tempdir().unwrap();
+    let c = controller(home.path(), Arc::new(MemoryKeyStore::default()));
+    c.set_restart_policy(RestartPolicy {
+        base_delay: Duration::from_millis(100),
+        ..RestartPolicy::default()
+    });
+    assert_eq!(c.start().phase, Phase::Ready);
+    let pid = c.backend_pid().unwrap();
+    assert!(c.shutdown().is_some());
+    assert!(!process_alive(pid));
+    std::thread::sleep(Duration::from_millis(800));
+    assert_eq!(c.snapshot().phase, Phase::Stopped);
+    assert!(c.backend_pid().is_none());
+    // Not even a manual retry starts a backend while quitting.
+    assert_eq!(c.retry().phase, Phase::Stopped);
+    assert!(c.backend_pid().is_none());
 }
 
 #[test]
