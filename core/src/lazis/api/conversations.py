@@ -1,8 +1,10 @@
-"""Persistent conversations (Phase 3): list, open, page, rename, delete, turns, pre-warming.
+"""The assistant API (Phase 3, ADR-0011): one timeline, turns, cancel, pre-warming.
 
-The API layer only maps HTTP to the conversation engine; all rules (persistence, context
-budget, compaction, cancellation) live in :mod:`lazis.conversation`. Streams are NDJSON over
-the existing authenticated HTTP API (the backend still refuses WebSocket upgrades):
+The user talks to one assistant. Technical sessions exist only inside the engine: turns go to
+the active session, the timeline spans all sessions. There is deliberately **no** endpoint to
+list, rename, switch or delete sessions or conversations: nothing reachable over the API can
+delete history. The API layer only maps HTTP to the conversation engine. Streams are NDJSON
+over the authenticated HTTP API (WebSocket upgrades stay refused):
 
 ``start`` → ``status``… → ``delta``… → ``done`` | ``cancelled`` | ``error``
 
@@ -15,31 +17,23 @@ import json
 from collections.abc import AsyncIterator, Callable
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
 from lazis.api.schemas import (
-    ULID_PATTERN,
     ActivityResponse,
-    ContextInfoModel,
-    ConversationDetailResponse,
-    ConversationListResponse,
-    ConversationModel,
-    DeleteConversationResponse,
+    AssistantStateResponse,
     MessageModel,
-    MessagePageResponse,
     PrepareRequest,
     PrepareResponse,
-    RenameConversationRequest,
+    TimelinePageResponse,
     TurnCancelRequest,
     TurnCancelResponse,
     TurnSubmitRequest,
 )
 from lazis.conversation import ConversationEngine, TurnRequest
-from lazis.conversation.engine import conversation_view, message_view
+from lazis.conversation.engine import message_view
 from lazis.errors import LazisError
-
-ConversationId = Annotated[str, Path(pattern=ULID_PATTERN)]
 
 
 class _EngineUnavailable(LazisError):
@@ -63,75 +57,29 @@ def build_conversation_router(
             raise _EngineUnavailable("conversation engine not available")
         return found
 
-    @router.get("/conversations", response_model=ConversationListResponse)
-    async def list_conversations(  # pyright: ignore[reportUnusedFunction]
-        limit: Annotated[int, Query(ge=1, le=200)] = 50,
-        cursor: Annotated[str | None, Query(max_length=128)] = None,
-    ) -> ConversationListResponse:
-        items, next_cursor = await engine().list_conversations(limit=limit, cursor=cursor)
-        return ConversationListResponse(
-            conversations=[ConversationModel(**conversation_view(c)) for c in items],
-            next_cursor=next_cursor,
-        )
+    @router.get("/assistant", response_model=AssistantStateResponse)
+    async def assistant_state() -> AssistantStateResponse:  # pyright: ignore[reportUnusedFunction]
+        return AssistantStateResponse(**await engine().assistant_state())
 
-    @router.get("/conversations/{conversation_id}", response_model=ConversationDetailResponse)
-    async def get_conversation(conversation_id: ConversationId) -> ConversationDetailResponse:  # pyright: ignore[reportUnusedFunction]
-        eng = engine()
-        conv = await eng.get_conversation(conversation_id)
-        info = await eng.context_info(conversation_id)
-        return ConversationDetailResponse(
-            conversation=ConversationModel(**conversation_view(conv)),
-            context=ContextInfoModel(**info),
-        )
-
-    @router.get("/conversations/{conversation_id}/messages", response_model=MessagePageResponse)
-    async def list_messages(  # pyright: ignore[reportUnusedFunction]
-        conversation_id: ConversationId,
-        before_seq: Annotated[int | None, Query(ge=1)] = None,
+    @router.get("/timeline", response_model=TimelinePageResponse)
+    async def timeline(  # pyright: ignore[reportUnusedFunction]
+        before: Annotated[int | None, Query(ge=1)] = None,
         limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    ) -> MessagePageResponse:
-        rows, has_more = await engine().messages(
-            conversation_id, before_seq=before_seq, limit=limit
-        )
-        return MessagePageResponse(
+    ) -> TimelinePageResponse:
+        rows, has_more = await engine().timeline(before_timeline_seq=before, limit=limit)
+        return TimelinePageResponse(
             messages=[MessageModel(**message_view(m)) for m in rows], has_more=has_more
-        )
-
-    @router.patch("/conversations/{conversation_id}", response_model=ConversationModel)
-    async def rename_conversation(  # pyright: ignore[reportUnusedFunction]
-        conversation_id: ConversationId, body: RenameConversationRequest
-    ) -> ConversationModel:
-        conv = await engine().rename(conversation_id, body.title)
-        return ConversationModel(**conversation_view(conv))
-
-    @router.delete("/conversations/{conversation_id}", response_model=DeleteConversationResponse)
-    async def delete_conversation(  # pyright: ignore[reportUnusedFunction]
-        conversation_id: ConversationId,
-    ) -> DeleteConversationResponse:
-        removed = await engine().delete(conversation_id)
-        return DeleteConversationResponse(deleted=True, **removed)
-
-    @router.post(
-        "/conversations/{conversation_id}/context/reset", response_model=ConversationDetailResponse
-    )
-    async def reset_context(conversation_id: ConversationId) -> ConversationDetailResponse:  # pyright: ignore[reportUnusedFunction]
-        eng = engine()
-        await eng.reset_context(conversation_id)
-        conv = await eng.get_conversation(conversation_id)
-        return ConversationDetailResponse(
-            conversation=ConversationModel(**conversation_view(conv)),
-            context=ContextInfoModel(**await eng.context_info(conversation_id)),
         )
 
     @router.post("/turns")
     async def submit_turn(body: TurnSubmitRequest) -> StreamingResponse:  # pyright: ignore[reportUnusedFunction]
         eng = engine()
         # Validation, persistence of the user message and every refusal (busy, duplicate,
-        # unknown conversation, missing model) happen before the stream starts, so they
-        # arrive as proper HTTP errors.
+        # missing model, runtime down) happen before the stream starts, so they arrive as
+        # proper HTTP errors.
         handle = await eng.begin_turn(
             TurnRequest(
-                conversation_id=body.conversation_id,
+                conversation_id=None,
                 client_id=body.client_id,
                 content=body.content,
                 model=body.model,
@@ -150,7 +98,9 @@ def build_conversation_router(
 
     @router.post("/chat/prepare", response_model=PrepareResponse)
     async def prepare(body: PrepareRequest) -> PrepareResponse:  # pyright: ignore[reportUnusedFunction]
-        result = await engine().prepare(body.conversation_id, body.model)
+        eng = engine()
+        session = await eng.active_session()
+        result = await eng.prepare(None if session is None else session.id, body.model)
         return PrepareResponse(**result)
 
     @router.get("/chat/activity", response_model=ActivityResponse)

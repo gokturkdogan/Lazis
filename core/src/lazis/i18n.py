@@ -58,6 +58,7 @@ MESSAGES_TR: dict[str, str] = {
     "message_save_failed": "Mesaj kaydedilemedi. Sohbet değiştirilmedi; yeniden deneyin.",
     "context_failed": "Konuşma bağlamı hazırlanamadı. Yeniden deneyin.",
     "message_too_long": "Mesaj çok uzun. Lütfen daha kısa bir mesaj gönderin.",
+    "session_not_active": "Konuşma güncellendi. Sayfayı yenileyip yeniden deneyin.",
 }
 
 

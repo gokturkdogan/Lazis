@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assistant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assistant State */
+        get: operations["assistant_state_api_v1_assistant_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/activity": {
         parameters: {
             query?: never;
@@ -83,76 +100,6 @@ export interface paths {
         put?: never;
         /** Chat Stream */
         post: operations["chat_stream_api_v1_chat_stream_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Conversations */
-        get: operations["list_conversations_api_v1_conversations_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conversations/{conversation_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Conversation */
-        get: operations["get_conversation_api_v1_conversations__conversation_id__get"];
-        put?: never;
-        post?: never;
-        /** Delete Conversation */
-        delete: operations["delete_conversation_api_v1_conversations__conversation_id__delete"];
-        options?: never;
-        head?: never;
-        /** Rename Conversation */
-        patch: operations["rename_conversation_api_v1_conversations__conversation_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/conversations/{conversation_id}/context/reset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reset Context */
-        post: operations["reset_context_api_v1_conversations__conversation_id__context_reset_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conversations/{conversation_id}/messages": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Messages */
-        get: operations["list_messages_api_v1_conversations__conversation_id__messages_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -244,6 +191,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timeline */
+        get: operations["timeline_api_v1_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/turns": {
         parameters: {
             query?: never;
@@ -314,6 +278,20 @@ export interface components {
             python_version: string;
             /** Version */
             version: string;
+        };
+        /**
+         * AssistantStateResponse
+         * @description The one assistant: its active technical session (None before the first message), that
+         *     session's context state, and where the session starts in the timeline (messages before
+         *     ``active_from_timeline_seq`` are not in the model's current context).
+         */
+        AssistantStateResponse: {
+            /** Active From Timeline Seq */
+            active_from_timeline_seq: number | null;
+            context: components["schemas"]["ContextInfoModel"] | null;
+            session: components["schemas"]["ConversationModel"] | null;
+            /** Timeline Messages */
+            timeline_messages: number;
         };
         /** BackendStatus */
         BackendStatus: {
@@ -417,18 +395,6 @@ export interface components {
             /** Window Start Seq */
             window_start_seq: number;
         };
-        /** ConversationDetailResponse */
-        ConversationDetailResponse: {
-            context: components["schemas"]["ContextInfoModel"];
-            conversation: components["schemas"]["ConversationModel"];
-        };
-        /** ConversationListResponse */
-        ConversationListResponse: {
-            /** Conversations */
-            conversations: components["schemas"]["ConversationModel"][];
-            /** Next Cursor */
-            next_cursor: string | null;
-        };
         /** ConversationModel */
         ConversationModel: {
             /** Created At */
@@ -486,15 +452,6 @@ export interface components {
              * @constant
              */
             state: "ready";
-        };
-        /** DeleteConversationResponse */
-        DeleteConversationResponse: {
-            /** Deleted */
-            deleted: boolean;
-            /** Messages */
-            messages: number;
-            /** Summaries */
-            summaries: number;
         };
         /**
          * EffectiveSettingsResponse
@@ -617,6 +574,11 @@ export interface components {
         };
         /** MessageModel */
         MessageModel: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "text" | "voice";
             /** Client Id */
             client_id: string | null;
             /** Completed At */
@@ -648,13 +610,8 @@ export interface components {
              * @enum {string}
              */
             status: "complete" | "streaming" | "cancelled" | "interrupted" | "failed";
-        };
-        /** MessagePageResponse */
-        MessagePageResponse: {
-            /** Has More */
-            has_more: boolean;
-            /** Messages */
-            messages: components["schemas"]["MessageModel"][];
+            /** Timeline Seq */
+            timeline_seq: number;
         };
         /** ModelInfoModel */
         ModelInfoModel: {
@@ -680,8 +637,6 @@ export interface components {
         };
         /** PrepareRequest */
         PrepareRequest: {
-            /** Conversation Id */
-            conversation_id?: string | null;
             /** Model */
             model: string;
         };
@@ -722,11 +677,6 @@ export interface components {
             /** Voice Enabled */
             voice_enabled: boolean;
         };
-        /** RenameConversationRequest */
-        RenameConversationRequest: {
-            /** Title */
-            title: string;
-        };
         /** RuntimeStatusModel */
         RuntimeStatusModel: {
             /** Available */
@@ -758,6 +708,16 @@ export interface components {
             database: components["schemas"]["DatabaseStatusModel"];
             privacy: components["schemas"]["PrivacyStatus"];
         };
+        /**
+         * TimelinePageResponse
+         * @description A page of the single assistant timeline (all technical sessions), oldest first.
+         */
+        TimelinePageResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Messages */
+            messages: components["schemas"]["MessageModel"][];
+        };
         /** TurnActivityModel */
         TurnActivityModel: {
             /** Client Id */
@@ -779,17 +739,15 @@ export interface components {
         };
         /**
          * TurnSubmitRequest
-         * @description One user message. ``conversation_id`` null starts a new conversation (persisted with
-         *     this first message). ``client_id`` is the idempotency key: a retry with the same key is
-         *     refused with ``turn_duplicate`` instead of being stored twice.
+         * @description One user message to LAZIS. It always goes to the active technical session (created
+         *     with the very first message); the client never chooses a session. ``client_id`` is the
+         *     idempotency key: a retry with the same key is refused with ``turn_duplicate``.
          */
         TurnSubmitRequest: {
             /** Client Id */
             client_id: string;
             /** Content */
             content: string;
-            /** Conversation Id */
-            conversation_id?: string | null;
             /** Model */
             model: string;
         };
@@ -867,6 +825,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    assistant_state_api_v1_assistant_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantStateResponse"];
                 };
             };
         };
@@ -977,200 +955,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_conversations_api_v1_conversations_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConversationListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_conversation_api_v1_conversations__conversation_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                conversation_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConversationDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_conversation_api_v1_conversations__conversation_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                conversation_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteConversationResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    rename_conversation_api_v1_conversations__conversation_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                conversation_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RenameConversationRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConversationModel"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reset_context_api_v1_conversations__conversation_id__context_reset_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                conversation_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConversationDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_messages_api_v1_conversations__conversation_id__messages_get: {
-        parameters: {
-            query?: {
-                before_seq?: number | null;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                conversation_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessagePageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1388,6 +1172,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    timeline_api_v1_timeline_get: {
+        parameters: {
+            query?: {
+                before?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelinePageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

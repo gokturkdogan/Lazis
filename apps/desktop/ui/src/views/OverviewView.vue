@@ -4,8 +4,8 @@ import { useI18n } from "vue-i18n";
 import StatusCard from "@/components/StatusCard.vue";
 import type { StatusRow } from "@/components/types";
 import { formatBytes, formatDuration } from "@/format";
+import { useAssistantStore } from "@/stores/assistant";
 import { useConnectionStore } from "@/stores/connection";
-import { useConversationsStore } from "@/stores/conversations";
 
 const store = useConnectionStore();
 const { t } = useI18n();
@@ -80,7 +80,7 @@ const privacyRows = computed<StatusRow[]>(() => {
   ];
 });
 
-const chat = useConversationsStore();
+const chat = useAssistantStore();
 onMounted(() => void chat.refreshRuntime());
 const aiRows = computed<StatusRow[]>(() => {
   const runtime = chat.runtime;

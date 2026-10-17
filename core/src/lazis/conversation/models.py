@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 Role = Literal["user", "assistant", "system"]
+Channel = Literal["text", "voice"]
 MessageStatus = Literal["complete", "streaming", "cancelled", "interrupted", "failed"]
 TokenSource = Literal["runtime", "estimate"]
 Strategy = Literal["full", "summary_window", "window_only"]
@@ -14,6 +15,9 @@ SummaryStatus = Literal["active", "superseded", "invalidated"]
 
 @dataclass(frozen=True)
 class Conversation:
+    """A technical session (ADR-0011): the unit the context engine works on. The user sees
+    one timeline over all sessions; exactly one is ``active`` and receives new messages."""
+
     id: str
     title: str
     title_source: Literal["auto", "user"]
@@ -46,6 +50,8 @@ class Message:
     error_code: str | None
     created_at: str
     completed_at: str | None
+    timeline_seq: int
+    channel: Channel = "text"
 
 
 @dataclass(frozen=True)

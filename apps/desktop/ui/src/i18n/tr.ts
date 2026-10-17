@@ -69,31 +69,13 @@ export const tr = {
     loading: "Yükleniyor…",
   },
   conversation: {
-    title: "Sohbet",
-    list: "Sohbetler",
-    newChat: "Yeni sohbet",
-    newTitle: "Yeni sohbet",
-    emptyList: "Henüz sohbet yok.",
-    loadMore: "Daha eski sohbetler",
-    rename: "Yeniden adlandır",
-    renameSave: "Kaydet",
-    renameCancel: "Vazgeç",
-    delete: "Sil",
-    deleteTitle: "Sohbet silinsin mi?",
-    deleteBody:
-      "“{title}” sohbeti ve tüm mesajları bu bilgisayardaki veritabanından kalıcı olarak silinecek. " +
-      "Bu işlem geri alınamaz.",
-    deleteBackups:
-      "Daha önce alınmış şifreli yedekler bu sohbeti içerebilir; bunlar yeni yedekler alındıkça sırayla " +
-      "silinir. Fiziksel diskten tam silme garanti edilemez.",
-    deleteConfirm: "Kalıcı olarak sil",
-    deleteCancel: "Vazgeç",
-    active: "Açık sohbet",
+    title: "LAZIS",
+    subtitle: "Kişisel asistanınız · yerel",
     storedNotice:
-      "Sohbetler yalnızca bu bilgisayarda, şifreli veritabanında saklanır; buluta gönderilmez ve " +
+      "Konuşma geçmişi yalnızca bu bilgisayarda, şifreli veritabanında saklanır; buluta gönderilmez ve " +
       "günlüklere yazılmaz. Yanıtları bu bilgisayardaki yerel model üretir.",
     fileVaultOff:
-      "FileVault kapalı: sohbetler veritabanında şifreli, ancak diskteki diğer dosyalar (günlükler, " +
+      "FileVault kapalı: konuşma geçmişi veritabanında şifreli, ancak diskteki diğer dosyalar (günlükler, " +
       "macOS takas alanı) şifrelenmiyor. Kişisel sohbetlerden önce Sistem Ayarları › Gizlilik ve " +
       "Güvenlik › FileVault'u açmanız önerilir.",
     model: "Model",
@@ -107,13 +89,12 @@ export const tr = {
     stopping: "Durduruluyor…",
     you: "Siz",
     lazis: "LAZIS",
-    empty: "Yeni bir sohbet. İlk mesajınızla birlikte kaydedilir.",
+    empty: "Merhaba. Yazdığınız her şey bu bilgisayarda, tek bir konuşma geçmişinde saklanır.",
     loadOlder: "Daha eski mesajları göster",
     loadingMessages: "Mesajlar yükleniyor…",
     cancelled: "Yanıt durduruldu.",
     interrupted: "Bu yanıt uygulama kapandığı için yarım kaldı.",
     failed: "Yanıt üretilemedi.",
-    busyElsewhere: "Başka bir sohbette yanıt üretiliyor. Bitmesini bekleyin veya o sohbette durdurun.",
     stage: {
       waiting: "Sırada…",
       loading_model: "Model hazırlanıyor (belleğe yükleniyor)…",
@@ -123,9 +104,10 @@ export const tr = {
       generating: "Yanıt oluşturuluyor…",
       cancelling: "Durduruluyor…",
     },
-    trimmed: "Bağlam sınırı: #{from}–#{to} arası mesajlar bu yanıt için modele gönderilmedi.",
-    summarized: "#1–#{to} arası mesajlar modele özet olarak gönderiliyor; orijinaller saklı.",
-    omitted: "#{from}–#{to} arası mesajlar şu an bağlamda değil (bağlam sınırı).",
+    trimmed: "Bağlam sınırı: en eski mesajlar bu yanıt için LAZIS'e gönderilemedi.",
+    summarized: "Daha eski mesajlar LAZIS'e yalnızca özet olarak hatırlatılıyor; orijinaller saklı.",
+    omitted: "Bazı eski mesajlar bağlam sınırı nedeniyle şu an LAZIS'in bağlamında değil.",
+    boundary: "Bu çizginin üstündeki mesajlar LAZIS'in güncel bağlamında değil; ayrıntıları hatırlamayabilir.",
     background: {
       prewarm: "Arka planda konuşma bağlamı hazırlanıyor",
       compaction: "Arka planda konuşma özetleniyor",
@@ -241,6 +223,7 @@ export const tr = {
     message_save_failed: "Mesaj kaydedilemedi. Sohbet değiştirilmedi; yeniden deneyin.",
     context_failed: "Konuşma bağlamı hazırlanamadı. Yeniden deneyin.",
     message_too_long: "Mesaj çok uzun. Lütfen daha kısa bir mesaj gönderin.",
+    session_not_active: "Konuşma güncellendi. Sayfayı yenileyip yeniden deneyin.",
   },
 } as const;
 

@@ -1,6 +1,6 @@
 # ADR-0010: Conversation persistence and context management
 
-- **Status:** Accepted for Phase 3 (2026-10-17). The owner reviews it with the Phase 3 report.
+- **Status:** Accepted for Phase 3 (2026-10-17). **Superseded in part by [ADR-0011](0011-single-assistant-timeline.md)** (2026-10-18): the user no longer creates, lists, renames or deletes conversations; a `conversations` row is now a hidden technical session, and the user sees one timeline. Storage, turn lifecycle, prompt layout, budget, compaction, scheduler and pre-warm below are unchanged.
 - **Related:**
   - [ARCHITECTURE.md §6](../ARCHITECTURE.md) (prompt assembly) and [§8.1](../ARCHITECTURE.md) (API)
   - [MEMORY_ARCHITECTURE.md §5, §17](../MEMORY_ARCHITECTURE.md)

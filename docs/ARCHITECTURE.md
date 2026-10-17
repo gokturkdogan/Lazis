@@ -277,7 +277,7 @@ Rules (the reasons are in [TECHNOLOGY_DECISIONS.md §2.1](TECHNOLOGY_DECISIONS.m
 
 ### 6.1 Implemented in P3
 
-Built as described above, with these Phase 3 specifics ([ADR-0010](adr/0010-conversation-persistence-and-context.md)):
+Built as described above, with these Phase 3 specifics ([ADR-0010](adr/0010-conversation-persistence-and-context.md)). Since [ADR-0011](adr/0011-single-assistant-timeline.md), the context engine works on the **active technical session** of the single assistant; the user-visible timeline spans all sessions, but only the active one is sent to the model:
 
 - **Layout.** The system message holds S0 (policy), S1 (persona v0) and the conversation summary. S2 (tools) and S3 (profile) are empty until their phases. The verbatim window follows; each user turn carries its stored time note.
 - **Prefix stability.** The prefix hash covers the prompt version, model, `num_ctx` and system text. History is append-only within a `context_version`. Compaction, a fallback trim or a model change increments the version.
@@ -370,22 +370,19 @@ Transport: HTTP/1.1 REST + one WebSocket on `127.0.0.1:{random port}`. Auth: a p
 
 **Added in P2:** `GET /llm/status` (runtime availability/version, loaded models, `cloud_inference: "disabled"`), `GET /llm/models` (installed local models only), `POST /chat/stream` (body: `model`, `request_id`, `messages[]` of `user`/`assistant` turns — no client system prompt, ≤ 40 turns, ≤ 48 000 characters —, `options.context` = `short|normal|long`, optional `temperature`/`max_tokens`; response: NDJSON events `start` → `delta`… → `done{metrics}` or `error{code,message}`), `POST /chat/cancel` (`request_id`). One generation at a time (`llm_busy`). Nothing is stored or logged; a client disconnect cancels the generation.
 
-**Added in P3** (all behind the same guard; [ADR-0010](adr/0010-conversation-persistence-and-context.md)):
+**Added in P3** (all behind the same guard). The conversation model is one assistant with one timeline and hidden technical sessions ([ADR-0011](adr/0011-single-assistant-timeline.md), superseding the multi-conversation routes of ADR-0010):
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /conversations?limit=&cursor=` | Most recently updated first, keyset cursor |
-| `GET /conversations/{id}` | Conversation and context state: strategy, window, summary info, estimated tokens, cache warm/cold, background job |
-| `GET /conversations/{id}/messages?before_seq=&limit=` | Pages of messages, newest page first, returned in `seq` order |
-| `PATCH /conversations/{id}` | `{title}` |
-| `DELETE /conversations/{id}` | Cascade delete, audit with id and counts only, WAL truncate, runtime cache eviction |
-| `POST /conversations/{id}/context/reset` | Invalidate summaries; rebuilt on demand |
-| `POST /turns` | `{conversation_id \| null, client_id, content, model}` → NDJSON `start` → `status{stage}`… → `delta`… → `done` / `cancelled` / `error`. Stages: `waiting`, `compacting`, `context_trimmed`, `loading_model`, `processing_context{context_tokens, cache}` |
+| `GET /assistant` | The active technical session (null before the first message), its context state (strategy, window, summary, estimated tokens, cache warm/cold, background job), timeline size, and `active_from_timeline_seq` (where the model's current context starts in the timeline) |
+| `GET /timeline?before=&limit=` | One timeline over all sessions, keyset-paged on the unique `timeline_seq`, returned oldest first |
+| `POST /turns` | `{client_id, content, model}`: always goes to the active session (created with the first message); the client never names a session. NDJSON `start` → `status{stage}`… → `delta`… → `done` / `cancelled` / `error`. Stages: `waiting`, `compacting`, `context_trimmed`, `loading_model`, `processing_context{context_tokens, cache}` |
 | `POST /turns/cancel` | `{client_id}` |
-| `POST /chat/prepare` | Pre-warm |
+| `POST /chat/prepare` | `{model}`: pre-warm the active session |
 | `GET /chat/activity` | Turn and background job state |
 
-Busy, duplicate, unknown conversation, missing model, unavailable runtime and an oversized message are refused before anything is stored. The WebSocket hub of §8.2 was not built: upgrades are still refused, and NDJSON over HTTP carries the streams.
+There is deliberately **no** route to list, rename, switch or delete conversations or sessions (ADR-0011 §7).
+Busy, duplicate, missing model, unavailable runtime and an oversized message are refused before anything is stored. The WebSocket hub of §8.2 was not built: upgrades are still refused, and NDJSON over HTTP carries the streams.
 
 API versioning: the `/api/v1` prefix; additive changes within v1; a breaking change means `/api/v2` with a deprecation window. Event payloads carry `schema_version` ([ENGINEERING_STANDARDS.md §6](ENGINEERING_STANDARDS.md)).
 

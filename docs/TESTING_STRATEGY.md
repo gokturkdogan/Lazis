@@ -126,7 +126,7 @@ Phase 2 additions:
 
 Live model quality and performance are measured by `evals/` (`make bench`, `make eval`) and reported, not asserted in CI.
 
-Phase 3 additions ([PHASE_3_REPORT.md](PHASE_3_REPORT.md) §9 has the run counts):
+Phase 3 additions ([PHASE_3_REPORT.md](PHASE_3_REPORT.md) §9 and §13.E have the run counts; since ADR-0011 the UI suite is `assistant.spec.ts` and the API suite checks the single-assistant routes, the absence of history-deleting routes, and the v2→v3 timeline migration without loss):
 
 | Suite | Where | What it proves |
 |---|---|---|

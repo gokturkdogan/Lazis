@@ -99,65 +99,66 @@ describe("UI API client ↔ real backend", () => {
     }
   });
 
-  it("lists conversations and refuses unknown ones in Turkish", async () => {
+  it("starts as one empty assistant timeline with no conversation management", async () => {
     const api = createApiClient({ port, token });
-    expect((await api.listConversations(null)).conversations).toEqual([]);
-    const error = await api.getConversation("01JZZZZZZZZZZZZZZZZZZZZZZZ").catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).status).toBe(404);
-    expect((error as ApiError).code).toBe("conversation_not_found");
-    expect((error as ApiError).userMessage).toContain("Sohbet bulunamadı");
+    const state = await api.assistantState();
+    expect(state.session).toBeNull();
+    expect(state.timeline_messages).toBe(0);
+    expect((await api.timeline(null)).messages).toEqual([]);
+    // There is no route to list, rename or delete conversations.
+    const res = await fetch(`http://127.0.0.1:${port}/api/v1/conversations/01JZZZZZZZZZZZZZZZZZZZZZZZ`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect([404, 405]).toContain(res.status);
   });
 
   // Opt-in (needs Ollama + an installed model): LAZIS_TEST_MODEL=gemma4:12b-it-qat pnpm test:integration
   const liveModel = process.env.LAZIS_TEST_MODEL;
   const MARKER = "Zeytinburnu-7f2";
 
-  it.skipIf(!liveModel)("keeps a persistent multi-turn conversation with the real model", async () => {
+  it.skipIf(!liveModel)("keeps one continuous conversation with the real model", async () => {
     const api = createApiClient({ port, token }, fetch, 60_000);
-    const run = async (content: string, conversationId: string | null, clientId: string) => {
+    const run = async (content: string, clientId: string) => {
       const events: string[] = [];
       let text = "";
-      let cid = conversationId;
+      let cid = "";
       await api.submitTurn(
-        { conversation_id: conversationId, client_id: clientId, content, model: liveModel as string },
+        { client_id: clientId, content, model: liveModel as string },
         (e) => {
           events.push(e.type === "status" ? `status:${e.stage}` : e.type);
           if (e.type === "start") cid = e.conversation.id;
           if (e.type === "delta") text += e.text;
         },
       );
-      return { events, text, cid: cid as string };
+      return { events, text, cid };
     };
-    const first = await run(`Benim mahallemin adı ${MARKER}. Bunu aklında tut ve yalnızca "Tamam" yaz.`, null, "ui-it-turn-0001");
+    const first = await run(`Benim mahallemin adı ${MARKER}. Bunu aklında tut ve yalnızca "Tamam" yaz.`, "ui-it-turn-0001");
     expect(first.events[0]).toBe("start");
     expect(first.events).toContain("status:processing_context");
     expect(first.events.at(-1)).toBe("done");
-    const second = await run("Mahallemin adı neydi? Yalnızca adı yaz.", first.cid, "ui-it-turn-0002");
+    const second = await run("Mahallemin adı neydi? Yalnızca adı yaz.", "ui-it-turn-0002");
+    expect(second.cid).toBe(first.cid); // same assistant, same session — nothing to choose
     expect(second.text).toContain("Zeytinburnu");
 
-    const page = await api.listMessages(first.cid, null);
-    expect(page.messages.map((m) => [m.seq, m.role, m.status])).toEqual([
+    const page = await api.timeline(null);
+    expect(page.messages.map((m) => [m.timeline_seq, m.role, m.status])).toEqual([
       [1, "user", "complete"], [2, "assistant", "complete"], [3, "user", "complete"], [4, "assistant", "complete"],
     ]);
 
     // Stop a long reply: the partial text is kept as "cancelled".
     let deltas = 0;
     await api.submitTurn(
-      { conversation_id: first.cid, client_id: "ui-it-turn-0003", content: "Bana çok uzun bir hikâye anlat.", model: liveModel as string },
+      { client_id: "ui-it-turn-0003", content: "Bana çok uzun bir hikâye anlat.", model: liveModel as string },
       (e) => {
         if (e.type === "delta" && ++deltas === 5) void api.cancelTurn("ui-it-turn-0003");
       },
     );
-    const after = await api.listMessages(first.cid, null);
+    const after = await api.timeline(null);
     const last = after.messages.at(-1);
     expect(last?.status).toBe("cancelled");
     expect(last?.content.length).toBeGreaterThan(0);
-
-    const renamed = await api.renameConversation(first.cid, "Test sohbeti");
-    expect(renamed.title).toBe("Test sohbeti");
-    expect((await api.deleteConversation(first.cid)).deleted).toBe(true);
-    expect((await api.listConversations(null)).conversations).toEqual([]);
+    expect((await api.assistantState()).session?.id).toBe(first.cid);
   }, 600_000);
 
   it.skipIf(!liveModel)("streams a Turkish answer from the real model and can cancel it", async () => {
@@ -189,7 +190,7 @@ describe("UI API client ↔ real backend", () => {
     expect(seen.at(-1)).toBe("error:llm_cancelled");
   }, 300_000);
 
-  it.skipIf(!liveModel)("brings conversations back after the backend restarts (same key)", async () => {
+  it.skipIf(!liveModel)("continues the same timeline after the backend restarts (same key)", async () => {
     const restartRoot = mkdtempSync(join(tmpdir(), "lazis-ui-it-restart-"));
     const tokenA = randomBytes(32).toString("hex");
     const tokenB = randomBytes(32).toString("hex");
@@ -198,28 +199,29 @@ describe("UI API client ↔ real backend", () => {
       const apiA = createApiClient({ port: first.port, token: tokenA }, fetch, 60_000);
       let cid = "";
       await apiA.submitTurn(
-        { conversation_id: null, client_id: "ui-it-restart-01", content: "Kuzey projesinin teslim tarihi 15 Aralık. Yalnızca 'Tamam' yaz.", model: liveModel as string },
+        { client_id: "ui-it-restart-01", content: "Kuzey projesinin teslim tarihi 15 Aralık. Yalnızca 'Tamam' yaz.", model: liveModel as string },
         (e) => {
           if (e.type === "start") cid = e.conversation.id;
         },
       );
-      await apiA.renameConversation(cid, "Kuzey");
       expect(await stopBackend(first.child)).toBe(0);
 
       const second = await startBackend(restartRoot, tokenB); // new process, new token, same key
       try {
         const apiB = createApiClient({ port: second.port, token: tokenB }, fetch, 60_000);
-        const listed = await apiB.listConversations(null);
-        expect(listed.conversations.map((c) => [c.id, c.title])).toEqual([[cid, "Kuzey"]]);
-        const page = await apiB.listMessages(cid, null);
+        expect((await apiB.assistantState()).session?.id).toBe(cid); // same assistant session
+        const page = await apiB.timeline(null);
         expect(page.messages.map((m) => [m.role, m.status])).toEqual([["user", "complete"], ["assistant", "complete"]]);
         let answer = "";
+        let session = "";
         await apiB.submitTurn(
-          { conversation_id: cid, client_id: "ui-it-restart-02", content: "Teslim tarihi neydi? Yalnızca tarihi yaz.", model: liveModel as string },
+          { client_id: "ui-it-restart-02", content: "Teslim tarihi neydi? Yalnızca tarihi yaz.", model: liveModel as string },
           (e) => {
+            if (e.type === "start") session = e.conversation.id;
             if (e.type === "delta") answer += e.text;
           },
         );
+        expect(session).toBe(cid);
         expect(answer).toContain("15 Aralık");
       } finally {
         await stopBackend(second.child);

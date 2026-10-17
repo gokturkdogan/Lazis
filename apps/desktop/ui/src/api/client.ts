@@ -13,14 +13,12 @@ export type LlmStatusResponse = Schemas["LlmStatusResponse"];
 export type ModelListResponse = Schemas["ModelListResponse"];
 export type ChatStreamRequest = Schemas["ChatStreamRequest"];
 export type Conversation = Schemas["ConversationModel"];
-export type ConversationListResponse = Schemas["ConversationListResponse"];
-export type ConversationDetailResponse = Schemas["ConversationDetailResponse"];
+export type AssistantStateResponse = Schemas["AssistantStateResponse"];
 export type Message = Schemas["MessageModel"];
-export type MessagePageResponse = Schemas["MessagePageResponse"];
+export type TimelinePageResponse = Schemas["TimelinePageResponse"];
 export type TurnSubmitRequest = Schemas["TurnSubmitRequest"];
 export type PrepareResponse = Schemas["PrepareResponse"];
 export type ActivityResponse = Schemas["ActivityResponse"];
-export type DeleteConversationResponse = Schemas["DeleteConversationResponse"];
 type ErrorResponse = Schemas["ErrorResponse"];
 
 export interface ChatMetrics {
@@ -106,11 +104,10 @@ export interface ApiClient {
     signal?: AbortSignal,
   ): Promise<void>;
   cancelChat(requestId: string): Promise<boolean>;
-  listConversations(cursor?: string | null): Promise<ConversationListResponse>;
-  getConversation(id: string): Promise<ConversationDetailResponse>;
-  listMessages(id: string, beforeSeq?: number | null, limit?: number): Promise<MessagePageResponse>;
-  renameConversation(id: string, title: string): Promise<Conversation>;
-  deleteConversation(id: string): Promise<DeleteConversationResponse>;
+  /** The one assistant: active technical session, its context, where it starts in the timeline. */
+  assistantState(): Promise<AssistantStateResponse>;
+  /** A page of the single timeline (all sessions), oldest first; `before` = timeline_seq. */
+  timeline(before?: number | null, limit?: number): Promise<TimelinePageResponse>;
   /** Streams turn events until done/cancelled/error. Rejects with ApiError before the
    *  stream starts (busy, duplicate, model missing, runtime down, validation). */
   submitTurn(
@@ -119,7 +116,7 @@ export interface ApiClient {
     signal?: AbortSignal,
   ): Promise<void>;
   cancelTurn(clientId: string): Promise<boolean>;
-  prepare(conversationId: string | null, model: string): Promise<PrepareResponse>;
+  prepare(model: string): Promise<PrepareResponse>;
   activity(): Promise<ActivityResponse>;
 }
 
@@ -210,7 +207,7 @@ export function createApiClient(
     }
   }
 
-  async function send<T>(method: "POST" | "PATCH" | "DELETE", path: string, payload?: unknown): Promise<T> {
+  async function send<T>(method: "POST", path: string, payload?: unknown): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
@@ -235,7 +232,6 @@ export function createApiClient(
   }
 
   const post = <T>(path: string, payload: unknown) => send<T>("POST", path, payload);
-  const id = (value: string) => encodeURIComponent(value);
 
   async function get<T>(path: string): Promise<T> {
     const controller = new AbortController();
@@ -280,22 +276,13 @@ export function createApiClient(
       streamNdjson<ChatEvent>("/chat/stream", body, onEvent, signal),
     cancelChat: async (requestId: string) =>
       (await post<{ cancelled: boolean }>("/chat/cancel", { request_id: requestId })).cancelled,
-    listConversations: (cursor) =>
-      get<ConversationListResponse>(
-        cursor ? `/conversations?limit=50&cursor=${encodeURIComponent(cursor)}` : "/conversations?limit=50",
-      ),
-    getConversation: (cid) => get<ConversationDetailResponse>(`/conversations/${id(cid)}`),
-    listMessages: (cid, beforeSeq, limit = 50) =>
-      get<MessagePageResponse>(
-        `/conversations/${id(cid)}/messages?limit=${limit}` + (beforeSeq ? `&before_seq=${beforeSeq}` : ""),
-      ),
-    renameConversation: (cid, title) => send<Conversation>("PATCH", `/conversations/${id(cid)}`, { title }),
-    deleteConversation: (cid) => send<DeleteConversationResponse>("DELETE", `/conversations/${id(cid)}`),
+    assistantState: () => get<AssistantStateResponse>("/assistant"),
+    timeline: (before, limit = 50) =>
+      get<TimelinePageResponse>(`/timeline?limit=${limit}` + (before ? `&before=${before}` : "")),
     submitTurn: (body, onEvent, signal) => streamNdjson<TurnEvent>("/turns", body, onEvent, signal),
     cancelTurn: async (clientId: string) =>
       (await post<{ cancelled: boolean }>("/turns/cancel", { client_id: clientId })).cancelled,
-    prepare: (conversationId, model) =>
-      post<PrepareResponse>("/chat/prepare", { conversation_id: conversationId, model }),
+    prepare: (model) => post<PrepareResponse>("/chat/prepare", { model }),
     activity: () => get<ActivityResponse>("/chat/activity"),
   };
 }

@@ -58,6 +58,13 @@ SHORT_TURNS = [
 ]
 
 
+def _activate(conn: repository.Connection, conversation_id: str) -> None:
+    with repository.transaction(conn):
+        active = repository.get_active_session(conn)
+        if active is None or active.id != conversation_id:
+            repository.activate_session(conn, conversation_id)
+
+
 class Bench:
     def __init__(
         self, model: str, root: Path, *, compact_at: int, prewarm: bool = True, idle_delay: float = 3600.0
@@ -145,7 +152,11 @@ class Bench:
 
         def write(conn: repository.Connection) -> str:
             with repository.transaction(conn):
-                conv = repository.insert_conversation(conn, title=f"bench {tokens}", model=self.model, now=now)
+                # One active session at a time (ADR-0011): seeded sessions start archived and
+                # are activated when a turn is sent to them.
+                conv = repository.insert_conversation(
+                    conn, title=f"bench {tokens}", model=self.model, now=now, status="archived"
+                )
                 for (role, text), n in zip(pairs, counts, strict=True):
                     repository.insert_message(
                         conn,
@@ -177,7 +188,12 @@ class Bench:
         self.engine.scheduler.cache = None
 
     async def turn(self, conversation_id: str | None, text: str) -> dict[str, Any]:
-        assert self.engine is not None
+        assert self.engine is not None and self.storage is not None
+        if conversation_id is not None:
+            # Since ADR-0011 only the active session takes turns; switching = activating.
+            self.storage.db.run_sync(
+                lambda c: _activate(c, conversation_id)  # type: ignore[arg-type]
+            )
         self.counter += 1
         t0 = time.perf_counter()
         handle = await self.engine.begin_turn(
@@ -198,10 +214,15 @@ class Bench:
                 first = time.perf_counter() - t0
             elif event["type"] in ("done", "error", "cancelled"):
                 result = event
+        total = time.perf_counter() - t0
         prompt = result.get("context", {}).get("prompt_tokens") if result.get("type") == "done" else None
         return {
             "conversation_id": handle.conversation.id,
             "ttft_s": None if first is None else round(first, 3),
+            "total_s": round(total, 3),
+            "output_tokens": (result.get("message") or {}).get("metrics", {}).get("output_tokens")
+            if result.get("type") == "done"
+            else None,
             "outcome": result.get("type"),
             "stages": stages,
             "cache_expected": expected,

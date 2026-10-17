@@ -1,19 +1,20 @@
 /**
- * Persistent conversations (Phase 3).
+ * The one assistant (Phase 3, ADR-0011): a single continuous timeline.
  *
- * The backend owns everything durable: conversations and messages live in the encrypted
- * database and are read back page by page. This store only mirrors what is on screen; it
- * never writes conversation text to localStorage or any other browser storage.
+ * The user never creates, picks, renames or deletes conversations. Technical sessions exist
+ * only in the backend; turns always go to the active one. The timeline shown here spans all
+ * sessions, but only the active session is in the model's context — `activeFrom` marks where
+ * it starts, so the view can say so honestly.
  *
- * Status shown to the user always comes from the backend (stream ``status`` events, the
- * activity endpoint) — no synthetic progress.
+ * The backend owns everything durable. This store mirrors what is on screen and never writes
+ * conversation text to localStorage or any other browser storage. Status shown to the user
+ * comes from the backend (stream `status` events, the activity endpoint) — no fake progress.
  */
 import { defineStore } from "pinia";
 import {
   ApiError,
   type ActivityResponse,
-  type Conversation,
-  type ConversationDetailResponse,
+  type AssistantStateResponse,
   type LlmStatusResponse,
   type Message,
   type ModelListResponse,
@@ -25,12 +26,12 @@ import { currentApiClient } from "@/stores/connection";
 type Runtime = LlmStatusResponse["runtime"];
 type Model = ModelListResponse["models"][number];
 type Loaded = LlmStatusResponse["loaded"][number];
-type ContextInfo = ConversationDetailResponse["context"];
+type Session = AssistantStateResponse["session"];
+type ContextInfo = AssistantStateResponse["context"];
 
 export type TurnPhase = "idle" | "sending" | "streaming" | "cancelling";
 
 export interface TurnState {
-  conversationId: string | null;
   clientId: string;
   stage: TurnStage | "generating";
   cache: "warm" | "cold" | null;
@@ -38,24 +39,26 @@ export interface TurnState {
   trimmed: number[] | null;
 }
 
+const PAGE = 50;
 const PREPARE_INTERVAL_MS = 30_000;
 const CANCEL_GRACE_MS = 2000;
 const ACTIVITY_POLL_MS = 1500;
 
 let controller: AbortController | null = null;
 let activityTimer: ReturnType<typeof setTimeout> | null = null;
-const lastPrepared = new Map<string, number>();
+let lastPrepared = 0;
 
 function newClientId(): string {
   const random = globalThis.crypto?.randomUUID?.();
   return random ?? `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
-function sortBySeq(messages: Message[]): Message[] {
-  return [...messages].sort((a, b) => a.seq - b.seq);
+function byTimeline(messages: Message[]): Message[] {
+  const unique = new Map(messages.map((m) => [m.id, m]));
+  return [...unique.values()].sort((a, b) => a.timeline_seq - b.timeline_seq);
 }
 
-export const useConversationsStore = defineStore("conversations", {
+export const useAssistantStore = defineStore("assistant", {
   state: () => ({
     runtime: null as Runtime | null,
     loaded: [] as Loaded[],
@@ -64,15 +67,13 @@ export const useConversationsStore = defineStore("conversations", {
     primaryModel: null as string | null,
     selectedModel: "",
 
-    conversations: [] as Conversation[],
-    listCursor: null as string | null,
-    listLoaded: false,
-
-    activeId: null as string | null,
+    ready: false,
+    session: null as Session,
+    context: null as ContextInfo,
+    activeFrom: null as number | null,
     messages: [] as Message[],
     hasOlder: false,
     loadingMessages: false,
-    context: null as ContextInfo | null,
 
     phase: "idle" as TurnPhase,
     turn: null as TurnState | null,
@@ -82,8 +83,6 @@ export const useConversationsStore = defineStore("conversations", {
 
   getters: {
     busy: (state) => state.phase !== "idle",
-    active: (state): Conversation | null =>
-      state.conversations.find((c) => c.id === state.activeId) ?? null,
     canSend: (state) =>
       state.phase === "idle" && state.runtime?.available === true && state.selectedModel !== "",
     runtimeDown: (state) => state.inventoryLoaded && state.runtime?.available !== true,
@@ -92,12 +91,12 @@ export const useConversationsStore = defineStore("conversations", {
   },
 
   actions: {
-    /** First load: runtime + list, then reopen the most recently used conversation. */
+    /** Opening LAZIS: the same assistant, the latest page of the timeline, then warm the
+     *  active session's prompt prefix (only that one). */
     async init() {
-      await Promise.all([this.refreshRuntime(), this.loadConversations()]);
-      const first = this.conversations[0];
-      if (first) await this.open(first.id);
-      else this.newConversation();
+      await Promise.all([this.refreshRuntime(), this.loadLatest()]);
+      this.ready = true;
+      void this.prepare(true);
     },
 
     async refreshRuntime() {
@@ -113,7 +112,7 @@ export const useConversationsStore = defineStore("conversations", {
           return;
         }
         this.models = (await client.models()).models;
-        this.pickModel(this.active?.model ?? null);
+        this.pickModel(this.session?.model ?? null);
       } catch (error) {
         this.errorCode = error instanceof ApiError ? error.code : "internal_error";
       } finally {
@@ -131,81 +130,39 @@ export const useConversationsStore = defineStore("conversations", {
       }
     },
 
-    async loadConversations() {
+    async loadState() {
       const client = currentApiClient();
       if (client === null) return;
-      try {
-        const page = await client.listConversations(null);
-        this.conversations = page.conversations;
-        this.listCursor = page.next_cursor;
-      } catch (error) {
-        this.errorCode = error instanceof ApiError ? error.code : "internal_error";
-      } finally {
-        this.listLoaded = true;
-      }
+      const state = await client.assistantState();
+      this.session = state.session;
+      this.context = state.context;
+      this.activeFrom = state.active_from_timeline_seq;
+      if (state.session) this.pickModel(state.session.model);
     },
 
-    async loadMoreConversations() {
-      const client = currentApiClient();
-      if (client === null || this.listCursor === null) return;
-      const page = await client.listConversations(this.listCursor);
-      const known = new Set(this.conversations.map((c) => c.id));
-      this.conversations.push(...page.conversations.filter((c) => !known.has(c.id)));
-      this.listCursor = page.next_cursor;
-    },
-
-    newConversation() {
-      this.activeId = null;
-      this.messages = [];
-      this.hasOlder = false;
-      this.context = null;
-      this.errorCode = null;
-      void this.prepare();
-    },
-
-    async open(id: string) {
+    async loadLatest() {
       const client = currentApiClient();
       if (client === null) return;
-      this.activeId = id;
-      this.messages = [];
-      this.hasOlder = false;
-      this.context = null;
-      this.errorCode = null;
       this.loadingMessages = true;
       try {
-        const [page, detail] = await Promise.all([
-          client.listMessages(id, null),
-          client.getConversation(id),
-        ]);
-        if (this.activeId !== id) return;
-        this.messages = sortBySeq(page.messages);
+        const [page] = await Promise.all([client.timeline(null, PAGE), this.loadState()]);
+        this.messages = byTimeline(page.messages);
         this.hasOlder = page.has_more;
-        this.context = detail.context;
-        this.upsert(detail.conversation, false);
-        this.pickModel(detail.conversation.model);
       } catch (error) {
         this.errorCode = error instanceof ApiError ? error.code : "internal_error";
-        if (error instanceof ApiError && error.code === "conversation_not_found") {
-          this.conversations = this.conversations.filter((c) => c.id !== id);
-          this.newConversation();
-          return;
-        }
       } finally {
         this.loadingMessages = false;
       }
-      void this.prepare();
     },
 
     async loadOlder() {
       const client = currentApiClient();
-      const id = this.activeId;
       const oldest = this.messages[0];
-      if (client === null || id === null || !oldest || this.loadingMessages) return;
+      if (client === null || !oldest || this.loadingMessages) return;
       this.loadingMessages = true;
       try {
-        const page = await client.listMessages(id, oldest.seq);
-        if (this.activeId !== id) return;
-        this.messages = sortBySeq([...page.messages, ...this.messages]);
+        const page = await client.timeline(oldest.timeline_seq, PAGE);
+        this.messages = byTimeline([...page.messages, ...this.messages]);
         this.hasOlder = page.has_more;
       } catch (error) {
         this.errorCode = error instanceof ApiError ? error.code : "internal_error";
@@ -214,17 +171,16 @@ export const useConversationsStore = defineStore("conversations", {
       }
     },
 
-    /** Ask the backend to warm the model's prompt cache for what the user is looking at. */
+    /** Ask the backend to warm the model's prompt cache for the active session. */
     async prepare(force = false) {
       const client = currentApiClient();
       if (client === null || this.runtime?.available !== true || this.selectedModel === "") return;
       if (this.busy) return;
-      const key = `${this.activeId ?? "new"}|${this.selectedModel}`;
       const now = Date.now();
-      if (!force && now - (lastPrepared.get(key) ?? 0) < PREPARE_INTERVAL_MS) return;
-      lastPrepared.set(key, now);
+      if (!force && now - lastPrepared < PREPARE_INTERVAL_MS) return;
+      lastPrepared = now;
       try {
-        const result = await client.prepare(this.activeId, this.selectedModel);
+        const result = await client.prepare(this.selectedModel);
         if (result.state === "warming" || result.state === "compacting") this.pollActivity();
       } catch {
         /* warming is an optimization; the turn reports real errors */
@@ -244,7 +200,9 @@ export const useConversationsStore = defineStore("conversations", {
         try {
           const activity = await client.activity();
           this.background = activity.background;
-          if (activity.background !== null) activityTimer = setTimeout(() => void tick(), ACTIVITY_POLL_MS);
+          if (activity.background !== null) {
+            activityTimer = setTimeout(() => void tick(), ACTIVITY_POLL_MS);
+          }
         } catch {
           this.background = null;
         }
@@ -252,21 +210,8 @@ export const useConversationsStore = defineStore("conversations", {
       activityTimer = setTimeout(() => void tick(), 0);
     },
 
-    upsert(conversation: Conversation, toTop: boolean) {
-      const rest = this.conversations.filter((c) => c.id !== conversation.id);
-      if (toTop) this.conversations = [conversation, ...rest];
-      else {
-        const index = this.conversations.findIndex((c) => c.id === conversation.id);
-        if (index >= 0) this.conversations.splice(index, 1, conversation);
-        else this.conversations = [conversation, ...rest];
-      }
-    },
-
     replaceMessage(message: Message) {
-      if (message.conversation_id !== this.activeId) return;
-      const index = this.messages.findIndex((m) => m.id === message.id);
-      if (index >= 0) this.messages.splice(index, 1, message);
-      else this.messages = sortBySeq([...this.messages, message]);
+      this.messages = byTimeline([...this.messages.filter((m) => m.id !== message.id), message]);
     },
 
     /** Returns false if the backend refused the message before storing it (keep the draft). */
@@ -275,17 +220,9 @@ export const useConversationsStore = defineStore("conversations", {
       const content = text.trim();
       if (client === null || content === "" || !this.canSend) return false;
       const clientId = newClientId();
-      const conversationId = this.activeId;
       this.phase = "sending";
       this.errorCode = null;
-      this.turn = {
-        conversationId,
-        clientId,
-        stage: "waiting",
-        cache: null,
-        contextTokens: null,
-        trimmed: null,
-      };
+      this.turn = { clientId, stage: "waiting", cache: null, contextTokens: null, trimmed: null };
       controller = new AbortController();
       let started = false;
       let assistantId: string | null = null;
@@ -293,17 +230,15 @@ export const useConversationsStore = defineStore("conversations", {
         const turn = this.turn;
         if (turn === null || turn.clientId !== clientId) return;
         switch (event.type) {
-          case "start": {
+          case "start":
             started = true;
             assistantId = event.assistant_message.id;
-            turn.conversationId = event.conversation.id;
-            if (this.activeId === conversationId) {
-              this.activeId = event.conversation.id;
-              this.messages = sortBySeq([...this.messages, event.user_message, event.assistant_message]);
+            this.session = event.conversation;
+            if (event.created || this.activeFrom === null) {
+              this.activeFrom = event.user_message.timeline_seq;
             }
-            this.upsert(event.conversation, true);
+            this.messages = byTimeline([...this.messages, event.user_message, event.assistant_message]);
             break;
-          }
           case "status":
             turn.stage = event.stage;
             if (event.cache !== undefined) turn.cache = event.cache;
@@ -331,7 +266,7 @@ export const useConversationsStore = defineStore("conversations", {
       };
       try {
         await client.submitTurn(
-          { conversation_id: conversationId, client_id: clientId, content, model: this.selectedModel },
+          { client_id: clientId, content, model: this.selectedModel },
           onEvent,
           controller.signal,
         );
@@ -344,14 +279,13 @@ export const useConversationsStore = defineStore("conversations", {
         }
         // The stream broke after the message was stored: show what the backend saved.
         if (code !== "llm_cancelled") this.errorCode = code;
-        const id = this.turn?.conversationId;
-        if (id && id === this.activeId) await this.open(id);
+        await this.loadLatest();
         return true;
       } finally {
         controller = null;
         this.turn = null;
         this.phase = "idle";
-        void this.refreshLoadedAndList();
+        void this.refreshAfterTurn();
       }
     },
 
@@ -371,58 +305,24 @@ export const useConversationsStore = defineStore("conversations", {
       }, CANCEL_GRACE_MS);
     },
 
-    async refreshLoadedAndList() {
+    async refreshAfterTurn() {
       const client = currentApiClient();
       if (client === null) return;
       try {
         const status = await client.llmStatus();
         this.runtime = status.runtime;
         this.loaded = status.loaded;
-        if (this.activeId) this.context = (await client.getConversation(this.activeId)).context;
+        await this.loadState();
       } catch {
         /* informative only */
       }
-    },
-
-    async rename(id: string, title: string): Promise<boolean> {
-      const client = currentApiClient();
-      const clean = title.trim();
-      if (client === null || clean === "") return false;
-      try {
-        this.upsert(await client.renameConversation(id, clean), false);
-        return true;
-      } catch (error) {
-        this.errorCode = error instanceof ApiError ? error.code : "internal_error";
-        return false;
-      }
-    },
-
-    async remove(id: string): Promise<boolean> {
-      const client = currentApiClient();
-      if (client === null) return false;
-      try {
-        await client.deleteConversation(id);
-      } catch (error) {
-        const code = error instanceof ApiError ? error.code : "internal_error";
-        if (code !== "conversation_not_found") {
-          this.errorCode = code;
-          return false;
-        }
-      }
-      this.conversations = this.conversations.filter((c) => c.id !== id);
-      if (this.activeId === id) {
-        const next = this.conversations[0];
-        if (next) await this.open(next.id);
-        else this.newConversation();
-      }
-      return true;
     },
 
     stop() {
       controller?.abort();
       if (activityTimer !== null) clearTimeout(activityTimer);
       activityTimer = null;
-      lastPrepared.clear();
+      lastPrepared = 0;
     },
   },
 });

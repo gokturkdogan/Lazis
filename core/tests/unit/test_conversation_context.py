@@ -50,6 +50,7 @@ def msg(seq: int, role: str, content: str, status: str = "complete", **kw: objec
         error_code=None,
         created_at="2026-10-17T11:32:00.000Z",
         completed_at=None,
+        timeline_seq=seq,
     )
     return replace(base, **kw)  # type: ignore[arg-type]
 

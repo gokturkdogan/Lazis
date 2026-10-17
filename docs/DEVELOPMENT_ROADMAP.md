@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 not started · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 not started · Last updated: 2026-10-17
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -188,6 +188,7 @@ Exit evidence: backend 100 tests, UI 19 unit + 3 integration (against a real bac
     - **`segments` table:** moves to P9 with the learning pipeline.
     - **Live 300-turn soak** on the real model.
     - **Conversation search (CNV-04 "searched").**
+  - **Addendum (2026-10-18, ADR-0011):** one assistant with one continuous timeline. Hidden technical sessions (one active), `0003_assistant_timeline` (`timeline_seq`, `channel`; existing conversations kept as closed sessions), the `/assistant` and `/timeline` API. The routes to list, rename and delete conversations were removed. CNV-04 ("listed, deleted in the UI") no longer applies in that form: history management is a later, deliberate feature.
 
 ## P4 — Minimal functional desktop interface (M)
 

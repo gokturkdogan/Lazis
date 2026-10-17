@@ -94,7 +94,8 @@ erDiagram
 |---|---|---|
 | `0001_system` | P1 | `schema_migrations`, `settings`, `jobs`, `change_sets`, `history`, `audit_log` |
 | `0002_conversations` | P3 | `conversations`, `messages`, `segments` |
-| `0003_personality` | P5 | `response_openers` (anti-repetition store) |
+| `0003_assistant_timeline` | P3 (addendum, ADR-0011) | `messages.timeline_seq`, `messages.channel`; one active technical session. Later migrations below shift by one number |
+| `0004_personality` (planned `0003`) | P5 | `response_openers` (anti-repetition store) |
 | `0004_memory` | P6 | `entities` (core columns; the user entity), `memories`, `evidence`, `memory_vec_v1`, `memory_fts`, `suppressions` |
 | `0005_graph` | P7 | `entities` (+ graph columns), `entity_aliases`, `relationship_types`, `relationships`, `entity_mentions`, `memory_entity_links`, `entity_operations`, `entity_distinctions`, `inbox_items` |
 | `0006_bootstrap` | P8 | `import_batches`, `import_items` |

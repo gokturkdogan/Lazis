@@ -1,25 +1,31 @@
 <script setup lang="ts">
-/** The open conversation: paged history, streaming reply, real backend stages, stop. */
+/** The one assistant: a single timeline (paged), streaming reply, real backend stages, stop.
+ *  No conversation list, no "new chat", no renaming: technical sessions are invisible. */
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { Message } from "@/api/client";
 import { formatBytes, formatWhen } from "@/format";
 import { errorKey } from "@/i18n";
+import { useAssistantStore } from "@/stores/assistant";
 import { useConnectionStore } from "@/stores/connection";
-import { useConversationsStore } from "@/stores/conversations";
 
-const store = useConversationsStore();
+const store = useAssistantStore();
 const connection = useConnectionStore();
 const { t } = useI18n();
 const draft = ref("");
 const list = ref<HTMLElement | null>(null);
 
-const title = computed(() => store.active?.title ?? t("conversation.newTitle"));
 const fileVaultOff = computed(() => connection.connection?.fileVault === "off");
-const turnHere = computed(
-  () => store.turn !== null && (store.turn.conversationId ?? null) === store.activeId,
-);
-const busyElsewhere = computed(() => store.busy && !turnHere.value);
+const turnHere = computed(() => store.turn !== null);
+
+/** Index of the first message of the active session when older messages are on screen:
+ *  everything above it is in the timeline but not in LAZIS's current context. */
+const contextBoundary = computed(() => {
+  const from = store.activeFrom;
+  if (from === null) return -1;
+  const index = store.messages.findIndex((m) => m.timeline_seq >= from);
+  return index > 0 || (index === 0 && store.hasOlder) ? index : -1;
+});
 const loadedLabel = computed(() => {
   const first = store.loaded[0];
   return first
@@ -50,14 +56,14 @@ const stageLabel = computed(() => {
 const contextNotice = computed(() => {
   const ctx = store.context;
   if (ctx === null) return "";
-  if (ctx.omitted) return t("conversation.omitted", { from: ctx.omitted[0], to: ctx.omitted[1] });
-  if (ctx.summary) return t("conversation.summarized", { to: ctx.summary.to_seq });
+  if (ctx.omitted) return t("conversation.omitted");
+  if (ctx.summary) return t("conversation.summarized");
   return "";
 });
 
 const backgroundLabel = computed(() => {
   const bg = store.background;
-  if (bg === null || bg.conversation_id !== store.activeId) return "";
+  if (bg === null || bg.conversation_id !== (store.session?.id ?? null)) return "";
   return t(`conversation.background.${bg.kind}`);
 });
 
@@ -87,12 +93,12 @@ function onInput() {
   store.composerActivity();
 }
 
-// Follow the newest message (switching conversations, new turns, streaming). Loading older
-// messages prepends and leaves the last message unchanged, so the view does not jump.
+// Follow the newest message (new turns, streaming). Loading older messages prepends and
+// leaves the last message unchanged, so the view does not jump.
 watch(
   () => {
     const last = store.messages[store.messages.length - 1];
-    return `${store.activeId}|${last?.id ?? ""}|${last?.content.length ?? 0}`;
+    return `${last?.id ?? ""}|${last?.content.length ?? 0}`;
   },
   async () => {
     await nextTick();
@@ -105,8 +111,8 @@ watch(
   <section class="thread panel" data-testid="conversation-thread">
     <header>
       <div class="heading">
-        <h2 data-testid="thread-title">{{ title }}</h2>
-        <span class="muted small">{{ t("conversation.active") }}</span>
+        <h2 data-testid="thread-title">{{ t("conversation.title") }}</h2>
+        <span class="muted small">{{ t("conversation.subtitle") }}</span>
       </div>
       <label class="model">
         <span class="muted">{{ t("conversation.model") }}</span>
@@ -150,15 +156,18 @@ watch(
       <p v-if="store.loadingMessages && store.messages.length === 0" class="muted">
         {{ t("conversation.loadingMessages") }}
       </p>
-      <p v-else-if="store.messages.length === 0" class="muted empty" data-testid="empty-thread">
+      <p v-else-if="store.ready && store.messages.length === 0" class="muted empty" data-testid="empty-thread">
         {{ t("conversation.empty") }}
       </p>
+      <template v-for="(m, index) in store.messages" :key="m.id">
+        <p v-if="index === contextBoundary" class="boundary" role="separator" data-testid="context-boundary">
+          <span>{{ t("conversation.boundary") }}</span>
+        </p>
       <article
-        v-for="m in store.messages"
-        :key="m.id"
         :class="['message', m.role, m.status]"
         :data-testid="`message-${m.role}`"
         :data-status="m.status"
+        :data-timeline="m.timeline_seq"
       >
         <span class="who">
           {{ m.role === "user" ? t("conversation.you") : t("conversation.lazis") }}
@@ -174,6 +183,7 @@ watch(
         </p>
         <p v-if="metricsLine(m)" class="muted small mono">{{ metricsLine(m) }}</p>
       </article>
+      </template>
     </div>
 
     <p v-if="stageLabel" class="stage" role="status" data-testid="turn-status">{{ stageLabel }}</p>
@@ -185,9 +195,6 @@ watch(
     </p>
     <p v-if="store.errorCode && !store.busy" class="error small" role="alert" data-testid="thread-error">
       {{ t(errorKey(store.errorCode)) }}
-    </p>
-    <p v-if="busyElsewhere" class="muted small" data-testid="busy-elsewhere">
-      {{ t("conversation.busyElsewhere") }}
     </p>
 
     <form class="composer" @submit.prevent="submit">
@@ -303,6 +310,20 @@ select {
 }
 .empty {
   margin: auto;
+}
+.boundary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.boundary::before,
+.boundary::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--panel-border);
 }
 .message {
   padding: 10px 12px;

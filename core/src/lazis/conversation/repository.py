@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from typing import Any, cast
 
 from lazis.conversation.models import (
+    Channel,
     ContextState,
     Conversation,
     Message,
@@ -31,7 +32,7 @@ _CONVERSATION_COLS = (
 _MESSAGE_COLS = (
     "id, conversation_id, seq, role, content, context_note, status, client_id, reply_to, model,"
     " token_count, token_source, prompt_tokens, output_tokens, ttft_ms, total_ms, error_code,"
-    " created_at, completed_at"
+    " created_at, completed_at, timeline_seq, channel"
 )
 _CONTEXT_COLS = (
     "conversation_id, context_version, prompt_version, strategy, window_start_seq, summary_id,"
@@ -116,6 +117,8 @@ def _message(row: Sequence[Any]) -> Message:
         error_code=_opt_str(row[16]),
         created_at=str(row[17]),
         completed_at=_opt_str(row[18]),
+        timeline_seq=int(row[19]),
+        channel=cast(Any, str(row[20])),
     )
 
 
@@ -160,17 +163,48 @@ def _summary(row: Sequence[Any]) -> Summary:
 
 # ----- conversations -------------------------------------------------------------------
 def insert_conversation(
-    conn: Connection, *, title: str, model: str, now: str, conversation_id: str | None = None
+    conn: Connection,
+    *,
+    title: str,
+    model: str,
+    now: str,
+    conversation_id: str | None = None,
+    status: str = "active",
 ) -> Conversation:
+    """Create a technical session. At most one may be ``active`` (unique index); use
+    :func:`archive_active_session` first when starting a new active one."""
     cid = conversation_id or new_ulid()
     conn.execute(
-        f"INSERT INTO conversations ({_CONVERSATION_COLS}) VALUES (?, ?, 'auto', ?, 'active',"  # noqa: S608
+        f"INSERT INTO conversations ({_CONVERSATION_COLS}) VALUES (?, ?, 'auto', ?, ?,"  # noqa: S608
         " 0, 0, ?, ?)",
-        (cid, title, model, now, now),
+        (cid, title, model, status, now, now),
     )
     found = get_conversation(conn, cid)
     assert found is not None
     return found
+
+
+def get_active_session(conn: Connection) -> Conversation | None:
+    row = conn.execute(
+        f"SELECT {_CONVERSATION_COLS} FROM conversations WHERE status = 'active'"  # noqa: S608
+    ).fetchone()
+    return None if row is None else _conversation(row)
+
+
+def archive_active_session(conn: Connection) -> str | None:
+    """Close the active session (it stays in the timeline). Returns its id."""
+    active = get_active_session(conn)
+    if active is None:
+        return None
+    conn.execute("UPDATE conversations SET status = 'archived' WHERE id = ?", (active.id,))
+    return active.id
+
+
+def activate_session(conn: Connection, conversation_id: str) -> None:
+    """Make an existing session the active one (internal: tools and measurements; there is no
+    API for it). Call inside a transaction."""
+    archive_active_session(conn)
+    conn.execute("UPDATE conversations SET status = 'active' WHERE id = ?", (conversation_id,))
 
 
 def get_conversation(conn: Connection, conversation_id: str) -> Conversation | None:
@@ -273,8 +307,10 @@ def insert_message(
     model: str | None = None,
     token_count: int | None = None,
     token_source: TokenSource | None = None,
+    channel: Channel = "text",
 ) -> Message:
-    """Append a message with the next ``seq`` (call inside a transaction)."""
+    """Append a message with the next per-session ``seq`` and the next global
+    ``timeline_seq`` (call inside a write transaction, which serializes writers)."""
     row = conn.execute(
         "UPDATE conversations SET last_seq = last_seq + 1, message_count = message_count + 1,"
         " updated_at = ? WHERE id = ? RETURNING last_seq",
@@ -283,10 +319,13 @@ def insert_message(
     if row is None:
         raise MessageSaveError("conversation does not exist")
     seq = int(row[0])
+    timeline_seq = int(
+        conn.execute("SELECT COALESCE(MAX(timeline_seq), 0) + 1 FROM messages").fetchone()[0]
+    )
     mid = new_ulid()
     conn.execute(
         f"INSERT INTO messages ({_MESSAGE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"  # noqa: S608
-        " NULL, NULL, NULL, NULL, NULL, ?, ?)",
+        " NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?)",
         (
             mid,
             conversation_id,
@@ -302,6 +341,8 @@ def insert_message(
             token_source,
             now,
             now if status != "streaming" else None,
+            timeline_seq,
+            channel,
         ),
     )
     found = get_message(conn, mid)
@@ -396,6 +437,32 @@ def page_messages(
         (conversation_id, bound, limit),
     ).fetchall()
     return [_message(r) for r in reversed(rows)]
+
+
+def timeline_page(
+    conn: Connection, *, limit: int, before_timeline_seq: int | None = None
+) -> list[Message]:
+    """The newest messages of the whole timeline (all sessions) older than the bound, returned
+    in ``timeline_seq`` order. Keyset paging on a unique key: no gaps, no duplicates."""
+    bound = before_timeline_seq if before_timeline_seq is not None else 2**62
+    rows = conn.execute(
+        f"SELECT {_MESSAGE_COLS} FROM messages WHERE timeline_seq < ?"  # noqa: S608
+        " ORDER BY timeline_seq DESC LIMIT ?",
+        (bound, limit),
+    ).fetchall()
+    return [_message(r) for r in reversed(rows)]
+
+
+def timeline_stats(conn: Connection, session_id: str | None) -> tuple[int, int | None]:
+    """(messages in the timeline, first timeline_seq of the given session)."""
+    total = int(conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0])
+    first = None
+    if session_id is not None:
+        row = conn.execute(
+            "SELECT MIN(timeline_seq) FROM messages WHERE conversation_id = ?", (session_id,)
+        ).fetchone()
+        first = None if row is None or row[0] is None else int(row[0])
+    return total, first
 
 
 def messages_between(

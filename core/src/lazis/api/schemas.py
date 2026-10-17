@@ -208,11 +208,6 @@ class ConversationModel(_Schema):
     updated_at: str
 
 
-class ConversationListResponse(_Schema):
-    conversations: list[ConversationModel]
-    next_cursor: str | None
-
-
 class MessageMetricsModel(_Schema):
     ttft_ms: float | None
     total_ms: float | None
@@ -233,10 +228,14 @@ class MessageModel(_Schema):
     error_code: str | None
     created_at: str
     completed_at: str | None
+    timeline_seq: int
+    channel: Literal["text", "voice"]
     metrics: MessageMetricsModel | None
 
 
-class MessagePageResponse(_Schema):
+class TimelinePageResponse(_Schema):
+    """A page of the single assistant timeline (all technical sessions), oldest first."""
+
     messages: list[MessageModel]
     has_more: bool
 
@@ -264,27 +263,22 @@ class ContextInfoModel(_Schema):
     background: Literal["prewarm", "compaction"] | None
 
 
-class ConversationDetailResponse(_Schema):
-    conversation: ConversationModel
-    context: ContextInfoModel
+class AssistantStateResponse(_Schema):
+    """The one assistant: its active technical session (None before the first message), that
+    session's context state, and where the session starts in the timeline (messages before
+    ``active_from_timeline_seq`` are not in the model's current context)."""
 
-
-class RenameConversationRequest(_Schema):
-    title: str = Field(min_length=1, max_length=120)
-
-
-class DeleteConversationResponse(_Schema):
-    deleted: bool
-    messages: int
-    summaries: int
+    session: ConversationModel | None
+    context: ContextInfoModel | None
+    timeline_messages: int
+    active_from_timeline_seq: int | None
 
 
 class TurnSubmitRequest(_Schema):
-    """One user message. ``conversation_id`` null starts a new conversation (persisted with
-    this first message). ``client_id`` is the idempotency key: a retry with the same key is
-    refused with ``turn_duplicate`` instead of being stored twice."""
+    """One user message to LAZIS. It always goes to the active technical session (created
+    with the very first message); the client never chooses a session. ``client_id`` is the
+    idempotency key: a retry with the same key is refused with ``turn_duplicate``."""
 
-    conversation_id: str | None = Field(default=None, pattern=ULID_PATTERN)
     client_id: str = Field(pattern=REQUEST_ID_PATTERN)
     content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     model: str = Field(pattern=MODEL_NAME_PATTERN)
@@ -306,7 +300,6 @@ class TurnCancelResponse(_Schema):
 
 
 class PrepareRequest(_Schema):
-    conversation_id: str | None = Field(default=None, pattern=ULID_PATTERN)
     model: str = Field(pattern=MODEL_NAME_PATTERN)
 
 

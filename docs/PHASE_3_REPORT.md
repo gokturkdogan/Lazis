@@ -1,6 +1,7 @@
 # LAZIS — Faz 3 Raporu: Sohbet Motoru, Kalıcı Sohbet ve Bağlam Yönetimi
 
-> Tarih: 2026-10-17 · Durum: **Faz 3 tamamlandı, onayınızı bekliyor.** Faz 4'e başlanmadı.
+> Tarih: 2026-10-17, ek geliştirme 2026-10-18 · Durum: **Faz 3 ve ek geliştirmesi (tek asistan, tek zaman çizelgesi; §13) tamamlandı, onayınızı bekliyor.** Faz 4'e başlanmadı.
+> §1–§12 ilk Faz 3 teslimatını anlatır ve ölçümleriyle birlikte olduğu gibi korunmuştur. Sohbet listesi, yeni sohbet, yeniden adlandırma ve silme gibi kullanıcıya dönük çoklu sohbet özellikleri §13'teki karar ([ADR-0011](adr/0011-single-assistant-timeline.md)) ile kaldırıldı.
 > Karar kaydı: [ADR-0010](adr/0010-conversation-persistence-and-context.md) · Güvenlik: [SECURITY_MODEL.md §5.14](SECURITY_MODEL.md) · Mimari: [ARCHITECTURE.md §6.1, §8.1](ARCHITECTURE.md)
 > Ölçüm dosyaları: `evals/reports/phase3/` · Model: `gemma4:12b-it-qat` (ADR-0001), Ollama 0.40.4, MacBook Pro M4 Pro 24 GB, AC güç
 
@@ -493,3 +494,215 @@ Statik denetimler de temiz: ruff, format, pyright strict (0 hata), import-linter
 
 - Önbellek ayarı: `LAZIS_PROMPT_CACHE_MIB=8192 scripts/ollama-agent.sh install` (eski davranış) ya da `scripts/ollama-agent.sh uninstall`.
 - Faz 3'ün kendisi: `git revert` ile geri alınabilir. Ancak v2 şemasına yükseltilmiş bir veritabanı eski sürümle açılmaz; v2'den önce alınan şifreli yedek `backups/` altında duruyor.
+
+---
+
+## 13. Ek geliştirme: tek asistan, tek sürekli konuşma (2026-10-18)
+
+**Talep:** LAZIS bir sohbet uygulaması gibi değil, tek bir kişisel asistan gibi davransın. Kullanıcı sohbet oluşturmasın, seçmesin, adlandırmasın; uygulama açılınca aynı asistanla aynı zaman çizelgesinde devam etsin. Teknik sınırları sistem kendisi yönetsin.
+
+### A. Mimari: hangi yaklaşım, neden
+
+**Seçilen:** B, yani tek zaman çizelgesi ve kullanıcıdan gizlenen teknik oturumlar. En az değişiklikle uygulandı; ayrıntılar [ADR-0011](adr/0011-single-assistant-timeline.md)'de.
+
+- **Teknik oturum** = mevcut `conversations` satırı. Bağlam motoru (pencere, özet, token çapası, önek hash'i, önbellek, ön ısıtma) zaten oturum başına çalışıyordu. Hiçbiri yeniden yazılmadı ve davranışları değişmedi.
+- **Tek aktif oturum:**
+  - Veritabanında kısmi bir benzersiz indeks var; aynı anda en fazla bir oturum aktif olabiliyor.
+  - Yeni mesajlar her zaman aktif oturuma gidiyor; ilk mesajla oluşturuluyor.
+  - API oturum kimliği almıyor. Kapalı bir oturuma mesaj yazılmaya çalışılırsa motor `session_not_active` ile reddediyor.
+- **Tek zaman çizelgesi:**
+  - Her mesajın küresel ve benzersiz bir sıra numarası var: `timeline_seq`.
+  - Sayfalama bu benzersiz anahtar üzerinden yapılıyor; mesaj atlanmıyor ve iki kez gösterilmiyor (test edildi).
+  - Mesajın kaynak oturumu (`conversation_id`) ve oturum içi sırası (`seq`) korunuyor.
+- **Görsel zaman çizelgesi ile modelin bağlamı ayrı kavramlar:**
+  - Model yalnızca aktif oturumu görüyor (özet ve son mesajlar).
+  - Arayüz, aktif oturumun başladığı yere ince kesik bir çizgi koyuyor: "Bu çizginin üstündeki mesajlar LAZIS'in güncel bağlamında değil; ayrıntıları hatırlamayabilir."
+  - Böylece eski mesajlar hatırlanıyormuş gibi gösterilmiyor. S0 kuralı da, modelin göremediği bir şey için "bunu söylemediniz" demesini yasaklıyor.
+- **Oturum sınırları:**
+  - Faz 3'te **otomatik oturum değişimi yok**. Özetleme aktif bağlamı zaten sınırlı tuttuğu için gerçek bir teknik ihtiyaç yok; günlük ya da keyfî kurallar uygulanmadı.
+  - `start_new_session()` yalnızca motor içinde, ileriki hafıza ve ses fazları ve ölçümler için var.
+  - Yeni oturum boş başlıyor. Eski oturumun özeti kopyalanmıyor, çünkü özet maddeleri eski oturumun mesaj numaralarına atıf yapıyor; kopyalanırsa yanlış doğrulanırdı. Oturumlar arası süreklilik, ileride kaynak gösteren kişisel hafızanın (P6) işi.
+- **A neden seçilmedi:** Her şeyi tek bir sohbet kaydında toplamak, sizin paralel kullandığınız mevcut sohbetleri tek bir *model bağlamında* birleştirmeyi gerektirirdi. Bu, mesaj numaralarını ve özetleri yeniden yazmak, ilgisiz konuşmaları iç içe geçirmek demek. Hem riskli hem de anlamsal olarak yanlış.
+- **Gelecekteki hafıza:**
+  - Hafıza kayıtları ileride kalıcı ve benzersiz `message_id`'ye atıf yapacak; oturum kimliğine bağlı olmayacak.
+  - İlgili bilgiler, aktif oturumun tur notuna eklenerek modele verilecek. "Dün konuştuğumuz proje" gibi istekler böyle çalışacak.
+- **Gelecekteki ses:**
+  - `messages.channel` sütunu eklendi: şimdilik `text`, P13'te `voice`.
+  - Sesli mesajlar aynı zaman çizelgesine ve aynı aktif oturuma gidecek. Sesli oturum (bas-konuş, eller serbest) bir arayüz ve ses kavramı olacak, teknik oturum değil.
+
+### B. Değişen dosyalar
+
+**Arka uç:**
+
+- **Yeni:** `core/src/lazis/storage/migrations/lazis/0003_assistant_timeline.sql`
+- **Değişen:**
+  - `conversation/repository.py`: aktif oturum, küresel sıra numarası, zaman çizelgesi sayfası, `activate_session`, `channel`
+  - `conversation/engine.py`: aktif oturum çözümü, `assistant_state`, `timeline`, `start_new_session`; `rename` kaldırıldı
+  - `conversation/models.py`
+  - `api/conversations.py`: artık `/assistant`, `/timeline`, `/turns`, `/turns/cancel`, `/chat/prepare`, `/chat/activity`. Sohbet listeleme, yeniden adlandırma ve silme uç noktaları **kaldırıldı**.
+  - `api/schemas.py`, `errors.py`, `i18n.py`
+
+**Arayüz:**
+
+- **Yeni:** `ui/src/stores/assistant.ts`
+- **Yeniden adlandırılıp sadeleşen:** `components/ConversationThread.vue` → `AssistantThread.vue`, `views/ConversationView.vue` → `AssistantView.vue`
+- **Silinen:** `components/ConversationSidebar.vue`, `stores/conversations.ts`
+- **Değişen:** `App.vue`, `api/client.ts`, `i18n/tr.ts`, `views/OverviewView.vue`, OpenAPI anlık görüntüsü ve TypeScript tipleri
+
+**Testler:**
+
+- **Yeni:** `ui/tests/unit/assistant.spec.ts`
+- **Silinen:** `conversations.spec.ts`
+- **Güncellenen:** Python birim, bütünleşik ve güvenlik testleri; `app.spec.ts`, `fixtures.ts`, `backend.integration.spec.ts`
+
+**Ölçüm:**
+
+- **Yeni:** `evals/runners/p3_assistant.py`, `evals/reports/phase3/assistant_perf.json`
+- **Güncellenen:** `p3_conversation.py`. Tek aktif oturum kuralına uyarlandı ve toplam yanıt süresini de kaydediyor.
+
+**Belgeler:**
+
+- **Yeni:** `docs/adr/0011-single-assistant-timeline.md`
+- **Güncellenen:** ADR-0010 ("kısmen geçersiz" notu), ARCHITECTURE (§6.1, §8.1), MEMORY_ARCHITECTURE (migration tablosu), SECURITY_MODEL (§5.14), DEVELOPER_GUIDE, DEVELOPMENT_ROADMAP, TESTING_STRATEGY, README, bu rapor
+
+### C. Veritabanı: migration ve eski verilerin korunması
+
+**Gerekti mi:** Evet: `0003_assistant_timeline`. İleriye dönük ve yalnızca ekleme yapan bir migration. Daha önceki migration'lara dokunulmadı.
+
+**Nasıl uygulanıyor:** Tek bir işlemde (transaction) ve otomatik şifreli bir "migration öncesi yedek" alındıktan sonra.
+
+1. `messages.timeline_seq` eklendi. Mevcut mesajlar **oturum oturum** numaralandı: oturumlar son kullanım zamanına (eşitse kimliğe), mesajlar oturum içi `seq`'e göre sıralandı.
+   - Paralel kullandığınız sohbetler zaman damgasına göre **iç içe geçirilmedi**; her biri bütün bir blok olarak kaldı.
+   - En son kullandığınız sohbet en sona geldi ve onunla devam ediliyor.
+2. `messages.channel` eklendi; mevcut mesajların hepsi `text`.
+3. En son kullanılan sohbet `active` kaldı, diğerleri `archived` (kapalı oturum) oldu. Yeni bir benzersiz indeks tek aktif oturumu garanti ediyor.
+
+**Hiçbir satır silinmedi, birleştirilmedi ya da yeniden yazılmadı.** Mesaj kimlikleri, içerikleri, durumları, özetler ve bağlam durumu aynen kaldı.
+
+**Test edildi** (`test_v2_parallel_conversations_become_one_timeline_without_any_loss`):
+
+- Senaryo: aynı zaman damgalı, iç içe geçmiş üç sohbet; bir özet; bağlam satırı; durdurulmuş ve yarım kalmış yanıtlar.
+- Mesaj sayısı, kimlikler ve içerikler aynı kaldı.
+- Sıra numaraları 1..N, benzersiz ve boşluksuz.
+- Bloklar doğru sırada.
+- Özet ve bağlam dokunulmamış.
+- Yalnızca bir aktif oturum var; ikinci bir aktif oturum oluşturma girişimi reddediliyor.
+- Yedek alınmış.
+- **Migration tekrar çalıştırılınca hiçbir şey yapmıyor; veri çoğalmıyor.**
+
+**Başarısız bir migration** veritabanını değiştirmiyor (genel test, Faz 1'den beri).
+
+**Sizin gerçek veritabanınız:** Uygulamayı bir sonraki açışınızda v2'den v3'e yükseltilecek. Yükseltmeden önce `data.noindex/backups/` altında şifreli bir yedek otomatik alınacak.
+
+**Silme:**
+
+- Arayüzde silme yok; API'de de artık silme, yeniden adlandırma ya da listeleme uç noktası yok.
+- Test: 8 eski ya da varsayımsal silme yolu 404/405 döndürüyor ve zaman çizelgesi bozulmuyor.
+- Silme yalnızca motorun içinde, ileride bilinçli tasarlanacak bir "geçmiş yönetimi" özelliği için duruyor.
+
+### D. Performans: eski ve yeni ölçümler
+
+**Yöntem:** Gerçek Gemma, 2 GB RAM önbelleği (mevcut ayar; **Ollama ayarlarına bu görevde dokunulmadı**), AC güç, geçici şifreli veritabanı. Kaynak: `evals/reports/phase3/assistant_perf.json`. Önceki ölçümler (§7) olduğu gibi duruyor.
+
+| Senaryo (aktif oturumda yaklaşık 6,8–7,7K token bağlam) | İlk token (TTFT) | Toplam yanıt süresi | Not |
+|---|---|---|---|
+| Ollama/model yeniden başlamış, uygulama açılır açılmaz gönderim | 28,2 sn | 29,6 sn | Model yükleme + bağlamın işlenmesi (önbellek ıskası) |
+| Aynı durum, açıldıktan 10 sn sonra gönderim | 18,7 sn | 22,5 sn | Ön ısıtma 10 sn kazandırdı |
+| Aynı durum, ön ısıtma bitince gönderim | **0,39 sn** | 8,1 sn (200 token) | **Ön ısıtma 29,0 sn sürdü**; bu sürede kullanıcı bekliyor ya da yazıyor |
+| Aynı oturumda 2. mesaj | 1,25 sn | 5,5 sn | Önceki yanıt 200 token (yanıt uzunluğu etkisi, Faz 2) |
+| Aynı oturumda 3. mesaj | 0,96 sn | 5,4 sn | |
+| Uygulama kapatılıp açıldı, Ollama çalışıyor (+ açılış ön ısıtması) | 0,41 sn | 3,0 sn | |
+| 20.040 eski mesajlı kullanıcı, sonraki mesaj | 0,72 sn | 2,3 sn | Model bağlamı zaman çizelgesinin boyutundan bağımsız |
+| Teknik oturum değişimi, ilk mesaj (yaklaşık 490 token) | 1,90 sn | 2,9 sn | Yeni ve kısa önek, önbellek ıskası |
+| Aynı, ön ısıtmayla | 1,88 sn | 2,6 sn | **Kazanç yok** (aşağıya bakın) |
+
+**Uzun geçmişin arayüze yüklenmesi:** 20.040 mesajda ölçüldü (API katmanı, motor ve şifreli veritabanı birlikte).
+
+| İşlem | Süre |
+|---|---|
+| Asistan durumu | 0,6 ms |
+| İlk sayfa (50 mesaj) | 0,3 ms |
+| Geriye 20 sayfa | 0,2 ms/sayfa |
+| 5.000. mesaj civarı | 0,2 ms |
+
+Arayüze aynı anda en fazla bir sayfa (50 mesaj) ekleniyor.
+
+**Ön ısıtma gerçekten tamamlandı mı:** Ön ısıtma sonrası 3 turun 3'ü "sıcak" raporlandı. Süreleri de (0,39 / 0,41 sn) bunu doğruluyor.
+
+**Bellek:**
+
+- Model `/api/ps` değeri 7,98 GB.
+- Çalıştırıcı süreç 2,5–4,3 GB (§7.4'teki 2 GB önbellek ayarıyla tutarlı).
+- Tek model yüklü; açılışta yalnızca aktif oturum ön ısıtılıyor.
+
+**Karşılaştırma (§7):**
+
+- **Değişmeyenler:** Aynı bağlam boyutunda soğuk ve sıcak davranış ile ön ısıtma etkisi değişmedi.
+  - 6,8K bağlamda soğuk 28 sn; §7.1'de 4,6K için 16 sn, 8,6K için 31,5–32 sn.
+  - Ön ısıtma bitince 0,39 sn; §7.1'de 0,36–0,41 sn.
+- **Yeni yapı yavaşlık getirmedi:** zaman çizelgesi, yüklemeye 1 ms'nin altında ekliyor.
+- **İyileşme de yok:** Uygulama açılır açılmaz gönderilen ilk mesaj, model yeniden yüklendiyse hâlâ uzun sürüyor (28 sn). Bu, §7.3'teki bilinen sınırlamanın aynısı.
+
+**Bulunan küçük sorun:** Boş yeni bir oturumun ön ısıtması kazanç sağlamadı (1,88 sn ve 1,90 sn), ama motor bu durumda "sıcak" bekliyordu; yani gösterge yanıltıcıydı.
+
+- Muhtemel neden: yalnızca sistem isteminden oluşan isteğin şablonu, ilk kullanıcı mesajı eklenince değişiyor.
+- Etkisi küçük (yaklaşık 2 sn), ve oturum değişimi Faz 3'te otomatik tetiklenmiyor. Düzeltmesi Faz 4'e not edildi.
+
+### E. Testler
+
+**`make check` (çıkış kodu 0):**
+
+| Takım | Sonuç | Önceki |
+|---|---|---|
+| Python | **307 geçti**, 3 canlı test seçilmedi | 302 |
+| Arayüz birim | **36 geçti** | 37; çoklu sohbet testleri yerine tek asistan testleri |
+| Arayüz bütünleşik | **5 geçti**, 3 atlandı (canlı model gerektiriyor) | — |
+| Rust | 19 geçti, 1 isteğe bağlı Anahtar Zinciri testi çalıştırılmadı; yaşam döngüsü 7 geçti | — |
+
+Statik denetimler temiz.
+
+**Gerçek Gemma ile:**
+
+- `LAZIS_TEST_MODEL=gemma4:12b-it-qat make test-ui-integration`: **8/8**. Tek sürekli konuşma; ikinci mesaj aynı oturumda ve önceki bilgiyi hatırlıyor; durdurma; arka uç yeniden başlayınca aynı oturum ve geçmiş; günlükte sohbet metni yok.
+- `make test-ollama`: **3/3**.
+
+**Yeni ve değişen kritik testler:**
+
+- **Veri bütünlüğü:** v2'den v3'e paralel sohbetlerin kayıpsız geçişi; tekrar çalıştırmada çoğalmama; v3 sonrası yeni mesajın zaman çizelgesinin sonuna eklenmesi.
+- **Teknik oturumlar:**
+  - turların aktif oturumda devam etmesi;
+  - yeni oturumun eski içeriği görmemesi;
+  - kapalı oturuma yazılamaması;
+  - oturumlar arası zaman çizelgesinde boşluk ya da tekrar olmaması;
+  - API üzerinden: kapalı oturum zaman çizelgesinde görünüyor ama model isteğine girmiyor.
+- **Güvenlik:** Geçmiş silme, yeniden adlandırma ve listeleme yollarının API'de bulunmaması (8 yol).
+- **Arayüz:**
+  - doğrudan tek asistan ekranı; sohbet listesi, yeni sohbet, yeniden adlandırma ve silme kontrolleri yok;
+  - oturum seçmeden gönderim;
+  - ilk kez kullanan kullanıcı;
+  - bağlam sınırı çizgisi;
+  - sayfalamada tekrar yok;
+  - durdurma ve kısmi yanıt, hata durumları, tarayıcı depolamasına yazmama.
+
+### F. Bilinen eksikler
+
+1. **Gerçek uygulamada arayüzle etkileşim** yine benim tarafımdan doğrulanamadı.
+   - Sürüm derlemesi tek kullanımlık profille açıldı. Arka uç v1→v3 migration'ını uyguladı ve arayüz açılış ön ısıtmasını yaptı (günlük kaydı: `prewarm.completed`).
+   - Yalnızca LAZIS penceresinin ekran görüntüsünde tek merkezî asistan paneli görünüyor, sohbet listesi yok. Önde ilk kurulum penceresi açıktı.
+   - Tıklama ve yazma izni olmadığı için mesaj gönderemedim. Profil ve Anahtar Zinciri kaydı silindi.
+2. **Otomatik teknik oturum değişimi ve oturumlar arası hatırlama yok** (hafıza fazı P6). Arayüzdeki çizginin üstündeki eski oturumları LAZIS hatırlamıyor; bunu açıkça söylüyor.
+3. **Sanallaştırma yok.** Sayfalama (50'şer) var. Çok sayıda eski sayfa yüklenirse DOM büyüyebilir; büyük bir liste sanallaştırması P4/P14'te değerlendirilebilir.
+4. **Markdown gösterimi yok.** Talimatta "korunsun" denmiş, ama Faz 3'te hiç yapılmamıştı: yanıtlar düz metin (satır sonları korunarak). Güvenli bir Markdown işleyici P4'te eklenebilir (ek bağımlılık ve XSS incelemesi gerekir).
+5. **Boş yeni oturumun ön ısıtma göstergesi** yanıltıcı (§13.D).
+6. **Geçmiş yönetimi** (arama, tek tek silme) yok; bilinçli olarak kapsam dışı.
+7. **Eski ölçüm aracı:** `p3_conversation.py`'nin "yeni sohbet" senaryosu artık aktif oturuma yazıyor. §7'nin sonuçları ilk sürümle alınmıştı; araç yeni kurala uyarlandı, ama §7 yeniden koşulmadı.
+
+### G. Sizin gerçek uygulamada denemeniz gerekenler
+
+1. **Mevcut verilerin geçişi:** Uygulamayı açın (`make build` sonrası `LAZIS.app` ya da `make dev`). Daha önce oluşturduğunuz sohbetlerin **hepsi** tek zaman çizelgesinde görünmeli: en son kullandığınız sohbet en altta, diğerleri yukarıda bütün bloklar halinde, araya bağlam sınırı çizgisi.
+2. **Arayüz:** Sohbet listesi, "Yeni sohbet", yeniden adlandırma ve silme kontrolleri olmamalı.
+3. **Gönderim:** Hiçbir şey seçmeden bir mesaj yazıp `⌘↵` ile gönderin; yanıt akmalı, "Durdur" çalışmalı.
+4. **Hatırlama:** Son sohbetinizdeki bir bilgiyi sorun; hatırlamalı. Çizginin üstündeki eski bir sohbetteki ayrıntıyı sorun; hatırlamadığını söylemeli, uydurmamalı.
+5. **Kalıcılık:** Uygulamayı kapatıp açın. Aynı ekran ve geçmiş gelmeli; doğrudan yazabilmelisiniz.
+6. **Eski mesajlar:** Yukarı kaydırıp "Daha eski mesajları göster" ile eski mesajlara ulaşın.
+7. **İsterseniz yedek kontrolü:** `~/Library/Application Support/LAZIS/data.noindex/backups/` altında `pre-migration-v2` adlı yeni bir yedek dosyası olmalı.

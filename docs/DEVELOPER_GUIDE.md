@@ -168,8 +168,7 @@ make test-ollama LAZIS_TEST_MODEL=…       # opt-in: real sandboxed backend + O
 
 ## 13. Conversations (Phase 3)
 
-- **Using it:** the desktop app opens on the **Sohbet** tab. It reopens the most recently updated conversation. "Yeni sohbet" starts a draft; the draft is stored together with its first message.
-  - Rename: ✎. Delete: ✕, after a confirmation dialog.
+- **Using it:** the desktop app opens on the **Sohbet** tab: one assistant, one continuous timeline ([ADR-0011](adr/0011-single-assistant-timeline.md)). There is no conversation list, no "new chat", no renaming. Technical sessions exist only in the backend; a dashed line marks where the model's current context starts.
   - "Durdur" keeps the partial reply as *durduruldu*.
   - A reply cut by a crash or a shutdown is shown as *yarım kaldı*, never as complete.
 - **Where it is stored:** the same SQLCipher database as everything else (`lazis.db`, migration `0002_conversations`).
@@ -184,8 +183,9 @@ make test-ollama LAZIS_TEST_MODEL=…       # opt-in: real sandboxed backend + O
 
   Design and rationale: [ADR-0010](adr/0010-conversation-persistence-and-context.md).
 - **Settings:** the `[conversation]` section of the config file, for example `compact_at_tokens`, `keep_recent_tokens`, `idle_compaction_delay_s` (default 5 s), `compaction_chunk_tokens`, `prewarm`. Defaults are in `config/model.py`; the validator refuses combinations where compaction could never shrink the context.
-- **Inspecting a conversation's context:** `GET /api/v1/conversations/{id}` returns strategy, window, summary, estimated tokens and cache state. `POST /api/v1/conversations/{id}/context/reset` invalidates its summaries.
+- **Inspecting the context:** `GET /api/v1/assistant` returns the active session, its strategy, window, summary, estimated tokens and cache state, and where it starts in the timeline. `GET /api/v1/timeline?before=&limit=` pages the timeline. Summaries can be invalidated from code (`engine.reset_context`); there is no route for it.
 - **Measurements** (need Ollama and the model; throwaway encrypted database, deleted afterwards):
   - `uv run --project core python evals/runners/p3_conversation.py --model gemma4:12b-it-qat` — cold vs warm TTFT for each §6.4 scenario → `evals/reports/phase3/conversation_perf.json`;
-  - `uv run --project core python evals/runners/p3_context_eval.py --model gemma4:12b-it-qat` — answers after compaction vs full history → `evals/reports/phase3/context_eval.json`.
-- **Live tests:** `LAZIS_TEST_MODEL=gemma4:12b-it-qat make test-ui-integration` runs a persistent multi-turn conversation through the real backend: recall, stop, rename, delete, no text in logs.
+  - `uv run --project core python evals/runners/p3_context_eval.py --model gemma4:12b-it-qat` — answers after compaction vs full history → `evals/reports/phase3/context_eval.json`;
+  - `uv run --project core python evals/runners/p3_assistant.py --model gemma4:12b-it-qat` — single-assistant scenarios (opening, follow-ups, reopen, 20,000-message history, session change) → `evals/reports/phase3/assistant_perf.json`.
+- **Live tests:** `LAZIS_TEST_MODEL=gemma4:12b-it-qat make test-ui-integration` runs one continuous conversation through the real backend: recall, stop, the same session after a backend restart, no text in logs.

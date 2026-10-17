@@ -214,3 +214,11 @@ class MessageTooLongError(LazisError):
     code = "message_too_long"
     http_status = 413
     recoverable = True
+
+
+class SessionNotActiveError(LazisError):
+    """A turn named a technical session that is not the active one (ADR-0011)."""
+
+    code = "session_not_active"
+    http_status = 409
+    recoverable = True

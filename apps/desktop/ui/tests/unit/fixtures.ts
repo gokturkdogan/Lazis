@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { ApiClient, Conversation, ConversationDetailResponse, Message } from "@/api/client";
+import type { ApiClient, AssistantStateResponse, Conversation, Message } from "@/api/client";
 import type { BackendConnection, Platform } from "@/platform/tauri";
 
 export const TOKEN = "a".repeat(64);
@@ -133,14 +133,16 @@ export function messageFixture(
     error_code: null,
     created_at: "2026-10-17T11:00:00.000Z",
     completed_at: "2026-10-17T11:00:01.000Z",
+    timeline_seq: seq,
+    channel: "text",
     metrics: role === "assistant" ? { ttft_ms: 450, total_ms: 2000, prompt_tokens: 600, output_tokens: 40 } : null,
     ...overrides,
   };
 }
 
-export function detailFixture(conversation: Conversation = conversationFixture()): ConversationDetailResponse {
+export function assistantFixture(overrides: Partial<AssistantStateResponse> = {}): AssistantStateResponse {
   return {
-    conversation,
+    session: conversationFixture(),
     context: {
       strategy: "full",
       context_version: 1,
@@ -155,6 +157,9 @@ export function detailFixture(conversation: Conversation = conversationFixture()
       cache: "warm",
       background: null,
     },
+    timeline_messages: 0,
+    active_from_timeline_seq: 1,
+    ...overrides,
   };
 }
 
@@ -168,13 +173,10 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     models: vi.fn().mockResolvedValue({ models: [modelFixture] }),
     chatStream: vi.fn().mockResolvedValue(undefined),
     cancelChat: vi.fn().mockResolvedValue(true),
-    listConversations: vi.fn().mockResolvedValue({ conversations: [], next_cursor: null }),
-    getConversation: vi.fn().mockResolvedValue(detailFixture()),
-    listMessages: vi.fn().mockResolvedValue({ messages: [], has_more: false }),
-    renameConversation: vi.fn().mockImplementation(async (_id: string, title: string) =>
-      conversationFixture({ title, title_source: "user" }),
+    assistantState: vi.fn().mockResolvedValue(
+      assistantFixture({ session: null, context: null, active_from_timeline_seq: null }),
     ),
-    deleteConversation: vi.fn().mockResolvedValue({ deleted: true, messages: 2, summaries: 0 }),
+    timeline: vi.fn().mockResolvedValue({ messages: [], has_more: false }),
     submitTurn: vi.fn().mockResolvedValue(undefined),
     cancelTurn: vi.fn().mockResolvedValue(true),
     prepare: vi.fn().mockResolvedValue({ state: "warm", model_loaded: true, context_tokens: 700 }),

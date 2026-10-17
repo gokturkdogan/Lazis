@@ -39,7 +39,8 @@ describe("App", () => {
     expect(wrapper.get('[data-testid="tab-conversation"]').classes()).toContain("active");
     const thread = wrapper.get('[data-testid="conversation-thread"]');
     expect(thread.text()).toContain("şifreli veritabanında saklanır");
-    expect(thread.get('[data-testid="empty-thread"]').text()).toContain("İlk mesajınızla birlikte kaydedilir");
+    expect(thread.get('[data-testid="empty-thread"]').text()).toContain("tek bir konuşma geçmişinde");
+    expect(wrapper.find('[data-testid="new-conversation"]').exists()).toBe(false);
     expect(thread.findAll('[data-testid="message-assistant"]')).toHaveLength(0);
     expect(wrapper.find('[data-testid="filevault-warning"]').exists()).toBe(false);
   });
@@ -62,7 +63,7 @@ describe("App", () => {
   it("shows the restore form when recovery is needed", async () => {
     const { wrapper } = await mountWith(connection({ phase: "needs_recovery", token: null, port: null }));
     expect(wrapper.find('[data-testid="restore-panel"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="conversation-view"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="assistant-view"]').exists()).toBe(false);
   });
 
   it("asks to store the recovery code on first run", async () => {

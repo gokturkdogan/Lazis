@@ -22,6 +22,7 @@ from lazis.errors import (
     LlmModelNotFoundError,
     LlmUnavailableError,
     MessageTooLongError,
+    SessionNotActiveError,
     TurnDuplicateError,
 )
 from lazis.ids import utc_now_iso
@@ -77,26 +78,69 @@ def test_single_turn_is_persisted_with_metrics(tmp_path: Path, storage: StorageH
     assert conv is not None and conv.title == "Merhaba LAZIS" and conv.message_count == 2
 
 
-def test_multi_turn_context_and_isolation(tmp_path: Path, storage: StorageHandle) -> None:
+def test_turns_continue_the_active_session_and_sessions_stay_isolated(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """One assistant: every turn without an id goes to the active session. A new technical
+    session does not see the closed one's messages, and the closed one takes no new turns."""
     llm = ScriptedLLM()
     engine = make_engine(storage, llm, tmp_path)
 
     async def go() -> tuple[str, str]:
         _, a = await run_turn(engine, "Kız kardeşimin adı Ayşe.")
-        _, b = await run_turn(engine, "Bugün hava çok güzel.")
-        await run_turn(engine, "Kız kardeşimin adı neydi?", a)
+        _, a2 = await run_turn(engine, "Kız kardeşimin adı neydi?")
+        assert a2 == a  # no new conversation: the same active session
+        b = (await engine.start_new_session(MODEL)).id
+        _, b2 = await run_turn(engine, "Bugün hava çok güzel.")
+        assert b2 == b
+        with pytest.raises(SessionNotActiveError):
+            await engine.begin_turn(TurnRequest(a, client_id(), "Eski oturuma yaz", MODEL))
+        active = await engine.active_session()
+        assert active is not None and active.id == b
         await engine.close()
         return a, b
 
     a, b = asyncio.run(go())
-    third = llm.chat_requests[2]
-    contents = [m.content for m in third.messages]
-    assert any("Ayşe" in c for c in contents) and not any("hava" in c for c in contents)
-    assert third.messages[0].role == "system" and third.messages[0].content.startswith(S0_POLICY)
-    # Requests of one conversation are append-only: request 3 starts with request 1.
+    second = llm.chat_requests[1]
+    assert any("Ayşe" in m.content for m in second.messages)
+    # Requests of one session are append-only: request 2 starts with request 1.
     first = llm.chat_requests[0]
-    assert list(third.messages[: len(first.messages)]) == list(first.messages)
+    assert list(second.messages[: len(first.messages)]) == list(first.messages)
+    third = llm.chat_requests[2]  # first turn of the new session
+    assert not any("Ayşe" in m.content for m in third.messages)
+    assert third.messages[0].content.startswith(S0_POLICY)
     assert len(rows(storage, a)) == 4 and len(rows(storage, b)) == 2
+
+
+def test_timeline_spans_sessions_in_order_without_gaps_or_duplicates(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    llm = ScriptedLLM()
+    engine = make_engine(storage, llm, tmp_path)
+
+    async def go() -> list[list[int]]:
+        for i in range(3):
+            await run_turn(engine, f"A oturumu {i}")
+        await engine.start_new_session(MODEL)
+        for i in range(2):
+            await run_turn(engine, f"B oturumu {i}")
+        pages: list[list[int]] = []
+        before: int | None = None
+        while True:
+            page, more = await engine.timeline(before_timeline_seq=before, limit=3)
+            pages.append([m.timeline_seq for m in page])
+            if not more:
+                break
+            before = page[0].timeline_seq
+        state = await engine.assistant_state()
+        assert state["timeline_messages"] == 10 and state["active_from_timeline_seq"] == 7
+        await engine.close()
+        return pages
+
+    pages = asyncio.run(go())
+    seen = [s for page in reversed(pages) for s in page]
+    assert seen == list(range(1, 11))  # every message once, in order, across both sessions
+    assert pages[0] == [8, 9, 10]
 
 
 def test_reopen_after_restart_and_continue(
@@ -503,6 +547,7 @@ def test_delete_removes_everything_and_unloads_cached_text(
 
     async def go() -> tuple[str, str]:
         _, keep = await run_turn(engine, "Başka bir sohbet")
+        await engine.start_new_session(MODEL)
         cid: str | None = None
         for i in range(3):
             _, cid = await run_turn(engine, f"Silinecek {i}", cid)
@@ -533,29 +578,6 @@ def test_delete_removes_everything_and_unloads_cached_text(
     )
     assert len(audit) == 1 and cid in audit[0][0] and "Silinecek" not in str(audit)
     assert MODEL in llm.unloads
-
-
-def test_rename_and_paging(tmp_path: Path, storage: StorageHandle) -> None:
-    llm = ScriptedLLM()
-    engine = make_engine(storage, llm, tmp_path)
-
-    async def go() -> None:
-        cid: str | None = None
-        for i in range(6):
-            _, cid = await run_turn(engine, f"Mesaj {i}", cid)
-        assert cid is not None
-        conv = await engine.rename(cid, "  Haftalık   plan ")
-        assert conv.title == "Haftalık plan" and conv.title_source == "user"
-        page1, more1 = await engine.messages(cid, before_seq=None, limit=5)
-        page2, more2 = await engine.messages(cid, before_seq=page1[0].seq, limit=5)
-        assert [m.seq for m in page1] == [8, 9, 10, 11, 12] and more1
-        assert [m.seq for m in page2] == [3, 4, 5, 6, 7] and more2
-        _, cid2 = await run_turn(engine, "Yeni sohbet")
-        items, _ = await engine.list_conversations(limit=10)
-        assert [c.id for c in items] == [cid2, cid]
-        await engine.close()
-
-    asyncio.run(go())
 
 
 def test_soak_300_turns_never_overflows_the_context(tmp_path: Path, storage: StorageHandle) -> None:

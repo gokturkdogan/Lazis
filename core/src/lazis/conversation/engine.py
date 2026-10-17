@@ -39,6 +39,7 @@ from lazis.conversation.context import (
     trim_to_fit,
 )
 from lazis.conversation.models import (
+    Channel,
     ContextState,
     Conversation,
     Message,
@@ -66,6 +67,7 @@ from lazis.errors import (
     LlmModelNotFoundError,
     LlmUnavailableError,
     MessageTooLongError,
+    SessionNotActiveError,
     StorageError,
     TurnDuplicateError,
 )
@@ -91,10 +93,14 @@ Event = dict[str, Any]
 
 @dataclass(frozen=True)
 class TurnRequest:
+    """``conversation_id`` None means "the active session" (created on the very first turn).
+    A given id must be the active session; closed sessions never receive messages."""
+
     conversation_id: str | None
     client_id: str
     content: str
     model: str
+    channel: Channel = "text"
 
 
 @dataclass
@@ -146,6 +152,8 @@ def message_view(m: Message) -> dict[str, Any]:
         "error_code": m.error_code,
         "created_at": m.created_at,
         "completed_at": m.completed_at,
+        "timeline_seq": m.timeline_seq,
+        "channel": m.channel,
         "metrics": None
         if m.role != "assistant" or m.status == "streaming"
         else {
@@ -166,10 +174,6 @@ def auto_title(text: str, limit: int) -> str:
     if space >= limit // 2:
         cut = cut[:space]
     return cut.rstrip(" ,.;:") + "…"
-
-
-def clean_title(title: str, limit: int = 120) -> str:
-    return " ".join(title.split())[:limit]
 
 
 def initial_context(conversation_id: str, budget: int, now: str) -> ContextState:
@@ -409,23 +413,6 @@ class ConversationEngine:
         has_more = len(rows) > limit
         return (rows[1:] if has_more else rows), has_more
 
-    async def rename(self, conversation_id: str, title: str) -> Conversation:
-        await self.ensure_started()
-        clean = clean_title(title)
-        if not clean:
-            raise ContextBuildError("empty title")
-
-        def write(conn: Connection) -> Conversation | None:
-            with repository.transaction(conn):
-                if not repository.rename_conversation(conn, conversation_id, clean, utc_now_iso()):
-                    return None
-                return repository.get_conversation(conn, conversation_id)
-
-        found = await self._q(write)
-        if found is None:
-            raise ConversationNotFoundError("conversation not found")
-        return found
-
     async def delete(self, conversation_id: str) -> dict[str, int]:
         """Delete a conversation with its messages, context state and summaries.
 
@@ -488,6 +475,62 @@ class ConversationEngine:
         )
         return {"messages": removed[0], "summaries": removed[1]}
 
+    # ----- the assistant: one timeline, hidden technical sessions (ADR-0011) -------------
+    async def active_session(self) -> Conversation | None:
+        await self.ensure_started()
+        return await self._q(repository.get_active_session)
+
+    async def assistant_state(self) -> dict[str, Any]:
+        """What the single assistant view needs: the active session's context state and where
+        it starts in the timeline (older messages are not in the model's context)."""
+        session = await self.active_session()
+        total, first = await self._q(
+            lambda c: repository.timeline_stats(c, None if session is None else session.id)
+        )
+        return {
+            "session": None if session is None else conversation_view(session),
+            "context": None if session is None else await self.context_info(session.id),
+            "timeline_messages": total,
+            "active_from_timeline_seq": first,
+        }
+
+    async def timeline(
+        self, *, before_timeline_seq: int | None, limit: int
+    ) -> tuple[list[Message], bool]:
+        await self.ensure_started()
+        rows = await self._q(
+            lambda c: repository.timeline_page(
+                c, limit=limit + 1, before_timeline_seq=before_timeline_seq
+            )
+        )
+        has_more = len(rows) > limit
+        return (rows[1:] if has_more else rows), has_more
+
+    async def start_new_session(self, model: str) -> Conversation:
+        """Close the active session and open a new, empty one. Nothing calls this
+        automatically in Phase 3: there is no technical need yet (ADR-0011 §3). The closed
+        session stays in the timeline but is not in the new session's context; continuity
+        across sessions is the job of the personal memory system (P6), not of copied
+        summaries (their citations point into the old session)."""
+        await self.ensure_started()
+        if self.is_busy():
+            raise LlmBusyError("a reply is being generated")
+        now = utc_now_iso()
+
+        def write(conn: Connection) -> Conversation:
+            with repository.transaction(conn):
+                repository.archive_active_session(conn)
+                session = repository.insert_conversation(conn, title="LAZIS", model=model, now=now)
+                repository.save_context(
+                    conn, initial_context(session.id, self.budget.hard_limit, now)
+                )
+                return session
+
+        session = await self._q(write)
+        self._focused = session.id
+        log_event(_log, logging.INFO, "session.started", session_id=session.id)
+        return session
+
     async def reset_context(self, conversation_id: str) -> None:
         """Invalidate all summaries and send the full history again (rebuilt on demand)."""
         await self.get_conversation(conversation_id)
@@ -539,16 +582,20 @@ class ConversationEngine:
             with repository.transaction(conn):
                 if repository.find_by_client_id(conn, req.client_id) is not None:
                     raise TurnDuplicateError("message already submitted")
-                created = req.conversation_id is None
-                if req.conversation_id is None:
+                active = repository.get_active_session(conn)
+                if req.conversation_id is not None and (
+                    active is None or active.id != req.conversation_id
+                ):
+                    if repository.get_conversation(conn, req.conversation_id) is None:
+                        raise ConversationNotFoundError("conversation not found")
+                    raise SessionNotActiveError("only the active session receives messages")
+                created = active is None
+                if active is None:
                     conv = repository.insert_conversation(
                         conn, title=title, model=req.model, now=now
                     )
                 else:
-                    found = repository.get_conversation(conn, req.conversation_id)
-                    if found is None:
-                        raise ConversationNotFoundError("conversation not found")
-                    conv = found
+                    conv = active
                 state = repository.get_context(conn, conv.id)
                 if state is None:
                     repository.save_context(conn, initial_context(conv.id, budget, now))
@@ -577,6 +624,7 @@ class ConversationEngine:
                     context_note=note,
                     client_id=req.client_id,
                     model=req.model,
+                    channel=req.channel,
                 )
                 assistant = repository.insert_message(
                     conn,
