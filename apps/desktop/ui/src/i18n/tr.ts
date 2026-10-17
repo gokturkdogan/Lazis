@@ -3,9 +3,10 @@ export const tr = {
   app: {
     name: "LAZIS",
     tagline: "Kişisel yapay zekâ asistanı",
-    foundation: "Faz 2 · Yerel yapay zekâ (önizleme)",
+    foundation: "Faz 3 · Kalıcı sohbet",
   },
   nav: {
+    conversation: "Sohbet",
     overview: "Genel bakış",
     settings: "Ayarlar",
     diagnostics: "Tanılama",
@@ -69,29 +70,67 @@ export const tr = {
   },
   conversation: {
     title: "Sohbet",
-    ephemeral: "Geçici",
-    notice:
-      "Bu bir deneme sohbetidir: mesajlar yalnızca bu pencerenin belleğinde tutulur; " +
-      "diske, veritabanına veya günlüklere yazılmaz ve uygulama kapanınca silinir. " +
-      "Yanıtları bu bilgisayardaki yerel model üretir; hiçbir şey buluta gönderilmez. " +
-      "Kalıcı sohbet ve hafıza sonraki fazlarda gelecek.",
+    list: "Sohbetler",
+    newChat: "Yeni sohbet",
+    newTitle: "Yeni sohbet",
+    emptyList: "Henüz sohbet yok.",
+    loadMore: "Daha eski sohbetler",
+    rename: "Yeniden adlandır",
+    renameSave: "Kaydet",
+    renameCancel: "Vazgeç",
+    delete: "Sil",
+    deleteTitle: "Sohbet silinsin mi?",
+    deleteBody:
+      "“{title}” sohbeti ve tüm mesajları bu bilgisayardaki veritabanından kalıcı olarak silinecek. " +
+      "Bu işlem geri alınamaz.",
+    deleteBackups:
+      "Daha önce alınmış şifreli yedekler bu sohbeti içerebilir; bunlar yeni yedekler alındıkça sırayla " +
+      "silinir. Fiziksel diskten tam silme garanti edilemez.",
+    deleteConfirm: "Kalıcı olarak sil",
+    deleteCancel: "Vazgeç",
+    active: "Açık sohbet",
+    storedNotice:
+      "Sohbetler yalnızca bu bilgisayarda, şifreli veritabanında saklanır; buluta gönderilmez ve " +
+      "günlüklere yazılmaz. Yanıtları bu bilgisayardaki yerel model üretir.",
+    fileVaultOff:
+      "FileVault kapalı: sohbetler veritabanında şifreli, ancak diskteki diğer dosyalar (günlükler, " +
+      "macOS takas alanı) şifrelenmiyor. Kişisel sohbetlerden önce Sistem Ayarları › Gizlilik ve " +
+      "Güvenlik › FileVault'u açmanız önerilir.",
     model: "Model",
     noModels: "Yüklü yerel model yok.",
-    noModelsHint: "Kurulum (onaylı modeller): make model-pull MODEL=qwen3.5:9b-q4_K_M",
+    noModelsHint: "Kurulum (onaylı modeller): make model-pull MODEL=gemma4:12b-it-qat",
     runtimeDown: "Yerel model çalışma ortamına (Ollama) ulaşılamıyor.",
     runtimeDownHint: "Ollama'yı başlatın: scripts/ollama-agent.sh install",
     placeholder: "Mesajınızı yazın… (Gönder: ⌘↵)",
     send: "Gönder",
     stop: "Durdur",
     stopping: "Durduruluyor…",
-    clear: "Temizle",
-    refresh: "Yenile",
     you: "Siz",
     lazis: "LAZIS",
-    loadingModel: "Model hazırlanıyor… (ilk yanıtta model belleğe yüklenir)",
+    empty: "Yeni bir sohbet. İlk mesajınızla birlikte kaydedilir.",
+    loadOlder: "Daha eski mesajları göster",
+    loadingMessages: "Mesajlar yükleniyor…",
     cancelled: "Yanıt durduruldu.",
-    empty: "Henüz mesaj yok. Bir şey sorarak yerel modeli deneyin.",
-    metrics: "İlk token {ttft} · {tps} token/sn · {tokens} token",
+    interrupted: "Bu yanıt uygulama kapandığı için yarım kaldı.",
+    failed: "Yanıt üretilemedi.",
+    busyElsewhere: "Başka bir sohbette yanıt üretiliyor. Bitmesini bekleyin veya o sohbette durdurun.",
+    stage: {
+      waiting: "Sırada…",
+      loading_model: "Model hazırlanıyor (belleğe yükleniyor)…",
+      processing_cold: "Konuşma bağlamı hazırlanıyor (yaklaşık {tokens} token)…",
+      processing_warm: "Yanıt hazırlanıyor…",
+      compacting: "Uzun konuşma özetleniyor…",
+      generating: "Yanıt oluşturuluyor…",
+      cancelling: "Durduruluyor…",
+    },
+    trimmed: "Bağlam sınırı: #{from}–#{to} arası mesajlar bu yanıt için modele gönderilmedi.",
+    summarized: "#1–#{to} arası mesajlar modele özet olarak gönderiliyor; orijinaller saklı.",
+    omitted: "#{from}–#{to} arası mesajlar şu an bağlamda değil (bağlam sınırı).",
+    background: {
+      prewarm: "Arka planda konuşma bağlamı hazırlanıyor",
+      compaction: "Arka planda konuşma özetleniyor",
+    },
+    metrics: "İlk token {ttft} · {tokens} token",
     loaded: "Bellekte: {model} ({size})",
     notLoaded: "Bellekte yüklü model yok",
   },
@@ -196,6 +235,12 @@ export const tr = {
     llm_invalid_response: "Yerel modelden geçersiz bir yanıt geldi.",
     llm_busy: "Şu anda başka bir yanıt üretiliyor. Bitmesini bekleyin veya durdurun.",
     llm_cancelled: "Yanıt üretimi durduruldu.",
+    conversation_not_found: "Sohbet bulunamadı. Silinmiş olabilir.",
+    turn_duplicate: "Bu mesaj zaten gönderildi.",
+    database_busy: "Veritabanı şu anda meşgul. Birkaç saniye sonra yeniden deneyin.",
+    message_save_failed: "Mesaj kaydedilemedi. Sohbet değiştirilmedi; yeniden deneyin.",
+    context_failed: "Konuşma bağlamı hazırlanamadı. Yeniden deneyin.",
+    message_too_long: "Mesaj çok uzun. Lütfen daha kısa bir mesaj gönderin.",
   },
 } as const;
 

@@ -7,9 +7,12 @@ from pathlib import Path
 from lazis.api.app_factory import ApiContext, create_app
 from lazis.config import Settings
 from lazis.storage import StorageHandle
+from lazis.storage.migrations import load_migrations
 from tests.conftest import REPO_ROOT, make_client
 
 OPENAPI_SNAPSHOT = REPO_ROOT / "apps" / "desktop" / "ui" / "src" / "api" / "openapi.json"
+
+SHIPPED = len(load_migrations("lazis"))
 
 
 def _auth(token: str) -> dict[str, str]:
@@ -20,7 +23,7 @@ def test_app_info(tmp_path: Path, storage: StorageHandle, token: str) -> None:
     body = (
         make_client(tmp_path, storage, token).get("/api/v1/app/info", headers=_auth(token)).json()
     )
-    assert body["name"] == "LAZIS" and body["api_version"] == "v1" and body["phase"] == "P2"
+    assert body["name"] == "LAZIS" and body["api_version"] == "v1" and body["phase"] == "P3"
     assert body["environment"] == "test"
 
 
@@ -35,7 +38,7 @@ def test_system_status_reports_verified_encryption_and_privacy(
     db = body["database"]
     assert db["encrypted"] is True and db["encryption_verified"] is True
     assert db["cipher_version"].startswith("4.") and db["integrity"] == "ok"
-    assert db["schema_version"] == 1 and len(db["instance_id"]) == 26
+    assert db["schema_version"] == SHIPPED and len(db["instance_id"]) == 26
     assert body["privacy"] == {
         "network_egress": "disabled",
         "research_mode": "offline_only",

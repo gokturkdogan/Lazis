@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { ApiClient } from "@/api/client";
+import type { ApiClient, Conversation, ConversationDetailResponse, Message } from "@/api/client";
 import type { BackendConnection, Platform } from "@/platform/tauri";
 
 export const TOKEN = "a".repeat(64);
@@ -36,7 +36,7 @@ export const statusFixture = {
     cipher_version: "4.19.0 community",
     cipher_provider: "openssl",
     sqlite_version: "3.53.4",
-    schema_version: 1,
+    schema_version: 2,
     journal_mode: "wal",
     integrity: "ok" as const,
     size_bytes: 4096,
@@ -57,7 +57,7 @@ export const infoFixture = {
   name: "LAZIS",
   version: "0.1.0",
   api_version: "v1",
-  phase: "P2",
+  phase: "P3",
   environment: "development",
   python_version: "3.13.16",
 };
@@ -98,6 +98,66 @@ export const llmStatusFixture = {
   cloud_inference: "disabled" as const,
 };
 
+export const MODEL = modelFixture.name;
+
+export function conversationFixture(overrides: Partial<Conversation> = {}): Conversation {
+  return {
+    id: "01M558Q8A5R4V2Y7K0J3H6N9TB",
+    title: "Haftalık plan",
+    title_source: "auto",
+    model: MODEL,
+    status: "active",
+    message_count: 2,
+    created_at: "2026-10-17T11:00:00.000Z",
+    updated_at: "2026-10-17T11:05:00.000Z",
+    ...overrides,
+  };
+}
+
+export function messageFixture(
+  seq: number,
+  role: "user" | "assistant",
+  content: string,
+  overrides: Partial<Message> = {},
+): Message {
+  return {
+    id: `01M558Q8A5R4V2Y7K0J3H6M${String(seq).padStart(3, "0")}`,
+    conversation_id: conversationFixture().id,
+    seq,
+    role,
+    content,
+    status: "complete",
+    client_id: null,
+    reply_to: null,
+    model: MODEL,
+    error_code: null,
+    created_at: "2026-10-17T11:00:00.000Z",
+    completed_at: "2026-10-17T11:00:01.000Z",
+    metrics: role === "assistant" ? { ttft_ms: 450, total_ms: 2000, prompt_tokens: 600, output_tokens: 40 } : null,
+    ...overrides,
+  };
+}
+
+export function detailFixture(conversation: Conversation = conversationFixture()): ConversationDetailResponse {
+  return {
+    conversation,
+    context: {
+      strategy: "full",
+      context_version: 1,
+      window_start_seq: 1,
+      estimated_tokens: 700,
+      anchored: true,
+      omitted: null,
+      summary: null,
+      num_ctx: 16384,
+      hard_limit: 13721,
+      compact_at: 6144,
+      cache: "warm",
+      background: null,
+    },
+  };
+}
+
 export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     health: vi.fn().mockResolvedValue({ status: "ok", version: "0.1.0", checks: {} }),
@@ -108,6 +168,22 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     models: vi.fn().mockResolvedValue({ models: [modelFixture] }),
     chatStream: vi.fn().mockResolvedValue(undefined),
     cancelChat: vi.fn().mockResolvedValue(true),
+    listConversations: vi.fn().mockResolvedValue({ conversations: [], next_cursor: null }),
+    getConversation: vi.fn().mockResolvedValue(detailFixture()),
+    listMessages: vi.fn().mockResolvedValue({ messages: [], has_more: false }),
+    renameConversation: vi.fn().mockImplementation(async (_id: string, title: string) =>
+      conversationFixture({ title, title_source: "user" }),
+    ),
+    deleteConversation: vi.fn().mockResolvedValue({ deleted: true, messages: 2, summaries: 0 }),
+    submitTurn: vi.fn().mockResolvedValue(undefined),
+    cancelTurn: vi.fn().mockResolvedValue(true),
+    prepare: vi.fn().mockResolvedValue({ state: "warm", model_loaded: true, context_tokens: 700 }),
+    activity: vi.fn().mockResolvedValue({
+      turn: null,
+      background: null,
+      cached_conversation_id: null,
+      pending_compaction: [],
+    }),
     ...overrides,
   };
 }

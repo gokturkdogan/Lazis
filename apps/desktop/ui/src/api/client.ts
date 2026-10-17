@@ -12,6 +12,15 @@ export type EffectiveSettingsResponse = Schemas["EffectiveSettingsResponse"];
 export type LlmStatusResponse = Schemas["LlmStatusResponse"];
 export type ModelListResponse = Schemas["ModelListResponse"];
 export type ChatStreamRequest = Schemas["ChatStreamRequest"];
+export type Conversation = Schemas["ConversationModel"];
+export type ConversationListResponse = Schemas["ConversationListResponse"];
+export type ConversationDetailResponse = Schemas["ConversationDetailResponse"];
+export type Message = Schemas["MessageModel"];
+export type MessagePageResponse = Schemas["MessagePageResponse"];
+export type TurnSubmitRequest = Schemas["TurnSubmitRequest"];
+export type PrepareResponse = Schemas["PrepareResponse"];
+export type ActivityResponse = Schemas["ActivityResponse"];
+export type DeleteConversationResponse = Schemas["DeleteConversationResponse"];
 type ErrorResponse = Schemas["ErrorResponse"];
 
 export interface ChatMetrics {
@@ -31,6 +40,40 @@ export type ChatEvent =
   | { type: "delta"; text: string }
   | { type: "done"; metrics: ChatMetrics }
   | { type: "error"; code: string; message: string };
+
+/** Turn stages reported by the backend (real states, no synthetic progress). */
+export type TurnStage =
+  | "waiting"
+  | "compacting"
+  | "context_trimmed"
+  | "loading_model"
+  | "processing_context";
+
+/** One line of the NDJSON stream from POST /turns. */
+export type TurnEvent =
+  | {
+      type: "start";
+      conversation: Conversation;
+      created: boolean;
+      user_message: Message;
+      assistant_message: Message;
+    }
+  | {
+      type: "status";
+      stage: TurnStage;
+      context_tokens?: number;
+      cache?: "warm" | "cold";
+      model?: string;
+      omitted?: number[] | null;
+    }
+  | { type: "delta"; text: string }
+  | {
+      type: "done";
+      message: Message;
+      context: { estimated_tokens: number; prompt_tokens: number | null; strategy: string };
+    }
+  | { type: "cancelled"; message: Message | null }
+  | { type: "error"; code: string; message: string; assistant_message: Message | null };
 
 export class ApiError extends Error {
   constructor(
@@ -63,6 +106,21 @@ export interface ApiClient {
     signal?: AbortSignal,
   ): Promise<void>;
   cancelChat(requestId: string): Promise<boolean>;
+  listConversations(cursor?: string | null): Promise<ConversationListResponse>;
+  getConversation(id: string): Promise<ConversationDetailResponse>;
+  listMessages(id: string, beforeSeq?: number | null, limit?: number): Promise<MessagePageResponse>;
+  renameConversation(id: string, title: string): Promise<Conversation>;
+  deleteConversation(id: string): Promise<DeleteConversationResponse>;
+  /** Streams turn events until done/cancelled/error. Rejects with ApiError before the
+   *  stream starts (busy, duplicate, model missing, runtime down, validation). */
+  submitTurn(
+    body: TurnSubmitRequest,
+    onEvent: (event: TurnEvent) => void,
+    signal?: AbortSignal,
+  ): Promise<void>;
+  cancelTurn(clientId: string): Promise<boolean>;
+  prepare(conversationId: string | null, model: string): Promise<PrepareResponse>;
+  activity(): Promise<ActivityResponse>;
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
@@ -95,14 +153,15 @@ export function createApiClient(
     return new ApiError(response.status, "internal_error", "", false);
   }
 
-  async function chatStream(
-    body: ChatStreamRequest,
-    onEvent: (event: ChatEvent) => void,
+  async function streamNdjson<E>(
+    path: string,
+    body: unknown,
+    onEvent: (event: E) => void,
     signal?: AbortSignal,
   ): Promise<void> {
     let response: Response;
     try {
-      response = await fetchImpl(`${base}/chat/stream`, {
+      response = await fetchImpl(`${base}${path}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${connection.token}`,
@@ -123,9 +182,9 @@ export function createApiClient(
     let buffer = "";
     const emit = (line: string) => {
       if (!line.trim()) return;
-      let event: ChatEvent;
+      let event: E;
       try {
-        event = JSON.parse(line) as ChatEvent;
+        event = JSON.parse(line) as E;
       } catch {
         throw new ApiError(response.status, "llm_invalid_response", "", true);
       }
@@ -151,18 +210,18 @@ export function createApiClient(
     }
   }
 
-  async function post<T>(path: string, payload: unknown): Promise<T> {
+  async function send<T>(method: "POST" | "PATCH" | "DELETE", path: string, payload?: unknown): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     try {
       response = await fetchImpl(`${base}${path}`, {
-        method: "POST",
+        method,
         headers: {
           Authorization: `Bearer ${connection.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: payload === undefined ? null : JSON.stringify(payload),
         signal: controller.signal,
         cache: "no-store",
       });
@@ -174,6 +233,9 @@ export function createApiClient(
     if (!response.ok) throw await errorFrom(response);
     return (await response.json()) as T;
   }
+
+  const post = <T>(path: string, payload: unknown) => send<T>("POST", path, payload);
+  const id = (value: string) => encodeURIComponent(value);
 
   async function get<T>(path: string): Promise<T> {
     const controller = new AbortController();
@@ -214,8 +276,26 @@ export function createApiClient(
     settings: () => get<EffectiveSettingsResponse>("/settings"),
     llmStatus: () => get<LlmStatusResponse>("/llm/status"),
     models: () => get<ModelListResponse>("/llm/models"),
-    chatStream,
+    chatStream: (body, onEvent, signal) =>
+      streamNdjson<ChatEvent>("/chat/stream", body, onEvent, signal),
     cancelChat: async (requestId: string) =>
       (await post<{ cancelled: boolean }>("/chat/cancel", { request_id: requestId })).cancelled,
+    listConversations: (cursor) =>
+      get<ConversationListResponse>(
+        cursor ? `/conversations?limit=50&cursor=${encodeURIComponent(cursor)}` : "/conversations?limit=50",
+      ),
+    getConversation: (cid) => get<ConversationDetailResponse>(`/conversations/${id(cid)}`),
+    listMessages: (cid, beforeSeq, limit = 50) =>
+      get<MessagePageResponse>(
+        `/conversations/${id(cid)}/messages?limit=${limit}` + (beforeSeq ? `&before_seq=${beforeSeq}` : ""),
+      ),
+    renameConversation: (cid, title) => send<Conversation>("PATCH", `/conversations/${id(cid)}`, { title }),
+    deleteConversation: (cid) => send<DeleteConversationResponse>("DELETE", `/conversations/${id(cid)}`),
+    submitTurn: (body, onEvent, signal) => streamNdjson<TurnEvent>("/turns", body, onEvent, signal),
+    cancelTurn: async (clientId: string) =>
+      (await post<{ cancelled: boolean }>("/turns/cancel", { client_id: clientId })).cancelled,
+    prepare: (conversationId, model) =>
+      post<PrepareResponse>("/chat/prepare", { conversation_id: conversationId, model }),
+    activity: () => get<ActivityResponse>("/chat/activity"),
   };
 }

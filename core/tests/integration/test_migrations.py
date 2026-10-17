@@ -11,6 +11,9 @@ from lazis.storage import open_storage
 from lazis.storage.database import Database
 from lazis.storage.migrations import Migration, current_version, load_migrations, migrate
 
+SHIPPED = len(load_migrations("lazis"))
+NEXT = SHIPPED + 1
+
 
 def _db(section: StorageSection, key: SecretBytes) -> Database:
     db = Database(section.database_path, key)
@@ -42,9 +45,13 @@ def test_migrate_from_empty_creates_system_tables(
             "history",
             "settings",
             "audit_log",
+            "conversations",
+            "messages",
+            "context_summaries",
+            "conversation_context",
         } <= tables
-        assert handle.schema_version == 1
-        assert handle.migration.applied == (1,)
+        assert handle.schema_version == SHIPPED
+        assert handle.migration.applied == tuple(range(1, SHIPPED + 1))
     finally:
         handle.db.close()
 
@@ -77,10 +84,10 @@ def test_database_newer_than_code_is_refused(
 ) -> None:
     db = _db(storage_section, key)
     try:
-        steps = [*load_migrations("lazis"), Migration(2, "future", "CREATE TABLE future (x);")]
+        steps = [*load_migrations("lazis"), Migration(NEXT, "future", "CREATE TABLE future (x);")]
         db.run_sync(lambda c: migrate(c, steps))
         with pytest.raises(MigrationError, match="newer"):
-            db.run_sync(lambda c: migrate(c, steps[:1]))
+            db.run_sync(lambda c: migrate(c, steps[:SHIPPED]))
     finally:
         db.close()
 
@@ -92,7 +99,7 @@ def test_failed_migration_rolls_back_atomically(
     try:
         good = load_migrations("lazis")
         db.run_sync(lambda c: migrate(c, good))
-        broken = Migration(2, "broken", "CREATE TABLE half_done (x);\nTHIS IS NOT SQL;")
+        broken = Migration(NEXT, "broken", "CREATE TABLE half_done (x);\nTHIS IS NOT SQL;")
         with pytest.raises(MigrationError):
             db.run_sync(lambda c: migrate(c, [*good, broken]))
         names = db.run_sync(
@@ -102,7 +109,7 @@ def test_failed_migration_rolls_back_atomically(
             }
         )
         assert "half_done" not in names
-        assert db.run_sync(current_version) == 1
+        assert db.run_sync(current_version) == SHIPPED
     finally:
         db.close()
 
@@ -111,11 +118,13 @@ def test_pre_migration_backup_is_taken_for_existing_schema(
     storage_section: StorageSection, key: SecretBytes
 ) -> None:
     open_storage(storage_section, key, app_version="test").db.close()
-    steps = [*load_migrations("lazis"), Migration(2, "add_example", "CREATE TABLE example (x);")]
+    steps = [*load_migrations("lazis"), Migration(NEXT, "add_example", "CREATE TABLE example (x);")]
     handle = open_storage(storage_section, key, app_version="test", migrations=steps)
     try:
-        assert handle.migration.applied == (2,)
-        backups = list(Path(storage_section.backup_dir).glob("lazis-*-pre-migration-v1.db"))
+        assert handle.migration.applied == (NEXT,)
+        backups = list(
+            Path(storage_section.backup_dir).glob(f"lazis-*-pre-migration-v{SHIPPED}.db")
+        )
         assert len(backups) == 1
     finally:
         handle.db.close()

@@ -59,7 +59,7 @@ describe("UI API client ↔ real backend", () => {
   it("reads health, app info and verified encryption status", async () => {
     const api = createApiClient({ port, token });
     expect((await api.health()).status).toBe("ok");
-    expect((await api.appInfo()).phase).toBe("P2");
+    expect((await api.appInfo()).phase).toBe("P3");
     const status = await api.systemStatus();
     expect(status.database.encrypted).toBe(true);
     expect(status.database.encryption_verified).toBe(true);
@@ -86,8 +86,67 @@ describe("UI API client ↔ real backend", () => {
     }
   });
 
-  // Opt-in (needs Ollama + an installed model): LAZIS_TEST_MODEL=qwen3.5:9b-q4_K_M pnpm test:integration
+  it("lists conversations and refuses unknown ones in Turkish", async () => {
+    const api = createApiClient({ port, token });
+    expect((await api.listConversations(null)).conversations).toEqual([]);
+    const error = await api.getConversation("01JZZZZZZZZZZZZZZZZZZZZZZZ").catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(404);
+    expect((error as ApiError).code).toBe("conversation_not_found");
+    expect((error as ApiError).userMessage).toContain("Sohbet bulunamadı");
+  });
+
+  // Opt-in (needs Ollama + an installed model): LAZIS_TEST_MODEL=gemma4:12b-it-qat pnpm test:integration
   const liveModel = process.env.LAZIS_TEST_MODEL;
+  const MARKER = "Zeytinburnu-7f2";
+
+  it.skipIf(!liveModel)("keeps a persistent multi-turn conversation with the real model", async () => {
+    const api = createApiClient({ port, token }, fetch, 60_000);
+    const run = async (content: string, conversationId: string | null, clientId: string) => {
+      const events: string[] = [];
+      let text = "";
+      let cid = conversationId;
+      await api.submitTurn(
+        { conversation_id: conversationId, client_id: clientId, content, model: liveModel as string },
+        (e) => {
+          events.push(e.type === "status" ? `status:${e.stage}` : e.type);
+          if (e.type === "start") cid = e.conversation.id;
+          if (e.type === "delta") text += e.text;
+        },
+      );
+      return { events, text, cid: cid as string };
+    };
+    const first = await run(`Benim mahallemin adı ${MARKER}. Bunu aklında tut ve yalnızca "Tamam" yaz.`, null, "ui-it-turn-0001");
+    expect(first.events[0]).toBe("start");
+    expect(first.events).toContain("status:processing_context");
+    expect(first.events.at(-1)).toBe("done");
+    const second = await run("Mahallemin adı neydi? Yalnızca adı yaz.", first.cid, "ui-it-turn-0002");
+    expect(second.text).toContain("Zeytinburnu");
+
+    const page = await api.listMessages(first.cid, null);
+    expect(page.messages.map((m) => [m.seq, m.role, m.status])).toEqual([
+      [1, "user", "complete"], [2, "assistant", "complete"], [3, "user", "complete"], [4, "assistant", "complete"],
+    ]);
+
+    // Stop a long reply: the partial text is kept as "cancelled".
+    let deltas = 0;
+    await api.submitTurn(
+      { conversation_id: first.cid, client_id: "ui-it-turn-0003", content: "Bana çok uzun bir hikâye anlat.", model: liveModel as string },
+      (e) => {
+        if (e.type === "delta" && ++deltas === 5) void api.cancelTurn("ui-it-turn-0003");
+      },
+    );
+    const after = await api.listMessages(first.cid, null);
+    const last = after.messages.at(-1);
+    expect(last?.status).toBe("cancelled");
+    expect(last?.content.length).toBeGreaterThan(0);
+
+    const renamed = await api.renameConversation(first.cid, "Test sohbeti");
+    expect(renamed.title).toBe("Test sohbeti");
+    expect((await api.deleteConversation(first.cid)).deleted).toBe(true);
+    expect((await api.listConversations(null)).conversations).toEqual([]);
+  }, 600_000);
+
   it.skipIf(!liveModel)("streams a Turkish answer from the real model and can cancel it", async () => {
     const api = createApiClient({ port, token }, fetch, 60_000);
     const events: string[] = [];
@@ -125,5 +184,6 @@ describe("UI API client ↔ real backend", () => {
     expect(logs).toContain('"app.stopped"');
     expect(logs).not.toContain(token);
     expect(logs).not.toContain(key);
+    expect(logs).not.toContain(MARKER); // conversation text never reaches the logs
   });
 });

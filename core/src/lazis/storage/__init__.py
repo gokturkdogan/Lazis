@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from lazis.config.model import StorageSection
+from lazis.errors import DatabaseCorruptError
 from lazis.observability.logging import get_logger, log_event
 from lazis.security.secrets import SecretBytes
 from lazis.storage import driver
@@ -130,6 +131,11 @@ def open_storage(
         return StorageHandle(
             db=db, meta=meta, migration=result, schema_version=result.current_version
         )
+    except driver.DatabaseError as exc:
+        # The key opened the file but a page is unreadable (e.g. "database disk image is
+        # malformed"): report the stable code so the UI offers restore, never "internal".
+        db.close()
+        raise DatabaseCorruptError(f"database unreadable ({exc.__class__.__name__})") from None
     except BaseException:
         db.close()
         raise

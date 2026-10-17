@@ -52,6 +52,12 @@ MESSAGES_TR: dict[str, str] = {
     "llm_invalid_response": "Yerel modelden geçersiz bir yanıt geldi.",
     "llm_busy": "Şu anda başka bir yanıt üretiliyor. Bitmesini bekleyin veya iptal edin.",
     "llm_cancelled": "Yanıt üretimi iptal edildi.",
+    "conversation_not_found": "Sohbet bulunamadı. Silinmiş olabilir.",
+    "turn_duplicate": "Bu mesaj zaten gönderildi.",
+    "database_busy": "Veritabanı şu anda meşgul. Birkaç saniye sonra yeniden deneyin.",
+    "message_save_failed": "Mesaj kaydedilemedi. Sohbet değiştirilmedi; yeniden deneyin.",
+    "context_failed": "Konuşma bağlamı hazırlanamadı. Yeniden deneyin.",
+    "message_too_long": "Mesaj çok uzun. Lütfen daha kısa bir mesaj gönderin.",
 }
 
 

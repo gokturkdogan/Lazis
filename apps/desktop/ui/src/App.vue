@@ -7,20 +7,23 @@ import RestorePanel from "@/components/RestorePanel.vue";
 import StartupError from "@/components/StartupError.vue";
 import StatusPill from "@/components/StatusPill.vue";
 import { useConnectionStore } from "@/stores/connection";
+import ConversationView from "@/views/ConversationView.vue";
 import DiagnosticsView from "@/views/DiagnosticsView.vue";
 import OverviewView from "@/views/OverviewView.vue";
 import SettingsView from "@/views/SettingsView.vue";
 
-type Tab = "overview" | "settings" | "diagnostics";
+type Tab = "conversation" | "overview" | "settings" | "diagnostics";
 
 const store = useConnectionStore();
 const { t } = useI18n();
-const tab = ref<Tab>("overview");
-const tabs: Tab[] = ["overview", "settings", "diagnostics"];
+const tab = ref<Tab>("conversation");
+const tabs: Tab[] = ["conversation", "overview", "settings", "diagnostics"];
 
 const version = computed(() => store.info?.version ?? "—");
 const showError = computed(
-  () => store.phase === "backend_failed" || (store.phase === "disconnected" && tab.value === "overview"),
+  () =>
+    store.phase === "backend_failed" ||
+    (store.phase === "disconnected" && (tab.value === "overview" || tab.value === "conversation")),
 );
 </script>
 
@@ -61,7 +64,8 @@ const showError = computed(
       <RestorePanel v-else-if="store.phase === 'needs_recovery'" />
       <template v-else>
         <StartupError v-if="showError" />
-        <OverviewView v-if="tab === 'overview' && store.phase === 'connected'" />
+        <ConversationView v-if="tab === 'conversation' && store.phase === 'connected'" />
+        <OverviewView v-else-if="tab === 'overview' && store.phase === 'connected'" />
         <SettingsView v-else-if="tab === 'settings'" />
         <DiagnosticsView v-else-if="tab === 'diagnostics'" />
       </template>

@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import ChatPanel from "@/components/ChatPanel.vue";
 import StatusCard from "@/components/StatusCard.vue";
 import type { StatusRow } from "@/components/types";
 import { formatBytes, formatDuration } from "@/format";
-import { useChatStore } from "@/stores/chat";
 import { useConnectionStore } from "@/stores/connection";
+import { useConversationsStore } from "@/stores/conversations";
 
 const store = useConnectionStore();
 const { t } = useI18n();
@@ -81,7 +80,8 @@ const privacyRows = computed<StatusRow[]>(() => {
   ];
 });
 
-const chat = useChatStore();
+const chat = useConversationsStore();
+onMounted(() => void chat.refreshRuntime());
 const aiRows = computed<StatusRow[]>(() => {
   const runtime = chat.runtime;
   if (!runtime) return loading(t("overview.ai"));
@@ -106,7 +106,6 @@ const aiRows = computed<StatusRow[]>(() => {
       <StatusCard :title="t('overview.system')" :rows="systemRows" testid="card-system" />
       <StatusCard :title="t('overview.ai')" :rows="aiRows" testid="card-ai" />
     </div>
-    <ChatPanel />
   </div>
 </template>
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Environment = Literal["development", "production", "test"]
 ResearchMode = Literal["offline_only", "ask_per_session", "auto_public", "custom"]
@@ -104,8 +104,8 @@ class ModelsSection(_Section):
 
     provider: Literal["ollama"] = "ollama"
     endpoint: str = "http://127.0.0.1:11434"
-    # Provisional P2 recommendation (docs/adr/0001-primary-model.md, status Proposed): final
-    # after the owner's blind rating. The UI preselects it when installed.
+    # ADR-0001 (Accepted): primary gemma4:12b-it-qat, fallback qwen3.5:9b-q4_K_M.
+    # The UI preselects the primary model when installed.
     primary_model: str | None = "gemma4:12b-it-qat"
     # Named context sizes (tokens). Requests choose a name, never a raw num_ctx: each distinct
     # num_ctx makes Ollama's llama.cpp runner reload the model (measured 0.9–2.8 s). Measured
@@ -136,6 +136,54 @@ class ModelsSection(_Section):
         }[profile]
 
 
+class ConversationSection(_Section):
+    """Conversation engine (P3): context budget, compaction and cache warming.
+
+    Token values are tokens of the active model, measured by the runtime where possible
+    (``prompt_eval_count`` / ``eval_count``) and estimated conservatively otherwise.
+    """
+
+    # Named model context profile used for chat turns, compaction and pre-warming. One profile
+    # for every request type, so the runtime never reloads the model (ADR-0001).
+    context_profile: Literal["short", "normal", "long"] = "normal"
+    # Safety margin kept free in the context window, as a fraction of num_ctx (absorbs
+    # estimation error for text the runtime has not counted yet).
+    safety_fraction: float = Field(default=0.10, ge=0.0, le=0.5)
+    # Idle compaction starts when the next prompt is estimated above this many tokens.
+    # Chosen from the Phase 2 cold-cache measurement: a cache miss costs ~3.5–4.5 s per 1K
+    # tokens on Gemma 4 12B, so the active context is kept well below the hard limit.
+    compact_at_tokens: int = Field(default=6144, ge=1024, le=65536)
+    # After compaction the most recent messages are kept verbatim up to this many tokens
+    # (at least `keep_recent_messages` messages).
+    keep_recent_tokens: int = Field(default=2048, ge=256, le=32768)
+    keep_recent_messages: int = Field(default=4, ge=2, le=40)
+    summary_max_tokens: int = Field(default=1200, ge=200, le=4096)
+    # Background compaction waits until no turn has run for this long.
+    idle_compaction_delay_s: float = Field(default=20.0, ge=0.0, le=3600.0)
+    # Pre-warm the active conversation's prompt prefix (on open, on typing, after compaction).
+    prewarm: bool = True
+    # Partial assistant output is persisted at most this often while streaming.
+    flush_interval_s: float = Field(default=1.0, gt=0.0, le=30.0)
+    flush_chars: int = Field(default=400, ge=1, le=100_000)
+    title_max_chars: int = Field(default=60, ge=10, le=200)
+    page_size: int = Field(default=50, ge=10, le=500)
+    # Conservative estimate for text the runtime has not counted yet. Measured Turkish ratios
+    # on Gemma 4 12B were 2.5–3.8 characters per token (code at the low end).
+    estimate_chars_per_token: float = Field(default=2.2, gt=0.5, le=8.0)
+    estimate_overhead_tokens: int = Field(default=8, ge=0, le=128)
+
+    @model_validator(mode="after")
+    def _compaction_can_shrink(self) -> ConversationSection:
+        # Compaction keeps a verbatim tail plus the summary; if those alone reach the
+        # threshold, compacting could never bring the context back below it.
+        if self.keep_recent_tokens + self.summary_max_tokens >= self.compact_at_tokens:
+            raise ValueError(
+                "conversation.keep_recent_tokens + summary_max_tokens must stay below "
+                "compact_at_tokens"
+            )
+        return self
+
+
 class VoiceSection(_Section):
     """Placeholder for P13. Voice cannot be enabled before it exists."""
 
@@ -152,6 +200,7 @@ class Settings(_Section):
     network: NetworkSection = NetworkSection()
     research: ResearchSection = ResearchSection()
     models: ModelsSection = ModelsSection()
+    conversation: ConversationSection = ConversationSection()
     voice: VoiceSection = VoiceSection()
 
     def effective_origins(self) -> tuple[str, ...]:

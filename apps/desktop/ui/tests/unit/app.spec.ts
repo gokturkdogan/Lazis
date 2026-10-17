@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "@/App.vue";
@@ -6,13 +6,17 @@ import { createAppI18n } from "@/i18n";
 import { useConnectionStore } from "@/stores/connection";
 import { connection, fakeClient, fakePlatform } from "./fixtures";
 
-async function mountWith(conn = connection()) {
+async function mountWith(conn = connection(), tab: "conversation" | "overview" = "overview") {
   const pinia = createPinia();
   setActivePinia(pinia);
   const store = useConnectionStore();
   await store.start({ platform: fakePlatform(conn), clientFactory: () => fakeClient() });
   const wrapper = mount(App, { global: { plugins: [pinia, createAppI18n()] } });
-  await wrapper.vm.$nextTick();
+  await flushPromises();
+  if (tab === "overview" && wrapper.find('[data-testid="tab-overview"]').exists()) {
+    await wrapper.get('[data-testid="tab-overview"]').trigger("click");
+    await flushPromises();
+  }
   return { wrapper, store };
 }
 
@@ -30,12 +34,19 @@ describe("App", () => {
     expect(text).toContain("v0.1.0");
   });
 
-  it("shows the ephemeral local chat and never invents a response", async () => {
-    const { wrapper } = await mountWith();
-    const panel = wrapper.get('[data-testid="chat-panel"]');
-    expect(panel.get('[data-testid="chat-notice"]').text()).toContain("diske, veritabanına veya günlüklere yazılmaz");
-    expect(panel.text()).toContain("Henüz mesaj yok");
-    expect(panel.findAll('[data-testid="message-assistant"]')).toHaveLength(0);
+  it("opens on the conversation view and never invents a response", async () => {
+    const { wrapper } = await mountWith(connection(), "conversation");
+    expect(wrapper.get('[data-testid="tab-conversation"]').classes()).toContain("active");
+    const thread = wrapper.get('[data-testid="conversation-thread"]');
+    expect(thread.text()).toContain("şifreli veritabanında saklanır");
+    expect(thread.get('[data-testid="empty-thread"]').text()).toContain("İlk mesajınızla birlikte kaydedilir");
+    expect(thread.findAll('[data-testid="message-assistant"]')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="filevault-warning"]').exists()).toBe(false);
+  });
+
+  it("warns in the conversation view when FileVault is off", async () => {
+    const { wrapper } = await mountWith(connection({ fileVault: "off" }), "conversation");
+    expect(wrapper.get('[data-testid="filevault-warning"]').text()).toContain("FileVault kapalı");
   });
 
   it("shows a Turkish startup error with a retry action", async () => {
@@ -51,7 +62,7 @@ describe("App", () => {
   it("shows the restore form when recovery is needed", async () => {
     const { wrapper } = await mountWith(connection({ phase: "needs_recovery", token: null, port: null }));
     expect(wrapper.find('[data-testid="restore-panel"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="conversation-placeholder"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="conversation-view"]').exists()).toBe(false);
   });
 
   it("asks to store the recovery code on first run", async () => {

@@ -1,6 +1,8 @@
-"""FastAPI application for API v1 (Phase 1: health, app info, system status, settings view).
+"""FastAPI application for API v1.
 
-No LLM, memory or research endpoints exist in Phase 1 by design.
+P1: health, app info, system status, settings view. P2: local model status and the ephemeral
+preview chat. P3: persistent conversations (conversation engine). No memory or research
+endpoints exist yet by design.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lazis import API_VERSION, PHASE, __version__
 from lazis.api.chat import build_chat_router
+from lazis.api.conversations import build_conversation_router
 from lazis.api.schemas import (
     AiStatus,
     AppInfoResponse,
@@ -38,6 +41,7 @@ from lazis.api.schemas import (
 )
 from lazis.api.security import LocalApiGuard, TokenBucket, error_payload
 from lazis.config.model import Settings
+from lazis.conversation import ConversationEngine
 from lazis.errors import LazisError
 from lazis.observability.logging import get_logger, log_event
 from lazis.providers.llm.ports import LLMProvider
@@ -67,6 +71,7 @@ class ApiContext:
     on_denied: Callable[[str], None] | None = None
     os_network_sandbox: SandboxStatus = "unknown"
     llm: LLMProvider | None = None
+    conversations: ConversationEngine | None = None
 
     def require_storage(self) -> StorageHandle:
         if self.storage is None:
@@ -90,11 +95,22 @@ def _platform_label() -> str:
 
 
 def create_app(ctx: ApiContext) -> FastAPI:
+    if ctx.conversations is None and ctx.storage is not None:
+        ctx.conversations = ConversationEngine(
+            db=ctx.storage.db, get_llm=lambda: ctx.llm, settings=ctx.settings
+        )
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         if ctx.on_startup is not None:
             ctx.on_startup()
+        if ctx.conversations is not None:
+            # Marks replies left "streaming" by a crash as interrupted before any request.
+            await ctx.conversations.ensure_started()
         yield
+        if ctx.conversations is not None:
+            # Persists a reply still being generated as "interrupted".
+            await ctx.conversations.close()
         if ctx.llm is not None:
             await ctx.llm.aclose()
         if ctx.on_shutdown is not None:
@@ -219,7 +235,10 @@ def create_app(ctx: ApiContext) -> FastAPI:
             max_request_bytes=s.backend.max_request_bytes,
         )
 
-    app.include_router(build_chat_router(PREFIX, ctx.settings, lambda: ctx.llm))
+    app.include_router(
+        build_chat_router(PREFIX, ctx.settings, lambda: ctx.llm, lambda: ctx.conversations)
+    )
+    app.include_router(build_conversation_router(PREFIX, lambda: ctx.conversations))
 
     guarded = LocalApiGuard(
         app,

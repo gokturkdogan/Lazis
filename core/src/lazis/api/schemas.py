@@ -191,3 +191,146 @@ class ChatCancelRequest(_Schema):
 
 class ChatCancelResponse(_Schema):
     cancelled: bool
+
+
+# ----- conversations (P3) ----------------------------------------------------------------
+ULID_PATTERN = r"^[0-9A-HJKMNP-TV-Z]{26}$"
+
+
+class ConversationModel(_Schema):
+    id: str
+    title: str
+    title_source: Literal["auto", "user"]
+    model: str
+    status: Literal["active", "archived"]
+    message_count: int
+    created_at: str
+    updated_at: str
+
+
+class ConversationListResponse(_Schema):
+    conversations: list[ConversationModel]
+    next_cursor: str | None
+
+
+class MessageMetricsModel(_Schema):
+    ttft_ms: float | None
+    total_ms: float | None
+    prompt_tokens: int | None
+    output_tokens: int | None
+
+
+class MessageModel(_Schema):
+    id: str
+    conversation_id: str
+    seq: int
+    role: Literal["user", "assistant", "system"]
+    content: str
+    status: Literal["complete", "streaming", "cancelled", "interrupted", "failed"]
+    client_id: str | None
+    reply_to: str | None
+    model: str | None
+    error_code: str | None
+    created_at: str
+    completed_at: str | None
+    metrics: MessageMetricsModel | None
+
+
+class MessagePageResponse(_Schema):
+    messages: list[MessageModel]
+    has_more: bool
+
+
+class SummaryInfoModel(_Schema):
+    version: int
+    to_seq: int
+    kept_items: int
+    dropped_items: int
+    created_at: str
+
+
+class ContextInfoModel(_Schema):
+    strategy: Literal["full", "summary_window", "window_only"]
+    context_version: int
+    window_start_seq: int
+    estimated_tokens: int
+    anchored: bool
+    omitted: list[int] | None
+    summary: SummaryInfoModel | None
+    num_ctx: int
+    hard_limit: int
+    compact_at: int
+    cache: Literal["warm", "cold"]
+    background: Literal["prewarm", "compaction"] | None
+
+
+class ConversationDetailResponse(_Schema):
+    conversation: ConversationModel
+    context: ContextInfoModel
+
+
+class RenameConversationRequest(_Schema):
+    title: str = Field(min_length=1, max_length=120)
+
+
+class DeleteConversationResponse(_Schema):
+    deleted: bool
+    messages: int
+    summaries: int
+
+
+class TurnSubmitRequest(_Schema):
+    """One user message. ``conversation_id`` null starts a new conversation (persisted with
+    this first message). ``client_id`` is the idempotency key: a retry with the same key is
+    refused with ``turn_duplicate`` instead of being stored twice."""
+
+    conversation_id: str | None = Field(default=None, pattern=ULID_PATTERN)
+    client_id: str = Field(pattern=REQUEST_ID_PATTERN)
+    content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
+    model: str = Field(pattern=MODEL_NAME_PATTERN)
+
+    @field_validator("content")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("message is empty")
+        return value
+
+
+class TurnCancelRequest(_Schema):
+    client_id: str = Field(pattern=REQUEST_ID_PATTERN)
+
+
+class TurnCancelResponse(_Schema):
+    cancelled: bool
+
+
+class PrepareRequest(_Schema):
+    conversation_id: str | None = Field(default=None, pattern=ULID_PATTERN)
+    model: str = Field(pattern=MODEL_NAME_PATTERN)
+
+
+class PrepareResponse(_Schema):
+    state: Literal[
+        "warm", "warming", "compacting", "busy", "disabled", "unavailable", "model_missing"
+    ]
+    model_loaded: bool | None = None
+    context_tokens: int | None = None
+
+
+class TurnActivityModel(_Schema):
+    conversation_id: str
+    client_id: str | None
+    stage: str
+
+
+class BackgroundActivityModel(_Schema):
+    kind: Literal["prewarm", "compaction"]
+    conversation_id: str | None
+
+
+class ActivityResponse(_Schema):
+    turn: TurnActivityModel | None
+    background: BackgroundActivityModel | None
+    cached_conversation_id: str | None
+    pending_compaction: list[str]

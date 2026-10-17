@@ -1,9 +1,10 @@
-"""Local model status and the ephemeral Phase 2 chat (streamed NDJSON).
+"""Local model status and the ephemeral Phase 2 preview chat (streamed NDJSON).
 
-Privacy: nothing here is stored. The conversation lives in the desktop UI's memory and is sent
+Privacy: nothing here is stored. The conversation lives in the client's memory and is sent
 with each request; the backend forwards it to the local runtime and forgets it. Prompts and
 responses are never logged (the provider logs counts and durations only). Clients cannot set a
-system prompt. The full conversation engine with persistence arrives in P3.
+system prompt. Persistent conversations use the conversation engine (``/turns``, Phase 3);
+both share the engine's single runtime slot, so they never run at the same time.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from lazis.api.schemas import (
     RuntimeStatusModel,
 )
 from lazis.config.model import Settings
+from lazis.conversation import ConversationEngine
 from lazis.errors import LlmBusyError, LlmError, LlmModelNotFoundError, LlmUnavailableError
 from lazis.i18n import message_for
 from lazis.observability.logging import get_logger, log_event
@@ -74,7 +76,10 @@ def _line(payload: dict[str, Any]) -> bytes:
 
 
 def build_chat_router(
-    prefix: str, settings: Settings, get_llm: Callable[[], LLMProvider | None]
+    prefix: str,
+    settings: Settings,
+    get_llm: Callable[[], LLMProvider | None],
+    get_engine: Callable[[], ConversationEngine | None] = lambda: None,
 ) -> APIRouter:
     router = APIRouter(prefix=prefix)
     active: dict[str, str] = {}  # at most one generation at a time (single user, one model)
@@ -132,7 +137,8 @@ def build_chat_router(
     @router.post("/chat/stream")
     async def chat_stream(body: ChatStreamRequest) -> StreamingResponse:  # pyright: ignore[reportUnusedFunction]
         llm = provider()
-        if active:
+        engine = get_engine()
+        if active or (engine is not None and engine.is_busy()):
             raise LlmBusyError("another generation is running")
         # Fail with a proper HTTP status before streaming starts: runtime down, model missing,
         # cloud/foreign model names.
@@ -158,6 +164,14 @@ def build_chat_router(
             ),
         )
 
+        async def generate() -> AsyncIterator[bytes]:
+            async for event in llm.stream(request):
+                if isinstance(event, TextDelta):
+                    if event.kind == "content":
+                        yield _line({"type": "delta", "text": event.text})
+                else:
+                    yield _line({"type": "done", "metrics": metrics_payload(event.metrics)})
+
         async def events() -> AsyncIterator[bytes]:
             if active:
                 yield _line(
@@ -167,12 +181,14 @@ def build_chat_router(
             active["request_id"] = body.request_id
             try:
                 yield _line({"type": "start", "request_id": body.request_id, "model": body.model})
-                async for event in llm.stream(request):
-                    if isinstance(event, TextDelta):
-                        if event.kind == "content":
-                            yield _line({"type": "delta", "text": event.text})
-                    else:
-                        yield _line({"type": "done", "metrics": metrics_payload(event.metrics)})
+                if engine is None:
+                    async for line in generate():
+                        yield line
+                else:
+                    async with engine.scheduler.foreground():
+                        engine.scheduler.cache = None  # this request replaces the cached prefix
+                        async for line in generate():
+                            yield line
             except LlmError as exc:
                 yield _line({"type": "error", "code": exc.code, "message": message_for(exc.code)})
             finally:

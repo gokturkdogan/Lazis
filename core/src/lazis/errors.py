@@ -174,3 +174,43 @@ class LlmBusyError(LlmError):
 class LlmCancelledError(LlmError):
     code = "llm_cancelled"
     http_status = 499
+
+
+# ----- conversations (P3) ----------------------------------------------------------------
+class ConversationNotFoundError(NotFoundError):
+    code = "conversation_not_found"
+
+
+class TurnDuplicateError(LazisError):
+    """The client re-submitted a message it already sent (same idempotency key)."""
+
+    code = "turn_duplicate"
+    http_status = 409
+    recoverable = True
+
+
+class DatabaseBusyError(StorageError):
+    """SQLite stayed locked past the busy timeout."""
+
+    code = "database_busy"
+    http_status = 503
+    recoverable = True
+
+
+class MessageSaveError(StorageError):
+    code = "message_save_failed"
+    recoverable = True
+
+
+class ContextBuildError(LazisError):
+    """The prompt for a turn could not be assembled within the context budget."""
+
+    code = "context_failed"
+    http_status = 500
+    recoverable = True
+
+
+class MessageTooLongError(LazisError):
+    code = "message_too_long"
+    http_status = 413
+    recoverable = True

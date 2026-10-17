@@ -1,6 +1,57 @@
 {
   "components": {
     "schemas": {
+      "ActivityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "background": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundActivityModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cached_conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached Conversation Id"
+          },
+          "pending_compaction": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pending Compaction",
+            "type": "array"
+          },
+          "turn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnActivityModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "turn",
+          "background",
+          "cached_conversation_id",
+          "pending_compaction"
+        ],
+        "title": "ActivityResponse",
+        "type": "object"
+      },
       "AiStatus": {
         "additionalProperties": false,
         "properties": {
@@ -106,6 +157,36 @@
           "machine"
         ],
         "title": "BackendStatus",
+        "type": "object"
+      },
+      "BackgroundActivityModel": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "kind": {
+            "enum": [
+              "prewarm",
+              "compaction"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "conversation_id"
+        ],
+        "title": "BackgroundActivityModel",
         "type": "object"
       },
       "ChatCancelRequest": {
@@ -239,6 +320,214 @@
         "title": "ChatTurn",
         "type": "object"
       },
+      "ContextInfoModel": {
+        "additionalProperties": false,
+        "properties": {
+          "anchored": {
+            "title": "Anchored",
+            "type": "boolean"
+          },
+          "background": {
+            "anyOf": [
+              {
+                "enum": [
+                  "prewarm",
+                  "compaction"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background"
+          },
+          "cache": {
+            "enum": [
+              "warm",
+              "cold"
+            ],
+            "title": "Cache",
+            "type": "string"
+          },
+          "compact_at": {
+            "title": "Compact At",
+            "type": "integer"
+          },
+          "context_version": {
+            "title": "Context Version",
+            "type": "integer"
+          },
+          "estimated_tokens": {
+            "title": "Estimated Tokens",
+            "type": "integer"
+          },
+          "hard_limit": {
+            "title": "Hard Limit",
+            "type": "integer"
+          },
+          "num_ctx": {
+            "title": "Num Ctx",
+            "type": "integer"
+          },
+          "omitted": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omitted"
+          },
+          "strategy": {
+            "enum": [
+              "full",
+              "summary_window",
+              "window_only"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SummaryInfoModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "window_start_seq": {
+            "title": "Window Start Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "strategy",
+          "context_version",
+          "window_start_seq",
+          "estimated_tokens",
+          "anchored",
+          "omitted",
+          "summary",
+          "num_ctx",
+          "hard_limit",
+          "compact_at",
+          "cache",
+          "background"
+        ],
+        "title": "ContextInfoModel",
+        "type": "object"
+      },
+      "ConversationDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/ContextInfoModel"
+          },
+          "conversation": {
+            "$ref": "#/components/schemas/ConversationModel"
+          }
+        },
+        "required": [
+          "conversation",
+          "context"
+        ],
+        "title": "ConversationDetailResponse",
+        "type": "object"
+      },
+      "ConversationListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationModel"
+            },
+            "title": "Conversations",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "conversations",
+          "next_cursor"
+        ],
+        "title": "ConversationListResponse",
+        "type": "object"
+      },
+      "ConversationModel": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message_count": {
+            "title": "Message Count",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "title_source": {
+            "enum": [
+              "auto",
+              "user"
+            ],
+            "title": "Title Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "title_source",
+          "model",
+          "status",
+          "message_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ConversationModel",
+        "type": "object"
+      },
       "DatabaseStatusModel": {
         "additionalProperties": false,
         "properties": {
@@ -311,6 +600,30 @@
           "created_at"
         ],
         "title": "DatabaseStatusModel",
+        "type": "object"
+      },
+      "DeleteConversationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "messages": {
+            "title": "Messages",
+            "type": "integer"
+          },
+          "summaries": {
+            "title": "Summaries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deleted",
+          "messages",
+          "summaries"
+        ],
+        "title": "DeleteConversationResponse",
         "type": "object"
       },
       "EffectiveSettingsResponse": {
@@ -605,6 +918,212 @@
         "title": "LoadedModelModel",
         "type": "object"
       },
+      "MessageMetricsModel": {
+        "additionalProperties": false,
+        "properties": {
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "total_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Ms"
+          },
+          "ttft_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft Ms"
+          }
+        },
+        "required": [
+          "ttft_ms",
+          "total_ms",
+          "prompt_tokens",
+          "output_tokens"
+        ],
+        "title": "MessageMetricsModel",
+        "type": "object"
+      },
+      "MessageModel": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "conversation_id": {
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageMetricsModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "reply_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply To"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant",
+              "system"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "streaming",
+              "cancelled",
+              "interrupted",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "seq",
+          "role",
+          "content",
+          "status",
+          "client_id",
+          "reply_to",
+          "model",
+          "error_code",
+          "created_at",
+          "completed_at",
+          "metrics"
+        ],
+        "title": "MessageModel",
+        "type": "object"
+      },
+      "MessagePageResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageModel"
+            },
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages",
+          "has_more"
+        ],
+        "title": "MessagePageResponse",
+        "type": "object"
+      },
       "ModelInfoModel": {
         "additionalProperties": false,
         "properties": {
@@ -666,6 +1185,78 @@
         "title": "ModelListResponse",
         "type": "object"
       },
+      "PrepareRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "model": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,79}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,79})?$",
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "title": "PrepareRequest",
+        "type": "object"
+      },
+      "PrepareResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "context_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Tokens"
+          },
+          "model_loaded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Loaded"
+          },
+          "state": {
+            "enum": [
+              "warm",
+              "warming",
+              "compacting",
+              "busy",
+              "disabled",
+              "unavailable",
+              "model_missing"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PrepareResponse",
+        "type": "object"
+      },
       "PrivacyStatus": {
         "additionalProperties": false,
         "properties": {
@@ -713,6 +1304,22 @@
         "title": "PrivacyStatus",
         "type": "object"
       },
+      "RenameConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "RenameConversationRequest",
+        "type": "object"
+      },
       "RuntimeStatusModel": {
         "additionalProperties": false,
         "properties": {
@@ -756,6 +1363,40 @@
         "title": "RuntimeStatusModel",
         "type": "object"
       },
+      "SummaryInfoModel": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "dropped_items": {
+            "title": "Dropped Items",
+            "type": "integer"
+          },
+          "kept_items": {
+            "title": "Kept Items",
+            "type": "integer"
+          },
+          "to_seq": {
+            "title": "To Seq",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "to_seq",
+          "kept_items",
+          "dropped_items",
+          "created_at"
+        ],
+        "title": "SummaryInfoModel",
+        "type": "object"
+      },
       "SystemStatusResponse": {
         "additionalProperties": false,
         "properties": {
@@ -779,6 +1420,107 @@
           "ai"
         ],
         "title": "SystemStatusResponse",
+        "type": "object"
+      },
+      "TurnActivityModel": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "conversation_id": {
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "client_id",
+          "stage"
+        ],
+        "title": "TurnActivityModel",
+        "type": "object"
+      },
+      "TurnCancelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Client Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id"
+        ],
+        "title": "TurnCancelRequest",
+        "type": "object"
+      },
+      "TurnCancelResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled": {
+            "title": "Cancelled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cancelled"
+        ],
+        "title": "TurnCancelResponse",
+        "type": "object"
+      },
+      "TurnSubmitRequest": {
+        "additionalProperties": false,
+        "description": "One user message. ``conversation_id`` null starts a new conversation (persisted with\nthis first message). ``client_id`` is the idempotency key: a retry with the same key is\nrefused with ``turn_duplicate`` instead of being stored twice.",
+        "properties": {
+          "client_id": {
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "model": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,79}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,79})?$",
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "content",
+          "model"
+        ],
+        "title": "TurnSubmitRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -887,6 +1629,24 @@
         "summary": "App Info"
       }
     },
+    "/api/v1/chat/activity": {
+      "get": {
+        "operationId": "activity_api_v1_chat_activity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Activity"
+      }
+    },
     "/api/v1/chat/cancel": {
       "post": {
         "operationId": "chat_cancel_api_v1_chat_cancel_post",
@@ -925,6 +1685,44 @@
         "summary": "Chat Cancel"
       }
     },
+    "/api/v1/chat/prepare": {
+      "post": {
+        "operationId": "prepare_api_v1_chat_prepare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepareResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepare"
+      }
+    },
     "/api/v1/chat/stream": {
       "post": {
         "operationId": "chat_stream_api_v1_chat_stream_post",
@@ -959,6 +1757,300 @@
           }
         },
         "summary": "Chat Stream"
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "operationId": "list_conversations_api_v1_conversations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Conversations"
+      }
+    },
+    "/api/v1/conversations/{conversation_id}": {
+      "delete": {
+        "operationId": "delete_conversation_api_v1_conversations__conversation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteConversationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Conversation"
+      },
+      "get": {
+        "operationId": "get_conversation_api_v1_conversations__conversation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Conversation"
+      },
+      "patch": {
+        "operationId": "rename_conversation_api_v1_conversations__conversation_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename Conversation"
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/context/reset": {
+      "post": {
+        "operationId": "reset_context_api_v1_conversations__conversation_id__context_reset_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset Context"
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/messages": {
+      "get": {
+        "operationId": "list_messages_api_v1_conversations__conversation_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before_seq",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Seq"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Messages"
       }
     },
     "/api/v1/health": {
@@ -1169,6 +2261,80 @@
           }
         },
         "summary": "System Status"
+      }
+    },
+    "/api/v1/turns": {
+      "post": {
+        "operationId": "submit_turn_api_v1_turns_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnSubmitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Turn"
+      }
+    },
+    "/api/v1/turns/cancel": {
+      "post": {
+        "operationId": "cancel_turn_api_v1_turns_cancel_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnCancelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Turn"
       }
     }
   }

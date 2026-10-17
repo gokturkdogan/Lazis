@@ -84,6 +84,7 @@ type = "layers"
 layers = [
     "lazis.app",
     "lazis.api",
+    "lazis.conversation",
     "lazis.storage | lazis.providers",
     "lazis.security | lazis.observability",
     "lazis.config",
@@ -93,14 +94,14 @@ layers = [
 [[tool.importlinter.contracts]]
 name = "Only storage imports the SQLCipher driver"
 type = "forbidden"
-source_modules = ["lazis.api", "lazis.config", "lazis.security", "lazis.observability", "lazis.app"]
+source_modules = ["lazis.api", "lazis.conversation", "lazis.config", "lazis.security", "lazis.observability", "lazis.app"]
 forbidden_modules = ["sqlcipher3", "sqlite3"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 name = "Only providers use an HTTP client"
 type = "forbidden"
-source_modules = ["lazis.api", "lazis.storage", "lazis.config", "lazis.security", "lazis.observability", "lazis.app"]
+source_modules = ["lazis.api", "lazis.conversation", "lazis.storage", "lazis.config", "lazis.security", "lazis.observability", "lazis.app"]
 forbidden_modules = ["httpx", "http", "requests", "aiohttp"]
 allow_indirect_imports = true
 

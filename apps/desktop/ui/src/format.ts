@@ -26,3 +26,20 @@ export function formatTime(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
+
+/** "14:32" today, "Dün 14:32", otherwise "17 Eki 14:32" (local time). */
+export function formatWhen(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  const time = date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((day(now) - day(date)) / 86_400_000);
+  if (diffDays === 0) return time;
+  if (diffDays === 1) return `Dün ${time}`;
+  const sameYear = date.getFullYear() === now.getFullYear();
+  const label = date.toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  return `${label} ${time}`;
+}
