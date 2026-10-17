@@ -1,0 +1,643 @@
+{
+  "version": "1.2",
+  "description": "Phase 3 context accuracy after compaction. Synthetic Turkish dialogues (fictional people) whose key facts end up in the summarized part; probes are answered by the real model with the summary + a short verbatim tail. Checks: expect_any (one of the strings must appear, normalized), expect_all (all must appear), forbid (none may appear). summary_expect: strings that should appear in the rendered summary. Traps: LAZIS suggestions the user rejected, changed decisions, uncertain information, similar names, corrected times. v1.1 (after the first run): two long small-talk exchanges appended to every dialogue so the verbatim tail (≥ 256 tokens) holds only small talk and every key fact must come from the summary; summary_expect checks only facts inside the summarized range; D3 probe 2 also accepts 'koşma'/'yüzme' (a correct answer without the word 'diz' was failed in v1.0). v1.2: D5 added as a held-out dialogue written after the summary prompt was revised (s3-v3), to check that the revision generalizes beyond D1–D4.",
+  "dialogues": [
+    {
+      "id": "D1",
+      "topic": "taşınma",
+      "messages": [
+        [
+          "user",
+          "Merhaba! Kız kardeşim Ayşe 3 Kasım'da Ankara'ya taşınıyor; ona yardım etmek istiyorum."
+        ],
+        [
+          "assistant",
+          "Ne güzel. Ayşe'nin taşınması için bir kontrol listesi hazırlayabilirim. İsterseniz bir nakliye firması da tutabilirsiniz."
+        ],
+        [
+          "user",
+          "Nakliye firması tutmayacağız, eşyaları kendimiz taşıyacağız. Bütçemiz en fazla 20 bin TL."
+        ],
+        [
+          "assistant",
+          "Anladım: nakliye firması yok, bütçe en fazla 20 bin TL."
+        ],
+        [
+          "user",
+          "Planlama toplantısını önce salıya almıştık ama sonra perşembeye kaydırdık."
+        ],
+        [
+          "assistant",
+          "Tamam, toplantı perşembe günü."
+        ],
+        [
+          "user",
+          "İş arkadaşım Mehmet de galiba 10 Kasım'da İzmir'e gidecek, henüz kesin değil."
+        ],
+        [
+          "assistant",
+          "Not ettim; Mehmet'in 10 Kasım'da İzmir'e gitmesi henüz kesin değil."
+        ],
+        [
+          "user",
+          "Bu arada bugün hava çok güzeldi, öğlen biraz yürüdüm."
+        ],
+        [
+          "assistant",
+          "Ne güzel, yürüyüş iyi gelmiştir."
+        ],
+        [
+          "user",
+          "Akşam yemeğinde makarna yaptım, biraz da salata."
+        ],
+        [
+          "assistant",
+          "Afiyet olsun!"
+        ],
+        [
+          "user",
+          "Bu akşam uzun bir yürüyüşten döndüm; sahil boyunca yürürken martıları izledim, rüzgâr biraz serindi ama hava açıktı. Dönüşte bir fırına uğrayıp taze simit aldım, eve gelince de sıcak bir çay demledim. Sonra balkonda oturup biraz müzik dinledim; uzun zamandır böyle sakin bir akşam geçirmemiştim."
+        ],
+        [
+          "assistant",
+          "Ne güzel bir akşam olmuş. Sahilde yürüyüş, taze simit ve balkonda çay gerçekten dinlendirici bir kombinasyon. Böyle sakin akşamlar insanın kafasını boşaltmasına çok iyi geliyor; ara sıra kendinize bu zamanı ayırmanız harika."
+        ],
+        [
+          "user",
+          "Bir de yarın için hafif bir kahvaltı düşünüyorum: belki yumurta, peynir, domates, salatalık ve biraz zeytin. Belki bir de taze sıkılmış portakal suyu. Hafta içi hep aceleyle kahvaltı ediyorum, yarın biraz daha yavaş ve keyifli olsun istiyorum."
+        ],
+        [
+          "assistant",
+          "Bu çok güzel ve dengeli bir kahvaltı planı. Yumurta ve peynir protein sağlar, sebzeler ve zeytin de güne hafif başlamanıza yardımcı olur. Portakal suyu da ferahlatıcı olur. Yavaş ve keyifli bir kahvaltı için güzel bir sabah dilerim."
+        ]
+      ],
+      "summary_expect": [
+        [
+          "Ayşe",
+          1
+        ],
+        [
+          "Ankara",
+          1
+        ],
+        [
+          "3 Kasım",
+          1
+        ],
+        [
+          "20 bin",
+          3
+        ],
+        [
+          "perşembe",
+          5
+        ],
+        [
+          "Mehmet",
+          7
+        ],
+        [
+          "10 Kasım",
+          7
+        ]
+      ],
+      "probes": [
+        {
+          "q": "Planlama toplantısı hangi güne kalmıştı? Kısaca yaz.",
+          "expect_any": [
+            "perşembe"
+          ]
+        },
+        {
+          "q": "Nakliye firması tutmaya karar vermiş miydik? Kısaca yaz.",
+          "expect_any": [
+            "hayır",
+            "tutmayacak",
+            "tutmayacağız",
+            "tutmayacaksınız",
+            "kendiniz",
+            "kendimiz",
+            "karar vermediniz"
+          ],
+          "forbid": [
+            "evet, nakliye"
+          ]
+        },
+        {
+          "q": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+          "expect_all": [
+            "10 kasım",
+            "izmir"
+          ],
+          "expect_any": [
+            "kesin değil",
+            "galiba",
+            "emin",
+            "belli değil",
+            "henüz"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "topic": "iş projesi",
+      "messages": [
+        [
+          "user",
+          "Yeni projemizin adı Kuzey. Teslim tarihi 15 Aralık."
+        ],
+        [
+          "assistant",
+          "Kuzey projesi için 15 Aralık teslimini not ettim."
+        ],
+        [
+          "user",
+          "Ekipte Zeynep tasarımdan, Can da arka uçtan sorumlu."
+        ],
+        [
+          "assistant",
+          "Zeynep tasarım, Can arka uç."
+        ],
+        [
+          "user",
+          "Önce React kullanalım demiştik ama dün Vue'da karar kıldık."
+        ],
+        [
+          "assistant",
+          "Anladım, ön yüzde Vue kullanılacak."
+        ],
+        [
+          "assistant",
+          "Geliştirme ortamı için Docker kullanmayı önerebilirim."
+        ],
+        [
+          "user",
+          "Hayır, Docker kullanmayacağız; her şey doğrudan makinede çalışacak."
+        ],
+        [
+          "assistant",
+          "Tamam, Docker yok."
+        ],
+        [
+          "user",
+          "Haftalık raporları cuma günleri göndermek istiyorum."
+        ],
+        [
+          "assistant",
+          "Haftalık rapor: cuma."
+        ],
+        [
+          "user",
+          "Öğle arasında kahve molası verdim, sonra biraz kitap okudum."
+        ],
+        [
+          "assistant",
+          "Güzel bir mola olmuş."
+        ],
+        [
+          "user",
+          "Akşam da sinemaya gitmeyi düşünüyorum."
+        ],
+        [
+          "assistant",
+          "İyi seyirler!"
+        ],
+        [
+          "user",
+          "Bu akşam uzun bir yürüyüşten döndüm; sahil boyunca yürürken martıları izledim, rüzgâr biraz serindi ama hava açıktı. Dönüşte bir fırına uğrayıp taze simit aldım, eve gelince de sıcak bir çay demledim. Sonra balkonda oturup biraz müzik dinledim; uzun zamandır böyle sakin bir akşam geçirmemiştim."
+        ],
+        [
+          "assistant",
+          "Ne güzel bir akşam olmuş. Sahilde yürüyüş, taze simit ve balkonda çay gerçekten dinlendirici bir kombinasyon. Böyle sakin akşamlar insanın kafasını boşaltmasına çok iyi geliyor; ara sıra kendinize bu zamanı ayırmanız harika."
+        ],
+        [
+          "user",
+          "Bir de yarın için hafif bir kahvaltı düşünüyorum: belki yumurta, peynir, domates, salatalık ve biraz zeytin. Belki bir de taze sıkılmış portakal suyu. Hafta içi hep aceleyle kahvaltı ediyorum, yarın biraz daha yavaş ve keyifli olsun istiyorum."
+        ],
+        [
+          "assistant",
+          "Bu çok güzel ve dengeli bir kahvaltı planı. Yumurta ve peynir protein sağlar, sebzeler ve zeytin de güne hafif başlamanıza yardımcı olur. Portakal suyu da ferahlatıcı olur. Yavaş ve keyifli bir kahvaltı için güzel bir sabah dilerim."
+        ]
+      ],
+      "summary_expect": [
+        [
+          "Kuzey",
+          1
+        ],
+        [
+          "15 Aralık",
+          1
+        ],
+        [
+          "Zeynep",
+          3
+        ],
+        [
+          "Can",
+          3
+        ],
+        [
+          "Vue",
+          5
+        ],
+        [
+          "Docker",
+          8
+        ],
+        [
+          "cuma",
+          10
+        ]
+      ],
+      "probes": [
+        {
+          "q": "Ön yüzde hangi çatıyı kullanmaya karar vermiştik? Kısaca yaz.",
+          "expect_any": [
+            "vue"
+          ],
+          "forbid": [
+            "react kullanacağız",
+            "react kullanılacak"
+          ]
+        },
+        {
+          "q": "Can ekipte neyden sorumluydu? Kısaca yaz.",
+          "expect_any": [
+            "arka uç",
+            "backend",
+            "arka yüz",
+            "sunucu"
+          ]
+        },
+        {
+          "q": "Docker kullanacak mıyız? Kısaca yaz.",
+          "expect_any": [
+            "hayır",
+            "kullanmayacağız",
+            "kullanmayacaksınız",
+            "kullanılmayacak",
+            "istemediniz"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D3",
+      "topic": "sağlık ve spor",
+      "messages": [
+        [
+          "user",
+          "Günde 8 bin adım atmayı hedefliyorum."
+        ],
+        [
+          "assistant",
+          "Günde 8 bin adım güzel bir hedef."
+        ],
+        [
+          "user",
+          "Sağ dizimde sakatlık var, doktor koşmamamı söyledi; onun yerine yüzeceğim."
+        ],
+        [
+          "assistant",
+          "Anladım: koşu yok, yüzme var."
+        ],
+        [
+          "user",
+          "Diyetisyen randevum 22 Ekim saat 10:30'da."
+        ],
+        [
+          "assistant",
+          "22 Ekim 10:30 diyetisyen randevusu."
+        ],
+        [
+          "user",
+          "Hafta sonu kardeşim Emre ile Belgrad Ormanı'nda yürüyüş yapacağız."
+        ],
+        [
+          "assistant",
+          "Emre ile hafta sonu yürüyüşü, keyifli geçsin."
+        ],
+        [
+          "user",
+          "Bugün işte toplantılar çok uzun sürdü."
+        ],
+        [
+          "assistant",
+          "Yorucu bir gün olmuş."
+        ],
+        [
+          "user",
+          "Akşam biraz dizi izledim, sonra erken yattım."
+        ],
+        [
+          "assistant",
+          "Dinlenmek iyi gelmiştir."
+        ],
+        [
+          "user",
+          "Bu akşam uzun bir yürüyüşten döndüm; sahil boyunca yürürken martıları izledim, rüzgâr biraz serindi ama hava açıktı. Dönüşte bir fırına uğrayıp taze simit aldım, eve gelince de sıcak bir çay demledim. Sonra balkonda oturup biraz müzik dinledim; uzun zamandır böyle sakin bir akşam geçirmemiştim."
+        ],
+        [
+          "assistant",
+          "Ne güzel bir akşam olmuş. Sahilde yürüyüş, taze simit ve balkonda çay gerçekten dinlendirici bir kombinasyon. Böyle sakin akşamlar insanın kafasını boşaltmasına çok iyi geliyor; ara sıra kendinize bu zamanı ayırmanız harika."
+        ],
+        [
+          "user",
+          "Bir de yarın için hafif bir kahvaltı düşünüyorum: belki yumurta, peynir, domates, salatalık ve biraz zeytin. Belki bir de taze sıkılmış portakal suyu. Hafta içi hep aceleyle kahvaltı ediyorum, yarın biraz daha yavaş ve keyifli olsun istiyorum."
+        ],
+        [
+          "assistant",
+          "Bu çok güzel ve dengeli bir kahvaltı planı. Yumurta ve peynir protein sağlar, sebzeler ve zeytin de güne hafif başlamanıza yardımcı olur. Portakal suyu da ferahlatıcı olur. Yavaş ve keyifli bir kahvaltı için güzel bir sabah dilerim."
+        ]
+      ],
+      "summary_expect": [
+        [
+          "8 bin",
+          1
+        ],
+        [
+          "diz",
+          3
+        ],
+        [
+          "yüz",
+          3
+        ],
+        [
+          "22 Ekim",
+          5
+        ],
+        [
+          "10:30",
+          5
+        ],
+        [
+          "Emre",
+          7
+        ]
+      ],
+      "probes": [
+        {
+          "q": "Diyetisyen randevum ne zamandı? Kısaca yaz.",
+          "expect_all": [
+            "22 ekim",
+            "10 30"
+          ]
+        },
+        {
+          "q": "Koşu yapabilir miyim, ne demiştim? Kısaca yaz.",
+          "expect_any": [
+            "diz",
+            "koşma",
+            "koşmama",
+            "yüz"
+          ]
+        },
+        {
+          "q": "Hafta sonu kiminle yürüyüşe gidecektim? Kısaca yaz.",
+          "expect_any": [
+            "emre"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D4",
+      "topic": "benzer isimler ve düzeltme",
+      "messages": [
+        [
+          "user",
+          "Komşum Ali'nin Pamuk adında bir kedisi var, tatildeyken ona ben bakacağım."
+        ],
+        [
+          "assistant",
+          "Pamuk'a siz bakacaksınız, not ettim."
+        ],
+        [
+          "user",
+          "Patronum Ali Bey ile pazartesi saat 9:00'da toplantım var."
+        ],
+        [
+          "assistant",
+          "Ali Bey ile pazartesi 9:00 toplantı."
+        ],
+        [
+          "user",
+          "Pardon, toplantı 9:00 değil 9:30'da."
+        ],
+        [
+          "assistant",
+          "Düzelttim: toplantı pazartesi 9:30."
+        ],
+        [
+          "user",
+          "Komşum Ali cumartesi dönüyor."
+        ],
+        [
+          "assistant",
+          "Komşunuz Ali cumartesi dönüyor."
+        ],
+        [
+          "user",
+          "Bugün markete gittim, biraz meyve aldım."
+        ],
+        [
+          "assistant",
+          "Güzel."
+        ],
+        [
+          "user",
+          "Akşam annemi aradım, uzun uzun konuştuk."
+        ],
+        [
+          "assistant",
+          "Ne hoş."
+        ],
+        [
+          "user",
+          "Bu akşam uzun bir yürüyüşten döndüm; sahil boyunca yürürken martıları izledim, rüzgâr biraz serindi ama hava açıktı. Dönüşte bir fırına uğrayıp taze simit aldım, eve gelince de sıcak bir çay demledim. Sonra balkonda oturup biraz müzik dinledim; uzun zamandır böyle sakin bir akşam geçirmemiştim."
+        ],
+        [
+          "assistant",
+          "Ne güzel bir akşam olmuş. Sahilde yürüyüş, taze simit ve balkonda çay gerçekten dinlendirici bir kombinasyon. Böyle sakin akşamlar insanın kafasını boşaltmasına çok iyi geliyor; ara sıra kendinize bu zamanı ayırmanız harika."
+        ],
+        [
+          "user",
+          "Bir de yarın için hafif bir kahvaltı düşünüyorum: belki yumurta, peynir, domates, salatalık ve biraz zeytin. Belki bir de taze sıkılmış portakal suyu. Hafta içi hep aceleyle kahvaltı ediyorum, yarın biraz daha yavaş ve keyifli olsun istiyorum."
+        ],
+        [
+          "assistant",
+          "Bu çok güzel ve dengeli bir kahvaltı planı. Yumurta ve peynir protein sağlar, sebzeler ve zeytin de güne hafif başlamanıza yardımcı olur. Portakal suyu da ferahlatıcı olur. Yavaş ve keyifli bir kahvaltı için güzel bir sabah dilerim."
+        ]
+      ],
+      "summary_expect": [
+        [
+          "Pamuk",
+          1
+        ],
+        [
+          "komşu",
+          1
+        ],
+        [
+          "Ali Bey",
+          3
+        ],
+        [
+          "9:30",
+          5
+        ],
+        [
+          "cumartesi",
+          7
+        ]
+      ],
+      "probes": [
+        {
+          "q": "Pamuk kimin kedisi? Kısaca yaz.",
+          "expect_any": [
+            "komşu"
+          ],
+          "forbid": [
+            "patron"
+          ]
+        },
+        {
+          "q": "Patronumla toplantım saat kaçta? Kısaca yaz.",
+          "expect_any": [
+            "9 30",
+            "dokuz buçuk"
+          ]
+        },
+        {
+          "q": "Komşum Ali ne zaman dönüyor? Kısaca yaz.",
+          "expect_any": [
+            "cumartesi"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D5",
+      "topic": "tatil (held-out)",
+      "messages": [
+        [
+          "user",
+          "Tatil uçuşumuz 14 Haziran sabah 07:45'te, Sabiha Gökçen'den."
+        ],
+        [
+          "assistant",
+          "14 Haziran 07:45, Sabiha Gökçen. Not ettim."
+        ],
+        [
+          "user",
+          "Önce Antalya demiştik ama sonra Kaş'a karar verdik; otelin adı Mavi Koy."
+        ],
+        [
+          "assistant",
+          "Anladım: Kaş, Mavi Koy oteli."
+        ],
+        [
+          "assistant",
+          "Kaş'ta gezmek için araba kiralamanızı önerebilirim."
+        ],
+        [
+          "user",
+          "Araba kiralamayacağız, oraya otobüsle gideceğiz. Toplam bütçemiz 35 bin TL."
+        ],
+        [
+          "assistant",
+          "Tamam, otobüsle gideceksiniz; bütçe 35 bin TL."
+        ],
+        [
+          "user",
+          "Eşim Selin vejetaryen, restoran seçerken buna dikkat edelim."
+        ],
+        [
+          "assistant",
+          "Selin'in vejetaryen olduğunu göz önünde bulunduracağım."
+        ],
+        [
+          "user",
+          "Bu akşam uzun bir yürüyüşten döndüm; sahil boyunca yürürken martıları izledim, rüzgâr biraz serindi ama hava açıktı. Dönüşte bir fırına uğrayıp taze simit aldım, eve gelince de sıcak bir çay demledim. Sonra balkonda oturup biraz müzik dinledim; uzun zamandır böyle sakin bir akşam geçirmemiştim."
+        ],
+        [
+          "assistant",
+          "Ne güzel bir akşam olmuş. Sahilde yürüyüş, taze simit ve balkonda çay gerçekten dinlendirici bir kombinasyon. Böyle sakin akşamlar insanın kafasını boşaltmasına çok iyi geliyor; ara sıra kendinize bu zamanı ayırmanız harika."
+        ],
+        [
+          "user",
+          "Bir de yarın için hafif bir kahvaltı düşünüyorum: belki yumurta, peynir, domates, salatalık ve biraz zeytin. Belki bir de taze sıkılmış portakal suyu. Hafta içi hep aceleyle kahvaltı ediyorum, yarın biraz daha yavaş ve keyifli olsun istiyorum."
+        ],
+        [
+          "assistant",
+          "Bu çok güzel ve dengeli bir kahvaltı planı. Yumurta ve peynir protein sağlar, sebzeler ve zeytin de güne hafif başlamanıza yardımcı olur. Portakal suyu da ferahlatıcı olur. Yavaş ve keyifli bir kahvaltı için güzel bir sabah dilerim."
+        ]
+      ],
+      "summary_expect": [
+        [
+          "14 Haziran",
+          1
+        ],
+        [
+          "07:45",
+          1
+        ],
+        [
+          "Kaş",
+          3
+        ],
+        [
+          "Mavi Koy",
+          3
+        ],
+        [
+          "35 bin",
+          6
+        ],
+        [
+          "Selin",
+          8
+        ],
+        [
+          "vejetaryen",
+          8
+        ]
+      ],
+      "probes": [
+        {
+          "q": "Uçuşumuz ne zaman? Kısaca yaz.",
+          "expect_all": [
+            "14 haziran"
+          ],
+          "expect_any": [
+            "07 45",
+            "7 45"
+          ]
+        },
+        {
+          "q": "Antalya'ya mı gidiyoruz? Kısaca yaz.",
+          "expect_any": [
+            "kaş"
+          ]
+        },
+        {
+          "q": "Araba kiralayacak mıyız? Kısaca yaz.",
+          "expect_any": [
+            "hayır",
+            "otobüs",
+            "kiralamayacak"
+          ]
+        },
+        {
+          "q": "Restoran seçerken neye dikkat etmeliyiz? Kısaca yaz.",
+          "expect_any": [
+            "vejetaryen",
+            "et yemi"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -92,6 +92,7 @@ class ScriptedLLM:
     fail_with: LlmError | None = None
     fail_after_chunks: int = 1
     summary_fails: bool = False
+    summary_fail_from: int | None = None  # fail the n-th summary request onwards (0-based)
     available: bool = True
     installed: tuple[str, ...] = (MODEL,)
     loaded: set[str] = field(default_factory=lambda: {MODEL})
@@ -133,7 +134,11 @@ class ScriptedLLM:
         cancel = self._cancel.setdefault(request.request_id, asyncio.Event())
         try:
             if request.options.response_format is not None:
-                text = "bu JSON değil" if self.summary_fails else self.summary(request)
+                index = len(self.summary_requests) - 1
+                fail = self.summary_fails or (
+                    self.summary_fail_from is not None and index >= self.summary_fail_from
+                )
+                text = "bu JSON değil" if fail else self.summary(request)
             elif request.options.max_tokens == 1:
                 text = "."
             else:

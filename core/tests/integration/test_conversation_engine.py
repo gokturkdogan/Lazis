@@ -18,6 +18,7 @@ from lazis.conversation.prompts import CANCELLED_MARKER, INTERRUPTED_MARKER, S0_
 from lazis.errors import (
     ConversationNotFoundError,
     LlmBusyError,
+    LlmInvalidResponseError,
     LlmModelNotFoundError,
     LlmUnavailableError,
     MessageTooLongError,
@@ -617,3 +618,139 @@ def test_any_other_runtime_request_makes_the_next_turn_cold(
     assert llm.summary_requests
     status = next(e for e in events if e.get("stage") == "processing_context")
     assert status["cache"] == "cold"
+
+
+def test_compact_now_summarizes_on_demand_and_keeps_originals(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    llm = ScriptedLLM(reply=long_reply)
+    engine = make_engine(
+        storage, llm, tmp_path, idle_compaction_delay_s=3600.0, keep_recent_tokens=256
+    )
+
+    async def go() -> str:
+        cid: str | None = None
+        for i in range(4):
+            _, cid = await run_turn(engine, f"Önemli not {i}", cid)
+        assert cid is not None
+        assert await engine.compact_now(cid) is True
+        await engine.close()
+        return cid
+
+    cid = asyncio.run(go())
+    ctx = storage.db.run_sync(lambda c: repository.get_context(c, cid))
+    assert ctx is not None and ctx.strategy == "summary_window"
+    assert len(rows(storage, cid)) == 8
+
+
+def test_compaction_progress_is_kept_per_chunk(tmp_path: Path, storage: StorageHandle) -> None:
+    """If a later chunk fails (or is preempted), the chunks already summarized stay folded."""
+    llm = ScriptedLLM(reply=long_reply, summary_fail_from=1)
+    engine = make_engine(
+        storage,
+        llm,
+        tmp_path,
+        idle_compaction_delay_s=3600.0,
+        keep_recent_tokens=256,
+        compaction_chunk_tokens=1024,
+    )
+
+    async def go() -> str:
+        cid: str | None = None
+        for i in range(6):
+            _, cid = await run_turn(engine, f"Önemli not {i}", cid)
+        assert cid is not None
+        with pytest.raises(LlmInvalidResponseError):
+            await engine.compact_now(cid)
+        await engine.close()
+        return cid
+
+    cid = asyncio.run(go())
+    ctx = storage.db.run_sync(lambda c: repository.get_context(c, cid))
+    summaries = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
+    assert len(llm.summary_requests) >= 2 and len(summaries) == 1
+    assert ctx is not None and ctx.strategy == "summary_window"
+    assert ctx.window_start_seq == summaries[0].to_seq + 1
+    first_window = rows(storage, cid)[ctx.window_start_seq - 1]
+    assert first_window.role == "user"  # the window still starts at a user turn
+
+
+def test_prewarm_records_the_runtime_size_even_without_a_context_row(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    now = utc_now_iso()
+
+    def seed(conn: repository.Connection) -> str:
+        with repository.transaction(conn):
+            conv = repository.insert_conversation(
+                conn, title="içe aktarılmış", model=MODEL, now=now
+            )
+            repository.insert_message(
+                conn,
+                conversation_id=conv.id,
+                role="user",
+                content="Merhaba",
+                status="complete",
+                now=now,
+            )
+            repository.insert_message(
+                conn,
+                conversation_id=conv.id,
+                role="assistant",
+                content="Merhaba!",
+                status="complete",
+                now=now,
+            )
+        return conv.id
+
+    cid = storage.db.run_sync(seed)
+    llm = ScriptedLLM()
+    engine = make_engine(storage, llm, tmp_path)
+
+    async def go() -> None:
+        await engine.prepare(cid, MODEL)
+        job = engine.scheduler.background
+        assert job is not None and job.task is not None
+        await job.task
+        await engine.close()
+
+    asyncio.run(go())
+    ctx = storage.db.run_sync(lambda c: repository.get_context(c, cid))
+    assert ctx is not None and ctx.anchor_seq == 2
+    assert ctx.anchor_tokens == prompt_tokens(llm.prewarm_requests[0])
+
+
+def test_compaction_works_for_a_conversation_without_a_context_row(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    now = utc_now_iso()
+
+    def seed(conn: repository.Connection) -> str:
+        with repository.transaction(conn):
+            conv = repository.insert_conversation(
+                conn, title="içe aktarılmış", model=MODEL, now=now
+            )
+            for i in range(10):
+                role = "user" if i % 2 == 0 else "assistant"
+                repository.insert_message(
+                    conn,
+                    conversation_id=conv.id,
+                    role=role,
+                    content=f"Mesaj {i}: " + "ayrıntı " * 60,
+                    status="complete",
+                    now=now,
+                )
+        return conv.id
+
+    cid = storage.db.run_sync(seed)
+    llm = ScriptedLLM()
+    engine = make_engine(storage, llm, tmp_path, keep_recent_tokens=256)
+
+    async def go() -> bool:
+        done = await engine.compact_now(cid)
+        await engine.close()
+        return done
+
+    assert asyncio.run(go()) is True
+    ctx = storage.db.run_sync(lambda c: repository.get_context(c, cid))
+    assert ctx is not None and ctx.strategy == "summary_window"

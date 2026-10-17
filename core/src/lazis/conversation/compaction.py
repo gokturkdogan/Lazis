@@ -83,13 +83,15 @@ def plan_split(
 def chunk_messages(
     messages: Sequence[Message], *, estimator: TokenEstimator, max_tokens: int
 ) -> list[list[Message]]:
-    """Split the messages to compact into chunks whose transcript fits ``max_tokens``."""
+    """Split the messages to compact into chunks of about ``max_tokens``. A new chunk starts
+    only at a user message, so every intermediate window still starts with a user turn (a
+    single exchange larger than ``max_tokens`` stays in one chunk)."""
     chunks: list[list[Message]] = []
     current: list[Message] = []
     used = 0
     for message in messages:
         cost = estimator.message(transcript_line(message))
-        if current and used + cost > max_tokens:
+        if current and used + cost > max_tokens and message.role == "user":
             chunks.append(current)
             current, used = [], 0
         current.append(message)

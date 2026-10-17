@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). **P2 implemented 2026-10-17; model decision accepted** ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [PHASE_2_MODEL_BENCHMARKS.md](PHASE_2_MODEL_BENCHMARKS.md), [ADR-0001](adr/0001-primary-model.md) Accepted, G2 revised as G2-r1). **P3 not started, awaiting the owner's approval** · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 not started · Last updated: 2026-10-17
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -166,10 +166,33 @@ Exit evidence: backend 100 tests, UI 19 unit + 3 integration (against a real bac
 - **Risks:** R2, R24.
 - **Testable result:** a natural Turkish multi-turn chat in the terminal with streaming, cancel and visible per-turn metrics.
 - **Exit conditions:** soak completes without context errors; G2/G4 hold with the real assembler; tests executed.
+- **As built (2026-10-17):** the Phase 3 brief changed the scope. It added the desktop conversation UI (moved forward from P4) and required persistence, crash safety, deletion and cold-cache handling ([ADR-0010](adr/0010-conversation-persistence-and-context.md)).
+  - **Built:**
+    - `0002_conversations`;
+    - `conversation/` (engine, assembler, budget, compaction, scheduler, repository);
+    - persona v0 (S1) and S0 policy, with the current date/time stored as a per-turn note;
+    - REST plus NDJSON turn streaming;
+    - cancellation and turn ids (`client_id`);
+    - idle and over-budget compaction with an evidence-checked summary;
+    - pre-warm;
+    - an announced fallback trim;
+    - a 300-turn soak with the scripted model (CI);
+    - live measurements on Gemma 4 12B (PHASE_3_REPORT §7).
+  - **Not built (deferred, with reasons in the report):**
+    - **WebSocket hub and event schema v1:** the backend refuses WebSocket upgrades (P1.1); NDJSON over HTTP is used.
+    - **Durable job queue, event bus, DI container, `state` package, `cache.db`:** an in-process scheduler suffices, and compaction state lives in the database.
+    - **`lazis chat` CLI.**
+    - **Off-record mode (CNV-08):** the Phase 2 ephemeral endpoint `/chat/stream` still exists, but there is no UI for it.
+    - **Tool-loop framework (SEC-08):** no tools exist yet.
+    - **Language-drift guard.**
+    - **`segments` table:** moves to P9 with the learning pipeline.
+    - **Live 300-turn soak** on the real model.
+    - **Conversation search (CNV-04 "searched").**
 
 ## P4 — Minimal functional desktop interface (M)
 
 - **Objective:** a usable desktop app for testing conversations, viewing state and diagnostics, and monitoring errors ([UI_ARCHITECTURE.md §0](UI_ARCHITECTURE.md)).
+- **Note (2026-10-17):** P3 already delivered the basic Conversation view: list, thread, streaming, stop, rename, delete and paging. P4 keeps the remaining items (PulseIndicator, Diagnostics panel, router, Playwright E2E, tray, restart policy).
 - **Prerequisites:** P3.
 - **Scope:**
   - Tauri shell: *done in P1* — backend spawn, stdin token + key handoff with lifeline, Keychain key management and recovery-code flows, single instance, minimal capabilities (app command ACL), strict CSP, unexpected-exit detection with manual retry. *Remaining for P4:* automatic restart with backoff (max 3 in 60 s), tray with state color, WebSocket support in the CSP/client.

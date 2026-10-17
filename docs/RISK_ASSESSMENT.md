@@ -50,6 +50,7 @@ Scores above are unchanged. These are the first measured inputs for them. Detail
 - **R1 (Turkish quality):** reduced for Gemma 4 12B. It won the owner's blind rating 13/14. The owner still saw grammar slips (formal email) and wrong place facts.
 - **R12 (sycophancy):** observed. Gemma praised a mediocre poem without pushback (owner's note on E05).
 - **R6 (memory pressure):** with typical apps open, swap grew by 2.4 GB during Gemma's benchmarks. Free memory fell to 15% once.
+  - **Phase 3:** llama.cpp's host-RAM prompt cache (default 8 GB, not set by Ollama) pushed the runner's footprint to 13.2 GB. It is now capped at 2 GB through the LaunchAgent (runner peak 6.4 GB; ADR-0010 §7a).
 
 ## Top risks (score ≥ 12) and response plan
 

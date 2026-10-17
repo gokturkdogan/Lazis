@@ -2,9 +2,9 @@
 
 A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs.
 
-**Current phase:** Phase 2 (local AI integration, model benchmarking and selection) implemented, verified and committed locally. The model decision ([ADR-0001](docs/adr/0001-primary-model.md)) is **Accepted**: primary Gemma 4 12B, fallback Qwen3.5-9B. The G2 latency gate was revised with the owner's approval after the results were known; the record is in ADR-0001. Phase 3 has not started and needs the owner's separate approval.
+**Current phase:** Phase 3 (conversation engine: persistent, encrypted, multi-turn chats with managed context) implemented and verified — **awaiting the owner's approval**. Phase 4 has not started. Model decision: [ADR-0001](docs/adr/0001-primary-model.md) (Accepted).
 
-What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. Phase 2 adds a local LLM through Ollama on loopback (primary: Gemma 4 12B; the backend's sandbox allows only Ollama's port, cloud inference disabled) and a minimal **ephemeral** Turkish chat with streaming and cancellation. There is no persistent conversation, memory, voice or internet access yet — by design.
+What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. Phase 2 adds a local LLM through Ollama on loopback (primary: Gemma 4 12B; the backend's sandbox allows only Ollama's port, cloud inference disabled) Phase 3 adds persistent Turkish conversations stored in the encrypted database: a conversation list, streaming, stop, rename and delete, recovery of interrupted replies, a token budget, evidence-checked compaction of long conversations, and cache pre-warming. There is no personal memory, voice or internet access yet — by design: chat history is not personal memory.
 
 ## Quick start
 
@@ -20,7 +20,9 @@ Details: [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).
 
 | Document | Contents |
 |---|---|
-| [PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | **Start here.** Phase 2 report (Turkish): environment, model inventory and downloads, inference architecture, sandbox compatibility, chat, tests, model decision, Phase 3 readiness |
+| [PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md) | **Start here.** Phase 3 report (Turkish): persistent conversations, schema, API, context management and compaction, cold-cache measurements, security, tests, known gaps, risks for Phase 4 |
+| [adr/0010-conversation-persistence-and-context.md](docs/adr/0010-conversation-persistence-and-context.md) | ADR-0010: conversation storage, turn lifecycle, prompt layout, token budget, compaction, pre-warming, deletion |
+| [PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | Phase 2 report (Turkish). Phase 2 report (Turkish): environment, model inventory and downloads, inference architecture, sandbox compatibility, chat, tests, model decision, Phase 3 readiness |
 | [PHASE_2_MODEL_BENCHMARKS.md](docs/PHASE_2_MODEL_BENCHMARKS.md) | Phase 2 model benchmarks (Turkish): method, performance, memory, Turkish quality, extraction, MLX comparison |
 | [adr/0001-primary-model.md](docs/adr/0001-primary-model.md) | ADR-0001 (Accepted): primary and fallback model, runtime, gate check, G2 revision record |
 | [PHASE_1_1_REPORT.md](docs/PHASE_1_1_REPORT.md) | Phase 1.1 hardening report (Turkish): verified findings, network isolation, restore safety, recovery code, local API, tests, Phase 2 readiness |

@@ -1,0 +1,466 @@
+{
+ "manifest": {
+  "captured_at": "2026-10-17T19:15:13+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.11,
+   "active_gb": 3.72,
+   "wired_gb": 11.56,
+   "compressed_gb": 4.27,
+   "swap_used_mb": 4793.81,
+   "swapouts": 56877499,
+   "memory_free_percent": 32
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "dataset_version": "1.2",
+ "results": [
+  {
+   "dialogue": "D1",
+   "mode": "full",
+   "probes": [
+    {
+     "q": "Planlama toplantısı hangi güne kalmıştı? Kısaca yaz.",
+     "answer": "Planlama toplantısı perşembe gününe kalmıştı.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Nakliye firması tutmaya karar vermiş miydik? Kısaca yaz.",
+     "answer": "Hayır, nakliye firması tutmayacağınızı; eşyaları kendiniz taşıyacağınızı söylemiştiniz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+     "answer": "Mehmet'in 10 Kasım'da İzmir'e gitmesi planlanıyor ama henüz kesin değil.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D1",
+   "mode": "compacted",
+   "compaction_s": 19.0,
+   "compacted": true,
+   "summary": {
+    "to_seq": 12,
+    "kept_items": 9,
+    "dropped_items": 0,
+    "facts_in_range": 7,
+    "fact_recall": 1.0,
+    "missing": [],
+    "rendered": "Konuşma özeti (#1–#12 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Ayşe'nin 3 Kasım'da Ankara'ya taşınmasına yardım etmek [#1]\nDevam eden konular:\n- Nakliye firması tutulmayacak, eşyalar kendileri taşınacak [#3]\n- Taşınma bütçesi en fazla 20 bin TL [#3]\n- Planlama toplantısı perşembe gününe kaydırıldı [#5]\n- İş arkadaşı Mehmet'in 10 Kasım'da İzmir'e gitmesi henüz kesin değil (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Nakliye firması tutulmayacak [#3]\n- Planlama toplantısı perşembe günü [#5]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Ayşe: Kullanıcının kız kardeşi [#1]\n- Mehmet: Kullanıcının iş arkadaşı [#7]"
+   },
+   "probes": [
+    {
+     "q": "Planlama toplantısı hangi güne kalmıştı? Kısaca yaz.",
+     "answer": "Planlama toplantısı perşembe gününe kaydırılmıştı efendim.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Nakliye firması tutmaya karar vermiş miydik? Kısaca yaz.",
+     "answer": "Hayır, nakliye firması tutmamaya karar vermiştiniz; eşyaları kendiniz taşıyacaksınız.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+     "answer": "Mehmet'in 10 Kasım'da İzmir'e gitmesi henüz kesin değil efendim.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D2",
+   "mode": "full",
+   "probes": [
+    {
+     "q": "Ön yüzde hangi çatıyı kullanmaya karar vermiştik? Kısaca yaz.",
+     "answer": "Vue kullanmaya karar vermiştik.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Can ekipte neyden sorumluydu? Kısaca yaz.",
+     "answer": "Can arka uçtan sorumlu.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Docker kullanacak mıyız? Kısaca yaz.",
+     "answer": "Hayır, Docker kullanmayacağız.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D2",
+   "mode": "compacted",
+   "compaction_s": 24.8,
+   "compacted": true,
+   "summary": {
+    "to_seq": 15,
+    "kept_items": 13,
+    "dropped_items": 0,
+    "facts_in_range": 7,
+    "fact_recall": 1.0,
+    "missing": [],
+    "rendered": "Konuşma özeti (#1–#15 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Yeni projenin adı Kuzey. [#1]\n- Kuzey projesi teslim tarihi 15 Aralık. [#1]\nDevam eden konular:\n- Ekip üyeleri: Zeynep (tasarım), Can (arka uç). [#3]\n- Ön yüzde Vue kullanılacak. [#5]\n- Docker kullanılmayacak; her şey doğrudan makinede çalışacak. [#8]\n- Haftalık raporlar cuma günleri gönderilecek. [#10]\n- 17 Ekim 2026 Cumartesi 14:32'de öğle arasında kahve molası verildi ve kitap okundu. [#12]\n- 17 Ekim 2026 Cumartesi 14:32'de akşam sinemaya gidilmesi düşünülüyor. (belirsiz) [#14]\nKullanıcının kararları (güncel):\n- React yerine Vue kullanımı. [#5]\n- Docker kullanımı reddedildi. [#8]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Zeynep: tasarımdan sorumlu [#3]\n- Can: arka uçtan sorumlu [#3]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Geliştirme ortamı için Docker kullanımı önerildi ancak kullanıcı reddetti. [#7]"
+   },
+   "probes": [
+    {
+     "q": "Ön yüzde hangi çatıyı kullanmaya karar vermiştik? Kısaca yaz.",
+     "answer": "Kuzey projesinin ön yüzünde Vue kullanmaya karar vermiştik.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Can ekipte neyden sorumluydu? Kısaca yaz.",
+     "answer": "Can, ekipte arka uçtan (backend) sorumluydu.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Docker kullanacak mıyız? Kısaca yaz.",
+     "answer": "Hayır, Docker kullanmayacağız; her şey doğrudan makinede çalışacak.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D3",
+   "mode": "full",
+   "probes": [
+    {
+     "q": "Diyetisyen randevum ne zamandı? Kısaca yaz.",
+     "answer": "22 Ekim saat 10:30'da.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Koşu yapabilir miyim, ne demiştim? Kısaca yaz.",
+     "answer": "Doktorunuz sağ dizinizdeki sakatlık nedeniyle koşmamanızı söyledi, bunun yerine yüzmeyi tercih ettiğinizi söylemiştiniz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Hafta sonu kiminle yürüyüşe gidecektim? Kısaca yaz.",
+     "answer": "Kardeşiniz Emre ile.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D3",
+   "mode": "compacted",
+   "compaction_s": 17.1,
+   "compacted": true,
+   "summary": {
+    "to_seq": 12,
+    "kept_items": 8,
+    "dropped_items": 0,
+    "facts_in_range": 6,
+    "fact_recall": 1.0,
+    "missing": [],
+    "rendered": "Konuşma özeti (#1–#12 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Günde 8 bin adım atmayı hedefliyor. [#1]\n- Sağ dizindeki sakatlık nedeniyle koşmak yerine yüzme yapacak. [#3]\nDevam eden konular:\n- 22 Ekim saat 10:30'da diyetisyen randevusu. [#5]\n- Hafta sonu kardeşi Emre ile Belgrad Ormanı'nda yürüyüş yapacak. [#7]\n- Bugün işte toplantılar çok uzun sürdü. [#9]\n- Akşam biraz dizi izledi ve erken yattı. [#11]\nKullanıcının kararları (güncel):\n- Koşmak yerine yüzmek. [#3]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Emre: Kullanıcının kardeşi [#7]"
+   },
+   "probes": [
+    {
+     "q": "Diyetisyen randevum ne zamandı? Kısaca yaz.",
+     "answer": "Diyetisyen randevunuz 22 Ekim saat 10:30'da.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Koşu yapabilir miyim, ne demiştim? Kısaca yaz.",
+     "answer": "Sağ dizinizdeki sakatlık nedeniyle koşmak yerine yüzme yapacağınızı söylemiştiniz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Hafta sonu kiminle yürüyüşe gidecektim? Kısaca yaz.",
+     "answer": "Hafta sonu kardeşiniz Emre ile Belgrad Ormanı'nda yürüyüş yapacaktınız.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D4",
+   "mode": "full",
+   "probes": [
+    {
+     "q": "Pamuk kimin kedisi? Kısaca yaz.",
+     "answer": "Komşunuz Ali'nin kedisi.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Patronumla toplantım saat kaçta? Kısaca yaz.",
+     "answer": "Pazartesi saat 09:30'da.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Komşum Ali ne zaman dönüyor? Kısaca yaz.",
+     "answer": "Cumartesi günü.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D4",
+   "mode": "compacted",
+   "compaction_s": 20.1,
+   "compacted": true,
+   "summary": {
+    "to_seq": 12,
+    "kept_items": 9,
+    "dropped_items": 0,
+    "facts_in_range": 5,
+    "fact_recall": 1.0,
+    "missing": [],
+    "rendered": "Konuşma özeti (#1–#12 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nDevam eden konular:\n- Kullanıcı, komşusu Ali'nin tatildeyken Pamuk adındaki kedisine bakacak. [#1]\n- Patron Ali Bey ile Pazartesi saat 09:30'da toplantı var. [#3, #5]\n- Komşu Ali Cumartesi günü dönüyor. [#7]\n- Kullanıcı bugün markete gidip meyve aldı. [#9]\n- Kullanıcı akşam annesini arayıp uzunca konuştu. [#11]\nKullanıcının kararları (güncel):\n- Patron Ali Bey ile toplantı saati 09:30. [#3, #5]\nDeğiştirilmiş eski kararlar (artık geçerli değil):\n- Patron Ali Bey ile toplantı saati 09:00. [#3]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Ali: Komşu [#1, #7]\n- Ali Bey: Patron [#3]"
+   },
+   "probes": [
+    {
+     "q": "Pamuk kimin kedisi? Kısaca yaz.",
+     "answer": "Pamuk, komşunuz Ali'nin kedisidir.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Patronumla toplantım saat kaçta? Kısaca yaz.",
+     "answer": "Patronunuz Ali Bey ile toplantınız Pazartesi günü saat 09:30'da.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Komşum Ali ne zaman dönüyor? Kısaca yaz.",
+     "answer": "Komşunuz Ali, bugün (Cumartesi) dönüyor.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D5",
+   "mode": "full",
+   "probes": [
+    {
+     "q": "Uçuşumuz ne zaman? Kısaca yaz.",
+     "answer": "14 Haziran sabahı 07:45'te, Sabiha Gökçen'den.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Antalya'ya mı gidiyoruz? Kısaca yaz.",
+     "answer": "Hayır, Kaş'a gidiyorsunuz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Araba kiralayacak mıyız? Kısaca yaz.",
+     "answer": "Hayır, otobüsle gideceksiniz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Restoran seçerken neye dikkat etmeliyiz? Kısaca yaz.",
+     "answer": "Eşiniz Selin'in vejetaryen olmasına dikkat etmeliyiz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  },
+  {
+   "dialogue": "D5",
+   "mode": "compacted",
+   "compaction_s": 16.7,
+   "compacted": true,
+   "summary": {
+    "to_seq": 9,
+    "kept_items": 7,
+    "dropped_items": 0,
+    "facts_in_range": 7,
+    "fact_recall": 1.0,
+    "missing": [],
+    "rendered": "Konuşma özeti (#1–#9 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Tatil uçuşu 14 Haziran sabah 07:45'te Sabiha Gökçen'den. [#1]\nDevam eden konular:\n- Kaş'ta Mavi Koy otelinde konaklanacak. [#3]\nKullanıcının kararları (güncel):\n- Araba kiralanmayacak, otobüsle gidilecek. [#6]\nÇözülmemiş sorular:\n- Toplam bütçe 35 bin TL. [#6]\nÖnemli kısıtlamalar:\n- Eş Selin vejetaryen, restoran seçimi buna göre yapılacak. [#8]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Selin: Kullanıcının eşi [#8]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Araba kiralamak (LAZIS önerisi). (belirsiz) [#5]"
+   },
+   "probes": [
+    {
+     "q": "Uçuşumuz ne zaman? Kısaca yaz.",
+     "answer": "Uçuşunuz 14 Haziran sabahı 07:45'te Sabiha Gökçen'den.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Antalya'ya mı gidiyoruz? Kısaca yaz.",
+     "answer": "Hayır, Antalya'ya değil, Kaş'a gideceksiniz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Araba kiralayacak mıyız? Kısaca yaz.",
+     "answer": "Hayır, araba kiralamayacak, otobüsle gideceksiniz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Restoran seçerken neye dikkat etmeliyiz? Kısaca yaz.",
+     "answer": "Eşiniz Selin vejetaryen olduğu için restoran seçimlerinde buna uygun seçeneklerin bulunmasına dikkat etmeliyiz.",
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ],
+   "accuracy": 1.0
+  }
+ ],
+ "summary": {
+  "full": {
+   "probe_accuracy": 1.0,
+   "probes": 16
+  },
+  "compacted": {
+   "probe_accuracy": 1.0,
+   "probes": 16,
+   "summary_fact_recall": 1.0,
+   "facts_in_range": 32,
+   "kept_items": 46,
+   "dropped_items": 0,
+   "compaction_s": [
+    19.0,
+    24.8,
+    17.1,
+    20.1,
+    16.7
+   ]
+  }
+ }
+}

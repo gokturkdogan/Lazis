@@ -9,17 +9,25 @@
 # prompts to ollama.com. LAZIS also refuses cloud models itself, but OLLAMA_NO_CLOUD=1 makes
 # the server refuse them too. OLLAMA_HOST pins the API to 127.0.0.1:11434, the only port the
 # backend's OS sandbox allows (apps/desktop/src-tauri/sandbox/backend.sb).
+#
+# LLAMA_ARG_CACHE_RAM caps llama.cpp's host-RAM prompt cache inside Ollama's runner (Ollama
+# 0.40 does not set it, so llama.cpp's default of 8192 MiB applies). The runner saves earlier
+# prompt states there and restores them, which makes switching back to a conversation fast,
+# but on a 24 GB Mac it competes with everything else (measured: runner footprint peak 16 GB
+# with the default). Override at install time: LAZIS_PROMPT_CACHE_MIB=<MiB> (0 disables it).
 set -euo pipefail
 
 LABEL="com.lazis.ollama"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG_DIR="$HOME/.ollama/logs"
 OLLAMA_BIN="$(command -v ollama || true)"
+PROMPT_CACHE_MIB="${LAZIS_PROMPT_CACHE_MIB:-2048}"
 
 die() { echo "ollama-agent: $*" >&2; exit 1; }
 
 install_agent() {
   [ -n "$OLLAMA_BIN" ] || die "ollama not found (brew install ollama)"
+  [[ "$PROMPT_CACHE_MIB" =~ ^[0-9]+$ ]] || die "LAZIS_PROMPT_CACHE_MIB must be a number of MiB"
   OLLAMA_BIN="$(cd "$(dirname "$OLLAMA_BIN")" && pwd)/$(basename "$OLLAMA_BIN")"
   mkdir -p "$HOME/Library/LaunchAgents" "$LOG_DIR"
   # Stop any manually started server so the agent can bind the port.
@@ -40,6 +48,7 @@ install_agent() {
   <dict>
     <key>OLLAMA_NO_CLOUD</key><string>1</string>
     <key>OLLAMA_HOST</key><string>127.0.0.1:11434</string>
+    <key>LLAMA_ARG_CACHE_RAM</key><string>$PROMPT_CACHE_MIB</string>
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
@@ -51,7 +60,9 @@ install_agent() {
 EOF
   chmod 600 "$PLIST"
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-  launchctl bootstrap "gui/$(id -u)" "$PLIST"
+  # bootout returns before the old job is gone; bootstrapping too early fails with EIO.
+  for _ in $(seq 1 50); do launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1 || break; sleep 0.1; done
+  launchctl bootstrap "gui/$(id -u)" "$PLIST" || { sleep 2; launchctl bootstrap "gui/$(id -u)" "$PLIST"; }
   for _ in $(seq 1 100); do curl -s --max-time 1 http://127.0.0.1:11434/api/version >/dev/null && break; sleep 0.1; done
   status_agent
 }
@@ -71,7 +82,8 @@ size = ctypes.c_size_t(0)
 libc.sysctl(mib, 3, None, ctypes.byref(size), None, 0)
 buf = ctypes.create_string_buffer(size.value)
 libc.sysctl(mib, 3, buf, ctypes.byref(size), None, 0)
-env = [p.decode() for p in buf.raw[4:size.value].split(b"\0") if p.startswith(b"OLLAMA_")]
+names = (b"OLLAMA_", b"LLAMA_ARG_CACHE_RAM")
+env = [p.decode() for p in buf.raw[4:size.value].split(b"\0") if p.startswith(names)]
 print("server environment:", " ".join(env) or "(no OLLAMA_* variables)")
 PY
 }

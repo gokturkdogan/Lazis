@@ -1,6 +1,6 @@
 # LAZIS — System Architecture
 
-> Status: Phase 0.1 (revised), updated with the Phase 1 implementation, Phase 1.1 hardening and Phase 2 local inference (§7.1, §8.1) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), updated with the Phase 1 implementation, Phase 1.1 hardening, Phase 2 local inference (§7.1, §8.1) and the Phase 3 conversation engine (§6.1, §8.1, §13.1) · Last updated: 2026-10-17
 > Phase 1 as built: [PHASE_1_REPORT.md](PHASE_1_REPORT.md) (Turkish) and [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md). Where this blueprint and the code differ, §3.1, §11.1, §12 and §13.1 describe the implemented state.
 > Decisions referenced here are justified in [TECHNOLOGY_DECISIONS.md](TECHNOLOGY_DECISIONS.md). Phase numbers (P1–P15) follow [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md). Coding rules: [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md).
 
@@ -275,6 +275,24 @@ Rules (the reasons are in [TECHNOLOGY_DECISIONS.md §2.1](TECHNOLOGY_DECISIONS.m
 - **Background work** may evict the conversation's cache on a single-slot engine. This is mitigated by a second slot or by an idle-time re-warm, decided by benchmark B3e.
 - Whether reuse actually happens on each runner is **unverified** until SPK-03 / gate G4 in P2 ([BENCHMARK_PLAN.md §6](BENCHMARK_PLAN.md)).
 
+### 6.1 Implemented in P3
+
+Built as described above, with these Phase 3 specifics ([ADR-0010](adr/0010-conversation-persistence-and-context.md)):
+
+- **Layout.** The system message holds S0 (policy), S1 (persona v0) and the conversation summary. S2 (tools) and S3 (profile) are empty until their phases. The verbatim window follows; each user turn carries its stored time note.
+- **Prefix stability.** The prefix hash covers the prompt version, model, `num_ctx` and system text. History is append-only within a `context_version`. Compaction, a fallback trim or a model change increments the version.
+- **Token accounting.**
+  - Ollama has no tokenize endpoint, so budgets are anchored on the runtime's `prompt_eval_count` / `eval_count`.
+  - Text the runtime has not counted is estimated conservatively (2.2 characters per token).
+  - **Hard limit:** `num_ctx` − 1024 reply tokens − 10 %.
+  - **Idle compaction:** starts above 6,144 tokens (instead of "75 % of budget").
+  - **Synchronous compaction:** at the hard limit (instead of "90 %"), shown to the user as a stage.
+- **Summaries.** JSON items each cite messages. A code-level evidence check validates them against the originals; failing items are dropped.
+- **Cache telemetry and pre-warming.**
+  - A single-slot scheduler tracks which conversation the runtime's cache holds.
+  - Pre-warm runs on open, on focus, on typing (throttled) and after compaction.
+  - A second runtime slot (`OLLAMA_NUM_PARALLEL=2`) was not needed: background work is preempted by turns and followed by a pre-warm.
+
 ## 7. Provider ports (contracts)
 
 ```python
@@ -351,6 +369,23 @@ Transport: HTTP/1.1 REST + one WebSocket on `127.0.0.1:{random port}`. Auth: a p
 **Implemented in P1** (all require the bearer token; OpenAPI snapshot in `apps/desktop/ui/src/api/openapi.json`, drift-tested): `GET /health`, `GET /app/info`, `GET /system/status` (backend, database encryption/integrity, privacy flags, AI placeholder, platform), `GET /settings` (effective non-secret settings, read-only). Every request passes `LocalApiGuard` in this order: rate limit (token bucket) → `Host` must be `127.0.0.1:{port}` (DNS-rebinding defense) → `Origin` allowlist (`tauri://localhost`; plus `http://localhost:1420` in development) → CORS preflight answered without a token → bearer token (constant-time compare) → body limit 64 KiB. Interactive docs and `/openapi.json` are disabled. Errors are `{error: {code, message (Turkish), recoverable, request_id}}` with no stack traces; denials are written to the audit log.
 
 **Added in P2:** `GET /llm/status` (runtime availability/version, loaded models, `cloud_inference: "disabled"`), `GET /llm/models` (installed local models only), `POST /chat/stream` (body: `model`, `request_id`, `messages[]` of `user`/`assistant` turns — no client system prompt, ≤ 40 turns, ≤ 48 000 characters —, `options.context` = `short|normal|long`, optional `temperature`/`max_tokens`; response: NDJSON events `start` → `delta`… → `done{metrics}` or `error{code,message}`), `POST /chat/cancel` (`request_id`). One generation at a time (`llm_busy`). Nothing is stored or logged; a client disconnect cancels the generation.
+
+**Added in P3** (all behind the same guard; [ADR-0010](adr/0010-conversation-persistence-and-context.md)):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /conversations?limit=&cursor=` | Most recently updated first, keyset cursor |
+| `GET /conversations/{id}` | Conversation and context state: strategy, window, summary info, estimated tokens, cache warm/cold, background job |
+| `GET /conversations/{id}/messages?before_seq=&limit=` | Pages of messages, newest page first, returned in `seq` order |
+| `PATCH /conversations/{id}` | `{title}` |
+| `DELETE /conversations/{id}` | Cascade delete, audit with id and counts only, WAL truncate, runtime cache eviction |
+| `POST /conversations/{id}/context/reset` | Invalidate summaries; rebuilt on demand |
+| `POST /turns` | `{conversation_id \| null, client_id, content, model}` → NDJSON `start` → `status{stage}`… → `delta`… → `done` / `cancelled` / `error`. Stages: `waiting`, `compacting`, `context_trimmed`, `loading_model`, `processing_context{context_tokens, cache}` |
+| `POST /turns/cancel` | `{client_id}` |
+| `POST /chat/prepare` | Pre-warm |
+| `GET /chat/activity` | Turn and background job state |
+
+Busy, duplicate, unknown conversation, missing model, unavailable runtime and an oversized message are refused before anything is stored. The WebSocket hub of §8.2 was not built: upgrades are still refused, and NDJSON over HTTP carries the streams.
 
 API versioning: the `/api/v1` prefix; additive changes within v1; a breaking change means `/api/v2` with a deprecation window. Event payloads carry `schema_version` ([ENGINEERING_STANDARDS.md §6](ENGINEERING_STANDARDS.md)).
 
@@ -519,9 +554,12 @@ lazis/
 │   │   ├── security/   secrets.py (stdin protocol) · network_guard.py (audit hook, sandbox probe, fd cleanup) · recovery.py (LZR1)
 │   │   ├── storage/    driver.py (only sqlcipher3 import) · database.py · lock.py · unit_of_work.py ·
 │   │   │               repositories.py · backup.py (snapshots, crash-safe restore) ·
-│   │   │               migrations/{__init__.py, lazis/0001_system.sql}
+│   │   │               migrations/{__init__.py, lazis/0001_system.sql, lazis/0002_conversations.sql}
 │   │   ├── providers/  llm/ports.py (LLMProvider) · llm/ollama.py (P2)
-│   │   ├── api/chat.py (P2: model status, ephemeral streamed chat)
+│   │   ├── api/chat.py (P2: model status, ephemeral streamed chat) · api/conversations.py (P3)
+│   │   ├── conversation/ (P3) models.py · repository.py (SQL) · prompts.py (S0/S1, summary schema) ·
+│   │   │               context.py (assembler, budget) · compaction.py (evidence-checked summaries) ·
+│   │   │               scheduler.py (single runtime slot) · engine.py (turn lifecycle, pre-warm, maintenance)
 │   │   └── errors.py · i18n.py · ids.py · fsutil.py
 │   ├── tests/{unit,integration,security}/ · fixtures/recovery_vectors.json (shared with Rust)
 │   ├── spikes/spk05_storage.py · spikes/results/
@@ -534,13 +572,14 @@ lazis/
 │   │   ├── sandbox/backend.sb     # OS network sandbox profile (shared with the Python tests)
 │   │   ├── tests/lifecycle.rs     # shell ↔ real backend
 │   │   ├── capabilities/main.json · permissions/autogenerated/ · tauri.conf.json · icons/
-│   └── ui/src/ api/ (client, openapi.json, schema.d.ts) · platform/tauri.ts · stores/connection.ts ·
-│              components/ · views/{Overview,Settings,Diagnostics} · i18n/tr.ts · styles/theme.css
-├── evals/        datasets/ (synthetic Turkish suites) · runners/ (perf, quality, blind) · reports/phase2/
+│   └── ui/src/ api/ (client, openapi.json, schema.d.ts) · platform/tauri.ts · stores/{connection,conversations}.ts ·
+│              components/ (ConversationSidebar, ConversationThread, …) · views/{Conversation,Overview,Settings,Diagnostics} ·
+│              i18n/tr.ts · styles/theme.css
+├── evals/        datasets/ (synthetic Turkish suites) · runners/ (perf, quality, blind, p3_conversation, p3_context_eval) · reports/phase2/ · reports/phase3/
 └── scripts/      make_icon.py · ollama-agent.sh · model-pull.sh · approved-models.txt
 ```
 
-Differences from the target tree above: migrations live inside the package (`importlib.resources`, so they ship with the wheel); there is no `config/` or `schemas/` directory yet (P2/P3); `jobs/`, `state/` and the event bus arrive with their first consumers in P3; the task runner is `make` (no extra tool) instead of `just`.
+Differences from the target tree above: migrations live inside the package (`importlib.resources`, so they ship with the wheel); there is no `config/` or `schemas/` directory yet (P2/P3); `jobs/`, `state/`, the event bus and the DI container were not needed by P3: the engine's in-process scheduler and maintenance loop cover compaction and pre-warm, and compaction state lives in the database, so interrupted work is simply redone (ADR-0010); the task runner is `make` (no extra tool) instead of `just`.
 
 ## 14. Cross-cutting concerns
 

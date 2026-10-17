@@ -1,6 +1,6 @@
 # LAZIS — Security and Privacy Model
 
-> Status: Phase 0.1 (revised), updated with the Phase 1 implementation, the Phase 1.1 hardening (§5.3, §5.7, §5.11, §5.12) and Phase 2 local inference (§5.13) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), updated with the Phase 1 implementation, the Phase 1.1 hardening (§5.3, §5.7, §5.11, §5.12), Phase 2 local inference (§5.13) and Phase 3 persistent conversations (§5.14) · Last updated: 2026-10-17
 > LAZIS will hold one of the most sensitive datasets a person can have: their relationships, health, worries and plans. Security is a design constraint from **P1**, not a final-phase feature. P15 is an audit and hardening pass, not the point where protections are introduced.
 
 ## 1. Assets
@@ -242,6 +242,30 @@ LAZIS talks to a local runtime (Ollama 0.40.4) over loopback HTTP. Loopback is *
 | Silent model downloads | only `scripts/model-pull.sh` pulls, and only tags in `scripts/approved-models.txt`; it refuses cloud/registry names and checks free disk | script refusal checks |
 
 Residual risks (accepted, documented): (1) Ollama's API has **no authentication** — any process of the same user can use it (and pull models through it); that is Ollama's design, outside LAZIS. (2) Code running inside the backend that bypasses the adapter (e.g. a compromised dependency calling `/api/pull` directly) could make Ollama download from an attacker-chosen registry — the sandbox cannot filter HTTP paths; mitigated by the dependency policy and by the import-linter rule, not eliminated. (3) Ollama's own logs (`~/.ollama/logs/server.log`) record request paths and timings, not prompts, at the default level; `OLLAMA_DEBUG=1` would log more and must not be used with real conversations. (4) Ollama's update checks and model pulls are Ollama's own traffic, not the backend's.
+
+### 5.14 Persistent conversations (Phase 3)
+
+From Phase 3 on, personal conversations are stored. The decisions are in [ADR-0010](adr/0010-conversation-persistence-and-context.md). Nothing in the network, key or API controls changed: no new network permission, no new endpoint outside the authenticated loopback API, and WebSocket upgrades are still refused.
+
+| Risk | Control | Verified by |
+|---|---|---|
+| Conversation text on disk unencrypted | Messages, summaries and context state live only in the SQLCipher database (key in the Keychain, as since P1). The UI keeps conversation text in memory only, never in browser storage | `test_conversation_storage.py`: a seeded marker is absent from every file in the data directory (database, `-wal`, `-shm`, backups) while open and after closing; the pre-migration backup is unreadable without the key; `conversations.spec.ts`: no `localStorage` writes |
+| Upgrade breaks or decrypts the existing database | `0002` runs in one transaction after an encrypted pre-migration backup; a failed later migration leaves the schema and the data unchanged | `test_existing_v1_database_is_upgraded_with_a_backup`, `test_failed_later_migration_keeps_conversations_intact` |
+| Corrupted database "repaired" or opened half-way | Unreadable pages at startup map to `database_corrupt`, which leads to the restore flow; the file is not modified | `test_corrupted_database_is_refused_not_repaired` (this found and fixed an `internal_error` mapping) |
+| Conversation text in logs, audit or error messages | Logs carry ids, counts, token numbers and durations only. Deletion audit rows hold the conversation id and counts. Error events and HTTP errors carry codes and fixed Turkish messages only, never content | `test_conversation_api.py` scans captured logs and error payloads for a seeded secret (including the failure path and a secret title); the UI integration test checks the real backend's log file for a marker |
+| One conversation's content in another's context | The prompt is built from one conversation id. The scheduler's cache record is per conversation and is cleared by any other request | `test_multi_turn_context_and_isolation`, `test_conversations_do_not_leak_into_each_other`, `test_any_other_runtime_request_makes_the_next_turn_cold` |
+| Duplicate or lost messages, unfinished replies shown as finished | Idempotency key per message; one transaction for user message and reply row; the reply row is closed exactly once; startup marks leftover `streaming` rows `interrupted`, and the UI labels them | engine tests (duplicate, crash leftover, shutdown during generation, cancel, failure) |
+| Unauthorized access to conversations | Every new endpoint sits behind the existing guard (token, Host, Origin, rate and body limits); conversation ids are validated ULIDs | `test_every_conversation_endpoint_requires_the_token`, foreign-origin test, validation tests |
+| Deleted conversation still recoverable | Rows are deleted, not flagged (cascade), the WAL is truncated after the delete, and `secure_delete=ON` zeroes freed pages. If the runtime's prompt cache held the conversation, the model is unloaded | `test_delete_removes_everything_and_unloads_cached_text`; API lifecycle test |
+| FileVault off while personal data accumulates | The conversation view shows a persistent warning when FileVault is off (state from `fdesetup`, P1.1). The security docs require a warning, not a block, so chats are not blocked | `app.spec.ts` (warning shown when off) |
+
+Residual risks (accepted, documented):
+
+1. **Encrypted backups** taken before a deletion still contain the conversation until they rotate (`backups_keep`). The delete dialog says so.
+2. **Physical erasure** on an APFS SSD cannot be guaranteed (copy-on-write, wear levelling); FileVault is what protects remnants.
+3. **Runtime memory:** while the model stays loaded (keep-alive 10 min), Ollama's process memory holds the current conversation's prompt. LAZIS unloads the model when the deleted conversation is the cached one, but not in other cases.
+4. **FileVault is off on the owner's Mac** (found in P1.1): logs, macOS swap (which can contain backend and Ollama memory) and other non-database files are not encrypted at rest.
+5. **The summarizing model** can still omit or misread facts. The evidence check prevents misattributed quotes and invented quotes, not every misunderstanding; originals are always kept, and summaries can be invalidated.
 
 ## 6. Privacy UX commitments
 1. **Visible state:** network on/off, mic active, off-record, research pending, learning activity.

@@ -96,7 +96,7 @@ Never delete the Keychain item of a profile whose data you want to keep unless y
 - One encrypted database `lazis.db` (SQLCipher 4, WAL, `secure_delete`, `foreign_keys`). All access goes through `storage/` on a single DB thread (`Database.run` / `run_sync`). Only `storage/driver.py` imports `sqlcipher3`.
 - **Opening:** driver check (`cipher_version`) → refuse a plaintext file → key → wrong key = `database_key_invalid` → pragmas → migrate → header must not be plaintext → permissions 0600 → `quick_check` + `cipher_integrity_check`.
 - **Migrations:** `core/src/lazis/storage/migrations/lazis/NNNN_name.sql`, contiguous numbers, forward only, each applied atomically, checksums recorded in `schema_migrations`. A changed or unknown applied migration stops startup (`migration_failed`). Before pending migrations run on an existing database, an encrypted snapshot is taken into `data.noindex/backups/` (retention 10). Add a migration by adding the next file — never edit an applied one.
-- **Change sets:** write user-visible data inside `UnitOfWork(conn, actor=…, kind=…)`; call `snapshot()` before and `record()` after each change. `revert_change_set()` restores earlier versions and reports conflicts instead of overwriting later edits. Only tables listed in `REVERTIBLE_TABLES` take part (P1: `settings`).
+- **Change sets:** write user-visible data inside `UnitOfWork(conn, actor=…, kind=…)`; call `snapshot()` before and `record()` after each change. `revert_change_set()` restores earlier versions and reports conflicts instead of overwriting later edits. Only tables listed in `REVERTIBLE_TABLES` take part (P1: `settings`). Conversation tables (P3) deliberately do not: `history` would keep a copy of every message after the user deletes the conversation ([ADR-0010](adr/0010-conversation-persistence-and-context.md)).
 - **Backups:** `create_snapshot` (`sqlcipher_export` into an encrypted, durable, verified file + atomically written SHA-256 manifest; nothing left behind on failure) and `verify_snapshot` (key, `quick_check`, `cipher_integrity_check`, LAZIS schema, optional max schema version).
 - **Restore:** `restore_snapshot(snapshot, db_path, key)` takes the data-directory lock (fails with `instance_already_running` while any process has the DB open), requires the manifest, stages and re-verifies a copy, writes a durable journal, moves the current DB and its `-wal`/`-shm` aside, installs, verifies and commits by marking the journal `committed`; the old files then go to `backups/pre-restore-<stamp>/` (last 3 kept). Failures roll back; the next `open_storage` rolls back an uncommitted restore and finishes a committed one, following the journal. The `fault=` argument is a test seam for failure injection. Details and evidence: [ADR-0003, Amendment 1](adr/0003-storage-driver-and-encryption.md).
 
@@ -149,7 +149,8 @@ Base `http://127.0.0.1:{port}/api/v1`; every request needs `Authorization: Beare
 ## 12. Local models (Phase 2)
 
 ```bash
-make ollama-agent                         # Ollama as a LaunchAgent: OLLAMA_NO_CLOUD=1, 127.0.0.1:11434
+make ollama-agent                         # Ollama as a LaunchAgent: OLLAMA_NO_CLOUD=1, 127.0.0.1:11434,
+                                          # LLAMA_ARG_CACHE_RAM=2048 (override: LAZIS_PROMPT_CACHE_MIB=<MiB>)
 scripts/ollama-agent.sh status            # agent state + the server's real OLLAMA_* environment
 make model-pull MODEL=qwen3.5:9b-q4_K_M   # only tags listed in scripts/approved-models.txt
 make bench MODEL=… [QUICK=1]              # performance (B1–B4, num_ctx, long context) → evals/reports/phase2/<model>/perf.json
@@ -164,3 +165,27 @@ make test-ollama LAZIS_TEST_MODEL=…       # opt-in: real sandboxed backend + O
 - The Phase 2 chat is ephemeral (UI memory only). Never add logging of prompts or answers; tests scan logs for a seeded prompt.
 - Uninstall a model with `ollama rm <tag>`; restore Ollama's previous startup with `scripts/ollama-agent.sh uninstall`.
 
+
+## 13. Conversations (Phase 3)
+
+- **Using it:** the desktop app opens on the **Sohbet** tab. It reopens the most recently updated conversation. "Yeni sohbet" starts a draft; the draft is stored together with its first message.
+  - Rename: ✎. Delete: ✕, after a confirmation dialog.
+  - "Durdur" keeps the partial reply as *durduruldu*.
+  - A reply cut by a crash or a shutdown is shown as *yarım kaldı*, never as complete.
+- **Where it is stored:** the same SQLCipher database as everything else (`lazis.db`, migration `0002_conversations`).
+  - Tables: `conversations`, `messages`, `context_summaries`, `conversation_context`.
+  - The UI keeps text in memory only; nothing goes to browser storage. Logs never contain message text.
+- **Code:** `core/src/lazis/conversation/`:
+  - `engine.py`: turn lifecycle, compaction, pre-warm, maintenance loop;
+  - `context.py`: prompt assembly and token budget;
+  - `compaction.py`: summaries and the evidence check;
+  - `scheduler.py`: the single runtime slot;
+  - `repository.py`: SQL.
+
+  Design and rationale: [ADR-0010](adr/0010-conversation-persistence-and-context.md).
+- **Settings:** the `[conversation]` section of the config file, for example `compact_at_tokens`, `keep_recent_tokens`, `idle_compaction_delay_s` (default 5 s), `compaction_chunk_tokens`, `prewarm`. Defaults are in `config/model.py`; the validator refuses combinations where compaction could never shrink the context.
+- **Inspecting a conversation's context:** `GET /api/v1/conversations/{id}` returns strategy, window, summary, estimated tokens and cache state. `POST /api/v1/conversations/{id}/context/reset` invalidates its summaries.
+- **Measurements** (need Ollama and the model; throwaway encrypted database, deleted afterwards):
+  - `uv run --project core python evals/runners/p3_conversation.py --model gemma4:12b-it-qat` — cold vs warm TTFT for each §6.4 scenario → `evals/reports/phase3/conversation_perf.json`;
+  - `uv run --project core python evals/runners/p3_context_eval.py --model gemma4:12b-it-qat` — answers after compaction vs full history → `evals/reports/phase3/context_eval.json`.
+- **Live tests:** `LAZIS_TEST_MODEL=gemma4:12b-it-qat make test-ui-integration` runs a persistent multi-turn conversation through the real backend: recall, stop, rename, delete, no text in logs.

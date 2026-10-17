@@ -98,7 +98,7 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 - CI: local-first (the `just ci` target). GitHub Actions on macOS runners is optional if the repository is hosted. Live evals are never part of blocking CI (they need the GPU and real models).
 - **Reporting template** per phase: commands run, pass/fail counts, failures with explanations, skipped tests with reasons, eval metrics vs. thresholds, known issues.
 
-## 11. Implemented suites (Phase 1 + 1.1 + 2)
+## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3)
 
 `make check` runs everything below except the opt-in tests (Keychain, live Ollama). Counts are from the Phase 2 run ([PHASE_2_REPORT.md](PHASE_2_REPORT.md) §M): Python 219 (unit 60, integration 103, security 56), UI 33 unit + 5 integration (1 skipped without a model), shell 19 + 7. The descriptions below are from Phase 1.1; the Phase 2 additions are listed after the table.
 
@@ -125,6 +125,20 @@ Phase 2 additions:
 | Live Ollama (opt-in) | `make test-ollama` (`-m ollama`), `LAZIS_TEST_MODEL=… make test-ui-integration` | 3 + 1 | the sandboxed backend streams Turkish from a real model; client disconnect stops generation; shutdown during generation; TS client stream and cancel |
 
 Live model quality and performance are measured by `evals/` (`make bench`, `make eval`) and reported, not asserted in CI.
+
+Phase 3 additions ([PHASE_3_REPORT.md](PHASE_3_REPORT.md) §9 has the run counts):
+
+| Suite | Where | What it proves |
+|---|---|---|
+| Context assembly | `core/tests/unit/test_conversation_context.py` | layout S0/S1 → history; stored time notes; append-only, deterministic prompts (request n is a prefix of n+1); prefix hash changes only with summary, model, `num_ctx` or window; partial/failed reply rule; runtime-anchored estimates; conservative estimator; fallback trim announces the gap |
+| Summary verification | `core/tests/unit/test_compaction.py` | LAZIS suggestions attributed to the user are dropped; invented facts without a matching quote are dropped; out-of-range citations; people kept apart and dates kept with their event; replaced decisions not shown as current; uncertainty marked; malformed and truncated JSON (complete items salvaged) |
+| Conversation storage | `core/tests/integration/test_conversation_storage.py` | v1 → v2 upgrade with an encrypted backup; failed later migration leaves data intact; `seq` and idempotency keys enforced; rollback leaves nothing; foreign keys and cascade; locked database → `database_busy`; no plaintext in the database, WAL, SHM or backups; corrupted pages → `database_corrupt`, file untouched |
+| Conversation engine | `core/tests/integration/test_conversation_engine.py` | single and multi-turn; isolation; reopen after restart; cancel keeps the partial reply and later prompts mark it; failed reply excluded; runtime down / model missing refused before storing; shutdown → interrupted; crash leftover → interrupted; duplicate and busy refused; over-budget turn compacts first and keeps originals; idle compaction + pre-warm; failed compaction → announced trim; pre-warm makes the next turn warm; a turn waits for its own pre-warm; a turn preempts compaction; other runtime requests make the next turn cold; delete removes everything and evicts the runtime cache; rename and paging; on-demand compaction; **300-turn soak** without overflow |
+| Conversation API security | `core/tests/security/test_conversation_api.py` | token on every endpoint; foreign Origin; validation before storage; duplicate submission; runtime down; isolation over HTTP; content never in logs or error payloads (including the failure path and titles); `database_busy` mapping; prepare and activity |
+| UI conversations | `apps/desktop/ui/tests/unit/conversations.spec.ts` | reopen the most recent conversation; new conversation stored with the first message; switching; real backend stages; stop keeps the partial reply; refused message stays in the composer; Turkish errors; interrupted and failed replies labelled; inline rename; delete only after confirmation; paging; summary notice; runtime down; no browser-storage writes |
+| UI ↔ real backend (opt-in live) | `backend.integration.spec.ts` with `LAZIS_TEST_MODEL` | persistent multi-turn conversation with the real model: recall of an earlier message, stop, rename, delete; the backend's log file never contains the conversation text |
+
+Live measurements (not CI): `evals/runners/p3_conversation.py` (cold, warm and pre-warmed TTFT per scenario, runner memory, estimator error) and `evals/runners/p3_context_eval.py` (probe accuracy after compaction vs full history).
 
 Rules that apply to these suites: synthetic data only; no test contacts another host (refused targets are TEST-NET-1 `192.0.2.1`, `2001:db8::/32` and the reserved `.invalid` TLD); destructive tests run only in temporary directories, never against a real profile.
 

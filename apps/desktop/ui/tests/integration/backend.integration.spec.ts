@@ -21,29 +21,42 @@ let root = "";
 const token = randomBytes(32).toString("hex");
 const key = randomBytes(32).toString("hex");
 
-beforeAll(async () => {
-  if (!existsSync(PYTHON)) throw new Error(`backend venv missing at ${PYTHON}; run \`just setup\``);
-  root = mkdtempSync(join(tmpdir(), "lazis-ui-it-"));
-  proc = spawn(
+function startBackend(dataRoot: string, sessionToken: string): Promise<{ child: ChildProcessWithoutNullStreams; port: number }> {
+  const child = spawn(
     PYTHON,
     ["-I", "-m", "lazis", "serve", "--stdin-secrets", "--environment", "test",
-     "--data-dir", join(root, "data"), "--log-dir", join(root, "logs"), "--config", join(root, "none.toml")],
+     "--data-dir", join(dataRoot, "data"), "--log-dir", join(dataRoot, "logs"), "--config", join(dataRoot, "none.toml")],
     { cwd: CORE, env: { HOME: process.env.HOME ?? "", PATH: "/usr/bin:/bin" } },
   );
-  proc.stdin.write(`${JSON.stringify({ version: 1, session_token: token, db_key: key })}\n`);
-  const lines = createInterface({ input: proc.stdout });
-  port = await new Promise<number>((resolve, reject) => {
+  child.stdin.write(`${JSON.stringify({ version: 1, session_token: sessionToken, db_key: key })}\n`);
+  const lines = createInterface({ input: child.stdout });
+  return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("backend did not become ready")), 20_000);
     lines.on("line", (line) => {
       if (line.startsWith("LAZIS_READY ")) {
         clearTimeout(timer);
-        resolve(JSON.parse(line.slice("LAZIS_READY ".length)).port as number);
+        resolve({ child, port: JSON.parse(line.slice("LAZIS_READY ".length)).port as number });
       } else if (line.startsWith("LAZIS_FATAL ")) {
         clearTimeout(timer);
         reject(new Error(line));
       }
     });
   });
+}
+
+async function stopBackend(child: ChildProcessWithoutNullStreams): Promise<number | null> {
+  if (child.exitCode !== null) return child.exitCode;
+  const exited = new Promise<number | null>((resolve) => child.once("exit", (code) => resolve(code)));
+  child.stdin.end(); // closing the lifeline = graceful shutdown
+  return exited;
+}
+
+beforeAll(async () => {
+  if (!existsSync(PYTHON)) throw new Error(`backend venv missing at ${PYTHON}; run \`make setup\``);
+  root = mkdtempSync(join(tmpdir(), "lazis-ui-it-"));
+  const started = await startBackend(root, token);
+  proc = started.child;
+  port = started.port;
 });
 
 afterAll(async () => {
@@ -175,6 +188,46 @@ describe("UI API client ↔ real backend", () => {
     );
     expect(seen.at(-1)).toBe("error:llm_cancelled");
   }, 300_000);
+
+  it.skipIf(!liveModel)("brings conversations back after the backend restarts (same key)", async () => {
+    const restartRoot = mkdtempSync(join(tmpdir(), "lazis-ui-it-restart-"));
+    const tokenA = randomBytes(32).toString("hex");
+    const tokenB = randomBytes(32).toString("hex");
+    try {
+      const first = await startBackend(restartRoot, tokenA);
+      const apiA = createApiClient({ port: first.port, token: tokenA }, fetch, 60_000);
+      let cid = "";
+      await apiA.submitTurn(
+        { conversation_id: null, client_id: "ui-it-restart-01", content: "Kuzey projesinin teslim tarihi 15 Aralık. Yalnızca 'Tamam' yaz.", model: liveModel as string },
+        (e) => {
+          if (e.type === "start") cid = e.conversation.id;
+        },
+      );
+      await apiA.renameConversation(cid, "Kuzey");
+      expect(await stopBackend(first.child)).toBe(0);
+
+      const second = await startBackend(restartRoot, tokenB); // new process, new token, same key
+      try {
+        const apiB = createApiClient({ port: second.port, token: tokenB }, fetch, 60_000);
+        const listed = await apiB.listConversations(null);
+        expect(listed.conversations.map((c) => [c.id, c.title])).toEqual([[cid, "Kuzey"]]);
+        const page = await apiB.listMessages(cid, null);
+        expect(page.messages.map((m) => [m.role, m.status])).toEqual([["user", "complete"], ["assistant", "complete"]]);
+        let answer = "";
+        await apiB.submitTurn(
+          { conversation_id: cid, client_id: "ui-it-restart-02", content: "Teslim tarihi neydi? Yalnızca tarihi yaz.", model: liveModel as string },
+          (e) => {
+            if (e.type === "delta") answer += e.text;
+          },
+        );
+        expect(answer).toContain("15 Aralık");
+      } finally {
+        await stopBackend(second.child);
+      }
+    } finally {
+      rmSync(restartRoot, { recursive: true, force: true });
+    }
+  }, 600_000);
 
   it("shuts down cleanly when the lifeline closes and leaves no secret in the logs", async () => {
     const exited = new Promise<number | null>((resolve) => proc.once("exit", (code) => resolve(code)));

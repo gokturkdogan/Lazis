@@ -158,8 +158,12 @@ class ConversationSection(_Section):
     keep_recent_tokens: int = Field(default=2048, ge=256, le=32768)
     keep_recent_messages: int = Field(default=4, ge=2, le=40)
     summary_max_tokens: int = Field(default=1200, ge=200, le=4096)
-    # Background compaction waits until no turn has run for this long.
-    idle_compaction_delay_s: float = Field(default=20.0, ge=0.0, le=3600.0)
+    # Background compaction waits until no turn has run for this long. Short on purpose: it
+    # should run while the user reads the reply; a turn preempts it, and progress is kept
+    # per chunk.
+    idle_compaction_delay_s: float = Field(default=5.0, ge=0.0, le=3600.0)
+    # Estimated tokens of old messages folded into the summary per model call.
+    compaction_chunk_tokens: int = Field(default=6000, ge=1024, le=65536)
     # Pre-warm the active conversation's prompt prefix (on open, on typing, after compaction).
     prewarm: bool = True
     # Partial assistant output is persisted at most this often while streaming.

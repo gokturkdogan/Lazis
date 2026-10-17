@@ -1031,13 +1031,18 @@ class ConversationEngine:
             - self.budget.safety
             - max(prev_tokens, self._cfg.summary_max_tokens)
         )
+        # Small chunks, each persisted on its own: a turn that preempts the compaction loses
+        # at most the chunk in flight, and the next attempt continues from there.
         chunks = compaction.chunk_messages(
-            plan.to_compact, estimator=self.estimator, max_tokens=max(room, 1024)
+            plan.to_compact,
+            estimator=self.estimator,
+            max_tokens=max(min(room, self._cfg.compaction_chunk_tokens), 1024),
         )
-        verified: compaction.VerifiedSummary | None = None
+        summary: Summary | None = loaded.summary
+        version = loaded.state.context_version
         kept = dropped = 0
-        for chunk in chunks:
-            to_seq = chunk[-1].seq
+        for index, chunk in enumerate(chunks):
+            next_start = chunks[index + 1][0].seq if index + 1 < len(chunks) else plan.split_seq
             raw: dict[str, Any] | None = None
             for _attempt in range(2):
                 check()
@@ -1071,28 +1076,72 @@ class ConversationEngine:
                     lambda c, s=seqs: repository.messages_by_seq(c, conversation_id, s)
                 )
             }
-            verified = compaction.verify_and_render(raw, lookup, from_seq=1, to_seq=to_seq)
+            verified = compaction.verify_and_render(raw, lookup, from_seq=1, to_seq=next_start - 1)
             kept, dropped = verified.kept, dropped + verified.dropped
             previous = verified.content
-        assert verified is not None
-        check()
-        result = verified
-        to_seq = plan.split_seq - 1
-        rendered = compaction.render(result.content, from_seq=1, to_seq=to_seq)
+            check()
+            summary = await self._persist_summary(
+                conversation_id,
+                expected_version=version,
+                previous=summary,
+                content=verified.content,
+                rendered=verified.rendered,
+                to_seq=next_start - 1,
+                window_start=next_start,
+                kept=kept,
+                dropped=dropped,
+                model=model,
+            )
+            version += 1
+        assert summary is not None
+        after = self._assemble(await self._load(conversation_id), model).estimated_tokens
+        log_event(
+            _log,
+            logging.INFO,
+            "compaction.completed",
+            conversation_id=conversation_id,
+            summary_version=summary.version,
+            to_seq=summary.to_seq,
+            chunks=len(chunks),
+            kept_items=kept,
+            dropped_items=dropped,
+            tokens_before=tokens_before,
+            tokens_after=after,
+            duration_ms=round((time.monotonic() - started) * 1000),
+        )
+        return True
+
+    async def _persist_summary(
+        self,
+        conversation_id: str,
+        *,
+        expected_version: int,
+        previous: Summary | None,
+        content: dict[str, Any],
+        rendered: str,
+        to_seq: int,
+        window_start: int,
+        kept: int,
+        dropped: int,
+        model: str,
+    ) -> Summary:
         now = utc_now_iso()
 
         def write(conn: Connection) -> Summary:
             with repository.transaction(conn):
                 current = repository.get_context(conn, conversation_id)
-                if current is None or current.context_version != loaded.state.context_version:
+                if current is None and expected_version == 1:
+                    # No context row yet (e.g. an imported conversation): start one.
+                    current = initial_context(conversation_id, self.budget.hard_limit, now)
+                if current is None or current.context_version != expected_version:
                     raise LlmCancelledError("context changed during compaction")
                 summary = repository.insert_summary(
                     conn,
                     conversation_id=conversation_id,
                     from_seq=1,
                     to_seq=to_seq,
-                    previous_id=loaded.summary.id if loaded.summary else None,
-                    content=result.content,
+                    previous_id=previous.id if previous else None,
+                    content=content,
                     rendered=rendered,
                     token_count=self.estimator.text(rendered),
                     token_source="estimate",  # noqa: S106 - not a secret
@@ -1108,7 +1157,7 @@ class ConversationEngine:
                         current,
                         context_version=current.context_version + 1,
                         strategy="summary_window",
-                        window_start_seq=plan.split_seq,
+                        window_start_seq=window_start,
                         summary_id=summary.id,
                         anchor_seq=None,
                         anchor_tokens=None,
@@ -1118,23 +1167,24 @@ class ConversationEngine:
                 )
                 return summary
 
-        summary = await self._q(write)
-        after = self._assemble(await self._load(conversation_id), model).estimated_tokens
-        log_event(
-            _log,
-            logging.INFO,
-            "compaction.completed",
-            conversation_id=conversation_id,
-            summary_version=summary.version,
-            to_seq=to_seq,
-            chunks=len(chunks),
-            kept_items=kept,
-            dropped_items=dropped,
-            tokens_before=tokens_before,
-            tokens_after=after,
-            duration_ms=round((time.monotonic() - started) * 1000),
-        )
-        return True
+        return await self._q(write)
+
+    async def compact_now(self, conversation_id: str) -> bool:
+        """Compact a conversation immediately in the foreground slot (waits for it). Returns
+        False when there is nothing old enough to summarize."""
+        conv = await self.get_conversation(conversation_id)
+        if self.is_busy():
+            raise LlmBusyError("a reply is being generated")
+        llm = self._llm()
+        rid: dict[str, str] = {}
+        async with self.scheduler.foreground():
+            return await self._compact(
+                conversation_id,
+                llm,
+                conv.model,
+                check=lambda: None,
+                set_request=lambda r: rid.update(id=r),
+            )
 
     def _schedule_check(self, conversation_id: str, *, now: bool = False) -> None:
         delay = 0.0 if now else self._cfg.idle_compaction_delay_s
@@ -1297,6 +1347,10 @@ class ConversationEngine:
                 def write(conn: Connection) -> None:
                     with repository.transaction(conn):
                         current = repository.get_context(conn, cid)
+                        if current is None and version == 1:
+                            # A conversation without a context row yet (e.g. imported):
+                            # start one, so the measured size is not lost.
+                            current = initial_context(cid, self.budget.hard_limit, utc_now_iso())
                         if current is not None and current.context_version == version:
                             repository.save_context(
                                 conn,

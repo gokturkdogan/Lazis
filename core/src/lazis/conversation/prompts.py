@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-PROMPT_VERSION = "p3-v1"
+PROMPT_VERSION = "p3-v2"
 
 # [S0] Safety, privacy and context-honesty rules (static, versioned).
 S0_POLICY = (
@@ -20,6 +20,9 @@ S0_POLICY = (
     "- Bilmediğin bir şeyi uydurma. Yer, tarih, kişi ve sayı bilgilerinde emin değilsen bunu "
     "açıkça belirt.\n"
     "- Kullanıcı bir kararını ya da bilgiyi düzelttiyse en son söylediğini geçerli say.\n"
+    "- Bir ayrıntıyı bu konuşmada bulamıyorsan kullanıcının onu hiç söylemediğini iddia etme: "
+    "konuşmanın eski bölümü özetlenmiş ve ayrıntı özete girmemiş olabilir. Bu durumda "
+    "hatırlamadığını söyle ve kullanıcıdan hatırlatmasını iste.\n"
     '- "Konuşma özeti" bölümü otomatik oluşturulmuş bir hatırlatmadır ve hatalı olabilir. '
     'Özet ile kullanıcının mesajları çelişirse mesajları esas al. Özette "belirsiz" diye '
     "işaretli bilgileri kesinmiş gibi sunma.\n"
@@ -73,7 +76,7 @@ def time_note(moment: datetime) -> str:
 
 
 # ----- compaction ----------------------------------------------------------------------
-SUMMARY_PROMPT_VERSION = "s3-v2"
+SUMMARY_PROMPT_VERSION = "s3-v3"
 
 SUMMARY_INSTRUCTIONS = (
     "Görevin bir sohbetin eski bölümünü, ileride hatırlatma olarak kullanılacak yapılandırılmış "
@@ -90,7 +93,9 @@ SUMMARY_INSTRUCTIONS = (
     "true olmalı. İkisini de yaz.\n"
     "7. Kişilerde adı ve kullanıcıyla ya da başkalarıyla ilişkisini mesajda yazdığı gibi kaydet; "
     "farklı kişileri birleştirme.\n"
-    "8. Tarihleri mesajda yazdığı biçimde ve doğru olayla birlikte kaydet.\n"
+    "8. Tarihleri mesajda yazdığı biçimde ve doğru olayla birlikte kaydet. Tarih, gün, saat, "
+    "yer, isim, tutar ve sayı gibi somut ayrıntıları maddenin metnine MUTLAKA yaz; "
+    '"taşınma planı" ya da "toplantı" gibi genel ifadelerle yetinme.\n'
     "9. Önceki özet verildiyse içindeki geçerli maddeleri koru (refs değerleriyle birlikte), "
     "yeni mesajlarla güncelle.\n"
     "10. Aynı bilgiyi birden fazla bölüme yazma; her bölümde en fazla 6 madde olsun ve maddeleri "
