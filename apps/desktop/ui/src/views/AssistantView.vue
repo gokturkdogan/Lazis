@@ -2,21 +2,26 @@
 import { onBeforeUnmount, onMounted } from "vue";
 import AssistantThread from "@/components/AssistantThread.vue";
 import { useAssistantStore } from "@/stores/assistant";
+import { onSystemWoke } from "@/stores/connection";
 
 const store = useAssistantStore();
 
-// Re-warm the active session when the window comes back (the model may have been
-// unloaded after keep_alive while the app was in the background).
+// Window shown again: re-check an unreachable runtime, or re-warm the active session (the
+// model may have been unloaded after keep_alive while the app was in the background).
 function onVisible() {
-  if (document.visibilityState === "visible") void store.prepare();
+  if (document.visibilityState === "visible") store.onVisible();
 }
+let offWake: (() => void) | null = null;
 
 onMounted(() => {
-  if (!store.ready) void store.init();
-  else void store.refreshRuntime();
+  void store.resume();
   document.addEventListener("visibilitychange", onVisible);
+  offWake = onSystemWoke(() => void store.onWake());
 });
-onBeforeUnmount(() => document.removeEventListener("visibilitychange", onVisible));
+onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", onVisible);
+  offWake?.();
+});
 </script>
 
 <template>

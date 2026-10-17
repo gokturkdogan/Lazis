@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /** The one assistant: a single timeline (paged), streaming reply, real backend stages, stop.
- *  No conversation list, no "new chat", no renaming: technical sessions are invisible. */
+ *  No conversation list, no "new chat", no renaming: technical sessions are invisible.
+ *  Replies render as safe Markdown once complete (plain text while streaming, so partial
+ *  syntax never flickers). The view follows new text only while the reader is at the bottom. */
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { Message } from "@/api/client";
+import MarkdownContent from "@/components/MarkdownContent.vue";
 import { formatBytes, formatWhen } from "@/format";
 import { errorKey } from "@/i18n";
+import { copyText } from "@/platform/clipboard";
 import { useAssistantStore } from "@/stores/assistant";
 import { useConnectionStore } from "@/stores/connection";
 
@@ -14,6 +18,11 @@ const connection = useConnectionStore();
 const { t } = useI18n();
 const draft = ref("");
 const list = ref<HTMLElement | null>(null);
+/** The reader is at (or near) the newest message; only then does new text scroll the view. */
+const atBottom = ref(true);
+const unseen = ref(false);
+const copiedId = ref<string | null>(null);
+const BOTTOM_SLACK_PX = 48;
 
 const fileVaultOff = computed(() => connection.connection?.fileVault === "off");
 const turnHere = computed(() => store.turn !== null);
@@ -78,8 +87,46 @@ async function submit() {
   const text = draft.value;
   if (!store.canSend || text.trim() === "") return;
   draft.value = "";
+  atBottom.value = true; // sending is an explicit "show me the reply"
   const accepted = await store.send(text);
   if (!accepted && draft.value === "") draft.value = text; // refused before storing: keep it
+}
+
+function renderAsMarkdown(m: Message): boolean {
+  return m.role === "assistant" && m.status !== "streaming" && m.content !== "";
+}
+
+async function copyMessage(m: Message) {
+  if (await copyText(m.content)) {
+    copiedId.value = m.id;
+    setTimeout(() => {
+      if (copiedId.value === m.id) copiedId.value = null;
+    }, 1500);
+  }
+}
+
+function onScroll() {
+  const el = list.value;
+  if (!el) return;
+  atBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX;
+  if (atBottom.value) unseen.value = false;
+}
+
+function scrollToLatest() {
+  const el = list.value;
+  if (!el) return;
+  el.scrollTo({ top: el.scrollHeight });
+  atBottom.value = true;
+  unseen.value = false;
+}
+
+/** Older messages are prepended: keep what the reader is looking at in place. */
+async function loadOlder() {
+  const el = list.value;
+  const before = el ? el.scrollHeight - el.scrollTop : 0;
+  await store.loadOlder();
+  await nextTick();
+  if (el) el.scrollTop = el.scrollHeight - before;
 }
 
 function onKey(event: KeyboardEvent) {
@@ -93,14 +140,18 @@ function onInput() {
   store.composerActivity();
 }
 
-// Follow the newest message (new turns, streaming). Loading older messages prepends and
-// leaves the last message unchanged, so the view does not jump.
+// New text at the end (a new turn, streaming, the Markdown re-render when a reply completes):
+// follow it only if the reader is at the bottom; otherwise offer a "new message" button.
 watch(
   () => {
     const last = store.messages[store.messages.length - 1];
-    return `${last?.id ?? ""}|${last?.content.length ?? 0}`;
+    return `${last?.id ?? ""}|${last?.content.length ?? 0}|${last?.status ?? ""}`;
   },
   async () => {
+    if (!atBottom.value) {
+      unseen.value = true;
+      return;
+    }
     await nextTick();
     list.value?.scrollTo({ top: list.value.scrollHeight });
   },
@@ -142,14 +193,14 @@ watch(
     </div>
     <p v-if="contextNotice" class="muted small notice" data-testid="context-notice">{{ contextNotice }}</p>
 
-    <div ref="list" class="messages" data-testid="messages" aria-live="polite">
+    <div ref="list" class="messages" data-testid="messages" @scroll.passive="onScroll">
       <button
         v-if="store.hasOlder"
         class="btn older"
         type="button"
         data-testid="load-older"
         :disabled="store.loadingMessages"
-        @click="store.loadOlder()"
+        @click="loadOlder()"
       >
         {{ t("conversation.loadOlder") }}
       </button>
@@ -172,8 +223,19 @@ watch(
         <span class="who">
           {{ m.role === "user" ? t("conversation.you") : t("conversation.lazis") }}
           <span class="when">· {{ formatWhen(m.created_at) }}</span>
+          <button
+            v-if="m.content && m.status !== 'streaming'"
+            class="copy"
+            type="button"
+            :data-testid="`copy-${m.role}`"
+            :aria-label="t('conversation.copyMessage')"
+            @click="copyMessage(m)"
+          >
+            {{ copiedId === m.id ? t("conversation.copied") : t("conversation.copy") }}
+          </button>
         </span>
-        <p v-if="m.content" class="text">{{ m.content }}</p>
+        <MarkdownContent v-if="renderAsMarkdown(m)" :source="m.content" />
+        <p v-else-if="m.content" class="text">{{ m.content }}</p>
         <p v-if="m.status === 'cancelled'" class="muted small">{{ t("conversation.cancelled") }}</p>
         <p v-else-if="m.status === 'interrupted'" class="warn-text small" data-testid="interrupted-note">
           {{ t("conversation.interrupted") }}
@@ -186,6 +248,9 @@ watch(
       </template>
     </div>
 
+    <button v-if="unseen" class="btn latest" type="button" data-testid="jump-latest" @click="scrollToLatest">
+      {{ t("conversation.jumpLatest") }} ↓
+    </button>
     <p v-if="stageLabel" class="stage" role="status" data-testid="turn-status">{{ stageLabel }}</p>
     <p v-if="turnHere && store.turn?.trimmed" class="warn-text small" data-testid="trimmed-notice">
       {{ t("conversation.trimmed", { from: store.turn.trimmed[0], to: store.turn.trimmed[1] }) }}
@@ -343,8 +408,29 @@ select {
   border-color: var(--warn);
 }
 .who {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   color: var(--text-muted);
+}
+.copy {
+  margin-left: auto;
+  font: inherit;
+  color: var(--text-faint);
+  background: transparent;
+  border: 0;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0;
+}
+.message:hover .copy,
+.copy:focus-visible {
+  opacity: 1;
+}
+.latest {
+  align-self: center;
+  margin-top: -4px;
 }
 .when {
   color: var(--text-faint);

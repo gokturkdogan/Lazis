@@ -886,12 +886,13 @@ class ConversationEngine:
         def ms(a: float | None, b: float | None) -> float | None:
             return None if a is None or b is None else round((b - a) * 1000, 1)
 
-        status = "completed" if metrics is not None and produced else handle.stage
+        status = "completed" if metrics is not None and produced else "failed"
         if handle.cancel_requested:
             status = "cancelled"
         self.last_turn = {
             "at": utc_now_iso(),
             "outcome": status,
+            "failed_stage": handle.stage if status == "failed" else None,
             "ttft_ms": ms(accepted, first_at),
             "total_ms": ms(accepted, now),
             "context_prep_ms": ms(accepted, sent_at),

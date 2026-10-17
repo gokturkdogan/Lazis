@@ -15,18 +15,27 @@ pub struct DesktopState {
     pub version: u32,
     pub key_created_at_unix: Option<u64>,
     pub recovery_acknowledged_at_unix: Option<u64>,
-    #[serde(default)]
+    /// A malformed preferences object falls back to the defaults on its own, so it can never
+    /// make the whole file unreadable (which would re-show the recovery code).
+    #[serde(default, deserialize_with = "lenient_preferences")]
     pub preferences: Preferences,
 }
 
-/// How motion in the UI is handled: follow macOS "Reduce motion", or force it on/off.
+fn lenient_preferences<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Preferences, D::Error> {
+    let value = serde_json::Value::deserialize(d)?;
+    Ok(serde_json::from_value(value).unwrap_or_else(|_| {
+        log::warn!("desktop_state.preferences_reset");
+        Preferences::default()
+    }))
+}
+
+/// UI motion: follow macOS "Reduce motion" (which always wins), or reduce it regardless.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReduceMotion {
     #[default]
     System,
     On,
-    Off,
 }
 
 /// Desktop preferences. Unknown or missing fields fall back to the defaults.
@@ -116,6 +125,19 @@ mod tests {
         let state = DesktopState::load(&path);
         assert_eq!(state.preferences.reduce_motion, ReduceMotion::On);
         assert!(state.preferences.close_to_menu_bar);
+    }
+
+    #[test]
+    fn bad_preferences_never_reset_the_recovery_acknowledgement() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("desktop-state.json");
+        for prefs in [r#""x""#, r#"{"reduceMotion":"sideways"}"#, r#"{"startHidden":3}"#, "null"] {
+            let body = format!(r#"{{"version":1,"recovery_acknowledged_at_unix":6,"preferences":{prefs}}}"#);
+            std::fs::write(&path, body).unwrap();
+            let state = DesktopState::load(&path);
+            assert!(!state.recovery_pending(), "{prefs}");
+            assert_eq!(state.preferences, Preferences::default(), "{prefs}");
+        }
     }
 
     #[test]

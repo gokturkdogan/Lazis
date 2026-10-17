@@ -1,23 +1,26 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import CoreGlyph from "@/components/CoreGlyph.vue";
+import PresenceIndicator from "@/components/PresenceIndicator.vue";
 import RecoveryCodeDialog from "@/components/RecoveryCodeDialog.vue";
 import RestorePanel from "@/components/RestorePanel.vue";
 import StartupError from "@/components/StartupError.vue";
 import StatusPill from "@/components/StatusPill.vue";
-import { useConnectionStore } from "@/stores/connection";
+import type { View } from "@/platform/tauri";
+import { currentPlatform, useConnectionStore } from "@/stores/connection";
+import { usePreferencesStore } from "@/stores/preferences";
+import { usePresence } from "@/stores/presence";
 import AssistantView from "@/views/AssistantView.vue";
 import DiagnosticsView from "@/views/DiagnosticsView.vue";
 import OverviewView from "@/views/OverviewView.vue";
 import SettingsView from "@/views/SettingsView.vue";
 
-type Tab = "conversation" | "overview" | "settings" | "diagnostics";
-
 const store = useConnectionStore();
+const preferences = usePreferencesStore();
+const presence = usePresence();
 const { t } = useI18n();
-const tab = ref<Tab>("conversation");
-const tabs: Tab[] = ["conversation", "overview", "settings", "diagnostics"];
+const tab = ref<View>("conversation");
+const tabs: View[] = ["conversation", "overview", "settings", "diagnostics"];
 
 const version = computed(() => store.info?.version ?? "—");
 const showError = computed(
@@ -25,16 +28,40 @@ const showError = computed(
     store.phase === "backend_failed" ||
     (store.phase === "disconnected" && (tab.value === "overview" || tab.value === "conversation")),
 );
+
+// The menu-bar status line follows the same derived state (only on change).
+watch(
+  () => presence.value.tray,
+  (status) => void currentPlatform()?.setTrayStatus(status).catch(() => undefined),
+  { immediate: true },
+);
+
+let offNavigate: (() => void) | null = null;
+onMounted(async () => {
+  const platform = currentPlatform();
+  if (platform === null) return;
+  tab.value = platform.initialView() ?? tab.value;
+  void preferences.load();
+  offNavigate = await platform.onNavigate((view) => (tab.value = view));
+});
+onBeforeUnmount(() => offNavigate?.());
 </script>
 
 <template>
   <div class="shell">
     <header class="topbar">
       <div class="identity">
-        <CoreGlyph :phase="store.phase" />
+        <PresenceIndicator
+          :state="presence.state"
+          :label="presence.label"
+          :params="presence.params ?? {}"
+          compact
+        />
         <div>
           <h1>{{ t("app.name") }}</h1>
-          <p class="muted">{{ t("app.tagline") }} · {{ t("app.foundation") }}</p>
+          <p class="muted" data-testid="presence-text" role="status" aria-live="polite">
+            {{ t(`presence.${presence.label}`, presence.params ?? {}) }}
+          </p>
         </div>
       </div>
       <nav :aria-label="t('app.name')">
@@ -58,7 +85,7 @@ const showError = computed(
 
     <main>
       <div v-if="store.phase === 'initializing' || store.phase === 'starting'" class="starting" role="status">
-        <CoreGlyph phase="starting" />
+        <PresenceIndicator state="thinking" label="starting" compact />
         <span>{{ t("connection.starting") }}…</span>
       </div>
       <RestorePanel v-else-if="store.phase === 'needs_recovery'" />

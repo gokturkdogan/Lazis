@@ -88,6 +88,7 @@ pub struct Controller {
     weak_self: Weak<Controller>,
     restart_policy: Mutex<RestartPolicy>,
     restarts: Mutex<VecDeque<Instant>>,
+    state_lock: Mutex<()>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -117,6 +118,7 @@ impl Controller {
             weak_self: weak.clone(),
             restart_policy: Mutex::new(RestartPolicy::default()),
             restarts: Mutex::new(VecDeque::new()),
+            state_lock: Mutex::new(()),
         })
     }
 
@@ -129,13 +131,21 @@ impl Controller {
     }
 
     pub fn set_preferences(&self, preferences: Preferences) -> Result<Preferences, ShellError> {
-        let state = DesktopState { preferences, ..DesktopState::load(&self.profile.state_path) };
-        state.save(&self.profile.state_path).map_err(|e| {
+        self.update_state(|s| s.preferences = preferences).map_err(|e| {
             log::error!("desktop_state.save_failed kind={:?}", e.kind());
             ShellError::new("internal_error")
         })?;
         log::info!("shell.preferences_saved");
         Ok(self.preferences())
+    }
+
+    /// Read-modify-write of the desktop state file, serialized so that saving preferences can
+    /// never undo a concurrent recovery acknowledgement (or the reverse).
+    fn update_state(&self, change: impl FnOnce(&mut DesktopState)) -> std::io::Result<()> {
+        let _guard = lock(&self.state_lock);
+        let mut state = DesktopState::load(&self.profile.state_path);
+        change(&mut state);
+        state.save(&self.profile.state_path)
     }
 
     pub fn set_notifier(&self, notifier: impl Fn(ConnectionDto) + Send + Sync + 'static) {
@@ -232,12 +242,11 @@ impl Controller {
                 Ok(KeyResolution::Generated(key)) => {
                     log::info!("shell.key source=generated");
                     // Keep the desktop preferences if a state file already exists.
-                    let state = DesktopState {
-                        key_created_at_unix: Some(now_unix()),
-                        recovery_acknowledged_at_unix: None,
-                        ..DesktopState::load(&self.profile.state_path)
-                    };
-                    if let Err(e) = state.save(&self.profile.state_path) {
+                    let saved = self.update_state(|s| {
+                        s.key_created_at_unix = Some(now_unix());
+                        s.recovery_acknowledged_at_unix = None;
+                    });
+                    if let Err(e) = saved {
                         log::warn!("desktop_state.save_failed kind={:?}", e.kind());
                     }
                     (key, true)
@@ -301,11 +310,8 @@ impl Controller {
                 self.set_phase(Phase::NeedsRecovery, Some(code));
                 return Err(ShellError::new(code));
             }
-            let state = DesktopState {
-                recovery_acknowledged_at_unix: Some(now_unix()),
-                ..DesktopState::load(&self.profile.state_path)
-            };
-            if let Err(e) = state.save(&self.profile.state_path) {
+            let saved = self.update_state(|s| s.recovery_acknowledged_at_unix = Some(now_unix()));
+            if let Err(e) = saved {
                 log::warn!("desktop_state.save_failed kind={:?}", e.kind());
             }
             log::info!("shell.restored");
@@ -435,11 +441,7 @@ impl Controller {
         if !lock(&self.inner).recovery_pending {
             return Ok(self.snapshot());
         }
-        let state = DesktopState {
-            recovery_acknowledged_at_unix: Some(now_unix()),
-            ..DesktopState::load(&self.profile.state_path)
-        };
-        state.save(&self.profile.state_path).map_err(|e| {
+        self.update_state(|s| s.recovery_acknowledged_at_unix = Some(now_unix())).map_err(|e| {
             log::error!("desktop_state.save_failed kind={:?}", e.kind());
             ShellError::new("internal_error")
         })?;

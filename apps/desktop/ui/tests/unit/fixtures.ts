@@ -1,6 +1,6 @@
 import { vi } from "vitest";
-import type { ApiClient, AssistantStateResponse, Conversation, Message } from "@/api/client";
-import type { BackendConnection, Platform } from "@/platform/tauri";
+import type { ApiClient, AssistantStateResponse, Conversation, DiagnosticsResponse, Message } from "@/api/client";
+import type { BackendConnection, Platform, Preferences } from "@/platform/tauri";
 
 export const TOKEN = "a".repeat(64);
 
@@ -15,6 +15,8 @@ export function connection(overrides: Partial<BackendConnection> = {}): BackendC
     dataDir: "/tmp/lazis/data.noindex",
     logDir: "/tmp/lazis/logs",
     fileVault: "on",
+    restartAttempt: 0,
+    restartLimit: 3,
     ...overrides,
   };
 }
@@ -186,6 +188,7 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       cached_conversation_id: null,
       pending_compaction: [],
     }),
+    diagnostics: vi.fn().mockResolvedValue(diagnosticsFixture()),
     ...overrides,
   };
 }
@@ -198,6 +201,57 @@ export function fakePlatform(initial: BackendConnection, overrides: Partial<Plat
     revealRecoveryCode: vi.fn().mockResolvedValue("LZR1-TEST0-CODE0"),
     acknowledgeRecovery: vi.fn().mockResolvedValue(connection({ recoveryPending: false })),
     restoreFromRecoveryCode: vi.fn().mockResolvedValue(connection()),
+    getPreferences: vi.fn().mockResolvedValue({ closeToMenuBar: true, startHidden: false, reduceMotion: "system" }),
+    setPreferences: vi.fn().mockImplementation((p: Preferences) => Promise.resolve(p)),
+    setTrayStatus: vi.fn().mockResolvedValue(undefined),
+    openExternalUrl: vi.fn().mockResolvedValue(undefined),
+    processMetrics: vi.fn().mockResolvedValue({
+      source: "phys_footprint",
+      processes: [
+        { role: "shell", pid: 10, footprint_bytes: 90 * 1024 * 1024 },
+        { role: "backend", pid: 11, footprint_bytes: 70 * 1024 * 1024 },
+        { role: "ollama_server", pid: 12, footprint_bytes: 20 * 1024 * 1024 },
+        { role: "ollama_runner", pid: 13, footprint_bytes: null },
+      ],
+      ollama_found: true,
+    }),
+    onSystemWoke: vi.fn().mockResolvedValue(() => undefined),
+    onNavigate: vi.fn().mockResolvedValue(() => undefined),
+    initialView: vi.fn().mockReturnValue(null),
+    ...overrides,
+  };
+}
+
+export function diagnosticsFixture(overrides: Partial<DiagnosticsResponse> = {}): DiagnosticsResponse {
+  return {
+    runtime: { available: true, version: "0.40.4", error_code: null },
+    model: {
+      primary: "gemma4:12b-it-qat",
+      fallback: "qwen3.5:9b-q4_K_M",
+      active: "gemma4:12b-it-qat",
+      active_installed: true,
+      fallback_installed: false,
+      automatic_fallback: false,
+      loaded: { name: "gemma4:12b-it-qat", size_bytes: 9 * 1024 ** 3, context_length: 16384, expires_at: null },
+      keep_alive: "30m",
+      num_ctx: 16384,
+    },
+    last_turn: {
+      at: "2026-10-18T10:00:00.000Z",
+      outcome: "completed",
+      failed_stage: null,
+      ttft_ms: 820,
+      total_ms: 4100,
+      context_prep_ms: 12,
+      runtime_ttft_ms: 790,
+      prompt_tokens: 1800,
+      output_tokens: 120,
+      decode_tps: 38.4,
+    },
+    prewarm: { state: "done", scope: "context", at: "2026-10-18T09:59:00.000Z", duration_ms: 950, prompt_tokens: 1700 },
+    cache_expected_warm: true,
+    background: null,
+    turn_active: false,
     ...overrides,
   };
 }

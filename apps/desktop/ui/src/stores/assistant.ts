@@ -9,6 +9,13 @@
  * The backend owns everything durable. This store mirrors what is on screen and never writes
  * conversation text to localStorage or any other browser storage. Status shown to the user
  * comes from the backend (stream `status` events, the activity endpoint) — no fake progress.
+ *
+ * Phase 4 resilience: when the local runtime (Ollama) is unreachable the store re-checks it
+ * with a growing delay (only while the window is visible) and re-warms the session once it is
+ * back; LAZIS never starts, stops or reconfigures Ollama itself. After the Mac wakes, the
+ * runtime is re-checked and the session re-warmed. If a reply stream breaks (backend or
+ * runtime gone), the partial text stays on screen, marked as interrupted, and the timeline is
+ * reloaded from the backend once it is reachable again (message ids prevent duplicates).
  */
 import { defineStore } from "pinia";
 import {
@@ -21,7 +28,7 @@ import {
   type TurnEvent,
   type TurnStage,
 } from "@/api/client";
-import { currentApiClient } from "@/stores/connection";
+import { connectionEpoch, currentApiClient } from "@/stores/connection";
 
 type Runtime = LlmStatusResponse["runtime"];
 type Model = ModelListResponse["models"][number];
@@ -43,10 +50,19 @@ const PAGE = 50;
 const PREPARE_INTERVAL_MS = 30_000;
 const CANCEL_GRACE_MS = 2000;
 const ACTIVITY_POLL_MS = 1500;
+/** Runtime re-check delays while Ollama is unreachable (then stays at the last one). */
+export const RUNTIME_RETRY_MS = [2000, 4000, 8000, 15_000, 30_000];
 
 let controller: AbortController | null = null;
 let activityTimer: ReturnType<typeof setTimeout> | null = null;
+let runtimeTimer: ReturnType<typeof setTimeout> | null = null;
+let runtimeRetry = 0;
 let lastPrepared = 0;
+let loadedEpoch = -1;
+
+function windowVisible(): boolean {
+  return typeof document === "undefined" || document.visibilityState !== "hidden";
+}
 
 function newClientId(): string {
   const random = globalThis.crypto?.randomUUID?.();
@@ -99,9 +115,20 @@ export const useAssistantStore = defineStore("assistant", {
       void this.prepare(true);
     },
 
+    /** The view became active again. After a backend restart (new connection) the timeline
+     *  is reloaded: an interrupted reply now carries its saved state. */
+    async resume() {
+      if (!this.ready) return this.init();
+      const reload = loadedEpoch !== connectionEpoch() && !this.busy;
+      if (reload) this.errorCode = null; // a new backend session: the old stream error is resolved
+      await Promise.all([this.refreshRuntime(), reload ? this.loadLatest() : Promise.resolve()]);
+      if (reload) void this.prepare(true);
+    },
+
     async refreshRuntime() {
       const client = currentApiClient();
       if (client === null) return;
+      const wasDown = this.runtime !== null && !this.runtime.available;
       try {
         const status = await client.llmStatus();
         this.runtime = status.runtime;
@@ -109,15 +136,55 @@ export const useAssistantStore = defineStore("assistant", {
         this.primaryModel = status.primary_model;
         if (!status.runtime.available) {
           this.models = [];
+          this.scheduleRuntimeCheck();
           return;
         }
         this.models = (await client.models()).models;
         this.pickModel(this.session?.model ?? null);
+        this.clearRuntimeCheck();
+        if (wasDown) {
+          if (this.errorCode === "llm_unavailable") this.errorCode = null;
+          void this.prepare(true);
+        }
       } catch (error) {
         this.errorCode = error instanceof ApiError ? error.code : "internal_error";
       } finally {
         this.inventoryLoaded = true;
       }
+    },
+
+    /** Re-check an unreachable runtime with a growing delay, only while the window is visible
+     *  (a hidden window re-checks when it is shown again, see `onVisible`). */
+    scheduleRuntimeCheck() {
+      if (runtimeTimer !== null || !windowVisible()) return;
+      const delay = RUNTIME_RETRY_MS[Math.min(runtimeRetry, RUNTIME_RETRY_MS.length - 1)] ?? 30_000;
+      runtimeRetry += 1;
+      runtimeTimer = setTimeout(() => {
+        runtimeTimer = null;
+        void this.refreshRuntime();
+      }, delay);
+    },
+
+    clearRuntimeCheck() {
+      if (runtimeTimer !== null) clearTimeout(runtimeTimer);
+      runtimeTimer = null;
+      runtimeRetry = 0;
+    },
+
+    onVisible() {
+      if (this.runtime !== null && !this.runtime.available) {
+        this.clearRuntimeCheck();
+        void this.refreshRuntime();
+      } else {
+        void this.prepare();
+      }
+    },
+
+    /** After sleep the model may have been unloaded and Ollama may have restarted. */
+    async onWake() {
+      this.clearRuntimeCheck();
+      await this.refreshRuntime();
+      void this.prepare(true);
     },
 
     pickModel(preferred: string | null) {
@@ -148,6 +215,7 @@ export const useAssistantStore = defineStore("assistant", {
         const [page] = await Promise.all([client.timeline(null, PAGE), this.loadState()]);
         this.messages = byTimeline(page.messages);
         this.hasOlder = page.has_more;
+        loadedEpoch = connectionEpoch();
       } catch (error) {
         this.errorCode = error instanceof ApiError ? error.code : "internal_error";
       } finally {
@@ -277,14 +345,17 @@ export const useAssistantStore = defineStore("assistant", {
           this.errorCode = code;
           return false;
         }
-        // The stream broke after the message was stored: show what the backend saved.
+        // The stream broke after the message was stored: keep the partial reply visible as
+        // interrupted, then show what the backend saved (if it is reachable).
         if (code !== "llm_cancelled") this.errorCode = code;
-        await this.loadLatest();
+        const reply = this.messages.find((m) => m.id === assistantId);
+        if (reply && reply.status === "streaming") reply.status = "interrupted";
+        if (currentApiClient() === client) await this.loadLatest();
         return true;
       } finally {
         controller = null;
+        this.phase = "idle"; // before clearing the turn: no transient state in between
         this.turn = null;
-        this.phase = "idle";
         void this.refreshAfterTurn();
       }
     },
@@ -322,7 +393,9 @@ export const useAssistantStore = defineStore("assistant", {
       controller?.abort();
       if (activityTimer !== null) clearTimeout(activityTimer);
       activityTimer = null;
+      this.clearRuntimeCheck();
       lastPrepared = 0;
+      loadedEpoch = -1;
     },
   },
 });

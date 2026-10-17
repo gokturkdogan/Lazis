@@ -634,7 +634,23 @@
             ],
             "title": "Decode Tps"
           },
+          "failed_stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Stage"
+          },
           "outcome": {
+            "enum": [
+              "completed",
+              "cancelled",
+              "failed"
+            ],
             "title": "Outcome",
             "type": "string"
           },
@@ -1049,6 +1065,17 @@
             "title": "Models Context Short",
             "type": "integer"
           },
+          "models_fallback_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models Fallback Model"
+          },
           "models_keep_alive": {
             "title": "Models Keep Alive",
             "type": "string"
@@ -1096,6 +1123,7 @@
           "voice_interaction_mode",
           "models_provider",
           "models_primary_model",
+          "models_fallback_model",
           "models_context_short",
           "models_context_normal",
           "models_context_long",

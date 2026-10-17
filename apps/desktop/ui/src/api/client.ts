@@ -19,6 +19,7 @@ export type TimelinePageResponse = Schemas["TimelinePageResponse"];
 export type TurnSubmitRequest = Schemas["TurnSubmitRequest"];
 export type PrepareResponse = Schemas["PrepareResponse"];
 export type ActivityResponse = Schemas["ActivityResponse"];
+export type DiagnosticsResponse = Schemas["DiagnosticsResponse"];
 type ErrorResponse = Schemas["ErrorResponse"];
 
 export interface ChatMetrics {
@@ -118,6 +119,8 @@ export interface ApiClient {
   cancelTurn(clientId: string): Promise<boolean>;
   prepare(model: string): Promise<PrepareResponse>;
   activity(): Promise<ActivityResponse>;
+  /** Model, runtime, last-turn timings and pre-warm state; never message content. */
+  diagnostics(): Promise<DiagnosticsResponse>;
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
@@ -284,5 +287,6 @@ export function createApiClient(
       (await post<{ cancelled: boolean }>("/turns/cancel", { client_id: clientId })).cancelled,
     prepare: (model) => post<PrepareResponse>("/chat/prepare", { model }),
     activity: () => get<ActivityResponse>("/chat/activity"),
+    diagnostics: () => get<DiagnosticsResponse>("/diagnostics"),
   };
 }

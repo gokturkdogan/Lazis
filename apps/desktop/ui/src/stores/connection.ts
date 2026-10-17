@@ -2,8 +2,14 @@
  * Connection state for the desktop UI.
  *
  * The Rust shell owns the backend lifecycle and reports its phase; this store turns that into
- * UI state, polls health while connected, and records diagnostic events. The session token is
+ * UI state, checks health while connected, and records diagnostic events. The session token is
  * kept only inside the API client closure — never in reactive (devtools-visible) state.
+ *
+ * Polling is deliberately cheap (Phase 4): only `/health`, every `pollMs` while the window is
+ * visible, paused while it is hidden and re-checked at once when it becomes visible again or
+ * the Mac wakes from sleep. A backend crash does not wait for a poll: the shell notices the
+ * exit immediately and pushes the new phase. The heavier system status (database integrity,
+ * size) is refreshed only when a view that shows it asks for it.
  */
 import { defineStore } from "pinia";
 import {
@@ -37,6 +43,8 @@ export interface ConnectionDeps {
   clientFactory?: (connection: ApiConnection) => ApiClient;
   pollMs?: number;
   now?: () => Date;
+  /** Visibility source (tests inject one); defaults to the document. */
+  isVisible?: () => boolean;
 }
 
 type PublicConnection = Omit<BackendConnection, "token">;
@@ -46,11 +54,31 @@ let deps: Required<ConnectionDeps> | null = null;
 let client: ApiClient | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let unlisten: (() => void) | null = null;
+let unlistenWake: (() => void) | null = null;
+let epoch = 0;
+let onVisibility: (() => void) | null = null;
+const wakeHandlers = new Set<() => void>();
 
 /** The API client for the current backend session (null while not connected). Not reactive:
  * it holds the session token, which must never enter devtools-visible state. */
 export function currentApiClient(): ApiClient | null {
   return client;
+}
+
+/** Increments with every new backend session (start, restart, retry). */
+export function connectionEpoch(): number {
+  return epoch;
+}
+
+/** The shell bridge (null before start). */
+export function currentPlatform(): Platform | null {
+  return deps?.platform ?? null;
+}
+
+/** Run `handler` after the Mac woke from sleep (and the backend health was re-checked). */
+export function onSystemWoke(handler: () => void): () => void {
+  wakeHandlers.add(handler);
+  return () => wakeHandlers.delete(handler);
 }
 
 export const useConnectionStore = defineStore("connection", {
@@ -80,11 +108,17 @@ export const useConnectionStore = defineStore("connection", {
     async start(options: ConnectionDeps) {
       deps = {
         clientFactory: (c) => createApiClient(c),
-        pollMs: 5000,
+        pollMs: 15_000,
         now: () => new Date(),
+        isVisible: () => typeof document === "undefined" || document.visibilityState !== "hidden",
         ...options,
       };
       unlisten = await deps.platform.onConnectionChanged((c) => void this.applyConnection(c));
+      unlistenWake = await deps.platform.onSystemWoke(() => void this.onWake());
+      if (typeof document !== "undefined") {
+        onVisibility = () => this.onVisibilityChange();
+        document.addEventListener("visibilitychange", onVisibility);
+      }
       try {
         await this.applyConnection(await deps.platform.getConnection());
       } catch (error) {
@@ -96,7 +130,29 @@ export const useConnectionStore = defineStore("connection", {
       this.stopPolling();
       unlisten?.();
       unlisten = null;
+      unlistenWake?.();
+      unlistenWake = null;
+      wakeHandlers.clear();
+      if (onVisibility !== null) document.removeEventListener("visibilitychange", onVisibility);
+      onVisibility = null;
       client = null;
+    },
+
+    /** Hidden window: no polling at all. Visible again: check at once, then resume. */
+    onVisibilityChange() {
+      if (deps === null || client === null) return;
+      if (deps.isVisible()) {
+        void this.poll();
+        this.startPolling();
+      } else {
+        this.stopPolling();
+      }
+    },
+
+    async onWake() {
+      this.record("info", "system_woke");
+      if (client !== null) await this.poll();
+      for (const handler of wakeHandlers) handler();
     },
 
     fail(code: string) {
@@ -124,6 +180,7 @@ export const useConnectionStore = defineStore("connection", {
           return;
         case "failed":
           this.fail(connection.errorCode ?? "backend_start_failed");
+          if (connection.restartAttempt > 0) this.record("info", "backend_restarting");
           return;
         case "stopped":
           this.stopPolling();
@@ -135,6 +192,7 @@ export const useConnectionStore = defineStore("connection", {
             return;
           }
           client = deps.clientFactory({ port: connection.port, token });
+          epoch += 1;
           await this.refreshAll();
           return;
         }
@@ -165,10 +223,18 @@ export const useConnectionStore = defineStore("connection", {
     async poll() {
       if (client === null) return;
       try {
-        const [health, status] = await Promise.all([client.health(), client.systemStatus()]);
-        this.health = health;
-        this.status = status;
+        this.health = await client.health();
         this.markHealthy();
+      } catch (error) {
+        this.handleRequestFailure(error);
+      }
+    },
+
+    /** System status (integrity, database size, uptime) for the views that show it. */
+    async refreshStatus() {
+      if (client === null) return;
+      try {
+        this.status = await client.systemStatus();
       } catch (error) {
         this.handleRequestFailure(error);
       }
@@ -204,7 +270,7 @@ export const useConnectionStore = defineStore("connection", {
     },
 
     startPolling() {
-      if (pollTimer !== null || deps === null) return;
+      if (pollTimer !== null || deps === null || !deps.isVisible()) return;
       pollTimer = setInterval(() => void this.poll(), deps.pollMs);
     },
 

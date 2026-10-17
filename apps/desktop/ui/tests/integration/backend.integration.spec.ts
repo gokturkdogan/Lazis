@@ -10,7 +10,9 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Window } from "happy-dom";
 import { ApiError, createApiClient } from "@/api/client";
+import { renderMarkdown } from "@/markdown";
 
 const CORE = fileURLToPath(new URL("../../../../../core", import.meta.url));
 const PYTHON = join(CORE, ".venv", "bin", "python");
@@ -113,6 +115,15 @@ describe("UI API client ↔ real backend", () => {
     expect([404, 405]).toContain(res.status);
   });
 
+  it("serves diagnostics without content (Phase 4)", async () => {
+    const api = createApiClient({ port, token });
+    const diag = await api.diagnostics();
+    expect(diag.prewarm.state).toBe("idle");
+    expect(diag.last_turn).toBeNull();
+    expect(diag.model.automatic_fallback).toBe(false);
+    expect(typeof diag.runtime.available).toBe("boolean");
+  });
+
   // Opt-in (needs Ollama + an installed model): LAZIS_TEST_MODEL=gemma4:12b-it-qat pnpm test:integration
   const liveModel = process.env.LAZIS_TEST_MODEL;
   const MARKER = "Zeytinburnu-7f2";
@@ -159,6 +170,31 @@ describe("UI API client ↔ real backend", () => {
     expect(last?.status).toBe("cancelled");
     expect(last?.content.length).toBeGreaterThan(0);
     expect((await api.assistantState()).session?.id).toBe(first.cid);
+
+    // Phase 4 diagnostics: real timings of the last (cancelled) turn, and no content at all.
+    const diag = await api.diagnostics();
+    expect(diag.last_turn?.outcome).toBe("cancelled");
+    expect(diag.last_turn?.ttft_ms).toBeGreaterThan(0);
+    expect(diag.model.loaded?.name).toBe(liveModel);
+    expect(JSON.stringify(diag)).not.toContain("Zeytinburnu");
+
+    // A real Markdown reply renders through the safe renderer.
+    let reply = "";
+    await api.submitTurn(
+      {
+        client_id: "ui-it-turn-0004",
+        content: "Markdown kullanarak: bir başlık, iki maddelik bir liste ve `ls -la` içeren bir bash kod bloğu yaz. Kısa olsun.",
+        model: liveModel as string,
+      },
+      (e) => {
+        if (e.type === "delta") reply += e.text;
+      },
+    );
+    const el = new Window().document.createElement("div"); // parse only; nothing runs
+    el.innerHTML = renderMarkdown(reply);
+    expect(el.querySelector(".code-block pre code")?.textContent).toContain("ls -la");
+    expect(el.querySelectorAll("li").length).toBeGreaterThanOrEqual(2);
+    expect(el.querySelector("script, img, iframe")).toBeNull();
   }, 600_000);
 
   it.skipIf(!liveModel)("streams a Turkish answer from the real model and can cancel it", async () => {

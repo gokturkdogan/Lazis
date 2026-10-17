@@ -106,6 +106,7 @@ class EffectiveSettingsResponse(_Schema):
     voice_interaction_mode: str
     models_provider: str
     models_primary_model: str | None
+    models_fallback_model: str | None
     models_context_short: int
     models_context_normal: int
     models_context_long: int
@@ -357,7 +358,8 @@ class DiagModelModel(_Schema):
 
 class DiagLastTurnModel(_Schema):
     at: str
-    outcome: str
+    outcome: Literal["completed", "cancelled", "failed"]
+    failed_stage: str | None = None
     ttft_ms: float | None
     total_ms: float | None
     context_prep_ms: float | None

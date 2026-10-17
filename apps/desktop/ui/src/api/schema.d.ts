@@ -478,8 +478,13 @@ export interface components {
             context_prep_ms: number | null;
             /** Decode Tps */
             decode_tps: number | null;
-            /** Outcome */
-            outcome: string;
+            /** Failed Stage */
+            failed_stage?: string | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "completed" | "cancelled" | "failed";
             /** Output Tokens */
             output_tokens: number | null;
             /** Prompt Tokens */
@@ -588,6 +593,8 @@ export interface components {
             models_context_normal: number;
             /** Models Context Short */
             models_context_short: number;
+            /** Models Fallback Model */
+            models_fallback_model: string | null;
             /** Models Keep Alive */
             models_keep_alive: string;
             /** Models Primary Model */

@@ -81,7 +81,10 @@ const privacyRows = computed<StatusRow[]>(() => {
 });
 
 const chat = useAssistantStore();
-onMounted(() => void chat.refreshRuntime());
+onMounted(() => {
+  void chat.refreshRuntime();
+  void store.refreshStatus();
+});
 const aiRows = computed<StatusRow[]>(() => {
   const runtime = chat.runtime;
   if (!runtime) return loading(t("overview.ai"));

@@ -44,6 +44,7 @@ def test_diagnostics_requires_the_token_and_never_contains_content(
         assert model["fallback"] == "qwen3.5:9b-q4_K_M" and model["automatic_fallback"] is False
         turn = data["last_turn"]
         assert turn["outcome"] == "completed" and turn["output_tokens"] and turn["prompt_tokens"]
+        assert turn["failed_stage"] is None
         assert turn["ttft_ms"] is not None and turn["total_ms"] >= turn["ttft_ms"]
         assert data["cache_expected_warm"] is True  # nothing used the runtime since
 
@@ -143,6 +144,21 @@ def test_last_turn_records_cancellation(tmp_path: Path, storage: StorageHandle) 
     last = asyncio.run(go())
     assert last is not None and last["outcome"] == "cancelled" and last["ttft_ms"] is not None
     assert "uzun" not in json.dumps(last)
+
+
+def test_last_turn_records_a_failure_with_its_stage(tmp_path: Path, storage: StorageHandle) -> None:
+    llm = ScriptedLLM()
+    llm.fail_with, llm.fail_after_chunks = LlmLoadFailedError("x"), 0
+    engine = make_engine(storage, llm, tmp_path)
+
+    async def go() -> dict[str, object] | None:
+        await run_turn(engine, "Merhaba")
+        await engine.close()
+        return engine.last_turn
+
+    last = asyncio.run(go())
+    assert last is not None and last["outcome"] == "failed" and last["failed_stage"]
+    assert last["ttft_ms"] is None
 
 
 def test_status_view_reuses_the_integrity_check(storage: StorageHandle) -> None:
