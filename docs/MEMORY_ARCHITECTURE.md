@@ -1,0 +1,623 @@
+# LAZIS — Memory and Learning Architecture
+
+> Status: Phase 0.1 (revised) · Last updated: 2026-10-17
+> Delivered in: **P6** (persistent memory), **P9** (automatic learning + learning review), **P10** (learned communication preferences). Phase numbers follow [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+> Related: [KNOWLEDGE_GRAPH_DESIGN.md](KNOWLEDGE_GRAPH_DESIGN.md) (entities, relationships, identity), [LOCAL_INGESTION_ARCHITECTURE.md](LOCAL_INGESTION_ARCHITECTURE.md) (document-derived knowledge), [SECURITY_MODEL.md](SECURITY_MODEL.md) (trust classes, sensitivity tiers).
+
+## 1. Design goals
+
+1. **Correct before complete.** A false memory is worse than a missing one. Every stored fact is traceable to evidence.
+2. **Autonomous but accountable.** LAZIS learns ordinary information on its own, without asking. **Risk**, not habit, decides when it asks. Every automatic decision is recorded with its reasons and can be reviewed and undone.
+3. **Never fabricate.** LAZIS asserts only what is stored with evidence. Uncertain knowledge is stored and spoken as uncertain. Missing knowledge is admitted, never filled in.
+4. **User sovereignty.** Everything is inspectable, correctable, reversible and deletable, with predictable effects on dependent knowledge.
+5. **Temporal truth.** Facts change ("İzmir'de yaşıyorum" → "Ankara'ya taşındım"). The system keeps when a fact was true, not only what is true now.
+6. **Simple infrastructure.** One SQLite database (`lazis.db`) holds structured data, FTS5 indexes and sqlite-vec vectors. No extra servers.
+7. **Fast recall.** Retrieval ≤ 80 ms p95 *(target, unmeasured)*, so it never dominates turn latency.
+8. **Evolvable.** Versioned schema (migrations), versioned embeddings (re-index), versioned prompts and policies (hash stamps).
+
+## 2. Memory taxonomy
+
+| Kind | Cognitive analogue | Example (Turkish surface) | Typical subject | Cardinality |
+|---|---|---|---|---|
+| `fact` | semantic | "Ayşe hemşire olarak çalışıyor." | any entity | per predicate |
+| `preference` | semantic | "Kahveyi şekersiz içiyor." · "Kısa cevapları seviyor." | user / person | multi |
+| `event` | episodic | "2024 Haziran'da Ankara'ya taşındı." | user / person | multi, dated |
+| `plan` | prospective | "Ahmet yeni bir şirket kurmayı düşünüyor." | user / person | multi, temporal |
+| `episode` | episodic | Summary of a conversation segment | conversation | — |
+| `relationship_note` | social | "Can'la arası son zamanlarda gergin." | relationship | multi, temporal |
+| `project` | semantic + episodic | "LAZIS projesi: kişisel yapay zekâ asistanı." | project entity | — |
+| `goal` / `dream` | prospective | "2027'de maraton koşmak istiyor." | user | multi |
+| `instruction` | procedural | "Bana sabahları uzun mesaj atma." | LAZIS behavior | multi |
+| `open_loop` | prospective | "Cuma günü iş görüşmesi var → sonucunu sor." | user | stored in `open_loops` |
+| `profile_summary` | semantic (derived) | Regenerated compact profile | user | 1 (cache) |
+
+A `plan` is deliberately separate from a `fact`. "X'i düşünüyor" or "X yapacak" is stored as an intention with its own validity, never as an accomplished fact.
+
+## 3. Knowledge placement rule
+
+One piece of knowledge has exactly one home. This removes the Phase 0 overlap where `works_at` and `lives_in` existed both as memory predicates and as graph relationships.
+
+| Knowledge shape | Home | Examples |
+|---|---|---|
+| **Entity ↔ entity** | `relationships` (graph) | friend_of, sibling_of, spouse_of, works_at (with `title` attribute), lives_in, member_of_project, participated_in |
+| **Entity → literal** (attribute, preference, event, plan, note) | `memories` | likes, birth_date, health_condition, plan, goal, note |
+| **Free-form narrative** | `memories` (`predicate = note`, `kind = episode` or `relationship_note`) | segment summaries, nuanced notes |
+| **Document content** (not yet personal knowledge) | `documents.db` + `document_claims` | see [LOCAL_INGESTION_ARCHITECTURE.md](LOCAL_INGESTION_ARCHITECTURE.md) |
+| **Web research** | `cache.db` research tables | never personal memory ([RESEARCH_ARCHITECTURE.md](RESEARCH_ARCHITECTURE.md)) |
+
+Memories and relationships share **one lifecycle model**: the same statuses, confidence, evidence, history, change sets and learning policy. The learning pipeline emits typed candidates (`MemoryCandidate`, `RelationshipCandidate`, `AliasCandidate`, `EntityCandidate`) through the same policy engine.
+
+## 4. Predicate registry (`config/predicates.yaml`)
+
+Predicate semantics drive deduplication, contradiction handling and risk, so they are configuration, not code. Relationship types carry the same policy fields in `config/relationships.yaml` (see the KG design).
+
+```yaml
+birth_date:       { cardinality: single, temporal: false, sensitivity: personal,  impact: medium, object: date }
+likes:            { cardinality: multi,  temporal: true,  sensitivity: normal,    impact: low,    object: value }
+dislikes:         { cardinality: multi,  temporal: true,  sensitivity: normal,    impact: low,    object: value }
+hobby:            { cardinality: multi,  temporal: true,  sensitivity: normal,    impact: low,    object: value }
+skill:            { cardinality: multi,  temporal: true,  sensitivity: normal,    impact: low,    object: value }
+plan:             { cardinality: multi,  temporal: true,  sensitivity: personal,  impact: low,    object: value }
+goal:             { cardinality: multi,  temporal: true,  sensitivity: personal,  impact: medium, object: value }
+health_condition: { cardinality: multi,  temporal: true,  sensitivity: sensitive, impact: high,   object: value }
+financial_status: { cardinality: multi,  temporal: true,  sensitivity: sensitive, impact: high,   object: value }
+communication_pref: { cardinality: multi, temporal: true, sensitivity: normal,    impact: low,    object: value, scope: lazis_behavior }
+note:             { cardinality: multi,  temporal: false, sensitivity: inherit,   impact: low,    object: value }
+```
+
+Unknown predicates proposed by extraction are mapped to the nearest registered predicate (embedding similarity over predicate descriptions). Failing that, the claim is stored as a `note`. New predicates are added deliberately through config changes, which are hash-stamped (§20).
+
+## 5. Data model
+
+### 5.1 Overview
+
+```mermaid
+erDiagram
+    conversations ||--o{ messages : has
+    conversations ||--o{ segments : split_into
+    change_sets ||--o{ history : groups
+    memories ||--o{ evidence : cites
+    relationships ||--o{ evidence : cites
+    memories ||--o{ memory_entity_links : grounded_by
+    memory_entity_links }o--|| entities : refers_to
+    memory_entity_links }o--o| entity_mentions : via_mention
+    memories ||--o{ memory_dependencies : depends_on
+    memories ||--o| memory_vec_v1 : embedded_as
+    memories ||--o| memory_fts : indexed_as
+    memories ||--o{ open_loops : spawns
+    inbox_items }o--o| memories : about
+```
+
+### 5.2 Schema evolution by phase
+
+| Migration (lazis.db) | Phase | Tables |
+|---|---|---|
+| `0001_system` | P1 | `schema_migrations`, `settings`, `jobs`, `change_sets`, `history`, `audit_log` |
+| `0002_conversations` | P3 | `conversations`, `messages`, `segments` |
+| `0003_personality` | P5 | `response_openers` (anti-repetition store) |
+| `0004_memory` | P6 | `entities` (core columns; the user entity), `memories`, `evidence`, `memory_vec_v1`, `memory_fts`, `suppressions` |
+| `0005_graph` | P7 | `entities` (+ graph columns), `entity_aliases`, `relationship_types`, `relationships`, `entity_mentions`, `memory_entity_links`, `entity_operations`, `entity_distinctions`, `inbox_items` |
+| `0006_bootstrap` | P8 | `import_batches`, `import_items` |
+| `0007_learning` | P9 | `learning_runs`, `open_loops`, `memory_dependencies`; review columns |
+| `0008_adaptation` | P10 | `preference_signals` |
+| `0009_sources` | P11 | `sources`, `source_files`, `document_claims` (the chunk index lives in `documents.db`) |
+| `0010_research` | P12 | research audit fields (the cache lives in `cache.db`) |
+| `0011_voice` | P13 | `voice_profiles`; `messages.interrupted`, `messages.spoken_text` |
+
+Before P7, a memory about someone other than the user stores the raw reference in `subject_text`. A P7 migration job resolves these through the entity resolver (same policy as everything else).
+
+### 5.3 Key tables (indicative DDL; migrations are authoritative once written)
+
+```sql
+CREATE TABLE memories (
+  id               TEXT PRIMARY KEY,            -- ULID
+  kind             TEXT NOT NULL,               -- fact|preference|event|plan|episode|relationship_note|project|goal|dream|instruction
+  subject_id       TEXT REFERENCES entities(id),
+  subject_text     TEXT,                        -- unresolved reference (pre-P7 or ambiguous)
+  predicate        TEXT NOT NULL,               -- registry predicate or 'note'
+  object_value     TEXT,                        -- literal value (normalized)
+  content          TEXT NOT NULL,               -- canonical Turkish sentence
+  content_norm     TEXT NOT NULL,               -- Turkish-casefolded
+  content_fold     TEXT NOT NULL,               -- diacritic-folded (ş→s, ı→i …)
+  content_stem     TEXT NOT NULL,               -- Snowball-Turkish stems
+  domain           TEXT NOT NULL DEFAULT 'personal',  -- personal|project
+  status           TEXT NOT NULL,               -- provisional|active|pending_confirmation|superseded|retracted|archived
+  confidence       REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+  risk_level       TEXT NOT NULL,               -- low|medium|high (at last decision)
+  importance       REAL NOT NULL DEFAULT 0.5,
+  sensitivity      TEXT NOT NULL,               -- normal|personal|sensitive (restricted is never stored)
+  trust_class      INTEGER NOT NULL,            -- T0..T5 of the strongest supporting evidence (SECURITY_MODEL §4)
+  origin           TEXT NOT NULL,               -- explicit|extracted|imported|user_edit|document|inferred|research_promoted
+  review_state     TEXT NOT NULL DEFAULT 'unreviewed', -- unreviewed|approved|corrected
+  conflict_state   TEXT NOT NULL DEFAULT 'none',       -- none|pending
+  decision_json    TEXT NOT NULL,               -- policy decision: level, confidence components, risk factors, reason codes
+  valid_from TEXT, valid_to TEXT, time_precision TEXT,  -- domain time (day|month|year|approx|unknown)
+  observed_at      TEXT NOT NULL,               -- when LAZIS learned it
+  supersedes_id    TEXT REFERENCES memories(id),
+  created_change_set_id TEXT NOT NULL REFERENCES change_sets(id),
+  version          INTEGER NOT NULL DEFAULT 1,
+  last_recalled_at TEXT, recall_count INTEGER NOT NULL DEFAULT 0,   -- ranking only (§7.6)
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX ix_mem_subject_pred ON memories(subject_id, predicate, status);
+
+CREATE TABLE evidence (                -- provenance for memories, relationships, aliases, entities
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL,           -- memory|relationship|alias|entity
+  target_id TEXT NOT NULL,
+  source_type TEXT NOT NULL,           -- message|import_item|document_chunk|user_edit|user_confirmation|research_promoted
+  source_ref TEXT NOT NULL,            -- message id / import item key / chunk id / inbox item id
+  quote TEXT,                          -- verbatim span (redactable)
+  mention_id TEXT,                     -- entity mention that grounded the resolution (P7+)
+  trust_class INTEGER NOT NULL,        -- T0..T5
+  independent_group TEXT,              -- corroboration grouping key (segment/day/source)
+  extractor TEXT, prompt_version TEXT, policy_version TEXT,
+  change_set_id TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX ix_evidence_target ON evidence(target_type, target_id);
+
+CREATE TABLE change_sets (             -- every write belongs to exactly one change set
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,                  -- explicit_command|learning_run|import|user_edit|review_action|merge|split|
+                                       -- document_ingest|correction|deletion|rollback|migration
+  actor TEXT NOT NULL,                 -- user|pipeline|import|system
+  source_ref TEXT,                     -- segment id / import batch / source file / inbox item
+  summary TEXT NOT NULL,               -- content-free description ("3 hafıza, 1 ilişki")
+  reverts_change_set_id TEXT REFERENCES change_sets(id),
+  status TEXT NOT NULL,                -- applied|partially_reverted|reverted
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE history (                 -- append-only version log for memories, relationships, entities, aliases
+  target_table TEXT NOT NULL, target_id TEXT NOT NULL, version INTEGER NOT NULL,
+  change TEXT NOT NULL,                -- create|update|status_change|supersede|reassign|merge|split|delete|restore
+  change_set_id TEXT NOT NULL REFERENCES change_sets(id),
+  before_json TEXT, after_json TEXT,   -- purged to NULL on hard delete (tombstone keeps only ids + change)
+  at TEXT NOT NULL,
+  PRIMARY KEY (target_table, target_id, version)
+);
+
+CREATE TABLE memory_entity_links (     -- which entity each memory is about, and through which mention
+  memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,                  -- subject|object|mentioned
+  entity_id TEXT NOT NULL REFERENCES entities(id),
+  mention_id TEXT,                     -- grounding mention (enables precise correction propagation)
+  resolution TEXT NOT NULL,            -- self|confirmed|linked|tentative
+  confidence REAL NOT NULL,
+  PRIMARY KEY (memory_id, role, entity_id)
+);
+
+CREATE TABLE memory_dependencies (     -- derived knowledge that must be re-evaluated when its basis changes
+  memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+  depends_on_type TEXT NOT NULL,       -- memory|relationship|segment|entity
+  depends_on_id TEXT NOT NULL,
+  kind TEXT NOT NULL                   -- inferred_from|summarizes|derived_from
+);
+
+CREATE VIRTUAL TABLE memory_vec_v1 USING vec0(
+  memory_id TEXT PRIMARY KEY,
+  embedding float[768],                -- dimension fixed by the chosen model/MRL size (ADR, P2)
+  status TEXT, sensitivity TEXT, kind TEXT    -- metadata columns for filtered KNN
+);
+
+CREATE VIRTUAL TABLE memory_fts USING fts5(
+  content_norm, content_fold, content_stem, entity_aliases,
+  content='', contentless_delete=1,     -- requires SQLite ≥ 3.43; enables real DELETE
+  tokenize='unicode61 remove_diacritics 0'
+);                                      -- rowid ↔ memories.rowid mapping maintained by the repository
+
+CREATE TABLE open_loops (
+  id TEXT PRIMARY KEY, memory_id TEXT REFERENCES memories(id) ON DELETE CASCADE,
+  entity_id TEXT, description TEXT NOT NULL,
+  due_at TEXT, follow_up_after TEXT NOT NULL, status TEXT NOT NULL,  -- open|done|dismissed|expired
+  priority INTEGER NOT NULL DEFAULT 1, times_raised INTEGER NOT NULL DEFAULT 0, last_raised_at TEXT
+);
+
+CREATE TABLE inbox_items (             -- Level C confirmations (blocking decisions only)
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,                  -- identity_ambiguity|merge_suggestion|split_suggestion|contradiction|
+                                       -- sensitive_confirm|high_impact_confirm|destructive_confirm
+  payload_json TEXT NOT NULL, status TEXT NOT NULL,     -- open|resolved|dismissed
+  created_at TEXT NOT NULL, asked_inline_at TEXT, times_asked INTEGER NOT NULL DEFAULT 0,
+  resolved_at TEXT, resolution_json TEXT, resolution_change_set_id TEXT
+);
+
+CREATE TABLE suppressions (            -- prevents re-learning rejected or forgotten knowledge
+  id TEXT PRIMARY KEY, subject_id TEXT, predicate TEXT,
+  fingerprint TEXT NOT NULL,           -- HMAC(secret, normalized claim) — no plaintext
+  reason TEXT NOT NULL,                -- forgotten|rejected
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE learning_runs (           -- one per processed segment or document batch
+  id TEXT PRIMARY KEY, change_set_id TEXT NOT NULL, source_type TEXT NOT NULL, source_ref TEXT NOT NULL,
+  candidates INTEGER, auto_saved INTEGER, provisional INTEGER, pending INTEGER, discarded INTEGER,
+  model_id TEXT, prompt_version TEXT, policy_version TEXT, duration_ms INTEGER, created_at TEXT NOT NULL
+);
+```
+
+Vectors use a **versioned table name** (`memory_vec_v1`). Changing the embedding model creates `memory_vec_v2`, back-fills it in the background, then atomically switches the retrieval config and drops v1.
+
+## 6. Change sets, history and audit
+
+- **Every write happens inside one change set**: an explicit command, a learning run, an import, a review action, a merge or split, a correction, a deletion or a rollback. The change set is the unit of explanation ("bunu neden biliyorsun?"), review and rollback.
+- `history` stores per-row versions (before/after JSON) linked to their change set. It is the single undo mechanism for memories, relationships, entities and aliases. Phase 0's separate `memory_history`, `graph_history` and `import_batch_id` mechanisms are replaced by it.
+- `audit_log` records security-relevant events (deletions, merges, imports, source authorizations, research queries, policy denials) without personal content. See [SECURITY_MODEL.md §5.10](SECURITY_MODEL.md).
+- `decision_json` on each memory and relationship stores *why* the policy chose its level, so the review UI can explain it ("Kendin söyledin · güven 0.90 · düşük risk → otomatik kaydedildi").
+
+## 7. Learning policy (risk-based)
+
+The policy engine (`learning.policy`) is used by every write path except direct user edits, so conversation learning, document learning and inference all follow the same rules.
+
+### 7.1 Inputs to a decision
+For each candidate: evidence kind and quote (verified), source trust class (T0–T5), hedging cues, extractor clarity bucket, entity-resolution confidence for every referenced entity, sensitivity tier, predicate or relationship impact, conflict status against existing knowledge, operation type, number of dependents (blast radius) and importance.
+
+### 7.2 Confidence calculation
+
+Confidence estimates **the probability that the stored statement is true as written**. It is computed deterministically. LLM self-assessment is only a bounded input.
+
+```
+c_claim = base(evidence_kind) × hedge_factor × clarity_factor
+c       = min(c_claim, res(subject), res(object))          # weakest link: who it is about
+c       = min(0.99, c + corroboration_bonus)                # independent evidence only, ≤ +0.15
+on explicit user confirmation: c = max(c, 0.97)
+```
+
+| Evidence kind | base | | Hedge cue | factor |
+|---|---|---|---|---|
+| Explicit memory command ("bunu hatırla") | 0.95 | | none | 1.00 |
+| First-person statement about self ("satranç oynamayı seviyorum") | 0.90 | | mild ("sanırım", "galiba", "herhalde") | 0.75 |
+| User's statement about another person ("Ahmet şirket kuruyor") | 0.80 | | strong ("emin değilim", "belki") | 0.60 |
+| Reported speech ("Ahmet'in dediğine göre…") | 0.65 | | hypothetical / future | → stored as `plan`, factor 1.0 |
+| Implied by context (not stated outright) | 0.55 | | | |
+| User-authored personal document (T2) | 0.75 | | **Extractor clarity** | |
+| Other local document / third-party text (T1) | 0.40 | | high / medium / low | 1.0 / 0.9 / 0.75 |
+| LAZIS inference | 0.45 | | | |
+
+| Entity resolution `res()` | value |
+|---|---|
+| the user (self) | 1.00 |
+| confirmed (by the user) | 0.97 |
+| linked (non-name evidence agrees) | 0.90 |
+| new entity introduced in the same statement | 0.95 |
+| tentative (name-only, single candidate) | 0.70 |
+| ambiguous (≥ 2 plausible candidates) | cannot be stored as a fact on an entity → Level C |
+
+**Corroboration** (+0.05 each, max +0.15) counts only **independent** evidence: a different segment at least 6 h apart, or a different source type (conversation vs. user-authored document). Restating within the same segment does not count. LAZIS's own words never count, and **retrieval or repeated use never counts** (§7.6).
+
+The numbers above are initial values. They are calibrated in P9 on the extraction gold set with a reliability diagram, so that each confidence bucket's measured precision matches its label (target: ≥ 95% precision for c ≥ 0.85).
+
+### 7.3 Risk classification
+
+Risk estimates **the harm if the statement is wrong, disclosed or applied**. It is independent of confidence.
+
+| Risk | Any of these conditions |
+|---|---|
+| **High** | sensitivity = sensitive (unless created by an explicit user command) · operation is a merge, a split or a destructive or bulk change · conflicts with an *active* memory or relationship of medium/high impact · the reference is ambiguous (≥ 2 candidates) · high-impact knowledge (family structure, romantic ties, identity attributes) from a source below T3 (documents, inference) · sensitive information about a third party · blast radius > 20 dependent items |
+| **Medium** | sensitivity = personal · high-impact knowledge stated directly by the user (T3+) without conflict · medium-impact knowledge (jobs, locations, social ties, events, projects) · conflicts only with provisional knowledge · the subject is a tentative entity link · blast radius 4–20 |
+| **Low** | everything else: normal sensitivity, low impact (hobbies, interests, preferences, skills, plans), resolved subject, no conflict |
+
+Impact comes from the predicate and relationship registries (`impact` field), so it is configuration, not code.
+
+### 7.4 Decision matrix
+
+| Risk \ Confidence | **High** (c ≥ 0.85) | **Medium** (0.60 ≤ c < 0.85) | **Low** (c < 0.60) |
+|---|---|---|---|
+| **Low** | **A** — automatic | **B** — provisional | B if importance ≥ 0.5, else discard |
+| **Medium** | **A** — automatic | **B** — provisional | discard (kept only inside the episode summary) |
+| **High** | **C** — confirmation required | **C** | C if importance ≥ 0.7, else discard |
+
+High confidence alone never authorizes a high-risk change: the bottom row is always C.
+
+**Explicit user intent is confirmation.** "Bunu hatırla: annemin tansiyonu var" stores the memory at Level A with `sensitivity=sensitive`. It is never volunteered, only used when relevant. An explicit "Ahmet ile Ahmet Kaya aynı kişi" executes the merge immediately when both targets are unambiguous, with undo. Restricted data is refused regardless of intent.
+
+### 7.5 Level semantics
+
+| Level | Stored status | Used in conversation | Shown to the user | How it changes |
+|---|---|---|---|---|
+| **A — automatic** | `active` | As established knowledge | In the learning review feed (non-blocking) | Correct/reject/delete via review; superseded by later facts |
+| **B — provisional** | `provisional` | Only hedged ("yanılmıyorsam…", "bir ara … demiştin gibi"). Never stated as fact, never in the core profile summary, never the sole basis for a proactive or sensitive follow-up | In the review feed, marked "emin değilim" | Promoted, demoted or archived per §7.6 |
+| **C — confirmation** | `pending_confirmation` | **Not used as knowledge.** It may only be used to ask the confirming question | In the Inbox (blocking decision) and optionally asked inline | Resolved by the user only (§9); never auto-applied |
+
+### 7.6 Promotion, demotion and expiry
+
+- **B → A** only through new information: explicit user confirmation ("evet, doğru"), a user approval in the review feed, or independent corroboration that lifts confidence to ≥ 0.85 *and* leaves risk Low or Medium. Each promotion is a change set with reason codes.
+- **Retrieval never promotes.** `recall_count` and `last_recalled_at` affect ranking only. LAZIS mentioning a provisional memory and the user not objecting is **not** confirmation. Only an explicit affirmative reply to an explicit question is.
+- **Demotion:** user "mark as uncertain" (A → B); a contradicting claim of equal or higher trust (A → `conflict_state=pending`, see §10).
+- **Expiry:** provisional memories with no corroboration for 180 days and importance < 0.5 become `archived`. They are excluded from retrieval, still visible and restorable in the Memory view, and never deleted automatically. All durations are configurable.
+
+### 7.7 Policy configuration (`config/learning_policy.yaml`, versioned and hash-stamped)
+
+```yaml
+version: 1
+thresholds: { high: 0.85, medium: 0.60 }
+corroboration: { bonus: 0.05, max_bonus: 0.15, min_gap_hours: 6 }
+provisional: { archive_after_days: 180, archive_max_importance: 0.5 }
+inline_confirmation: { max_per_reply: 1, defer_in_voice: true, defer_on_emotional_turns: true }
+review_mode: calibration            # off | digest | calibration | strict (§12)
+calibration_days: 21
+overrides:                          # per-category tightening; can only make the policy stricter
+  - { match: { category: health }, force_level: C }
+```
+
+`overrides` can only tighten the policy (raise a level toward C). Loosening the defaults requires an ADR.
+
+## 8. Memory lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Candidate: extracted / imported / explicit / inferred
+    Candidate --> Discarded: evidence unverified · restricted · suppressed · low value
+    Candidate --> Active: Level A
+    Candidate --> Provisional: Level B
+    Candidate --> Pending: Level C
+    Provisional --> Active: confirmation · approval · independent corroboration
+    Provisional --> Retracted: rejected · contradicted by higher trust
+    Provisional --> Archived: expiry (§7.6)
+    Archived --> Provisional: restored by user
+    Pending --> Active: user confirms
+    Pending --> Retracted: user rejects
+    Pending --> Active: user corrects (new version)
+    Active --> Provisional: marked uncertain
+    Active --> Superseded: newer fact with change signal
+    Active --> Retracted: user rejects / corrects as wrong
+    Superseded --> Active: rollback
+    Retracted --> Active: rollback
+    Active --> [*]: hard delete (forget)
+    Provisional --> [*]: hard delete
+```
+
+`Discarded` candidates are not stored. They appear only as counts in `learning_runs`, so recall can be measured without retaining unwanted content.
+
+## 9. Confirmation workflow (Level C)
+
+1. The policy creates an `inbox_items` row, and the candidate is stored as `pending_confirmation`.
+2. **Inline asking** (natural, optional): at most one confirmation question per reply, placed at the end, and only when the conversation is not emotionally loaded. In voice mode, it is deferred unless the answer depends on it. Example: *"Bu arada, bahsettiğin Ahmet çocukluk arkadaşın olan Ahmet mi?"*
+3. **Inbox** (UI): every open item with context, the source quote and one-click options (confirm / correct / reject / "farklı kişiler" / later).
+4. **Resolution** creates a change set (`kind=review_action`). Confirmation adds `user_confirmation` evidence (T5). Rejection retracts and adds a suppression fingerprint, so it is not re-learned.
+5. **Reminders:** an unresolved item may be re-asked inline at most once more, after ≥ 7 days and only when topically relevant. Otherwise it waits in the Inbox. **Pending items are never auto-applied and never silently expire into facts.**
+
+## 10. Contradiction resolution
+
+When a new candidate *C* conflicts with existing knowledge *M* (same subject + single-cardinality predicate, or a relationship type with single cardinality):
+
+```mermaid
+flowchart TD
+    A[Candidate C vs existing M] --> B{Same value?}
+    B -- yes --> D[Duplicate: add evidence to M<br/>corroboration if independent]
+    B -- no --> C{Predicate cardinality}
+    C -- multi --> E{Near-duplicate?<br/>cos ≥ 0.92, same entities}
+    E -- yes --> D
+    E -- no --> F[Coexist: C goes through the policy as new knowledge]
+    C -- single --> G{Explicit change signal?<br/>'taşındım', 'artık', 'ayrıldık', newer valid_from}
+    G -- yes --> H{risk of C}
+    H -- low/medium --> S[Supersede: M.valid_to = C.valid_from<br/>M → superseded, C → active]
+    H -- high --> Q[Level C: confirm the change]
+    G -- no --> I{M status}
+    I -- provisional --> J{trust C ≥ trust M?}
+    J -- yes --> R[Retract M, C through policy]
+    J -- no --> K[Keep M, C → provisional + conflict link]
+    I -- active --> L[M.conflict_state = pending<br/>C → pending_confirmation<br/>'Daha önce İzmir demiştin, değişti mi?']
+```
+
+- While `conflict_state = pending`, M is still used, but rendered with a staleness hedge ("(güncel olmayabilir)").
+- Superseded knowledge stays queryable for history ("Eskiden nerede yaşıyordum?") and is excluded from present-tense retrieval.
+- **Trust order** for tie-breaks: T5 user edit/confirmation > T4 explicit command/bootstrap > T3 conversation statement > T2 user-authored document > T1 other documents/inference. T0 research never participates: it can only trigger a question.
+
+## 11. User corrections and propagation
+
+Corrections must fix what was wrong **without destroying unrelated knowledge**. The precision comes from mention-level grounding (`memory_entity_links.mention_id`, `evidence.mention_id`).
+
+| Correction | Example | Propagation |
+|---|---|---|
+| Fact value | "Hayır, Ayşe öğretmen değil, hemşire." | New version of the memory (`origin=user_edit`, T5). Dependents in `memory_dependencies` are marked for re-evaluation. The profile summary is invalidated. The old value gets a suppression fingerprint (`reason=rejected`) |
+| Identity (wrong person) | "O dediğim Ahmet iş yerindeki Ahmet'ti." | Only the mention(s) the user refers to are reassigned. Memories and relationships **grounded by those mentions** move to the correct entity. Knowledge grounded by other mentions is untouched. One change set (`kind=correction`); a distinction constraint is suggested |
+| Relationship type | "Mehmet onun kardeşi değil, kuzeni." | The relationship gets a new version with type changed. Path-derived answers are recomputed on demand, since nothing derived is stored |
+| Temporal | "Oraya 2023'te taşınmıştım, 2024'te değil." | `valid_from` is updated. Superseded neighbors' `valid_to` is adjusted in the same change set |
+| "Bu yanlış, unut" | — | Retract + suppression, or a hard delete if the user says "sil" (§17) |
+
+**Inferred knowledge** (`origin=inferred`) records its basis in `memory_dependencies`. If any basis is corrected, retracted or deleted, the inferred item is re-evaluated: retracted if its basis is gone, kept provisional otherwise.
+
+## 12. Learning review mode
+
+Review is a **window onto autonomous learning, not a gate in front of it.** LAZIS uses Level A knowledge immediately in every mode except `strict`.
+
+| Mode | Behavior | Intended use |
+|---|---|---|
+| `calibration` *(default for the first 21 days)* | Every new A and B item appears prominently in the "Öğrendiklerim" feed, with a daily count badge. Non-blocking | Build trust and tune the policy early on |
+| `digest` *(default afterwards)* | A daily or weekly summary card of what was learned; the full feed stays available | Normal long-term use |
+| `off` | No prompts. Items stay browsable in the Memory view | Users who do not want to review |
+| `strict` | Everything that would be A is stored as B until reviewed. Opt-in only | Maximum control; it reduces autonomy deliberately |
+
+**Review actions** (each creates a change set):
+
+| Action | Effect |
+|---|---|
+| **Approve** | `review_state=approved`, and user-confirmation evidence is added. A provisional item is promoted to A if risk ≤ Medium |
+| **Correct** | Edit inline (value, person, relationship, dates, sensitivity), then propagation per §11 |
+| **Reject** | `status=retracted`, plus a suppression fingerprint so it is not re-learned |
+| **Delete** | Hard delete per §17 (with optional evidence redaction) |
+| **Mark uncertain** | A → B (provisional) |
+| **View source** | Evidence quotes, a jump to the message or document, and the policy decision ("neden?") |
+| **View related entities** | The entities and relationships the item links to, with their own status |
+
+The feed is filterable by level, entity, source (conversation/document/import), sensitivity and date. Bulk actions apply to one learning run (e.g., "bu konuşmadan öğrendiklerinin hepsini geri al").
+
+## 13. Rollback behavior
+
+| Scope | Mechanism |
+|---|---|
+| One memory or relationship | Revert to a chosen version from `history` |
+| One change set (learning run, import, merge, split, correction, bulk review) | Replay its `history` rows in reverse order |
+| Conflicting later changes | If a row's current version is not the version that change set produced, it is a **conflict**. Conflicts are listed for the user (keep current / revert anyway). Newer user edits are never clobbered silently |
+| Rollback of a rollback | Allowed: a rollback is itself a change set (`kind=rollback`, `reverts_change_set_id`) |
+| Learning-run rollback | Offers "bunları tekrar öğrenme" (add suppressions, default on) |
+| Last resort | Restore a pre-change snapshot (imports and migrations always take one), with a warning that later changes are lost |
+
+## 14. Write paths summary
+
+| Path | Trust class | Default handling |
+|---|---|---|
+| Explicit command | T4 | Policy with explicit intent: usually A; sensitive allowed and flagged; restricted refused |
+| Conversation statement (extracted) | T3 | Full policy (§7.4) |
+| Bootstrap import | T4 | Preview is the confirmation: accepted items → A ([KG design §9](KNOWLEDGE_GRAPH_DESIGN.md)) |
+| User edit / review approval / confirmation | T5 | A |
+| User-authored personal document | T2 | Full policy; the source class caps high-impact social facts at C ([LOCAL_INGESTION_ARCHITECTURE.md](LOCAL_INGESTION_ARCHITECTURE.md)) |
+| Other documents, third-party text pasted by the user | T1 | Never personal facts about the user automatically; project/reference domain at most B; personal claims → C |
+| LAZIS inference | T1 | At most B; never A without confirmation |
+| Research | T0 | Never stored as memory. Promotion only by explicit user action (then T5 confirmation + research URL evidence) |
+
+### 14.1 Explicit memory commands (Turkish)
+
+Detection is a **two-stage router**. Stage 1 uses a deterministic lexicon with suffix tolerance (`config/lexicons/memory_commands.tr.yaml`). Stage 2 is an LLM tool call that extracts parameters.
+
+| Intent | Example triggers | Tool |
+|---|---|---|
+| remember | "bunu hatırla", "aklında tut", "unutma ki", "not al", "kaydet şunu" | `memory.remember(content, about?)` |
+| forget | "bunu unut", "bunu sil", "X'i hatırlama", "bunu kaydetme" | `memory.forget(target_query, scope)` |
+| recall | "benim hakkımda ne biliyorsun?", "Ayşe hakkında ne hatırlıyorsun?", "ne zaman söylemiştim?" | `memory.search(query, entity?)` |
+| correct | "yanlış hatırlıyorsun", "aslında …", "düzelt: …" | `memory.correct(target, new_content)` |
+| off-record | "bu kayıt dışı", "bunu öğrenme" | sets segment `off_record = true` |
+
+Forget **always confirms the target** when more than one item matches ("Şu üç notu buldum, hangisini sileyim?"). That is a destructive operation with an ambiguous target, so it is Level C. Single-match forgets execute immediately, with an undo hint.
+
+## 15. Turkish-aware text processing (`lazis.text`)
+
+| Problem | Example | Handling |
+|---|---|---|
+| Turkish casing | `İ`/`i`, `I`/`ı`; Python `str.lower()` maps `I`→`i` (wrong) | Locale-aware `tr_casefold()` |
+| Missing diacritics in typing | "sirketteki toplanti" | `content_fold`: ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u; queries are searched in both forms |
+| Agglutination | "toplantılarımızdan" | Snowball Turkish stemmer (PyStemmer) → `content_stem` |
+| Proper-noun suffixes | "Ahmet'e", "Ahmet'in", "Ahmetle", "Ahmetin" | Apostrophe split; without an apostrophe, alias prefix plus a suffix whitelist (vowel-harmony aware) |
+| Kinship and possessives | "annem", "eşimin annesi", "abimin kızı", "çocukluk arkadaşımın kardeşi" | Kinship + qualified-role lexicons and a possessive chain parser ([KG design §4](KNOWLEDGE_GRAPH_DESIGN.md)) |
+| Hedging cues | "sanırım", "galiba", "emin değilim" | Hedge lexicon → `hedge_factor` (§7.2) |
+| Numbers and dates | "geçen salı", "iki hafta sonra", "Ramazan Bayramı'nda" | Relative date resolver anchored to message time (Europe/Istanbul) plus a religious/national holiday table (config, yearly) |
+
+Property-based tests (hypothesis) cover round-trip invariants (`fold(norm(x)) == fold(x)`) and known tricky pairs.
+
+## 16. Learning pipeline (conversation segments)
+
+### 16.1 Segmentation
+A segment closes when one of these happens: the user is idle for more than 3 min (configurable), the conversation ends or the app goes to the background, 30 turns accumulate, or a topic shift is detected (embedding drift over a 3-turn window). Off-record segments are never processed.
+
+### 16.2 Durable jobs (`jobs` table, P1)
+`id, type, payload_json, priority, status (queued|running|retry|done|failed|dead), attempts, run_after, locked_at, last_error, created_at`. The queue is crash-safe (state in SQLite), retries with exponential backoff, and dead-letters after 5 attempts with a System-view notice.
+
+### 16.3 Idle-aware scheduler and preemption
+- Background LLM work starts only if the assistant state is IDLE, no voice session is active, and the last user activity was ≥ 10 s ago.
+- When a foreground turn starts, the in-flight background request is cancelled (stream closed), the job is set to `retry`, and the foreground request proceeds. This is what keeps background jobs from blocking the user, whatever the slot configuration.
+- Background calls are small (one segment per call), so preemption wastes little work. They use the **same `num_ctx`** as foreground calls, so they never trigger a model reload ([TECHNOLOGY_DECISIONS.md §2.2](TECHNOLOGY_DECISIONS.md)).
+- **Cache protection:** a background request can evict the conversation's cached prefix when the engine has a single slot. Two mitigations exist: a second slot (`OLLAMA_NUM_PARALLEL=2`), or re-warming the active conversation's prefix during idle after background work. The choice is made by benchmark B3e ([BENCHMARK_PLAN.md §6](BENCHMARK_PLAN.md)).
+
+### 16.4 Stages
+
+| # | Stage | Implementation | Output |
+|---|---|---|---|
+| 1 | Extract | LLM call with JSON-schema output (`think=false` by default); Turkish prompt with guidelines and few-shot examples; input = segment messages with IDs | typed candidates with `evidence: {message_id, quote}`, hedge cues, clarity bucket |
+| 2 | Verify evidence | Code: the quote must occur in the referenced **user** message (normalized match, ≥ 0.9 fuzzy). LAZIS's own words are never evidence about the user | hallucinated claims dropped |
+| 3 | Normalize | predicate/relationship mapping, value normalization, dates resolved relative to message time, plans separated from facts | normalized candidates |
+| 4 | Restricted-data check | detectors (TC Kimlik No with checksum, IBAN TR mod-97, card numbers with Luhn, password/OTP patterns) | drop + metric (never stored) |
+| 5 | Resolve entities | `graph.EntityResolver` (mention-level, [KG design §6](KNOWLEDGE_GRAPH_DESIGN.md)) | entity IDs + `res()` values, or ambiguity |
+| 6 | Suppression check | HMAC fingerprint vs. `suppressions` | drop if forgotten or rejected |
+| 7 | Dedupe + contradiction | §10 | action per candidate |
+| 8 | Sensitivity + risk | category classifier (rules + extractor label) → tier; risk factors (§7.3) | risk level |
+| 9 | Confidence + level | §7.2 and §7.4 | A / B / C / discard, with `decision_json` |
+| 10 | Persist | one transaction per learning run: memories/relationships + evidence + links + history + change set (+ inbox items, open loops) | rows |
+| 11 | Index | FTS rows in the same transaction; vectors written immediately after (idempotent, reconciled at startup) | indexed |
+| 12 | Episode | short episode summary for the segment (`kind=episode`, depends on the segment) | episodic memory |
+| 13 | Follow-ups | dated plans and events → `open_loops` | follow-up candidates |
+
+Extraction quality is measured continuously on the gold set ([TESTING_STRATEGY.md](TESTING_STRATEGY.md)). Prompt, policy and config versions are stamped on every record, so regressions can be traced and runs selectively re-processed.
+
+## 17. Deletion semantics ("unutma hakkı")
+
+| Scope | Effect |
+|---|---|
+| Single memory | Delete the row, its vectors, FTS rows, evidence and links. History rows are reduced to content-free tombstones. A suppression fingerprint (`reason=forgotten`) is added. Dependents are re-evaluated; the profile summary and episodes citing it are regenerated |
+| Evidence redaction (offered, default **ask**) | Replace the quoted spans in `messages.content` with `[silindi]`, so the fact cannot be re-extracted or seen in history |
+| Per person ("Ahmet hakkında her şeyi unut") | Cascade over memories linked to the entity, its relationships, aliases, mentions and the entity itself. Inbox items are purged. One confirmation dialog shows the counts (Level C: destructive, bulk) |
+| Conversation | Delete messages, segments and episodes. Knowledge whose **only** evidence was this conversation is listed for the user to keep or delete |
+| Source (document folder) | See [LOCAL_INGESTION_ARCHITECTURE.md §6](LOCAL_INGESTION_ARCHITECTURE.md) |
+| Everything | Secure wipe: close DBs, delete files, delete the Keychain key (encrypted data becomes unrecoverable) and backups (explicit second confirmation) |
+
+**Backups:** deleted data persists in older encrypted snapshots until rotation. The UI says this plainly and offers "purge from backups" (re-create backups from the current state). `PRAGMA secure_delete=ON` zeroes freed pages in the live database.
+
+## 18. Retrieval
+
+### 18.1 Pipeline (per turn)
+
+```mermaid
+flowchart LR
+    Q[User message + last 2 turns] --> L[Entity linking<br/>alias index + kinship/role parser]
+    Q --> EQ[Query embedding]
+    L --> EC[Entity-centric fetch:<br/>facts of linked entities<br/>+ 1–2 hop relationships]
+    L --> PQ[Relational path query<br/>e.g. 'çocukluk arkadaşımın kardeşi']
+    EQ --> VK[Vector KNN top-30<br/>status ∈ active, provisional]
+    Q --> FT[FTS5 BM25 top-30<br/>norm + fold + stem columns]
+    EC --> F[Fusion: RRF]
+    PQ --> F
+    VK --> F
+    FT --> F
+    F --> S[Score = rrf × importance × confidence × recency × context_fit]
+    S --> G[Policy gates: sensitivity, status rendering,<br/>already-in-context dedupe]
+    G --> M[MMR diversity + token-budget packing]
+    M --> OUT[MemoryContext:<br/>items with status markers + open loops due]
+```
+
+- **Always in the stable prefix:** a compact user core profile (≤ 300 tokens; **active knowledge only**; regenerated on change, applied at the next compaction or session).
+- **Status rendering:** `active` items are plain facts. `provisional` items carry a hedge marker, and the model is instructed never to state them as certain. Items with `conflict_state=pending` carry a staleness marker. `pending_confirmation`, `archived`, `superseded` and `retracted` items are **excluded** from present-tense context.
+- **Sensitivity gating:** `sensitive` items are included only when the turn is about the same topic or entity. They are never volunteered in unrelated conversation.
+- **Already-in-context dedupe:** memories already injected earlier in the same session are referenced by a short ID rather than repeated. This keeps the append-only context compact ([ARCHITECTURE.md §6](ARCHITECTURE.md)).
+- **Relational answers:** path queries return the path with each edge's status, so the answer carries the weakest link's certainty ([KG design §6.5](KNOWLEDGE_GRAPH_DESIGN.md)).
+- **Temporal rendering:** items carry time context ("(2024'ten beri)", "(eskiden)").
+- **Budgets:** text ≤ 1,200 tokens; voice ≤ 500 tokens.
+- **Recall bookkeeping:** `recall_count`/`last_recalled_at` are updated asynchronously and affect ranking only.
+
+### 18.2 No-fabrication contract
+The model may claim to remember something ("demiştin", "bahsetmiştin", "hatırladığım kadarıyla") **only** if a retrieved item supports it. A post-generation **memory-claim guard** ([PERSONALITY_ENGINE.md §8](PERSONALITY_ENGINE.md)) checks memory-claim phrases against the turn's MemoryContext and regenerates unsupported claims. When nothing is retrieved, the persona instructs the model to say it does not know ("Bunu bana söylediğini hatırlamıyorum").
+
+### 18.3 Performance targets *(unmeasured)*
+Entity linking ≤ 5 ms · query embedding ≤ 25 ms (warm) · KNN over 50k × 768 float32 ≤ 30 ms (plaintext; the encrypted case is measured in SPK-05) · FTS ≤ 10 ms · total ≤ 80 ms p95. Verified by a perf test with a synthetic 50k-memory database, both plain and SQLCipher-encrypted.
+
+## 19. Backup and recovery
+
+- **Snapshot mechanism:** `sqlcipher_export()` into an encrypted backup file (or `VACUUM INTO` in unencrypted test setups) produces a consistent copy without stopping the app.
+- **Schedule:** daily at the first idle moment; before every migration; before every import apply and source re-index; on demand.
+- **Retention (configurable):** 7 daily, 4 weekly, 6 monthly.
+- **Integrity:** `PRAGMA integrity_check` on the snapshot, plus a SHA-256 manifest recording the key version.
+- **Restore:** stop core, verify the snapshot, swap files, run migrations forward, restart. A restore round-trip test runs in CI. Key handling is in [SECURITY_MODEL.md §5.1](SECURITY_MODEL.md).
+- **Portable export:** JSON export of memories, graph and settings (human-readable; for the user's own archive).
+- **WAL:** `journal_mode=WAL`, `synchronous=NORMAL` (FULL during migrations), `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.
+
+## 20. Memory API surface (internal)
+
+```python
+class MemoryService(Protocol):
+    async def remember(self, cmd: RememberCommand, ctx: TurnContext) -> WriteResult: ...
+    async def forget(self, target: ForgetTarget, ctx: TurnContext) -> ForgetResult: ...
+    async def correct(self, target: KnowledgeRef, new: ClaimDraft, ctx: TurnContext) -> WriteResult: ...
+    async def get(self, id: MemoryId) -> Memory | None: ...
+    async def search(self, q: MemoryQuery) -> Page[Memory]: ...             # UI browsing
+    async def history(self, id: MemoryId) -> list[Version]: ...
+    async def revert(self, id: MemoryId, version: int) -> WriteResult: ...
+
+class LearningPolicy(Protocol):                                             # learning.policy
+    def decide(self, cand: Candidate, ctx: PolicyContext) -> Decision: ...  # pure, deterministic, versioned
+
+class ReviewService(Protocol):
+    async def feed(self, f: ReviewFilter) -> Page[ReviewItem]: ...
+    async def act(self, item: KnowledgeRef, action: ReviewAction, payload: dict | None) -> WriteResult: ...
+
+class ChangeSetService(Protocol):
+    async def revert(self, change_set_id: str, conflict_choices: dict[str, str] | None) -> RevertResult: ...
+
+class RetrievalService(Protocol):
+    async def retrieve(self, q: RetrievalQuery) -> MemoryContext: ...       # per turn, budgeted
+```
+
+All writes go through one **unit of work** bound to one change set. Knowledge rows, evidence, links, history and FTS rows commit atomically. Vector writes follow immediately and are idempotent; a startup reconciler repairs any gap. `LearningPolicy.decide` is a pure function of its inputs plus the versioned policy file, so every decision is reproducible and unit-testable.
+
+## 21. Open questions (tracked)
+- Length of the calibration period (default 21 days) and the default afterwards (`digest`): **user decision** ([PHASE_0_FINAL_REVIEW.md §N](PHASE_0_FINAL_REVIEW.md)).
+- Should health information about third parties ever be learned automatically at Level B, or always C? Default: always C (`overrides`).
+- Episode summaries: per segment (default) or a daily journal roll-up too? Proposed: daily roll-ups in P10.
