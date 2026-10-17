@@ -448,7 +448,7 @@ Faz 1'e göre 49 yeni test eklendi:
   - hash: aşağıda, bu rapora ikinci küçük bir commit ile eklendi.
 - **Push yapılmadı;** uzak depo oluşturulmadı.
 
-Commit hash: _(commit sonrası eklenecek)_
+Commit hash: **`6d18a4f434163b8d0f765d3763a427f0b333a7ee`** (`6d18a4f`). Bu satır, raporun kendi commit'inde bilinemediği için ayrı bir küçük commit ile eklendi.
 
 ---
 
