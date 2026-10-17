@@ -17,6 +17,13 @@ LAZIS must be usable and testable as a desktop app **early**, but the cinematic 
 | Feature views | Added as capabilities land: Memory inspector (P6), People + Inbox (P7), Import (P8), Learning review feed (P9), Learned style (P10), Sources (P11), Research log and indicators (P12), Voice controls and level meter (P13) | Same views, restyled to the final visual language |
 | Dependencies | P3 conversation engine + state machine | P13 voice (audio reactivity) + stable state events |
 
+**As built in P4** ([ADR-0012](adr/0012-desktop-experience-and-resilience.md)):
+
+- **State indicator.** `PresenceIndicator.vue` (2D CSS rings and core) plus a text label, fed by `stores/presence.ts`, which derives the state from real events.
+- **Diagnostics.** A tab, not a side pane, so chat stays uncluttered. It shows model and runtime, backend and restart state, the last turn's TTFT/total/tokens/speed, context preparation and per-process memory. The assembled-prompt inspector is not built.
+- **Replies.** Safe Markdown (`markdown.ts`, `MarkdownContent.vue`) with code copy and message copy.
+- **Navigation.** Tabs (Sohbet, Genel bakış, Ayarlar, Tanılama) instead of a router; the menu bar and `--show` switch tabs.
+
 Both indicators implement one interface, `StateVisual`. Its input is `visualState` (state, sub-status, mic level, TTS level) and its lifecycle methods are mount, pause and dispose. The final interface also keeps the 2D indicator as a **low-power / reduced-motion fallback**, so nothing built early is thrown away.
 
 ## 1. Design intent (final neural interface)

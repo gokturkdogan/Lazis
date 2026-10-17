@@ -64,10 +64,28 @@ The desktop shell already exists in P1 (the Phase 1 brief required it), so the "
 4. **Handshake:** stdout `LAZIS_READY {protocol, port, pid, api_version, …}` or `LAZIS_FATAL {code}` (exit 3). Timeout 30 s. `database_key_invalid` → `needs_recovery`.
 5. **Shutdown:** the shell closes stdin → the backend stops gracefully (checkpoint, audit `app.stopped`, lock release); escalation SIGTERM (after 7 s) → SIGKILL (after 3 s more); the child is always reaped. If the shell dies (even SIGKILL), the kernel closes the pipe and the backend exits by itself (measured: 0.35 s). A parent-PID watcher is a second guard.
 6. **Duplicates and ports:** the Tauri single-instance plugin focuses the existing window; the backend holds a per-profile `flock` on the data directory for as long as the database is open (`instance_already_running`; since P1.1 owned by `storage` so restores respect it too); the port is chosen by the OS (`port=0`) and reported in the handshake, so there are no port conflicts and no port metadata is written to disk.
-7. **Supervision in P1:** an unexpected backend exit is detected (stdout EOF) and shown as `backend_exited` with a retry action. Automatic restart with backoff stays in P4.
+7. **Supervision:** an unexpected backend exit is detected immediately (stdout EOF) and shown as `backend_exited`. Since P4 the shell restarts it automatically: at most 3 times in 60 s, after 1/2/4 s, never while quitting, serialized with every other start. After that comes `backend_restart_limit` with a manual retry, which resets the budget ([ADR-0012](adr/0012-desktop-experience-and-resilience.md) §3).
 8. **Restore (P1.1, no UI yet):** `storage.backup.restore_snapshot` takes the same lock, validates, stages, moves the current files aside, installs, verifies and commits by atomically marking its durable journal `committed`; the old files then move to `backups/pre-restore-<stamp>/`. `open_storage` first finishes or rolls back any restore interrupted by a crash ([SECURITY_MODEL.md §5.1](SECURITY_MODEL.md)).
 
-- **Supervision:** Tauri restarts `lazis-core` with backoff if it crashes (max 3 in 60 s, then ERROR state with diagnostics). `lazis-core` restarts `lazis-audio` the same way.
+### 3.2 Implemented in P4
+
+[ADR-0012](adr/0012-desktop-experience-and-resilience.md) has the decisions and their reasons.
+
+- **Main window.** Created in code with a navigation guard: only the app itself (`tauri://localhost`, plus the dev server in debug builds); new windows are refused.
+- **Menu-bar item.** Template icon; menu: status line, open, system status, settings, quit.
+- **Closing and quitting.**
+  - Closing the window hides it to the menu bar (preference) or quits; the Dock icon reopens it.
+  - ⌘Q and "Quit" run the normal shutdown: lifeline close, then graceful stop.
+- **Second launch.** `--show=<assistant|diagnostics|settings>` opens that view in the running instance.
+- **Sleep/wake.** A detector thread compares monotonic and wall-clock time every 15 s. A wake emits `lazis://system-woke`; the UI then re-checks health and the runtime and re-warms the session.
+- **Shell commands added:**
+  - `get_preferences` / `set_preferences` (desktop-state.json);
+  - `set_tray_status` (enum);
+  - `open_external_url` (validated http(s), opened with `/usr/bin/open`);
+  - `process_metrics` (per-process `phys_footprint`, on demand).
+- **UI polling.** `/health` every 15 s only while visible. `/system/status` only for the views that show it; its integrity check is cached for 10 minutes. Ollama is re-checked with backoff while unreachable; LAZIS never manages Ollama.
+
+- **Supervision (target design):** Tauri restarts `lazis-core` with backoff if it crashes (max 3 in 60 s, then ERROR state with diagnostics); implemented in P4. `lazis-core` restarts `lazis-audio` the same way (P13).
 - **Ollama:** treated as an external dependency. If it is unreachable, the system enters ERROR with a recoverable reason (`llm_unavailable`) and retries. LAZIS sets the required environment (`OLLAMA_NO_CLOUD=1`, `OLLAMA_HOST=127.0.0.1`) through a launch agent created by the setup script.
 - **Development mode:** `make dev` (`pnpm tauri dev`) runs the shell with the `dev` profile and the Vite dev server; the backend then allows the extra origin `http://localhost:1420`. The backend can also be started alone for tests (`python -m lazis serve --stdin-secrets`).
 
@@ -382,6 +400,16 @@ Transport: HTTP/1.1 REST + one WebSocket on `127.0.0.1:{random port}`. Auth: a p
 | `GET /chat/activity` | Turn and background job state |
 
 There is deliberately **no** route to list, rename, switch or delete conversations or sessions (ADR-0011 §7).
+
+**Added in P4:** `GET /diagnostics` reports:
+
+- runtime availability;
+- the model: primary, fallback, active, installed and loaded, keep-alive, `num_ctx`, `automatic_fallback: false`;
+- the last turn: outcome, failed stage, TTFT, total, context preparation, runtime TTFT, prompt/output tokens, decode speed;
+- the pre-warm: state, scope `context|model_only`, time, duration, tokens, error code;
+- `cache_expected_warm`, the background job, and whether a turn is active.
+
+It never includes message content.
 Busy, duplicate, missing model, unavailable runtime and an oversized message are refused before anything is stored. The WebSocket hub of §8.2 was not built: upgrades are still refused, and NDJSON over HTTP carries the streams.
 
 API versioning: the `/api/v1` prefix; additive changes within v1; a breaking change means `/api/v2` with a deprecation window. Event payloads carry `schema_version` ([ENGINEERING_STANDARDS.md §6](ENGINEERING_STANDARDS.md)).
@@ -420,6 +448,18 @@ stateDiagram-v2
 - Background learning and ingestion are **not** states. They are shown as a small activity indicator, so the core is never "busy" because of housekeeping.
 - The voice session's finer states (Listening, UserSpeaking, Endpointing, Processing, AssistantSpeaking, Interrupting, Cancelling, Recovering) map onto these five global states. The mapping is in [VOICE_ARCHITECTURE.md §4.1](VOICE_ARCHITECTURE.md).
 - Transition guards: e.g., `THINKING → SPEAKING` only if `turn_id` matches the active turn. All transitions are logged with reason codes for diagnosis.
+
+**As built in P4 (text only).** The UI derives the state from real events (`ui/src/stores/presence.ts`); the backend `state.changed` channel comes with voice in P13.
+
+| State | Derived from |
+|---|---|
+| IDLE | Connected, no turn running, runtime reachable |
+| THINKING | Turn sent; waiting, loading the model or processing context (stream `status` events). Also while stopping, and at backend start |
+| SPEAKING | `delta` events arriving (the reply is being written) |
+| ERROR | Backend failed, restarting or disconnected; recovery needed; runtime unreachable; or the last turn failed. A cancellation is not an error |
+| LISTENING | Reserved for voice (P13); never produced |
+
+The indicator animates only in THINKING and SPEAKING. Every state has a text label, and the menu-bar status follows it.
 
 ## 10. Error handling
 

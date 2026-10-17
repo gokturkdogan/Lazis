@@ -189,3 +189,21 @@ make test-ollama LAZIS_TEST_MODEL=…       # opt-in: real sandboxed backend + O
   - `uv run --project core python evals/runners/p3_context_eval.py --model gemma4:12b-it-qat` — answers after compaction vs full history → `evals/reports/phase3/context_eval.json`;
   - `uv run --project core python evals/runners/p3_assistant.py --model gemma4:12b-it-qat` — single-assistant scenarios (opening, follow-ups, reopen, 20,000-message history, session change) → `evals/reports/phase3/assistant_perf.json`.
 - **Live tests:** `LAZIS_TEST_MODEL=gemma4:12b-it-qat make test-ui-integration` runs one continuous conversation through the real backend: recall, stop, the same session after a backend restart, no text in logs.
+
+## 14. Desktop experience (Phase 4)
+
+Decisions: [ADR-0012](adr/0012-desktop-experience-and-resilience.md).
+
+- **Assistant state:** derived in `ui/src/stores/presence.ts` from the shell phase, the runtime check and turn events. The states are idle, thinking, speaking, error, and listening (reserved). Change the mapping there and in `presence.spec.ts`, never with timers.
+- **Menu bar and window** (`src-tauri/src/lib.rs`, `desktop.rs`):
+  - Closing hides to the menu bar by default; ⌘Q or "LAZIS'ten çık" quits.
+  - Open a view in the running app: `…/LAZIS.app/Contents/MacOS/lazis-desktop --show=diagnostics` (or `assistant`, `settings`). Set the same `LAZIS_PROFILE` as the running instance; there is one instance per app, not per profile.
+- **Preferences:** stored in `desktop-state.json` under `preferences`: `closeToMenuBar`, `startHidden`, `reduceMotion` (`system|on`). Edit them in Ayarlar › Genel. For a throwaway profile you may also edit the file, but never for `default`.
+- **Diagnostics:** the Tanılama tab, or `GET /api/v1/diagnostics` (no content) plus the shell's `process_metrics` (per-process `phys_footprint`). Both run only while the tab is open and the window visible.
+- **Backend crash:** the shell restarts it, at most 3 times in 60 s. Log lines: `backend.restart_scheduled attempt=… delay_ms=…`, `backend.restarting`. After the limit: `backend_restart_limit` and the retry button.
+- **Markdown:** `ui/src/markdown.ts`. It must keep `html: false`, images disabled and http(s)-only links. Any change needs the XSS cases in `markdown.spec.ts` to pass.
+- **Measurements:**
+  - `uv run --project core python evals/runners/p4_desktop.py --model gemma4:12b-it-qat` → `evals/reports/phase4/desktop_perf.json`;
+  - `… p3_assistant.py --model … --out evals/reports/phase4/assistant_perf_rerun.json`;
+  - `LAZIS_UI_PERF=1 pnpm vitest run --config vitest.config.ts ui/tests/unit/render.perf.spec.ts` (from `apps/desktop`) → `evals/reports/phase4/ui_render.json`.
+- **Rebuilding the app** changes its ad-hoc code signature. On the next launch macOS asks again for access to the profile's Keychain item ("Always allow"). For throwaway profiles it is simpler to delete the profile and its `database-key-v1-<profile>` item and start fresh.

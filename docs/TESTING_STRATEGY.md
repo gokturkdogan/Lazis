@@ -98,7 +98,7 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 - CI: local-first (the `just ci` target). GitHub Actions on macOS runners is optional if the repository is hosted. Live evals are never part of blocking CI (they need the GPU and real models).
 - **Reporting template** per phase: commands run, pass/fail counts, failures with explanations, skipped tests with reasons, eval metrics vs. thresholds, known issues.
 
-## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3)
+## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3 + 4)
 
 `make check` runs everything below except the opt-in tests (Keychain, live Ollama). Counts are from the Phase 2 run ([PHASE_2_REPORT.md](PHASE_2_REPORT.md) §M): Python 219 (unit 60, integration 103, security 56), UI 33 unit + 5 integration (1 skipped without a model), shell 19 + 7. The descriptions below are from Phase 1.1; the Phase 2 additions are listed after the table.
 
@@ -139,6 +139,26 @@ Phase 3 additions ([PHASE_3_REPORT.md](PHASE_3_REPORT.md) §9 and §13.E have th
 | UI ↔ real backend (opt-in live) | `backend.integration.spec.ts` with `LAZIS_TEST_MODEL` | persistent multi-turn conversation with the real model: recall of an earlier message, stop, rename, delete; the backend's log file never contains the conversation text |
 
 Live measurements (not CI): `evals/runners/p3_conversation.py` (cold, warm and pre-warmed TTFT per scenario, runner memory, estimator error) and `evals/runners/p3_context_eval.py` (probe accuracy after compaction vs full history).
+
+Phase 4 additions ([PHASE_4_REPORT.md](PHASE_4_REPORT.md) §F has the run counts):
+
+| Suite | Where | What it proves |
+|---|---|---|
+| Diagnostics | `core/tests/integration/test_diagnostics.py` | token required; no content in diagnostics (seeded secret); runtime down reported; pre-warm states and scopes (`model_only` is not a warm context); empty-session pre-warm gives a cold first turn; cancellation and failure recorded with timings; the integrity check is cached by TTL; the status endpoint still reports integrity |
+| Shell desktop helpers | `src-tauri/src/desktop.rs`, `metrics.rs`, `state_file.rs` | navigation guard; external-URL validation (dangerous schemes, credentials, control characters, length); sleep detection from clock drift; tray status and view allowlists; tray icon; `phys_footprint` matches the process and is unknown, never zero, for a missing pid; child listing; lenient preferences never reset the recovery acknowledgement |
+| Shell lifecycle (updated) | `tests/lifecycle.rs` | a killed backend restarts automatically with a new pid and token; the budget is bounded (`backend_restart_limit`, no loop) and a manual retry resets it; no restart and no manual retry once the app is quitting |
+| UI states | `ui/tests/unit/presence.spec.ts` | the full state table; idle → thinking → speaking → idle without timers; error → recovery → idle; stop → idle; backend crash mid-reply: error, partial reply kept as interrupted, no duplicate, timeline reloaded after the restart; never "listening" |
+| UI Markdown | `ui/tests/unit/markdown.spec.ts` | headings, emphasis, lists, quotes, tables, code (escaped, language label sanitized, copy); XSS vectors as text; dangerous and non-web links not linked; no images; links confirmed and opened only through the shell |
+| UI resilience and thread | `ui/tests/unit/resilience.spec.ts` | `/health` only, every 15 s, nothing while hidden, immediate check on show and on wake; restart and limit reported; Ollama re-check backoff, paused while hidden, re-warm when back; reader not pulled down; follows at the bottom; position kept when older messages load; message copy; Markdown only for completed replies |
+| UI panels | `ui/tests/unit/panels.spec.ts` | diagnostics content and wording ("Bağlam hazırlandı", never a guaranteed cache; memory with its source; unknown values); measuring only while open and visible; preferences saved through the shell, reduce motion applied, failed saves shown honestly; privacy card; menu-bar status sync; `--show` and menu-bar navigation; the `main.ts` start order; text label for every state |
+| UI ↔ real backend (updated) | `backend.integration.spec.ts` | diagnostics without content; with `LAZIS_TEST_MODEL`: real timings of the last turn, and a real Gemma Markdown reply rendered through the safe renderer |
+| UI render cost (opt-in) | `LAZIS_UI_PERF=1` `ui/tests/unit/render.perf.spec.ts` | indicative Markdown, 200-message mount and streaming-update timings (happy-dom) |
+
+Live measurements (not CI):
+
+- `evals/runners/p4_desktop.py`: normal and long replies, diagnostics polling during streaming, integrity-check cost.
+- `p3_assistant.py --out evals/reports/phase4/assistant_perf_rerun.json`: the Phase 3 harness rerun on Phase 4 code.
+- Real-app idle/hidden/diagnostics CPU and the crash → restart time are measured with a throwaway profile (PHASE_4_REPORT §E).
 
 Rules that apply to these suites: synthetic data only; no test contacts another host (refused targets are TEST-NET-1 `192.0.2.1`, `2001:db8::/32` and the reserved `.invalid` TLD); destructive tests run only in temporary directories, never against a real profile.
 

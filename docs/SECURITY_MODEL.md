@@ -268,6 +268,26 @@ Residual risks (accepted, documented):
 4. **FileVault is off on the owner's Mac** (found in P1.1): logs, macOS swap (which can contain backend and Ollama memory) and other non-database files are not encrypted at rest.
 5. **The summarizing model** can still omit or misread facts. The evidence check prevents misattributed quotes and invented quotes, not every misunderstanding; originals are always kept, and summaries can be invalidated.
 
+### 5.15 Desktop experience (Phase 4)
+
+Decisions: [ADR-0012](adr/0012-desktop-experience-and-resilience.md). Phase 4 adds no network permission, no telemetry and no export. Keys, tokens and the SQLCipher/Keychain model are unchanged. Model output is now rendered as Markdown, and the shell gained five commands.
+
+| Risk | Control | Verified by |
+|---|---|---|
+| A reply injects markup or script (XSS) | markdown-it with `html: false` (raw HTML is escaped text); no event-handler or `style` attributes reach the DOM; CSP without inline scripts as a second layer | `markdown.spec.ts`: script, img/onerror, iframe, svg, style and onclick vectors render as text, with no `on*`/`src`/`style` attributes |
+| A reply loads remote resources (tracking pixel, leak through the URL) | Images are disabled; only links exist, and nothing is fetched until the user confirms | `markdown.spec.ts` (no `<img>`, ever) |
+| A link navigates the app window or uses a dangerous scheme | `javascript:`, `data:`, `vbscript:`, `file:`, relative and custom schemes never become links. Clicks are intercepted and need confirmation. The shell's `open_external_url` accepts http(s) only: a host, no credentials, no control characters, ≤ 2048 bytes. The window's navigation guard refuses every other origin, and new windows are denied | `markdown.spec.ts`; `desktop::tests::external_urls_are_http_only_and_well_formed`, `navigation_guard_allows_only_the_app` |
+| New shell commands widen the IPC surface | Each command is in the capability ACL (`build.rs`, `capabilities/main.json`) and validates its input in Rust: tray status is an enum, preferences are a typed struct, view names come from a fixed set (the initialization script only ever gets one of them) | Rust unit tests; ACL build |
+| Diagnostics leak conversation content or secrets | `GET /diagnostics` holds numbers, model names and codes only. Process memory is per-process `phys_footprint` (no command lines, no environment). Logs record the scheme of an opened link, never the URL | `test_diagnostics_requires_the_token_and_never_contains_content` (seeded secret absent); live UI test (marker absent from real diagnostics) |
+| Automatic restart starts two backends or one during quit | Restarts run under the shell's start lock. `shutting_down` is checked under the state lock (race with `shutdown()` closed). The per-profile `flock` remains. Budget: 3 restarts in 60 s | `unexpected_backend_exit_restarts_automatically`, `restart_budget_is_bounded_and_manual_retry_resets_it`, `no_restart_once_the_app_is_quitting` (real backend) |
+| A preferences write undoes the recovery acknowledgement | State-file writes are serialized. A malformed preferences object defaults on its own instead of making the file unreadable | `bad_preferences_never_reset_the_recovery_acknowledgement` |
+| Ollama or system settings changed behind the owner's back | LAZIS only observes Ollama: no start, stop or LaunchAgent change, and no automatic model fallback. FileVault is explained, never toggled | Code review; diagnostics shows "otomatik geçiş yok" |
+
+Residual (Phase 4):
+
+1. A confirmed link opens in the browser, so the destination is outside LAZIS's control. The confirmation shows the full URL.
+2. Copying a message or code puts it on the clipboard, where clipboard-history tools and Universal Clipboard can see it. Copying is always an explicit user action.
+
 ## 6. Privacy UX commitments
 1. **Visible state:** network on/off, mic active, off-record, research pending, learning activity.
 2. **"Ne biliyorsun?"** always works: the user can ask or browse everything stored about them or anyone else.

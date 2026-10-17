@@ -2,9 +2,19 @@
 
 A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs.
 
-**Current phase:** Phase 3 (conversation engine: one persistent, encrypted assistant timeline with managed context; single-assistant addendum per ADR-0011) implemented and verified — **awaiting the owner's approval**. Phase 4 has not started. Model decision: [ADR-0001](docs/adr/0001-primary-model.md) (Accepted).
+**Current phase:** Phase 4 (desktop experience, system management and resilience: real-time assistant states, diagnostics panel, bounded automatic backend restart, Ollama reconnect, sleep/wake handling, menu-bar item, safe Markdown; [ADR-0012](docs/adr/0012-desktop-experience-and-resilience.md)) implemented and verified — **awaiting the owner's approval**. Phase 5 has not started. Model decision: [ADR-0001](docs/adr/0001-primary-model.md) (Accepted).
 
-What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. Phase 2 adds a local LLM through Ollama on loopback (primary: Gemma 4 12B; the backend's sandbox allows only Ollama's port, cloud inference disabled) Phase 3 adds one persistent Turkish assistant with a single continuous timeline ([ADR-0011](docs/adr/0011-single-assistant-timeline.md)), stored in the encrypted database: no conversation management, streaming, stop, recovery of interrupted replies, a token budget, evidence-checked compaction of long conversations, and cache pre-warming. There is no personal memory, voice or internet access yet — by design: chat history is not personal memory.
+What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. Phase 2 adds a local LLM through Ollama on loopback (primary: Gemma 4 12B; the backend's sandbox allows only Ollama's port, cloud inference disabled) Phase 3 adds one persistent Turkish assistant with a single continuous timeline ([ADR-0011](docs/adr/0011-single-assistant-timeline.md)), stored in the encrypted database: no conversation management, streaming, stop, recovery of interrupted replies, a token budget, evidence-checked compaction of long conversations, and cache pre-warming. Phase 4 makes it a desktop app to live with:
+
+- an assistant state indicator driven by real events (Hazır / Düşünüyor / Yanıtlıyor / Sorun var);
+- a menu-bar item;
+- automatic restart of a crashed backend (bounded);
+- Ollama reconnect and sleep/wake handling;
+- a diagnostics panel without conversation content;
+- safe Markdown replies with copy;
+- a much lower idle cost.
+
+There is no personal memory, voice or internet access yet — by design: chat history is not personal memory.
 
 ## Quick start
 
@@ -20,7 +30,8 @@ Details: [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).
 
 | Document | Contents |
 |---|---|
-| [PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md) | **Start here.** Phase 3 report (Turkish): persistent conversations, schema, API, context management and compaction, cold-cache measurements, security, tests, known gaps, risks for Phase 4 |
+| [PHASE_4_REPORT.md](docs/PHASE_4_REPORT.md) | **Start here.** Phase 4 report (Turkish): assistant states, diagnostics, recovery, menu bar, Markdown, measurements vs Phase 3, tests, security, known gaps, verification steps |
+| [PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md) |  Phase 3 report (Turkish): persistent conversations, schema, API, context management and compaction, cold-cache measurements, security, tests, known gaps, risks for Phase 4 |
 | [adr/0011-single-assistant-timeline.md](docs/adr/0011-single-assistant-timeline.md) | ADR-0011: one assistant, one timeline, hidden technical sessions, data migration |
 | [adr/0010-conversation-persistence-and-context.md](docs/adr/0010-conversation-persistence-and-context.md) | ADR-0010: conversation storage, turn lifecycle, prompt layout, token budget, compaction, pre-warming, deletion |
 | [PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | Phase 2 report (Turkish). Phase 2 report (Turkish): environment, model inventory and downloads, inference architecture, sandbox compatibility, chat, tests, model decision, Phase 3 readiness |

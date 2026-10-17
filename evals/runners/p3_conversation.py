@@ -67,9 +67,17 @@ def _activate(conn: repository.Connection, conversation_id: str) -> None:
 
 class Bench:
     def __init__(
-        self, model: str, root: Path, *, compact_at: int, prewarm: bool = True, idle_delay: float = 3600.0
+        self,
+        model: str,
+        root: Path,
+        *,
+        compact_at: int,
+        prewarm: bool = True,
+        idle_delay: float = 3600.0,
+        max_output: int = 200,
     ) -> None:
         self.model = model
+        self.max_output = max_output
         self.root = root
         self.key = SecretBytes(secrets.token_bytes(32))
         self.compact_at = compact_at
@@ -86,8 +94,8 @@ class Bench:
             app=AppSection(environment="test"),
             storage=StorageSection(data_dir=self.root / "data"),
             logging=LoggingSection(directory=self.root / "logs"),
-            # Replies capped at 200 tokens to keep runs short; TTFT does not depend on the cap.
-            models=ModelsSection(max_output_tokens=200),
+            # Replies capped (default 200 tokens) to keep runs short; TTFT does not depend on the cap.
+            models=ModelsSection(max_output_tokens=self.max_output),
             conversation=ConversationSection(
                 compact_at_tokens=self.compact_at,
                 idle_compaction_delay_s=self.idle_delay,  # compaction only where a scenario wants it
