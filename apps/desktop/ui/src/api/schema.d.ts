@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat Cancel */
+        post: operations["chat_cancel_api_v1_chat_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat Stream */
+        post: operations["chat_stream_api_v1_chat_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -30,6 +64,40 @@ export interface paths {
         };
         /** Health */
         get: operations["health_api_v1_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/llm/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Llm Models */
+        get: operations["llm_models_api_v1_llm_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/llm/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Llm Status */
+        get: operations["llm_status_api_v1_llm_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -117,6 +185,49 @@ export interface components {
             /** Uptime Seconds */
             uptime_seconds: number;
         };
+        /** ChatCancelRequest */
+        ChatCancelRequest: {
+            /** Request Id */
+            request_id: string;
+        };
+        /** ChatCancelResponse */
+        ChatCancelResponse: {
+            /** Cancelled */
+            cancelled: boolean;
+        };
+        /** ChatOptions */
+        ChatOptions: {
+            /**
+             * Context
+             * @default normal
+             * @enum {string}
+             */
+            context: "short" | "normal" | "long";
+            /** Max Tokens */
+            max_tokens?: number | null;
+            /** Temperature */
+            temperature?: number | null;
+        };
+        /** ChatStreamRequest */
+        ChatStreamRequest: {
+            /** Messages */
+            messages: components["schemas"]["ChatTurn"][];
+            /** Model */
+            model: string;
+            options?: components["schemas"]["ChatOptions"];
+            /** Request Id */
+            request_id: string;
+        };
+        /** ChatTurn */
+        ChatTurn: {
+            /** Content */
+            content: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+        };
         /** DatabaseStatusModel */
         DatabaseStatusModel: {
             /** Cipher Provider */
@@ -167,8 +278,14 @@ export interface components {
             log_level: string;
             /** Max Request Bytes */
             max_request_bytes: number;
-            /** Models Context Length */
-            models_context_length: number;
+            /** Models Context Long */
+            models_context_long: number;
+            /** Models Context Normal */
+            models_context_normal: number;
+            /** Models Context Short */
+            models_context_short: number;
+            /** Models Keep Alive */
+            models_keep_alive: string;
             /** Models Primary Model */
             models_primary_model: string | null;
             /** Models Provider */
@@ -197,6 +314,11 @@ export interface components {
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
         };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** HealthCheck */
         HealthCheck: {
             /** Code */
@@ -220,6 +342,54 @@ export interface components {
             status: "ok" | "degraded";
             /** Version */
             version: string;
+        };
+        /** LlmStatusResponse */
+        LlmStatusResponse: {
+            /**
+             * Cloud Inference
+             * @constant
+             */
+            cloud_inference: "disabled";
+            /** Loaded */
+            loaded: components["schemas"]["LoadedModelModel"][];
+            /** Primary Model */
+            primary_model: string | null;
+            runtime: components["schemas"]["RuntimeStatusModel"];
+        };
+        /** LoadedModelModel */
+        LoadedModelModel: {
+            /** Context Length */
+            context_length: number | null;
+            /** Expires At */
+            expires_at: string;
+            /** Name */
+            name: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Vram Bytes */
+            vram_bytes: number;
+        };
+        /** ModelInfoModel */
+        ModelInfoModel: {
+            /** Digest */
+            digest: string;
+            /** Family */
+            family: string;
+            /** Format */
+            format: string;
+            /** Name */
+            name: string;
+            /** Parameter Size */
+            parameter_size: string;
+            /** Quantization */
+            quantization: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /** ModelListResponse */
+        ModelListResponse: {
+            /** Models */
+            models: components["schemas"]["ModelInfoModel"][];
         };
         /** PrivacyStatus */
         PrivacyStatus: {
@@ -246,12 +416,36 @@ export interface components {
             /** Voice Enabled */
             voice_enabled: boolean;
         };
+        /** RuntimeStatusModel */
+        RuntimeStatusModel: {
+            /** Available */
+            available: boolean;
+            /** Error Code */
+            error_code: string | null;
+            /** Runtime */
+            runtime: string;
+            /** Version */
+            version: string | null;
+        };
         /** SystemStatusResponse */
         SystemStatusResponse: {
             ai: components["schemas"]["AiStatus"];
             backend: components["schemas"]["BackendStatus"];
             database: components["schemas"]["DatabaseStatusModel"];
             privacy: components["schemas"]["PrivacyStatus"];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
     };
     responses: never;
@@ -318,6 +512,72 @@ export interface operations {
             };
         };
     };
+    chat_cancel_api_v1_chat_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatCancelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_stream_api_v1_chat_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatStreamRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -370,6 +630,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    llm_models_api_v1_llm_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelListResponse"];
+                };
+            };
+        };
+    };
+    llm_status_api_v1_llm_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmStatusResponse"];
                 };
             };
         };

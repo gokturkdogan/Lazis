@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). **P1 implemented and hardened (P1.1) 2026-10-17, awaiting the owner's approval** ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). **P2 implemented 2026-10-17; model decision accepted** ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [PHASE_2_MODEL_BENCHMARKS.md](PHASE_2_MODEL_BENCHMARKS.md), [ADR-0001](adr/0001-primary-model.md) Accepted, G2 revised as G2-r1). **P3 not started, awaiting the owner's approval** · Last updated: 2026-10-17
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -122,6 +122,25 @@ Exit evidence: backend 100 tests, UI 19 unit + 3 integration (against a real bac
 - **Risks:** R1, R2, R7, R16, R24.
 - **Testable result:** `lazis bench` and `lazis eval` reproduce the reports; the chosen model streams Turkish through the provider contract.
 - **Exit conditions:** a model and variant chosen by the declared rules, or the gaps presented to and decided by the user; reports and ADRs committed.
+- **As built (2026-10-17):** the Phase 2 brief changed the scope. It added a minimal ephemeral Turkish chat in the desktop app and confined the backend sandbox to Ollama's port (ADR-0009 Amendment 1).
+  - **Built:**
+    - `LLMProvider` port plus the Ollama adapter (streaming, cancellation, timeouts, JSON schema, `think`, `keep_alive`, endpoint allowlist, installed-only models);
+    - fake provider and fake Ollama HTTP server;
+    - `scripts/ollama-agent.sh` and `scripts/model-pull.sh`;
+    - `evals/` harnesses and datasets v1;
+    - B1–B4, the long-context and `num_ctx` sweeps, quality, think-mode and extraction suites on 5 tags;
+    - SPK-01 (without tools), SPK-03 (G4 inconclusive), SPK-08;
+    - ADR-0001 (Accepted, with the G2-r1 revision record);
+    - G2-r1 context-length measurement (`evals/runners/g2_context.py`).
+  - **Deferred:**
+    - `OpenAICompatLLMProvider`;
+    - `EmbeddingProvider` and SPK-06/ADR-0002 (before P6);
+    - digest pinning with startup verification and the tokenizer service (P3);
+    - B7 tools and B8 soak (P3);
+    - SPK-07/B10 voice smoke (before P13);
+    - SPK-02 schema-violation stress test;
+    - ADR-0004 (its operating parameters live in ADR-0001);
+    - CLI `lazis bench`/`lazis eval` (provided by `make bench` / `make eval`).
 
 ## P3 — Conversation engine (M)
 

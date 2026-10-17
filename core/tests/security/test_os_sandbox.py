@@ -40,7 +40,8 @@ def attempt(name, fn):
         r[name] = "eperm" if exc.errno in (errno.EPERM, errno.EACCES) else "error:" + str(exc.errno)
 srv = socket.socket(); srv.bind(("127.0.0.1", 0)); srv.listen(1)
 port = srv.getsockname()[1]
-attempt("loopback_connect", lambda: socket.create_connection(("127.0.0.1", port), timeout=2).close())
+attempt("loopback_other_port", lambda: socket.create_connection(("127.0.0.1", port), timeout=2).close())
+attempt("ollama_port", lambda: socket.create_connection(("127.0.0.1", 11434), timeout=2).close())
 def py_remote():
     s = socket.socket(); s.settimeout(2)
     s.connect(("{TEST_NET}", 9))
@@ -73,10 +74,14 @@ def _run_probe(*, sandboxed: bool) -> dict[str, str]:
     return json.loads(out.stdout.strip().splitlines()[-1])
 
 
-def test_profile_denies_every_path_to_other_hosts_but_keeps_loopback() -> None:
+def test_profile_denies_every_path_to_other_hosts_and_local_services() -> None:
     r = _run_probe(sandboxed=True)
     assert r["status"] == "enforced"
-    assert r["loopback_connect"] == "allowed"
+    # Phase 2: only the local inference runtime's port is reachable. Whether Ollama is running
+    # or not, the sandbox must not be what stops it (refused ≠ EPERM).
+    assert r["ollama_port"] in ("allowed", "error:61"), r["ollama_port"]
+    # Any other local service (a proxy, a debugger port, ...) is unreachable.
+    assert r["loopback_other_port"] == "eperm"
     # The OS refuses, regardless of how the connection is attempted.
     for name in (
         "python_socket_remote",

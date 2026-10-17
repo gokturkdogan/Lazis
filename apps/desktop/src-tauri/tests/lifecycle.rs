@@ -121,6 +121,14 @@ fn first_run_restart_and_recovery_flow() {
     // The backend runs under the OS network sandbox and confirmed it itself.
     assert!(body.contains("\"os_network_sandbox\":\"enforced\""), "{body}");
     assert!(["on", "off", "unknown"].contains(&dto.file_vault));
+    // Phase 2: the sandboxed backend can reach the local runtime (Ollama, 127.0.0.1:11434) and
+    // nothing else. If Ollama runs on this machine, the status must say "available".
+    let (status, body) = http_get(port, "/api/v1/llm/status", Some(&token));
+    assert_eq!(status, 200, "{body}");
+    assert!(body.contains("\"cloud_inference\":\"disabled\""), "{body}");
+    if TcpStream::connect(("127.0.0.1", 11434)).is_ok() {
+        assert!(body.contains("\"available\":true"), "sandbox blocked the Ollama port: {body}");
+    }
     assert_eq!(http_get(port, "/api/v1/health", None).0, 401);
     let key = store.load().unwrap().expect("key stored before the database was created");
     let code = c.reveal_recovery_code().unwrap();

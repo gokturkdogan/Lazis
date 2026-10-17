@@ -1,6 +1,6 @@
 # LAZIS — System Architecture
 
-> Status: Phase 0.1 (revised), updated with the Phase 1 implementation and Phase 1.1 hardening · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), updated with the Phase 1 implementation, Phase 1.1 hardening and Phase 2 local inference (§7.1, §8.1) · Last updated: 2026-10-17
 > Phase 1 as built: [PHASE_1_REPORT.md](PHASE_1_REPORT.md) (Turkish) and [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md). Where this blueprint and the code differ, §3.1, §11.1, §12 and §13.1 describe the implemented state.
 > Decisions referenced here are justified in [TECHNOLOGY_DECISIONS.md](TECHNOLOGY_DECISIONS.md). Phase numbers (P1–P15) follow [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md). Coding rules: [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md).
 
@@ -316,6 +316,14 @@ class KeyProvider(Protocol):                 # security; Keychain-backed impleme
 
 Implementations planned: `OllamaLLMProvider` (primary), `OpenAICompatLLMProvider` (mlx-lm server, llama.cpp `llama-server`, LM Studio), `FakeLLMProvider` (deterministic tests, recorded fixtures).
 
+### 7.1 Implemented in P2
+
+- `core/src/lazis/providers/llm/ports.py` — runtime-neutral types and the `LLMProvider` protocol: `health`, `list_models`, `loaded_models`, `stream` (content/thinking deltas + final metrics), `generate`, `cancel(request_id)`, `load(num_ctx, keep_alive)`, `unload`, `aclose`. Options: named context size (`num_ctx`), max tokens, sampling overrides, seed, `think`, `keep_alive`, `response_format` (JSON or JSON Schema).
+- `core/src/lazis/providers/llm/ollama.py` — the Ollama implementation: endpoint allowlist (`version`, `tags`, `ps`, `show`, `chat`), installed-models-only, cloud/registry names refused, `httpx` with `trust_env=False` and no redirects, first-token / idle / total timeouts, cancellation that closes the HTTP stream (Ollama then stops), error mapping to stable codes (`llm_unavailable`, `llm_model_not_found`, `llm_out_of_memory`, `llm_load_failed`, `llm_timeout`, `llm_invalid_response`, `llm_cancelled`). Metrics: TTFT, load, prefill/decode tokens and durations.
+- Only `lazis.providers` may import an HTTP client (import-linter); the OS sandbox lets the backend reach only `127.0.0.1:11434`.
+- MLX is reachable through the same adapter: Ollama 0.40 runs MLX-format tags with its MLX runner. A separate `mlx_lm` adapter was not built (see PHASE_2_REPORT §G).
+- Evaluation tooling lives outside the shipped package in `evals/` (datasets, runners, reports) and uses the production adapter.
+
 ## 8. External API (UI ↔ core)
 
 Transport: HTTP/1.1 REST + one WebSocket on `127.0.0.1:{random port}`. Auth: a per-launch 256-bit token in the `Authorization` header (REST) or the first WS message. Origin must be the Tauri origin. Types: Pydantic → OpenAPI → `openapi-typescript`, with drift checked in CI.
@@ -341,6 +349,8 @@ Transport: HTTP/1.1 REST + one WebSocket on `127.0.0.1:{random port}`. Auth: a p
 | Voice | `GET /voice/devices`, `POST /voice/session {mode}`, `DELETE /voice/session` |
 
 **Implemented in P1** (all require the bearer token; OpenAPI snapshot in `apps/desktop/ui/src/api/openapi.json`, drift-tested): `GET /health`, `GET /app/info`, `GET /system/status` (backend, database encryption/integrity, privacy flags, AI placeholder, platform), `GET /settings` (effective non-secret settings, read-only). Every request passes `LocalApiGuard` in this order: rate limit (token bucket) → `Host` must be `127.0.0.1:{port}` (DNS-rebinding defense) → `Origin` allowlist (`tauri://localhost`; plus `http://localhost:1420` in development) → CORS preflight answered without a token → bearer token (constant-time compare) → body limit 64 KiB. Interactive docs and `/openapi.json` are disabled. Errors are `{error: {code, message (Turkish), recoverable, request_id}}` with no stack traces; denials are written to the audit log.
+
+**Added in P2:** `GET /llm/status` (runtime availability/version, loaded models, `cloud_inference: "disabled"`), `GET /llm/models` (installed local models only), `POST /chat/stream` (body: `model`, `request_id`, `messages[]` of `user`/`assistant` turns — no client system prompt, ≤ 40 turns, ≤ 48 000 characters —, `options.context` = `short|normal|long`, optional `temperature`/`max_tokens`; response: NDJSON events `start` → `delta`… → `done{metrics}` or `error{code,message}`), `POST /chat/cancel` (`request_id`). One generation at a time (`llm_busy`). Nothing is stored or logged; a client disconnect cancels the generation.
 
 API versioning: the `/api/v1` prefix; additive changes within v1; a breaking change means `/api/v2` with a deprecation window. Event payloads carry `schema_version` ([ENGINEERING_STANDARDS.md §6](ENGINEERING_STANDARDS.md)).
 
@@ -510,6 +520,8 @@ lazis/
 │   │   ├── storage/    driver.py (only sqlcipher3 import) · database.py · lock.py · unit_of_work.py ·
 │   │   │               repositories.py · backup.py (snapshots, crash-safe restore) ·
 │   │   │               migrations/{__init__.py, lazis/0001_system.sql}
+│   │   ├── providers/  llm/ports.py (LLMProvider) · llm/ollama.py (P2)
+│   │   ├── api/chat.py (P2: model status, ephemeral streamed chat)
 │   │   └── errors.py · i18n.py · ids.py · fsutil.py
 │   ├── tests/{unit,integration,security}/ · fixtures/recovery_vectors.json (shared with Rust)
 │   ├── spikes/spk05_storage.py · spikes/results/
@@ -524,7 +536,8 @@ lazis/
 │   │   ├── capabilities/main.json · permissions/autogenerated/ · tauri.conf.json · icons/
 │   └── ui/src/ api/ (client, openapi.json, schema.d.ts) · platform/tauri.ts · stores/connection.ts ·
 │              components/ · views/{Overview,Settings,Diagnostics} · i18n/tr.ts · styles/theme.css
-└── scripts/make_icon.py
+├── evals/        datasets/ (synthetic Turkish suites) · runners/ (perf, quality, blind) · reports/phase2/
+└── scripts/      make_icon.py · ollama-agent.sh · model-pull.sh · approved-models.txt
 ```
 
 Differences from the target tree above: migrations live inside the package (`importlib.resources`, so they ship with the wheel); there is no `config/` or `schemas/` directory yet (P2/P3); `jobs/`, `state/` and the event bus arrive with their first consumers in P3; the task runner is `make` (no extra tool) instead of `just`.

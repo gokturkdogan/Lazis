@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from lazis.config.model import ResearchMode
 from lazis.security.network_guard import SandboxStatus
@@ -106,6 +106,88 @@ class EffectiveSettingsResponse(_Schema):
     voice_interaction_mode: str
     models_provider: str
     models_primary_model: str | None
-    models_context_length: int
+    models_context_short: int
+    models_context_normal: int
+    models_context_long: int
+    models_keep_alive: str
     backups_keep: int
     max_request_bytes: int
+
+
+# ----- local inference (P2) ---------------------------------------------------------------
+MODEL_NAME_PATTERN = r"^[a-z0-9][a-z0-9._-]{0,79}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,79})?$"
+REQUEST_ID_PATTERN = r"^[A-Za-z0-9-]{8,64}$"
+MAX_MESSAGES = 40
+MAX_MESSAGE_CHARS = 16_000
+MAX_TOTAL_CHARS = 48_000
+
+
+class RuntimeStatusModel(_Schema):
+    available: bool
+    runtime: str
+    version: str | None
+    error_code: str | None
+
+
+class LoadedModelModel(_Schema):
+    name: str
+    size_bytes: int
+    vram_bytes: int
+    context_length: int | None
+    expires_at: str
+
+
+class LlmStatusResponse(_Schema):
+    runtime: RuntimeStatusModel
+    loaded: list[LoadedModelModel]
+    primary_model: str | None
+    cloud_inference: Literal["disabled"]
+
+
+class ModelInfoModel(_Schema):
+    name: str
+    digest: str
+    size_bytes: int
+    family: str
+    parameter_size: str
+    quantization: str
+    format: str
+
+
+class ModelListResponse(_Schema):
+    models: list[ModelInfoModel]
+
+
+class ChatTurn(_Schema):
+    role: Literal["user", "assistant"]  # no client-supplied system prompts
+    content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
+
+
+class ChatOptions(_Schema):
+    context: Literal["short", "normal", "long"] = "normal"
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    max_tokens: int | None = Field(default=None, ge=16, le=8192)
+
+
+class ChatStreamRequest(_Schema):
+    model: str = Field(pattern=MODEL_NAME_PATTERN)
+    request_id: str = Field(pattern=REQUEST_ID_PATTERN)
+    messages: list[ChatTurn] = Field(min_length=1, max_length=MAX_MESSAGES)
+    options: ChatOptions = Field(default_factory=ChatOptions)
+
+    @field_validator("messages")
+    @classmethod
+    def _shape(cls, messages: list[ChatTurn]) -> list[ChatTurn]:
+        if messages[-1].role != "user":
+            raise ValueError("the last message must come from the user")
+        if sum(len(m.content) for m in messages) > MAX_TOTAL_CHARS:
+            raise ValueError("conversation is too long for one request")
+        return messages
+
+
+class ChatCancelRequest(_Schema):
+    request_id: str = Field(pattern=REQUEST_ID_PATTERN)
+
+
+class ChatCancelResponse(_Schema):
+    cancelled: bool

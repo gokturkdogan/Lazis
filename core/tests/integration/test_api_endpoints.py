@@ -20,7 +20,7 @@ def test_app_info(tmp_path: Path, storage: StorageHandle, token: str) -> None:
     body = (
         make_client(tmp_path, storage, token).get("/api/v1/app/info", headers=_auth(token)).json()
     )
-    assert body["name"] == "LAZIS" and body["api_version"] == "v1" and body["phase"] == "P1"
+    assert body["name"] == "LAZIS" and body["api_version"] == "v1" and body["phase"] == "P2"
     assert body["environment"] == "test"
 
 

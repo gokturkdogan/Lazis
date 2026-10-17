@@ -3,7 +3,7 @@ export const tr = {
   app: {
     name: "LAZIS",
     tagline: "Kişisel yapay zekâ asistanı",
-    foundation: "Faz 1 · Güvenli temel",
+    foundation: "Faz 2 · Yerel yapay zekâ (önizleme)",
   },
   nav: {
     overview: "Genel bakış",
@@ -59,15 +59,41 @@ export const tr = {
     model: "Yerel model",
     modelNone: "Henüz yapılandırılmadı",
     modelPhase: "Yerel model desteği Faz 2'de eklenecek.",
+    runtime: "Çalışma ortamı",
+    runtimeOk: "Ollama {version} · yalnızca yerel",
+    runtimeDown: "Ulaşılamıyor",
+    installed: "Yüklü modeller",
+    cloud: "Bulut çıkarımı",
+    cloudOff: "Kapalı",
     loading: "Yükleniyor…",
   },
   conversation: {
     title: "Sohbet",
-    inactive: "Henüz etkin değil",
-    body:
-      "Sohbet özelliği Faz 3'te gelecek. Şu anda yüklü bir yapay zekâ modeli yok; " +
-      "bu alanda yanıt üretilmez ve sahte yanıt gösterilmez.",
-    placeholder: "Mesaj yazma Faz 3'te etkinleşecek",
+    ephemeral: "Geçici",
+    notice:
+      "Bu bir deneme sohbetidir: mesajlar yalnızca bu pencerenin belleğinde tutulur; " +
+      "diske, veritabanına veya günlüklere yazılmaz ve uygulama kapanınca silinir. " +
+      "Yanıtları bu bilgisayardaki yerel model üretir; hiçbir şey buluta gönderilmez. " +
+      "Kalıcı sohbet ve hafıza sonraki fazlarda gelecek.",
+    model: "Model",
+    noModels: "Yüklü yerel model yok.",
+    noModelsHint: "Kurulum (onaylı modeller): make model-pull MODEL=qwen3.5:9b-q4_K_M",
+    runtimeDown: "Yerel model çalışma ortamına (Ollama) ulaşılamıyor.",
+    runtimeDownHint: "Ollama'yı başlatın: scripts/ollama-agent.sh install",
+    placeholder: "Mesajınızı yazın… (Gönder: ⌘↵)",
+    send: "Gönder",
+    stop: "Durdur",
+    stopping: "Durduruluyor…",
+    clear: "Temizle",
+    refresh: "Yenile",
+    you: "Siz",
+    lazis: "LAZIS",
+    loadingModel: "Model hazırlanıyor… (ilk yanıtta model belleğe yüklenir)",
+    cancelled: "Yanıt durduruldu.",
+    empty: "Henüz mesaj yok. Bir şey sorarak yerel modeli deneyin.",
+    metrics: "İlk token {ttft} · {tps} token/sn · {tokens} token",
+    loaded: "Bellekte: {model} ({size})",
+    notLoaded: "Bellekte yüklü model yok",
   },
   settings: {
     title: "Ayarlar",
@@ -83,7 +109,8 @@ export const tr = {
     voiceMode: "Ses etkileşim türü",
     modelsProvider: "Model sağlayıcı",
     modelsPrimary: "Birincil model",
-    contextLength: "Bağlam uzunluğu",
+    contextLength: "Bağlam (kısa / normal / uzun, token)",
+    keepAlive: "Modelin bellekte kalma süresi",
     backups: "Saklanan yedek sayısı",
     requestLimit: "En büyük istek boyutu",
     recovery: "Kurtarma kodu",
@@ -159,6 +186,16 @@ export const tr = {
     network_sandbox_unavailable:
       "İşletim sistemi ağ kısıtı uygulanamadı. Güvenlik nedeniyle arka uç başlatılmadı.",
     restore_failed: "Yedek geri yüklenemedi. Mevcut veritabanınız değiştirilmedi.",
+    llm_error: "Yerel model beklenmeyen bir hata verdi.",
+    llm_unavailable: "Yerel model çalışma ortamına (Ollama) ulaşılamadı. Ollama kurulu ve çalışıyor mu?",
+    llm_model_not_found: "Seçilen model bu bilgisayarda yüklü değil.",
+    llm_model_not_allowed: "Bu model kullanılamaz (yalnızca yerel modellere izin verilir).",
+    llm_out_of_memory: "Model için yeterli bellek yok. Daha küçük bir model veya bağlam deneyin.",
+    llm_load_failed: "Model yüklenemedi.",
+    llm_timeout: "Model zamanında yanıt vermedi.",
+    llm_invalid_response: "Yerel modelden geçersiz bir yanıt geldi.",
+    llm_busy: "Şu anda başka bir yanıt üretiliyor. Bitmesini bekleyin veya durdurun.",
+    llm_cancelled: "Yanıt üretimi durduruldu.",
   },
 } as const;
 

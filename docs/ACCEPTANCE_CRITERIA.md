@@ -32,7 +32,7 @@
 | ID | Criterion | Method |
 |---|---|---|
 | AIE-04 | The model decision follows [BENCHMARK_PLAN.md §5.3](BENCHMARK_PLAN.md), with all gate results reported; ADR-0001 cites the report | review |
-| CNV-01 | Gates **G2** (warm TTFT p50 ≤ 1.2 s, p95 ≤ 2.5 s †) and **G3** (decode ≥ 20 tok/s †) hold with the production prompt assembler | bench harness, 100 turns |
+| CNV-01 | Gates **G2** (as G2-r1, [BENCHMARK_PLAN §5.1 Amendment 1](BENCHMARK_PLAN.md): user turn ≤ 100 tokens, warm cache, total input context reported; warm TTFT p50 ≤ 1.2 s, p95 ≤ 2.5 s †) and **G3** (decode ≥ 20 tok/s †) hold with the production prompt assembler | bench harness, 100 turns |
 | CNV-03 | Cancel stops token streaming within 200 ms; no events for the cancelled `turn_id` arrive afterwards | WebSocket integration test |
 | CNV-05 | A 300-turn session completes without context errors. Compaction happens only while idle (or at the 90% hard limit, with status shown). The first turn after compaction is within G2 | soak test |
 | CNV-07 | Gate **G7**: language drift ≤ 1% of responses | drift detector over eval outputs |

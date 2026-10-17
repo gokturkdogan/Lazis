@@ -17,7 +17,8 @@ def test_defaults_are_privacy_preserving() -> None:
     assert s.network.egress_enabled is False
     assert s.voice.enabled is False
     assert s.voice.microphone_always_on is False
-    assert s.models.primary_model is None
+    assert s.models.primary_model == "gemma4:12b-it-qat"  # provisional P2 choice
+    assert s.models.context_short == s.models.context_normal == 16384  # no reloads between them
     assert s.effective_origins() == ("tauri://localhost",)
 
 

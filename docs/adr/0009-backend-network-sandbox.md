@@ -65,3 +65,8 @@ Found during the same work: the shell leaked two descriptors into the backend. T
 - **Packet filter (`pf`) rules or a Network Extension:** need root or an entitlement and a system extension; too heavy for P1.
 - **App Sandbox for the Python backend now:** needs a signed bundle with entitlements and an embedded runtime (packaging phase).
 - **Blocking only in-process (seccomp-like):** not available on macOS.
+
+## Amendment 1 (Phase 2, 2026-10-17): one outbound port for local inference
+
+Local inference needs the backend to reach Ollama on `127.0.0.1:11434`. The P1.1 profile allowed outbound to `localhost:*` — every local port. That would let the backend reach any other local service, e.g. an HTTP/SOCKS proxy that forwards to the internet. The profile now allows **only** `(remote ip "localhost:11434")`; verified on macOS 27: Ollama reachable, any other local port EPERM, the backend's own listener unaffected. `models.endpoint` must use port 11434 (config validation), so the two cannot drift apart silently. Ollama itself is not sandboxed by LAZIS; its cloud features are switched off at the server (`OLLAMA_NO_CLOUD=1`) and refused in the adapter, and the adapter cannot call model-management endpoints (SECURITY_MODEL §5.13).
+

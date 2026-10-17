@@ -1,6 +1,6 @@
 # LAZIS — Risk Assessment
 
-> Status: Phase 0.1 (revised), R31–R32 added in Phase 1.1 · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), R31–R32 added in Phase 1.1, Phase 2 measurements below the table · Last updated: 2026-10-17
 > Likelihood (L) and Impact (I) on a 1–5 scale; **score = L × I**. Reviewed at every phase gate. Phases refer to the 15-phase roadmap.
 
 | # | Risk | L | I | Score | Mitigation | Owner phase | Trigger to escalate |
@@ -37,6 +37,19 @@
 | R30 | **Model reload storms** from inconsistent request options (`num_ctx`, other runner-affecting parameters) | 2 | 3 | 6 | One constant context configuration; reload detection test (AIE-07) | P2, P3 | any reload event in a session log |
 | R31 | **`sandbox-exec` removed or changed by a macOS update** (deprecated tool behind the backend's OS network sandbox, ADR-0009) | 2 | 3 | 6 | Fail closed (`network_sandbox_unavailable`) instead of running unprotected; the sandbox is re-verified by tests and by the backend at every start; long-term: App Sandbox for a signed, packaged backend (P15) | P1.1, P15 | the profile fails to apply or the probe stops reporting `enforced` on a new macOS |
 | R32 | **FileVault off on the target Mac** (found in P1.1): logs, swap and any non-database file are unencrypted at rest | 3 | 3 | 9 | SQLCipher protects the database regardless; the privacy card shows FileVault's state as a warning; the owner decides whether to enable it | P1.1 (visibility) | the owner keeps it off when real personal data arrives (P3) |
+
+### Phase 2 measurements (2026-10-17)
+
+Scores above are unchanged. These are the first measured inputs for them. Details: [PHASE_2_MODEL_BENCHMARKS.md](PHASE_2_MODEL_BENCHMARKS.md), [ADR-0001](adr/0001-primary-model.md).
+
+- **R2 (prefill latency): confirmed, and the main P3 latency risk.**
+  - With a warm cache, a short user turn costs 0.46–0.58 s on Gemma 4 12B across 2K–12K total context (G2-r1 passes).
+  - A prefix-cache miss re-prefills the whole history: 8 s at 2K, 34 s at 8K and 50 s at 12K. Triggers: keep_alive expiry, profile switch, compaction, background jobs, restarts.
+  - The original G2 (300–600-token turns) failed at 1.71 s and was revised with the owner's approval.
+- **R24 (cache reuse defeated):** reuse is estimated at 0.85 because Ollama 0.40 does not report cached tokens. Warm TTFT grows with the previous reply's length (256-token replies: 0.85 s), probably from partial re-prefill of that reply. P3 must verify this (SPK-03b).
+- **R1 (Turkish quality):** reduced for Gemma 4 12B. It won the owner's blind rating 13/14. The owner still saw grammar slips (formal email) and wrong place facts.
+- **R12 (sycophancy):** observed. Gemma praised a mediocre poem without pushback (owner's note on E05).
+- **R6 (memory pressure):** with typical apps open, swap grew by 2.4 GB during Gemma's benchmarks. Free memory fell to 15% once.
 
 ## Top risks (score ≥ 12) and response plan
 

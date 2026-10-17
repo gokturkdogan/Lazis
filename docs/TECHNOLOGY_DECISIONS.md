@@ -373,3 +373,23 @@ Exact versions are locked in `core/uv.lock`, `apps/desktop/pnpm-lock.yaml` and `
 | Task runner | GNU make (ships with the Command Line Tools); the planned `just` was not adopted to avoid an extra tool |
 
 Not used in P1: httpx at runtime (no outbound HTTP), Ollama, any model, Playwright (P4), Three.js (P14), Docker (never).
+
+## 13. Phase 2 results (2026-10-17)
+
+This section records the first measurements on the target machine. The estimates in §1–§2 are superseded where they conflict. Full numbers: [PHASE_2_MODEL_BENCHMARKS.md](PHASE_2_MODEL_BENCHMARKS.md).
+
+- **Runtime:** Ollama 0.40.4 (Homebrew), run as a LaunchAgent with `OLLAMA_NO_CLOUD=1` on `127.0.0.1:11434` (`scripts/ollama-agent.sh`). The backend talks to it with httpx 0.28.1, now a runtime dependency, which only `lazis.providers` may import.
+- **Model (accepted, [ADR-0001](adr/0001-primary-model.md)):**
+  - Primary: `gemma4:12b-it-qat` (GGUF Q4_0 QAT, 7.43 GB resident at 16K).
+  - Fallback: `qwen3.5:9b-q4_K_M` (6.27 GB).
+  - Qwen3-14B and Qwen3-8B were measured and rejected.
+- **MLX (SPK-08):**
+  - Ollama 0.40 runs MLX tags itself, so no separate `mlx_lm` install is needed.
+  - Same model (Qwen3.5-9B nvfp4 vs Q4_K_M): about 7–10% faster, and no reload on `num_ctx` changes.
+  - But the MLX runner returns "structured output is unavailable" for `format`, and quality was lower.
+  - **Not adopted** as the default runtime.
+- **llama.cpp runner facts:**
+  - A `num_ctx` change reloads the model (0.9–2.8 s), so the context profiles are fixed at 16K/16K/32K.
+  - `prompt_eval_count` includes cached tokens.
+  - JSON-schema `format` was respected in every sample.
+

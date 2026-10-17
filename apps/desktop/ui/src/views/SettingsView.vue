@@ -21,7 +21,12 @@ const rows = computed<StatusRow[]>(() => {
     { label: t("settings.voiceMode"), value: s.voice_interaction_mode, mono: true },
     { label: t("settings.modelsProvider"), value: s.models_provider, mono: true },
     { label: t("settings.modelsPrimary"), value: s.models_primary_model ?? t("settings.none"), tone: "muted" },
-    { label: t("settings.contextLength"), value: String(s.models_context_length) },
+    {
+      label: t("settings.contextLength"),
+      value: `${s.models_context_short} / ${s.models_context_normal} / ${s.models_context_long}`,
+      mono: true,
+    },
+    { label: t("settings.keepAlive"), value: s.models_keep_alive, mono: true },
     { label: t("settings.logLevel"), value: s.log_level, mono: true },
     { label: t("settings.backups"), value: String(s.backups_keep) },
     { label: t("settings.requestLimit"), value: formatBytes(s.max_request_bytes) },

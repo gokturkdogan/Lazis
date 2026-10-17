@@ -59,7 +59,7 @@ describe("UI API client ↔ real backend", () => {
   it("reads health, app info and verified encryption status", async () => {
     const api = createApiClient({ port, token });
     expect((await api.health()).status).toBe("ok");
-    expect((await api.appInfo()).phase).toBe("P1");
+    expect((await api.appInfo()).phase).toBe("P2");
     const status = await api.systemStatus();
     expect(status.database.encrypted).toBe(true);
     expect(status.database.encryption_verified).toBe(true);
@@ -74,6 +74,48 @@ describe("UI API client ↔ real backend", () => {
     expect((error as ApiError).status).toBe(401);
     expect((error as ApiError).userMessage).toBe("Yetkisiz istek.");
   });
+
+  it("reports the local model runtime without any cloud inference", async () => {
+    const api = createApiClient({ port, token });
+    const status = await api.llmStatus();
+    expect(status.cloud_inference).toBe("disabled");
+    expect(typeof status.runtime.available).toBe("boolean");
+    if (status.runtime.available) {
+      const models = (await api.models()).models;
+      expect(models.every((m) => !m.name.includes("cloud"))).toBe(true);
+    }
+  });
+
+  // Opt-in (needs Ollama + an installed model): LAZIS_TEST_MODEL=qwen3.5:9b-q4_K_M pnpm test:integration
+  const liveModel = process.env.LAZIS_TEST_MODEL;
+  it.skipIf(!liveModel)("streams a Turkish answer from the real model and can cancel it", async () => {
+    const api = createApiClient({ port, token }, fetch, 60_000);
+    const events: string[] = [];
+    let text = "";
+    await api.chatStream(
+      { model: liveModel as string, request_id: "ui-it-0001",
+        messages: [{ role: "user", content: "Türkiye'nin başkenti neresidir? Tek kelimeyle yaz." }] },
+      (e) => {
+        events.push(e.type);
+        if (e.type === "delta") text += e.text;
+      },
+    );
+    expect(events[0]).toBe("start");
+    expect(events.at(-1)).toBe("done");
+    expect(text.toLowerCase()).toContain("ankara");
+
+    const seen: string[] = [];
+    let deltas = 0;
+    await api.chatStream(
+      { model: liveModel as string, request_id: "ui-it-0002",
+        messages: [{ role: "user", content: "Bana çok uzun bir hikâye anlat." }] },
+      (e) => {
+        seen.push(e.type === "error" ? `error:${e.code}` : e.type);
+        if (e.type === "delta" && ++deltas === 5) void api.cancelChat("ui-it-0002");
+      },
+    );
+    expect(seen.at(-1)).toBe("error:llm_cancelled");
+  }, 300_000);
 
   it("shuts down cleanly when the lifeline closes and leaves no secret in the logs", async () => {
     const exited = new Promise<number | null>((resolve) => proc.once("exit", (code) => resolve(code)));

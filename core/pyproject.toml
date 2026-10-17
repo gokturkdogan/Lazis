@@ -10,12 +10,14 @@ dependencies = [
     # Official binary wheel; bundles SQLCipher 4.x + OpenSSL (hash-pinned in uv.lock).
     # Verified at startup: the app refuses to run if SQLCipher is not active.
     "sqlcipher3>=0.6.4",
+    # Local inference client (P2). Only lazis.providers may import it (import-linter), and it
+    # only ever talks to the loopback Ollama endpoint the OS sandbox allows.
+    "httpx>=0.27",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.3",
-    "httpx>=0.27",
     "ruff>=0.8",
     "pyright>=1.1.390",
     "import-linter>=2.1",
@@ -65,10 +67,11 @@ reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not ollama'"
 markers = [
     "keychain: touches the real macOS login Keychain (uses a dedicated test service name)",
     "slow: long-running (process spawning, performance)",
+    "ollama: needs a running Ollama with an installed model (make test-ollama); not in make check",
 ]
 
 [tool.importlinter]
@@ -81,7 +84,7 @@ type = "layers"
 layers = [
     "lazis.app",
     "lazis.api",
-    "lazis.storage",
+    "lazis.storage | lazis.providers",
     "lazis.security | lazis.observability",
     "lazis.config",
     "lazis.errors | lazis.i18n | lazis.ids | lazis.fsutil",
@@ -93,3 +96,11 @@ type = "forbidden"
 source_modules = ["lazis.api", "lazis.config", "lazis.security", "lazis.observability", "lazis.app"]
 forbidden_modules = ["sqlcipher3", "sqlite3"]
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Only providers use an HTTP client"
+type = "forbidden"
+source_modules = ["lazis.api", "lazis.storage", "lazis.config", "lazis.security", "lazis.observability", "lazis.app"]
+forbidden_modules = ["httpx", "http", "requests", "aiohttp"]
+allow_indirect_imports = true
+

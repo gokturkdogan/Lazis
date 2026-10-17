@@ -114,3 +114,63 @@ class NetworkBlockedError(PermissionError):
     """
 
     code = "network_blocked"
+
+
+# ----- local inference (P2) -----------------------------------------------------------
+class LlmError(LazisError):
+    """The local inference runtime failed in a way not covered below."""
+
+    code = "llm_error"
+    http_status = 502
+    recoverable = True
+
+
+class LlmUnavailableError(LlmError):
+    """Ollama is not running (or not installed) on 127.0.0.1:11434."""
+
+    code = "llm_unavailable"
+    http_status = 503
+
+
+class LlmModelNotFoundError(LlmError):
+    code = "llm_model_not_found"
+    http_status = 404
+
+
+class LlmModelNotAllowedError(LlmError):
+    """Cloud models, registry-qualified names and malformed names are never used."""
+
+    code = "llm_model_not_allowed"
+    http_status = 400
+
+
+class LlmOutOfMemoryError(LlmError):
+    code = "llm_out_of_memory"
+    http_status = 503
+
+
+class LlmLoadFailedError(LlmError):
+    code = "llm_load_failed"
+    http_status = 503
+
+
+class LlmTimeoutError(LlmError):
+    code = "llm_timeout"
+    http_status = 504
+
+
+class LlmInvalidResponseError(LlmError):
+    code = "llm_invalid_response"
+    http_status = 502
+
+
+class LlmBusyError(LlmError):
+    """One generation at a time (single user, single local model)."""
+
+    code = "llm_busy"
+    http_status = 409
+
+
+class LlmCancelledError(LlmError):
+    code = "llm_cancelled"
+    http_status = 499

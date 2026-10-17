@@ -21,6 +21,9 @@ APP_SUPPORT = Path.home() / "Library" / "Application Support" / "LAZIS"
 LOGS_ROOT = Path.home() / "Library" / "Logs" / "LAZIS"
 
 
+OLLAMA_PORT = 11434  # must match apps/desktop/src-tauri/sandbox/backend.sb
+
+
 class _Section(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -97,22 +100,40 @@ class ResearchSection(_Section):
 
 
 class ModelsSection(_Section):
-    """Placeholder for P2 (local inference). Not used in P1."""
+    """Local inference (P2). Only a loopback runtime is ever used; no cloud inference."""
 
-    provider: Literal["ollama", "openai_compatible"] = "ollama"
+    provider: Literal["ollama"] = "ollama"
     endpoint: str = "http://127.0.0.1:11434"
-    primary_model: str | None = None
-    context_length: int = Field(default=16384, ge=2048, le=262144)
+    # Provisional P2 recommendation (docs/adr/0001-primary-model.md, status Proposed): final
+    # after the owner's blind rating. The UI preselects it when installed.
+    primary_model: str | None = "gemma4:12b-it-qat"
+    # Named context sizes (tokens). Requests choose a name, never a raw num_ctx: each distinct
+    # num_ctx makes Ollama's llama.cpp runner reload the model (measured 0.9–2.8 s). Measured
+    # memory differs by ≤ 0.3 GB between 8K and 16K for the recommended models, so short and
+    # normal share 16K (no reloads in conversation); long (32K) is for explicit long tasks.
+    context_short: int = Field(default=16384, ge=2048, le=65536)
+    context_normal: int = Field(default=16384, ge=2048, le=65536)
+    context_long: int = Field(default=32768, ge=2048, le=65536)
+    keep_alive: str = Field(default="10m", pattern=r"^(0|-1|[0-9]+[smh])$")
+    max_output_tokens: int = Field(default=1024, ge=16, le=8192)
 
     @field_validator("endpoint")
     @classmethod
     def _loopback_endpoint(cls, value: str) -> str:
         parsed = urlparse(value)
-        if parsed.scheme not in ("http", "https") or not _is_loopback_literal(
-            parsed.hostname or ""
-        ):
-            raise ValueError("models.endpoint must be a loopback URL (local inference only)")
+        if parsed.scheme != "http" or not _is_loopback_literal(parsed.hostname or ""):
+            raise ValueError("models.endpoint must be http on a loopback IP (local inference only)")
+        if parsed.port != OLLAMA_PORT:
+            # The backend's OS sandbox allows outbound connections to this port only.
+            raise ValueError(f"models.endpoint port must be {OLLAMA_PORT} (sandbox policy)")
         return value
+
+    def context_tokens(self, profile: Literal["short", "normal", "long"]) -> int:
+        return {
+            "short": self.context_short,
+            "normal": self.context_normal,
+            "long": self.context_long,
+        }[profile]
 
 
 class VoiceSection(_Section):

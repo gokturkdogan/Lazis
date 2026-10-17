@@ -47,6 +47,12 @@ let client: ApiClient | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let unlisten: (() => void) | null = null;
 
+/** The API client for the current backend session (null while not connected). Not reactive:
+ * it holds the session token, which must never enter devtools-visible state. */
+export function currentApiClient(): ApiClient | null {
+  return client;
+}
+
 export const useConnectionStore = defineStore("connection", {
   state: () => ({
     phase: "initializing" as UiPhase,

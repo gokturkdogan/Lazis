@@ -40,6 +40,18 @@ MESSAGES_TR: dict[str, str] = {
         "İşletim sistemi ağ kısıtı uygulanamadı. Güvenlik nedeniyle arka uç başlatılmadı."
     ),
     "restore_failed": "Yedek geri yüklenemedi. Mevcut veritabanınız değiştirilmedi.",
+    "llm_error": "Yerel model beklenmeyen bir hata verdi.",
+    "llm_unavailable": (
+        "Yerel model çalışma ortamına (Ollama) ulaşılamadı. Ollama kurulu ve çalışıyor mu?"
+    ),
+    "llm_model_not_found": "Seçilen model bu bilgisayarda yüklü değil.",
+    "llm_model_not_allowed": "Bu model kullanılamaz (yalnızca yerel modellere izin verilir).",
+    "llm_out_of_memory": "Model için yeterli bellek yok. Daha küçük bir model veya bağlam deneyin.",
+    "llm_load_failed": "Model yüklenemedi.",
+    "llm_timeout": "Model zamanında yanıt vermedi.",
+    "llm_invalid_response": "Yerel modelden geçersiz bir yanıt geldi.",
+    "llm_busy": "Şu anda başka bir yanıt üretiliyor. Bitmesini bekleyin veya iptal edin.",
+    "llm_cancelled": "Yanıt üretimi iptal edildi.",
 }
 
 

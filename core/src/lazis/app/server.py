@@ -39,6 +39,7 @@ from lazis.config.model import APP_SUPPORT
 from lazis.errors import ConfigError, LazisError, NetworkSandboxError
 from lazis.ids import utc_now_iso
 from lazis.observability import SecretRegistry, get_logger, log_event, setup_logging
+from lazis.providers.llm.ollama import OllamaProvider
 from lazis.security.network_guard import (
     SandboxStatus,
     close_inherited_descriptors,
@@ -205,6 +206,7 @@ def _run_server(
         started_at=utc_now_iso(),
         on_denied=_on_denied,
         os_network_sandbox=sandbox,
+        llm=OllamaProvider(settings.models.endpoint),
     )
     _, asgi = build_asgi(ctx)
 

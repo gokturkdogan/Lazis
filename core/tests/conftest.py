@@ -15,6 +15,7 @@ from lazis.config.model import (
     Settings,
     StorageSection,
 )
+from lazis.providers.llm.ports import LLMProvider
 from lazis.security.secrets import SecretBytes, StartupSecrets
 from lazis.storage import StorageHandle, open_storage
 
@@ -56,7 +57,11 @@ def storage(storage_section: StorageSection, key: SecretBytes) -> Iterator[Stora
 
 
 def make_client(
-    tmp_path: Path, storage: StorageHandle | None, token: str, **backend: object
+    tmp_path: Path,
+    storage: StorageHandle | None,
+    token: str,
+    llm: LLMProvider | None = None,
+    **backend: object,
 ) -> TestClient:
     settings = make_settings(tmp_path, **backend)
     startup = StartupSecrets(session_token=token, db_key=SecretBytes(b"\x00" * 32))
@@ -66,6 +71,7 @@ def make_client(
         token_matches=startup.token_matches,
         port=TEST_PORT,
         started_at="2026-01-01T00:00:00.000Z",
+        llm=llm,
     )
     _, asgi = build_asgi(ctx)
     return TestClient(asgi, base_url=f"http://127.0.0.1:{TEST_PORT}")

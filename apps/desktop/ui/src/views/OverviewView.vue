@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import ConversationPlaceholder from "@/components/ConversationPlaceholder.vue";
+import ChatPanel from "@/components/ChatPanel.vue";
 import StatusCard from "@/components/StatusCard.vue";
 import type { StatusRow } from "@/components/types";
 import { formatBytes, formatDuration } from "@/format";
+import { useChatStore } from "@/stores/chat";
 import { useConnectionStore } from "@/stores/connection";
 
 const store = useConnectionStore();
@@ -80,10 +81,20 @@ const privacyRows = computed<StatusRow[]>(() => {
   ];
 });
 
-const aiRows = computed<StatusRow[]>(() => [
-  { label: t("overview.model"), value: t("overview.modelNone"), tone: "muted" },
-  { label: "", value: t("overview.modelPhase"), tone: "muted" },
-]);
+const chat = useChatStore();
+const aiRows = computed<StatusRow[]>(() => {
+  const runtime = chat.runtime;
+  if (!runtime) return loading(t("overview.ai"));
+  const loaded = chat.loaded[0];
+  return [
+    runtime.available
+      ? { label: t("overview.runtime"), value: t("overview.runtimeOk", { version: runtime.version ?? "?" }), tone: "ok" }
+      : { label: t("overview.runtime"), value: t("overview.runtimeDown"), tone: "warn" },
+    { label: t("overview.installed"), value: String(chat.models.length), tone: chat.models.length ? "ok" : "warn" },
+    { label: t("overview.model"), value: loaded ? loaded.name : t("conversation.notLoaded"), tone: "muted" },
+    { label: t("overview.cloud"), value: t("overview.cloudOff"), tone: "ok" },
+  ];
+});
 </script>
 
 <template>
@@ -95,7 +106,7 @@ const aiRows = computed<StatusRow[]>(() => [
       <StatusCard :title="t('overview.system')" :rows="systemRows" testid="card-system" />
       <StatusCard :title="t('overview.ai')" :rows="aiRows" testid="card-ai" />
     </div>
-    <ConversationPlaceholder />
+    <ChatPanel />
   </div>
 </template>
 

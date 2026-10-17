@@ -1,0 +1,336 @@
+{
+ "version": 1,
+ "instructions": "Kullanıcının mesajından kişisel bilgileri çıkar ve YALNIZCA şu yapıda geçerli bir JSON nesnesi döndür, başka metin yazma:\n{\"kisiler\":[{\"ad\":\"...\",\"iliski\":\"kullanıcıya göre ilişki veya null\",\"kesinlik\":\"kesin|belirsiz\"}],\"tarihler\":[{\"olay\":\"...\",\"tarih\":\"metindeki tarih\",\"kesinlik\":\"kesin|belirsiz\"}],\"tercihler\":[{\"konu\":\"...\",\"tercih\":\"...\"}],\"hedefler_projeler\":[\"...\"],\"duzeltmeler\":[\"düzeltilen bilginin doğru hali\"]}\nKurallar: Metinde geçmeyen hiçbir kişi, tarih veya bilgi uydurma. Kullanıcının düzelttiği eski/yanlış bilgiyi kişi olarak ekleme. Aynı adı taşıyan farklı kişileri ayrı ayrı yaz. Emin olunmayan bilgiler için kesinlik 'belirsiz' olsun.",
+ "schema": {
+  "type": "object",
+  "properties": {
+   "kisiler": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "ad": {
+       "type": "string"
+      },
+      "iliski": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "kesinlik": {
+       "type": "string",
+       "enum": [
+        "kesin",
+        "belirsiz"
+       ]
+      }
+     },
+     "required": [
+      "ad",
+      "iliski"
+     ]
+    }
+   },
+   "tarihler": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "olay": {
+       "type": "string"
+      },
+      "tarih": {
+       "type": "string"
+      },
+      "kesinlik": {
+       "type": "string",
+       "enum": [
+        "kesin",
+        "belirsiz"
+       ]
+      }
+     },
+     "required": [
+      "olay",
+      "tarih"
+     ]
+    }
+   },
+   "tercihler": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "konu": {
+       "type": "string"
+      },
+      "tercih": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "konu",
+      "tercih"
+     ]
+    }
+   },
+   "hedefler_projeler": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   },
+   "duzeltmeler": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    }
+   }
+  },
+  "required": [
+   "kisiler",
+   "tarihler",
+   "tercihler",
+   "hedefler_projeler",
+   "duzeltmeler"
+  ]
+ },
+ "items": [
+  {
+   "id": "X01",
+   "text": "Bu hafta sonu kız kardeşim Elif ile annem Nermin'i ziyarete gideceğiz. Annemin doğum günü 12 Kasım'da, ona bir atkı örmeyi planlıyorum. Bu arada artık kahve yerine yeşil çay içiyorum.",
+   "persons": [
+    {
+     "name": "Elif",
+     "rel": [
+      "kız kardeş",
+      "kardeş"
+     ]
+    },
+    {
+     "name": "Nermin",
+     "rel": [
+      "anne"
+     ]
+    }
+   ],
+   "dates": [
+    [
+     "12 kasım",
+     "11-12",
+     "-11-12"
+    ]
+   ],
+   "prefs": [
+    [
+     "yeşil çay"
+    ]
+   ],
+   "goals": [
+    [
+     "atkı"
+    ]
+   ],
+   "corrections": [],
+   "not_persons": []
+  },
+  {
+   "id": "X02",
+   "text": "İş arkadaşım Baran ile 'Kuzey' adlı mobil uygulama projesinde çalışıyoruz. Projenin teslim tarihi 30 Haziran 2027. Baran'ın eşi Melis de tasarımcı.",
+   "persons": [
+    {
+     "name": "Baran",
+     "rel": [
+      "iş arkadaş",
+      "meslektaş",
+      "çalışma arkadaş"
+     ]
+    },
+    {
+     "name": "Melis",
+     "rel": [
+      "eş",
+      "baran"
+     ]
+    }
+   ],
+   "dates": [
+    [
+     "30 haziran 2027",
+     "2027-06-30"
+    ]
+   ],
+   "prefs": [],
+   "goals": [
+    [
+     "kuzey"
+    ]
+   ],
+   "corrections": [],
+   "not_persons": []
+  },
+  {
+   "id": "X03",
+   "text": "Geçen sefer oğlumun adını Arda demiştim ama yanlış söylemişim, doğrusu Arda değil Alp. Alp 7 yaşında ve futbolu çok seviyor.",
+   "persons": [
+    {
+     "name": "Alp",
+     "rel": [
+      "oğul",
+      "oğlu"
+     ]
+    }
+   ],
+   "dates": [],
+   "prefs": [
+    [
+     "futbol"
+    ]
+   ],
+   "goals": [],
+   "corrections": [
+    [
+     "alp"
+    ]
+   ],
+   "not_persons": [
+    "Arda"
+   ]
+  },
+  {
+   "id": "X04",
+   "text": "Babaannem Hatice'nin 90. yaş günü 2 Mart'ta. Kuzenim Can o gün Almanya'dan gelecek. Ben de bu yıl 10 kilometre koşmayı hedefliyorum.",
+   "persons": [
+    {
+     "name": "Hatice",
+     "rel": [
+      "babaanne"
+     ]
+    },
+    {
+     "name": "Can",
+     "rel": [
+      "kuzen"
+     ]
+    }
+   ],
+   "dates": [
+    [
+     "2 mart",
+     "03-02"
+    ]
+   ],
+   "prefs": [],
+   "goals": [
+    [
+     "10 kilometre",
+     "10 km",
+     "koş"
+    ]
+   ],
+   "corrections": [],
+   "not_persons": []
+  },
+  {
+   "id": "X05",
+   "text": "Komşum Ayşe galiba ekimde taşınıyor, emin değilim. Teyzemin kızı da Ayşe, o ise İzmir'de öğretmen.",
+   "persons": [
+    {
+     "name": "Ayşe",
+     "rel": [
+      "komşu"
+     ]
+    },
+    {
+     "name": "Ayşe",
+     "rel": [
+      "teyze",
+      "kuzen"
+     ]
+    }
+   ],
+   "dates": [
+    [
+     "ekim"
+    ]
+   ],
+   "prefs": [],
+   "goals": [],
+   "corrections": [],
+   "not_persons": []
+  },
+  {
+   "id": "X06",
+   "text": "Dün akşam eşim Kaan ile sinemaya gittik. Korku filmlerini hiç sevmem, romantik komedileri tercih ederim. Önümüzdeki ay evlilik yıldönümümüz var, 14 Kasım'da.",
+   "persons": [
+    {
+     "name": "Kaan",
+     "rel": [
+      "eş"
+     ]
+    }
+   ],
+   "dates": [
+    [
+     "14 kasım",
+     "11-14"
+    ]
+   ],
+   "prefs": [
+    [
+     "romantik komedi"
+    ]
+   ],
+   "goals": [],
+   "corrections": [],
+   "not_persons": []
+  },
+  {
+   "id": "X07",
+   "text": "Yarın sabah 9'da diş randevum var, sonra da kütüphaneye gidip tez taslağımı bitirmeyi planlıyorum.",
+   "persons": [],
+   "dates": [
+    [
+     "yarın",
+     "09:00",
+     "9"
+    ]
+   ],
+   "prefs": [],
+   "goals": [
+    [
+     "tez"
+    ]
+   ],
+   "corrections": [],
+   "not_persons": []
+  },
+  {
+   "id": "X08",
+   "text": "Ağabeyim Tolga'nın kızı Ela bu yıl üniversiteye başladı ve mimarlık okuyor. Tolga ise geçen ay Antalya'ya taşındı.",
+   "persons": [
+    {
+     "name": "Tolga",
+     "rel": [
+      "ağabey",
+      "abi"
+     ]
+    },
+    {
+     "name": "Ela",
+     "rel": [
+      "yeğen",
+      "tolga",
+      "kız"
+     ]
+    }
+   ],
+   "dates": [],
+   "prefs": [],
+   "goals": [],
+   "corrections": [],
+   "not_persons": []
+  }
+ ]
+}

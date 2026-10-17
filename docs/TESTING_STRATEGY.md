@@ -98,9 +98,9 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 - CI: local-first (the `just ci` target). GitHub Actions on macOS runners is optional if the repository is hosted. Live evals are never part of blocking CI (they need the GPU and real models).
 - **Reporting template** per phase: commands run, pass/fail counts, failures with explanations, skipped tests with reasons, eval metrics vs. thresholds, known issues.
 
-## 11. Implemented suites (Phase 1 + 1.1)
+## 11. Implemented suites (Phase 1 + 1.1 + 2)
 
-`make check` runs everything below except the opt-in Keychain test. Counts are from the Phase 1.1 run ([PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md) §J).
+`make check` runs everything below except the opt-in tests (Keychain, live Ollama). Counts are from the Phase 2 run ([PHASE_2_REPORT.md](PHASE_2_REPORT.md) §M): Python 219 (unit 60, integration 103, security 56), UI 33 unit + 5 integration (1 skipped without a model), shell 19 + 7. The descriptions below are from Phase 1.1; the Phase 2 additions are listed after the table.
 
 | Suite | Command | Count | What it proves |
 |---|---|---|---|
@@ -112,6 +112,19 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 | Shell unit | `make test-shell` (lib) | 19 | Rust LZR1 codec vs the Python vectors, key resolution, profiles, state file, handshake parsing, FileVault probe |
 | Shell lifecycle | `make test-shell` (`tests/lifecycle.rs`) | 7 | the real backend under the real sandbox: first run → restart → lost key → malformed/corrupted/wrong-database codes (database bytes unchanged) → recovery; wrong key; crash detection + retry; missing runtime; drop-safety; duplicates; secrets absent from argv/env (kernel) and logs |
 | Keychain (opt-in) | `make test-keychain` | 1 | write/read/delete of a dedicated test item in the real login Keychain |
+
+Phase 2 additions:
+
+| Suite | Where | Count | What it proves |
+|---|---|---|---|
+| Provider unit | `core/tests/unit/test_ollama_provider.py` | 26 | Ollama request mapping, discovery with cloud/remote filtering, streaming metrics, error classification, cancellation, first-token and idle timeouts, model-name and endpoint allowlist |
+| Fake Ollama over HTTP | `core/tests/integration/test_ollama_http.py` | 5 | cancel stops server-side generation, runtime dying mid-stream, closed port, API path end to end, slow-first-token regression (long prefill) |
+| Chat API security | `core/tests/security/test_chat_api.py` | 26 | token and Origin on every inference endpoint, validation (no client system prompt, size limits, cloud and registry names), uninstalled models never reach the runtime, errors as final events, prompts and responses never logged |
+| OS sandbox (updated) | `core/tests/security/test_os_sandbox.py` | — | Ollama's port allowed; any other loopback port refused by the kernel |
+| UI chat | `apps/desktop/ui/tests/unit/chat.spec.ts` | 12 | model selection, streaming, history, waiting/cancelling, forced abort, Turkish errors, empty inventory, runtime down, nothing in `localStorage` |
+| Live Ollama (opt-in) | `make test-ollama` (`-m ollama`), `LAZIS_TEST_MODEL=… make test-ui-integration` | 3 + 1 | the sandboxed backend streams Turkish from a real model; client disconnect stops generation; shutdown during generation; TS client stream and cancel |
+
+Live model quality and performance are measured by `evals/` (`make bench`, `make eval`) and reported, not asserted in CI.
 
 Rules that apply to these suites: synthetic data only; no test contacts another host (refused targets are TEST-NET-1 `192.0.2.1`, `2001:db8::/32` and the reserved `.invalid` TLD); destructive tests run only in temporary directories, never against a real profile.
 

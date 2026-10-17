@@ -1,6 +1,6 @@
 # LAZIS — Developer Guide
 
-> Status: Phase 1 (foundation) + Phase 1.1 hardening · Last updated: 2026-10-17
+> Status: Phase 1 (foundation) + Phase 1.1 hardening + Phase 2 local inference (§12) · Last updated: 2026-10-17
 > What exists today: an encrypted local backend, a Tauri desktop shell that owns the database key, and a Turkish status UI. There is **no AI, no conversation, no memory, no voice and no internet access** yet. Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · Security: [SECURITY_MODEL.md](SECURITY_MODEL.md) · Phase report (Turkish): [PHASE_1_REPORT.md](PHASE_1_REPORT.md).
 
 ## 1. Prerequisites
@@ -145,3 +145,22 @@ Base `http://127.0.0.1:{port}/api/v1`; every request needs `Authorization: Beare
 - The OS sandbox does not restrict *listening* addresses (Seatbelt limitation); loopback-only listening is enforced by the backend itself. `sandbox-exec` is deprecated by Apple; if it disappears the app fails closed (ADR-0009).
 - Restore has no UI yet (library function, fully tested); a restore UI arrives with the memory UI (P6).
 - Starlette prints a deprecation warning about `httpx` in the test client (tests only).
+
+## 12. Local models (Phase 2)
+
+```bash
+make ollama-agent                         # Ollama as a LaunchAgent: OLLAMA_NO_CLOUD=1, 127.0.0.1:11434
+scripts/ollama-agent.sh status            # agent state + the server's real OLLAMA_* environment
+make model-pull MODEL=qwen3.5:9b-q4_K_M   # only tags listed in scripts/approved-models.txt
+make bench MODEL=… [QUICK=1]              # performance (B1–B4, num_ctx, long context) → evals/reports/phase2/<model>/perf.json
+make eval MODEL=…                         # Turkish quality, extraction, long conversation, think mode → quality.json
+make blind MODELS="a b c"                 # blind pairwise rating page for the owner (evals/reports/phase2/blind/rate.html)
+make test-ollama LAZIS_TEST_MODEL=…       # opt-in: real sandboxed backend + Ollama + model
+```
+
+- The app never downloads models. A missing model is an error (`llm_model_not_found`), not a download.
+- The backend can reach only `127.0.0.1:11434`; `models.endpoint` must use that port.
+- Context sizes are named profiles in config (`models.context_short|normal|long`); changing `num_ctx` reloads the model in Ollama (measured ≈ 1 s), so the app uses fixed sizes.
+- The Phase 2 chat is ephemeral (UI memory only). Never add logging of prompts or answers; tests scan logs for a seeded prompt.
+- Uninstall a model with `ollama rm <tag>`; restore Ollama's previous startup with `scripts/ollama-agent.sh uninstall`.
+

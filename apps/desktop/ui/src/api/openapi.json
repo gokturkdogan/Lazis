@@ -108,6 +108,137 @@
         "title": "BackendStatus",
         "type": "object"
       },
+      "ChatCancelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "ChatCancelRequest",
+        "type": "object"
+      },
+      "ChatCancelResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled": {
+            "title": "Cancelled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cancelled"
+        ],
+        "title": "ChatCancelResponse",
+        "type": "object"
+      },
+      "ChatOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "default": "normal",
+            "enum": [
+              "short",
+              "normal",
+              "long"
+            ],
+            "title": "Context",
+            "type": "string"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "maximum": 8192.0,
+                "minimum": 16.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          }
+        },
+        "title": "ChatOptions",
+        "type": "object"
+      },
+      "ChatStreamRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatTurn"
+            },
+            "maxItems": 40,
+            "minItems": 1,
+            "title": "Messages",
+            "type": "array"
+          },
+          "model": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,79}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,79})?$",
+            "title": "Model",
+            "type": "string"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ChatOptions"
+          },
+          "request_id": {
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "request_id",
+          "messages"
+        ],
+        "title": "ChatStreamRequest",
+        "type": "object"
+      },
+      "ChatTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatTurn",
+        "type": "object"
+      },
       "DatabaseStatusModel": {
         "additionalProperties": false,
         "properties": {
@@ -210,9 +341,21 @@
             "title": "Max Request Bytes",
             "type": "integer"
           },
-          "models_context_length": {
-            "title": "Models Context Length",
+          "models_context_long": {
+            "title": "Models Context Long",
             "type": "integer"
+          },
+          "models_context_normal": {
+            "title": "Models Context Normal",
+            "type": "integer"
+          },
+          "models_context_short": {
+            "title": "Models Context Short",
+            "type": "integer"
+          },
+          "models_keep_alive": {
+            "title": "Models Keep Alive",
+            "type": "string"
           },
           "models_primary_model": {
             "anyOf": [
@@ -257,7 +400,10 @@
           "voice_interaction_mode",
           "models_provider",
           "models_primary_model",
-          "models_context_length",
+          "models_context_short",
+          "models_context_normal",
+          "models_context_long",
+          "models_keep_alive",
           "backups_keep",
           "max_request_bytes"
         ],
@@ -304,6 +450,19 @@
           "error"
         ],
         "title": "ErrorResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
         "type": "object"
       },
       "HealthCheck": {
@@ -366,6 +525,147 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "LlmStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cloud_inference": {
+            "const": "disabled",
+            "title": "Cloud Inference",
+            "type": "string"
+          },
+          "loaded": {
+            "items": {
+              "$ref": "#/components/schemas/LoadedModelModel"
+            },
+            "title": "Loaded",
+            "type": "array"
+          },
+          "primary_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Model"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/RuntimeStatusModel"
+          }
+        },
+        "required": [
+          "runtime",
+          "loaded",
+          "primary_model",
+          "cloud_inference"
+        ],
+        "title": "LlmStatusResponse",
+        "type": "object"
+      },
+      "LoadedModelModel": {
+        "additionalProperties": false,
+        "properties": {
+          "context_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Length"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "vram_bytes": {
+            "title": "Vram Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "size_bytes",
+          "vram_bytes",
+          "context_length",
+          "expires_at"
+        ],
+        "title": "LoadedModelModel",
+        "type": "object"
+      },
+      "ModelInfoModel": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "title": "Digest",
+            "type": "string"
+          },
+          "family": {
+            "title": "Family",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parameter_size": {
+            "title": "Parameter Size",
+            "type": "string"
+          },
+          "quantization": {
+            "title": "Quantization",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "digest",
+          "size_bytes",
+          "family",
+          "parameter_size",
+          "quantization",
+          "format"
+        ],
+        "title": "ModelInfoModel",
+        "type": "object"
+      },
+      "ModelListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelInfoModel"
+            },
+            "title": "Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "title": "ModelListResponse",
+        "type": "object"
+      },
       "PrivacyStatus": {
         "additionalProperties": false,
         "properties": {
@@ -413,6 +713,49 @@
         "title": "PrivacyStatus",
         "type": "object"
       },
+      "RuntimeStatusModel": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "runtime": {
+            "title": "Runtime",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "available",
+          "runtime",
+          "version",
+          "error_code"
+        ],
+        "title": "RuntimeStatusModel",
+        "type": "object"
+      },
       "SystemStatusResponse": {
         "additionalProperties": false,
         "properties": {
@@ -436,6 +779,46 @@
           "ai"
         ],
         "title": "SystemStatusResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
         "type": "object"
       }
     }
@@ -504,6 +887,80 @@
         "summary": "App Info"
       }
     },
+    "/api/v1/chat/cancel": {
+      "post": {
+        "operationId": "chat_cancel_api_v1_chat_cancel_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCancelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat Cancel"
+      }
+    },
+    "/api/v1/chat/stream": {
+      "post": {
+        "operationId": "chat_stream_api_v1_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatStreamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat Stream"
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "health_api_v1_health_get",
@@ -560,6 +1017,42 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/api/v1/llm/models": {
+      "get": {
+        "operationId": "llm_models_api_v1_llm_models_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Llm Models"
+      }
+    },
+    "/api/v1/llm/status": {
+      "get": {
+        "operationId": "llm_status_api_v1_llm_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Llm Status"
       }
     },
     "/api/v1/settings": {

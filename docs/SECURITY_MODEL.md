@@ -1,6 +1,6 @@
 # LAZIS — Security and Privacy Model
 
-> Status: Phase 0.1 (revised), updated with the Phase 1 implementation and the Phase 1.1 hardening (§5.3, §5.7, §5.11, §5.12) · Last updated: 2026-10-17
+> Status: Phase 0.1 (revised), updated with the Phase 1 implementation, the Phase 1.1 hardening (§5.3, §5.7, §5.11, §5.12) and Phase 2 local inference (§5.13) · Last updated: 2026-10-17
 > LAZIS will hold one of the most sensitive datasets a person can have: their relationships, health, worries and plans. Security is a design constraint from **P1**, not a final-phase feature. P15 is an audit and hardening pass, not the point where protections are introduced.
 
 ## 1. Assets
@@ -129,13 +129,13 @@ The sensitive categories mirror the "special categories of personal data" in Tur
   | Layer | Enforced by | Covers | Does not cover |
   |---|---|---|---|
   | 1. Application guard (`security/network_guard.py`, PEP 578 audit hook) | the Python interpreter | every `socket` connect/connect_ex/sendto/sendmsg/bind to a non-loopback **IP literal** (names are refused at this level because `connect()` resolves them without an audit event), DNS helpers for non-loopback names, IPv4/IPv6/IPv4-mapped; and since P1.1 **all process creation** (`subprocess`, `os.system`, `exec*`, `posix_spawn*`, `spawn*`, `fork*`) | native code (C extensions, `ctypes`, Rust/C HTTP clients in wheels), already-connected inherited sockets |
-  | 2. **OS network sandbox (P1.1)** — Seatbelt profile `apps/desktop/src-tauri/sandbox/backend.sb`, applied by the shell with `/usr/bin/sandbox-exec` | the macOS kernel | every outbound connection or datagram to another host and DNS resolution (the resolver daemon's socket is denied), for the backend **and every process it starts**, including native code; loopback and this host's own addresses stay reachable | listening: Seatbelt cannot restrict `bind` to 127.0.0.1 ("localhost" in a local filter means any local address), so loopback-only listening stays an application-level guarantee (layers 1 and 3) |
+  | 2. **OS network sandbox (P1.1)** — Seatbelt profile `apps/desktop/src-tauri/sandbox/backend.sb`, applied by the shell with `/usr/bin/sandbox-exec` | the macOS kernel | every outbound connection or datagram to another host and DNS resolution (the resolver daemon's socket is denied), for the backend **and every process it starts**, including native code. Since P2 outbound is allowed to **one port only: `localhost:11434` (Ollama)** — no other local service (a proxy, a debug port) is reachable, so nothing can be relayed through one | listening: Seatbelt cannot restrict `bind` to 127.0.0.1 ("localhost" in a local filter means any local address), so loopback-only listening stays an application-level guarantee (layers 1 and 3) |
   | 3. Loopback-only server | validated config (`backend.host` must be a loopback IP literal) + layer 1 | the API socket is bound to 127.0.0.1 with an OS-assigned port | a native component opening its own listener |
   | 4. Authentication | `LocalApiGuard` (§5.2) | who may use the API | — |
 
   The shell refuses to start the backend if `sandbox-exec` is missing, and the backend re-checks the sandbox itself (`--require-os-sandbox`: a connect to the local DNS daemon's Unix socket must fail with EPERM, which sends nothing off the machine) and refuses to start if it is not in effect (`network_sandbox_unavailable`). The status is shown in the privacy card. Also since P1.1 the backend closes descriptors inherited from the shell at startup — the real app was found to leak two (read-only Metal shader files opened by Apple's graphics frameworks); a leaked connected socket would bypass layers 1 and 2. Limits: `sandbox-exec` is deprecated by Apple (still functional on macOS 27, verified by tests on every run); if it disappears the app fails closed until the backend moves to another mechanism (e.g. App Sandbox for a signed, packaged backend in P15). The Rust shell and the WebKit processes are **not** under this profile (they need no network; the webview is limited by the CSP). In P12 the research fetcher needs outbound access: it will run in a separate helper with its own profile, so the main backend keeps this one. Config still pins `network.egress_enabled` to `false`.
 - Every outbound request and every permission decision is recorded in `audit_log` (§5.10), including the exact scrubbed query text, and is visible in the UI.
-- Model downloads happen only through the explicit setup command (`scripts/pull-and-verify-models`), never at runtime.
+- Model downloads happen only through the explicit setup command (`make model-pull MODEL=…` → `scripts/model-pull.sh`, owner-approved tags only, see §5.13), never at runtime and never from the backend.
 - Verification aid: users can confirm with a host firewall (e.g., LuLu or Little Snitch) that only expected connections occur. The docs list the expected hosts.
 
 ### 5.4 Prompt-injection and tool safety
@@ -226,6 +226,22 @@ Not defended in P1 (accepted, see §8): malware running as the user (it can talk
 - Rust wipes its own copies (`Zeroizing`), including the code received from the restore form; copies inside WebKit and the IPC layer are outside our control (documented residual).
 - Restore with a code never modifies the database: a wrong or corrupted code fails before anything is stored, and the database files are byte-for-byte unchanged afterwards (Rust lifecycle test).
 - There is no hidden recovery path, no master key and no upload of recovery material.
+
+### 5.13 Local inference (Phase 2)
+
+LAZIS talks to a local runtime (Ollama 0.40.4) over loopback HTTP. Loopback is **not** treated as safe by itself:
+
+| Risk | Control | Verified by |
+|---|---|---|
+| Prompts sent to a cloud model ("`*-cloud`" tags, remote entries) | Ollama runs as a LaunchAgent with `OLLAMA_NO_CLOUD=1` (`scripts/ollama-agent.sh`, server environment checked from the kernel); independently, the adapter refuses any model name containing `cloud`, any remote/`remote_host` entry and any registry-qualified name (`host/ns/model`), and uses only models listed as installed | `test_ollama_provider.py`, `test_chat_api.py` (refused before any request); `ollama-agent.sh status` |
+| Ollama as a proxy for the sandboxed backend (`/api/pull` fetches from any registry host; `create`/`push`/`copy`/`delete` change the model store) | the adapter can call only `GET /api/version`, `/api/tags`, `/api/ps` and `POST /api/show`, `/api/chat` (allowlist enforced in code); models are never pulled implicitly (an uninstalled model is refused, not downloaded) | unit tests; import-linter: only `lazis.providers` may import an HTTP client |
+| Other local services reachable from the backend | the OS sandbox allows outbound only to `localhost:11434` | `test_os_sandbox.py` (another local port → EPERM); Rust lifecycle test (sandboxed backend reaches Ollama) |
+| Prompts or answers in logs | provider and API log only model name, counts, durations and outcome; no request/response bodies anywhere | `test_chat_api.py` scans captured logs for a seeded secret prompt |
+| Chat persisted somewhere | Phase 2 chat is ephemeral: UI memory only, not in SQLCipher, not in browser storage, not in logs; clients cannot set the system prompt | UI tests (no `localStorage` writes), API design |
+| Arbitrary `num_ctx` exhausting memory / forcing reloads | requests choose a named context profile (`short`/`normal`/`long` from config); raw `num_ctx` is rejected | API validation tests |
+| Silent model downloads | only `scripts/model-pull.sh` pulls, and only tags in `scripts/approved-models.txt`; it refuses cloud/registry names and checks free disk | script refusal checks |
+
+Residual risks (accepted, documented): (1) Ollama's API has **no authentication** — any process of the same user can use it (and pull models through it); that is Ollama's design, outside LAZIS. (2) Code running inside the backend that bypasses the adapter (e.g. a compromised dependency calling `/api/pull` directly) could make Ollama download from an attacker-chosen registry — the sandbox cannot filter HTTP paths; mitigated by the dependency policy and by the import-linter rule, not eliminated. (3) Ollama's own logs (`~/.ollama/logs/server.log`) record request paths and timings, not prompts, at the default level; `OLLAMA_DEBUG=1` would log more and must not be used with real conversations. (4) Ollama's update checks and model pulls are Ollama's own traffic, not the backend's.
 
 ## 6. Privacy UX commitments
 1. **Visible state:** network on/off, mic active, off-record, research pending, learning activity.

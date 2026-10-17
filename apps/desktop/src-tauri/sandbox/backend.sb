@@ -3,8 +3,11 @@
 ;; including native code that bypasses Python. Verified by core/tests/security/test_os_sandbox.py
 ;; and apps/desktop/src-tauri/tests/lifecycle.rs.
 ;;
-;; * Outbound: only to this machine. In a *remote* filter "localhost" matches loopback and this
-;;   host's own addresses, so no connection or datagram can reach another host.
+;; * Outbound: only to the local inference runtime (Ollama) on port 11434 of this machine
+;;   (Phase 2). In a *remote* filter "localhost" matches loopback and this host's own addresses;
+;;   the port restriction means no other local service (e.g. a proxy) is reachable either, so
+;;   nothing can be relayed to another host. The port must match models.endpoint
+;;   (core/src/lazis/config/model.py, OLLAMA_PORT).
 ;; * DNS: the resolver daemon's Unix socket falls under (deny network*), so no name can be
 ;;   resolved.
 ;; * Bind / inbound: Seatbelt cannot express "127.0.0.1 only" (in a *local* filter "localhost"
@@ -17,4 +20,4 @@
 (deny network*)
 (allow network-bind (local ip "localhost:*"))
 (allow network-inbound (local ip "localhost:*"))
-(allow network-outbound (remote ip "localhost:*"))
+(allow network-outbound (remote ip "localhost:11434"))

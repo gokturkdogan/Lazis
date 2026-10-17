@@ -7,7 +7,8 @@ TAURI   := $(DESKTOP)/src-tauri
 
 .DEFAULT_GOAL := help
 .PHONY: help setup dev build check test test-core test-ui test-ui-integration test-shell \
-        test-keychain lint lint-core lint-ui lint-shell api-schema audit spike-storage clean
+        test-keychain lint lint-core lint-ui lint-shell api-schema audit spike-storage clean \
+        ollama-agent model-pull bench eval blind test-ollama
 
 help: ## List commands
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-22s %s\n", $$1, $$2}'
@@ -39,6 +40,9 @@ test-ui-integration: ## Frontend client against a real backend process
 test-shell: ## Rust shell unit + lifecycle tests (real backend, in-memory key store)
 	cd $(TAURI) && cargo test
 
+test-ollama: ## Opt-in: real backend + real Ollama + installed model (LAZIS_TEST_MODEL=...)
+	cd $(CORE) && uv run pytest -q -m ollama tests/integration/test_live_ollama.py
+
 test-keychain: ## Opt-in: round-trip a dedicated test item in the real login Keychain
 	cd $(TAURI) && cargo test --lib -- --ignored keychain
 
@@ -64,6 +68,21 @@ audit: ## Dependency vulnerability audits (sends package names/versions to advis
 
 spike-storage: ## SPK-04/05: SQLCipher + sqlite-vec + FTS5 benchmark (synthetic data)
 	cd $(CORE) && uv sync --group spike && uv run python spikes/spk05_storage.py
+
+ollama-agent: ## Run Ollama as a LaunchAgent with cloud features off, loopback only
+	scripts/ollama-agent.sh install
+
+model-pull: ## Download one owner-approved model: make model-pull MODEL=qwen3.5:9b-q4_K_M
+	scripts/model-pull.sh "$(MODEL)"
+
+bench: ## Phase 2 performance benchmarks: make bench MODEL=... [QUICK=1]
+	uv run --project $(CORE) python evals/runners/perf.py --model "$(MODEL)" $(if $(QUICK),--quick,)
+
+eval: ## Phase 2 Turkish quality evaluation: make eval MODEL=...
+	uv run --project $(CORE) python evals/runners/quality.py --model "$(MODEL)"
+
+blind: ## Build the blind rating page: make blind MODELS="a b c"
+	uv run --project $(CORE) python evals/runners/blind.py build --models $(MODELS)
 
 clean: ## Remove build output (never touches user data or the Keychain)
 	rm -rf $(DESKTOP)/ui/dist $(TAURI)/target

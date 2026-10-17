@@ -81,6 +81,18 @@ Engines: Ollama 0.40.x (primary). `mlx_lm.server` and `llama-server` are tried o
 
 Informational (no gate): cold load time (B1), prefill throughput (B2), latency trend over long sessions (B8).
 
+**Amendment 1 to G2 (2026-10-17), owner-approved after the Phase 2 results were known.**
+- **Original row kept above:** append-only turns, ~8K history, 300–600 new tokens.
+- **Why it changed:** Gemma 4 12B **failed** the original G2 (p50 1.71 s, p95 2.43 s).
+- **G2-r1 replaces it as the gate:**
+  - Scope: append-only conversation, user turn ≤ 100 tokens, `think=false`, warm prefix cache, at the pinned `num_ctx`.
+  - Same thresholds: p50 ≤ 1.2 s, p95 ≤ 2.5 s.
+  - Every G2-r1 measurement must report the **total input context** (not only the user-turn size) across a range of history lengths.
+- **Always reported, as information:**
+  - the original heavy-turn scenario;
+  - cache-miss TTFT per context length.
+- **Record:** [ADR-0001 "G2 revision record"](adr/0001-primary-model.md); measurement in `evals/runners/g2_context.py`.
+
 ### 5.2 Weighted score (only among candidates that pass all gates)
 
 | Component | Weight | Measure |

@@ -57,7 +57,7 @@ export const infoFixture = {
   name: "LAZIS",
   version: "0.1.0",
   api_version: "v1",
-  phase: "P1",
+  phase: "P2",
   environment: "development",
   python_version: "3.13.16",
 };
@@ -73,9 +73,29 @@ export const settingsFixture = {
   voice_interaction_mode: "push_to_talk",
   models_provider: "ollama",
   models_primary_model: null,
-  models_context_length: 16384,
+  models_context_short: 4096,
+  models_context_normal: 8192,
+  models_context_long: 16384,
+  models_keep_alive: "10m",
   backups_keep: 10,
   max_request_bytes: 65536,
+};
+
+export const modelFixture = {
+  name: "qwen3.5:9b-q4_K_M",
+  digest: "56671c2ab938",
+  size_bytes: 6_600_000_000,
+  family: "qwen35",
+  parameter_size: "9.0B",
+  quantization: "Q4_K_M",
+  format: "gguf",
+};
+
+export const llmStatusFixture = {
+  runtime: { available: true, runtime: "ollama", version: "0.40.4", error_code: null },
+  loaded: [],
+  primary_model: null,
+  cloud_inference: "disabled" as const,
 };
 
 export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
@@ -84,6 +104,10 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     appInfo: vi.fn().mockResolvedValue(infoFixture),
     systemStatus: vi.fn().mockResolvedValue(statusFixture),
     settings: vi.fn().mockResolvedValue(settingsFixture),
+    llmStatus: vi.fn().mockResolvedValue(llmStatusFixture),
+    models: vi.fn().mockResolvedValue({ models: [modelFixture] }),
+    chatStream: vi.fn().mockResolvedValue(undefined),
+    cancelChat: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }

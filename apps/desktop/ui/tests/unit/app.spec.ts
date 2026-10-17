@@ -30,12 +30,12 @@ describe("App", () => {
     expect(text).toContain("v0.1.0");
   });
 
-  it("marks the conversation area as inactive and never shows fake responses", async () => {
+  it("shows the ephemeral local chat and never invents a response", async () => {
     const { wrapper } = await mountWith();
-    const placeholder = wrapper.get('[data-testid="conversation-placeholder"]');
-    expect(placeholder.text()).toContain("Henüz etkin değil");
-    expect(placeholder.text()).toContain("sahte yanıt gösterilmez");
-    expect(placeholder.get("input").attributes("disabled")).toBeDefined();
+    const panel = wrapper.get('[data-testid="chat-panel"]');
+    expect(panel.get('[data-testid="chat-notice"]').text()).toContain("diske, veritabanına veya günlüklere yazılmaz");
+    expect(panel.text()).toContain("Henüz mesaj yok");
+    expect(panel.findAll('[data-testid="message-assistant"]')).toHaveLength(0);
   });
 
   it("shows a Turkish startup error with a retry action", async () => {

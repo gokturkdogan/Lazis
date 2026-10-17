@@ -23,6 +23,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lazis import API_VERSION, PHASE, __version__
+from lazis.api.chat import build_chat_router
 from lazis.api.schemas import (
     AiStatus,
     AppInfoResponse,
@@ -39,6 +40,7 @@ from lazis.api.security import LocalApiGuard, TokenBucket, error_payload
 from lazis.config.model import Settings
 from lazis.errors import LazisError
 from lazis.observability.logging import get_logger, log_event
+from lazis.providers.llm.ports import LLMProvider
 from lazis.security.network_guard import SandboxStatus
 from lazis.storage import StorageHandle
 
@@ -64,6 +66,7 @@ class ApiContext:
     on_shutdown: Callable[[], None] | None = None
     on_denied: Callable[[str], None] | None = None
     os_network_sandbox: SandboxStatus = "unknown"
+    llm: LLMProvider | None = None
 
     def require_storage(self) -> StorageHandle:
         if self.storage is None:
@@ -92,6 +95,8 @@ def create_app(ctx: ApiContext) -> FastAPI:
         if ctx.on_startup is not None:
             ctx.on_startup()
         yield
+        if ctx.llm is not None:
+            await ctx.llm.aclose()
         if ctx.on_shutdown is not None:
             ctx.on_shutdown()
 
@@ -186,7 +191,7 @@ def create_app(ctx: ApiContext) -> FastAPI:
                 os_network_sandbox=ctx.os_network_sandbox,
             ),
             ai=AiStatus(
-                configured=False,
+                configured=ctx.llm is not None,
                 provider=ctx.settings.models.provider,
                 available_from_phase="P2",
             ),
@@ -206,10 +211,15 @@ def create_app(ctx: ApiContext) -> FastAPI:
             voice_interaction_mode=s.voice.interaction_mode,
             models_provider=s.models.provider,
             models_primary_model=s.models.primary_model,
-            models_context_length=s.models.context_length,
+            models_context_short=s.models.context_short,
+            models_context_normal=s.models.context_normal,
+            models_context_long=s.models.context_long,
+            models_keep_alive=s.models.keep_alive,
             backups_keep=s.storage.backups_keep,
             max_request_bytes=s.backend.max_request_bytes,
         )
+
+    app.include_router(build_chat_router(PREFIX, ctx.settings, lambda: ctx.llm))
 
     guarded = LocalApiGuard(
         app,

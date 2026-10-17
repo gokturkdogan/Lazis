@@ -2,9 +2,9 @@
 
 A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs.
 
-**Current phase:** Phase 1 (foundation, secure storage, desktop bootstrap) and Phase 1.1 (security, data-integrity and reliability hardening) implemented and verified — **awaiting the owner's approval**. Phase 2 has not started.
+**Current phase:** Phase 2 (local AI integration, model benchmarking and selection) implemented, verified and committed locally. The model decision ([ADR-0001](docs/adr/0001-primary-model.md)) is **Accepted**: primary Gemma 4 12B, fallback Qwen3.5-9B. The G2 latency gate was revised with the owner's approval after the results were known; the record is in ADR-0001. Phase 3 has not started and needs the owner's separate approval.
 
-What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. There is no AI model, conversation, memory, voice or internet access yet — by design.
+What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. Phase 2 adds a local LLM through Ollama on loopback (primary: Gemma 4 12B; the backend's sandbox allows only Ollama's port, cloud inference disabled) and a minimal **ephemeral** Turkish chat with streaming and cancellation. There is no persistent conversation, memory, voice or internet access yet — by design.
 
 ## Quick start
 
@@ -20,7 +20,10 @@ Details: [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).
 
 | Document | Contents |
 |---|---|
-| [PHASE_1_1_REPORT.md](docs/PHASE_1_1_REPORT.md) | **Start here.** Phase 1.1 hardening report (Turkish): verified findings, network isolation, restore safety, recovery code, local API, tests, Phase 2 readiness |
+| [PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | **Start here.** Phase 2 report (Turkish): environment, model inventory and downloads, inference architecture, sandbox compatibility, chat, tests, model decision, Phase 3 readiness |
+| [PHASE_2_MODEL_BENCHMARKS.md](docs/PHASE_2_MODEL_BENCHMARKS.md) | Phase 2 model benchmarks (Turkish): method, performance, memory, Turkish quality, extraction, MLX comparison |
+| [adr/0001-primary-model.md](docs/adr/0001-primary-model.md) | ADR-0001 (Accepted): primary and fallback model, runtime, gate check, G2 revision record |
+| [PHASE_1_1_REPORT.md](docs/PHASE_1_1_REPORT.md) | Phase 1.1 hardening report (Turkish): verified findings, network isolation, restore safety, recovery code, local API, tests, Phase 2 readiness |
 | [PHASE_1_REPORT.md](docs/PHASE_1_REPORT.md) | Phase 1 report (Turkish, historical): what was built, how it was verified, measurements |
 | [adr/0009-backend-network-sandbox.md](docs/adr/0009-backend-network-sandbox.md) | ADR-0009: OS-enforced network sandbox for the backend |
 | [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Setup, commands, process lifecycle, profiles, database, keys and recovery, API, troubleshooting |
