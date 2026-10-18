@@ -229,6 +229,9 @@ class ConversationEngine:
         self._turn: TurnHandle | None = None
         self._reserved = False
         self._pending: dict[str, float] = {}
+        # Conversations whose last reply should be processed into the runtime's cache
+        # (model to use), see the post-turn re-warm in `_run_due`.
+        self._rewarm: dict[str, str] = {}
         self._focused: str | None = None
         self._wake = asyncio.Event()
         self._maintenance: asyncio.Task[None] | None = None
@@ -398,7 +401,13 @@ class ConversationEngine:
             "hard_limit": self.budget.hard_limit,
             "compact_at": self.budget.compact_at,
             "cache": "warm"
-            if self.scheduler.holds(conv.model, self.num_ctx, conversation_id, built.prefix_hash)
+            if self.scheduler.holds(
+                conv.model,
+                self.num_ctx,
+                conversation_id,
+                built.prefix_hash,
+                through_seq=loaded.window[-1].seq if loaded.window else 0,
+            )
             else "cold",
             "background": None
             if job is None or job.conversation_id != conversation_id
@@ -737,7 +746,14 @@ class ConversationEngine:
                     await self._stage(handle, "loading_model", model=model)
                     await llm.load(model, num_ctx=self.num_ctx, keep_alive=self._models.keep_alive)
                 handle.check()
-                warm = self.scheduler.holds(model, self.num_ctx, conv.id, built.prefix_hash)
+                prior = [m.seq for m in loaded.window if m.seq < user.seq]
+                warm = self.scheduler.holds(
+                    model,
+                    self.num_ctx,
+                    conv.id,
+                    built.prefix_hash,
+                    through_seq=max(prior) if prior else 0,
+                )
                 await self._stage(
                     handle,
                     "processing_context",
@@ -794,8 +810,12 @@ class ConversationEngine:
                 if not text.strip():
                     raise LlmInvalidResponseError("empty reply")
                 final = await self._complete(handle, loaded, built, text, metrics)
+                # The runtime does not reuse the tokens it generated: the next request
+                # re-processes the reply (measured with Gemma, PHASE_5_REPORT §G). The cache
+                # holds the prompt only, up to the user message; the post-turn re-warm
+                # (below) processes the reply in the background.
                 self.scheduler.cache = CacheKey(
-                    model, self.num_ctx, conv.id, built.prefix_hash, final.seq
+                    model, self.num_ctx, conv.id, built.prefix_hash, user.seq
                 )
             await self._emit(
                 handle,
@@ -821,14 +841,18 @@ class ConversationEngine:
                 ttft_ms=None if metrics.ttft_ms is None else round(metrics.ttft_ms, 1),
                 total_ms=round(metrics.total_ms, 1),
             )
-            self._schedule_check(conv.id)
+            self._rewarm[conv.id] = model
+            self._schedule_check(conv.id, now=True)
         except LlmCancelledError:
             status: MessageStatus = "interrupted" if handle.shutdown else "cancelled"
             final = await self._close_reply(handle, status, "".join(parts), None)
             if built is not None and parts:
                 self.scheduler.cache = CacheKey(
-                    model, self.num_ctx, conv.id, built.prefix_hash, assistant.seq
+                    model, self.num_ctx, conv.id, built.prefix_hash, user.seq
                 )
+                if not handle.shutdown:
+                    self._rewarm[conv.id] = model
+                    self._schedule_check(conv.id, now=True)
             await self._emit(
                 handle,
                 {"type": "cancelled", "message": None if final is None else message_view(final)},
@@ -1313,14 +1337,19 @@ class ConversationEngine:
             if due > now:
                 continue
             if self.is_busy() or self.scheduler.background is not None:
-                self._pending[conversation_id] = now + 2.0
+                self._pending[conversation_id] = now + 0.5
+                continue
+            if not await self._needs_compaction(conversation_id):
+                self._pending.pop(conversation_id, None)
+                rewarm_model = self._rewarm.pop(conversation_id, None)
+                if rewarm_model is not None and self._cfg.prewarm:
+                    # Process the reply now, while the user reads it, instead of at the start
+                    # of the next turn (a turn sent meanwhile joins this pre-warm).
+                    await self.prepare(conversation_id, rewarm_model)
                 continue
             idle = self.scheduler.idle_for()
             if idle < self._cfg.idle_compaction_delay_s:
                 self._pending[conversation_id] = now + (self._cfg.idle_compaction_delay_s - idle)
-                continue
-            if not await self._needs_compaction(conversation_id):
-                self._pending.pop(conversation_id, None)
                 continue
             llm = self._get_llm()
             if llm is None:
@@ -1399,8 +1428,9 @@ class ConversationEngine:
             "model_loaded": model_loaded,
             "context_tokens": built.estimated_tokens,
         }
+        last_seq = loaded.window[-1].seq if loaded.window else 0
         if model_loaded and self.scheduler.holds(
-            model, self.num_ctx, conversation_id, built.prefix_hash
+            model, self.num_ctx, conversation_id, built.prefix_hash, through_seq=last_seq
         ):
             return {"state": "warm", **info}
         job = self.scheduler.background
@@ -1410,7 +1440,6 @@ class ConversationEngine:
             if job.kind == "compaction" and job.conversation_id == conversation_id:
                 return {"state": "compacting", **info}
             await self.scheduler.cancel_background()
-        last_seq = loaded.window[-1].seq if loaded.window else 0
         target = CacheKey(model, self.num_ctx, conversation_id, built.prefix_hash, last_seq)
         version = loaded.state.context_version
 
@@ -1538,8 +1567,14 @@ class ConversationEngine:
         cache_ok = False
         if session is not None and active_model is not None:
             built = self._assemble(await self._load(session.id), active_model)
+            loaded_s = await self._load(session.id)
+            built = self._assemble(loaded_s, active_model)
             cache_ok = self.scheduler.holds(
-                active_model, self.num_ctx, session.id, built.prefix_hash
+                active_model,
+                self.num_ctx,
+                session.id,
+                built.prefix_hash,
+                through_seq=loaded_s.window[-1].seq if loaded_s.window else 0,
             )
         job = self.scheduler.background
         return {

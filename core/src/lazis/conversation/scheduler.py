@@ -74,9 +74,18 @@ class InferenceScheduler:
             return 0.0
         return time.monotonic() - self.last_foreground_monotonic
 
-    def holds(self, model: str, num_ctx: int, conversation_id: str | None, prefix: str) -> bool:
+    def holds(
+        self,
+        model: str,
+        num_ctx: int,
+        conversation_id: str | None,
+        prefix: str,
+        *,
+        through_seq: int | None = None,
+    ) -> bool:
         """True if the runtime's cache should hold this conversation's current prefix (the
-        history only grows within one prefix, so the cached part is reusable)."""
+        history only grows within one prefix, so the cached part is reusable) — and, when
+        ``through_seq`` is given, every message up to that one."""
         c = self.cache
         # A pre-warm of an empty session (system prompt only) measurably did not speed up
         # the first turn (PHASE_3_REPORT §13.D): never report that as a warm conversation.
@@ -87,6 +96,7 @@ class InferenceScheduler:
             and c.num_ctx == num_ctx
             and c.conversation_id == conversation_id
             and c.prefix_hash == prefix
+            and (through_seq is None or c.last_seq >= through_seq)
         )
 
     # ----- foreground ------------------------------------------------------------------
