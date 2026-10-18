@@ -131,6 +131,8 @@ describe("Settings", () => {
     expect(privacy).toContain("Tamamen yerel");
     expect(privacy).toContain("SQLCipher");
     expect(privacy).toContain("FileVault");
+    expect(wrapper.text()).toContain("Yanıt uzunluğu");
+    expect(wrapper.text()).toContain("Soruya göre");
     expect(platform.setPreferences).not.toHaveBeenCalled();
   });
 });

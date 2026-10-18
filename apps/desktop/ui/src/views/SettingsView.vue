@@ -70,6 +70,8 @@ const configRows = computed<StatusRow[]>(() => {
       mono: true,
     },
     { label: t("settings.keepAlive"), value: s.models_keep_alive, mono: true },
+    { label: t("settings.verbosity"), value: t(`settings.verbosityValue.${s.personality_verbosity}`) },
+    { label: t("settings.humor"), value: t(`settings.humorValue.${s.personality_humor}`) },
     { label: t("settings.logLevel"), value: s.log_level, mono: true },
     { label: t("settings.backups"), value: String(s.backups_keep) },
     { label: t("settings.requestLimit"), value: formatBytes(s.max_request_bytes) },

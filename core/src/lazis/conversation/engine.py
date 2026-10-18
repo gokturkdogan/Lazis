@@ -74,6 +74,7 @@ from lazis.errors import (
 from lazis.i18n import message_for
 from lazis.ids import new_ulid, utc_now_iso
 from lazis.observability.logging import get_logger, log_event
+from lazis.personality import CommunicationPreferences
 from lazis.providers.llm.ports import (
     ChatRequest,
     GenerationDone,
@@ -215,6 +216,9 @@ class ConversationEngine:
         self._cfg = settings.conversation
         self._models = settings.models
         self.num_ctx = settings.models.context_tokens(self._cfg.context_profile)
+        self.preferences = CommunicationPreferences(
+            verbosity=settings.personality.verbosity, humor=settings.personality.humor
+        )
         self.budget = Budget.build(
             self.num_ctx,
             settings.models.max_output_tokens,
@@ -345,6 +349,7 @@ class ConversationEngine:
             model=model,
             num_ctx=self.num_ctx,
             estimator=self.estimator,
+            preferences=self.preferences,
         )
 
     # ----- conversations ---------------------------------------------------------------
@@ -974,6 +979,7 @@ class ConversationEngine:
             estimator=self.estimator,
             limit=self.budget.hard_limit,
             keep_last=1,
+            preferences=self.preferences,
         )
         if start is None:
             raise ContextBuildError("the newest message does not fit the context")

@@ -228,6 +228,8 @@ def create_app(ctx: ApiContext) -> FastAPI:
             models_provider=s.models.provider,
             models_primary_model=s.models.primary_model,
             models_fallback_model=s.models.fallback_model,
+            personality_verbosity=s.personality.verbosity,
+            personality_humor=s.personality.humor,
             models_context_short=s.models.context_short,
             models_context_normal=s.models.context_normal,
             models_context_long=s.models.context_long,

@@ -198,6 +198,15 @@ class VoiceSection(_Section):
     microphone_always_on: Literal[False] = False
 
 
+class PersonalitySection(_Section):
+    """LAZIS's communication defaults (P5, ADR-0013). The persona itself (identity, honesty
+    rules, style) is versioned code, not configuration; only these preferences are tunable."""
+
+    # adaptive: length follows the question; short / detailed bias every reply.
+    verbosity: Literal["adaptive", "short", "detailed"] = "adaptive"
+    humor: Literal["light", "off"] = "light"
+
+
 class Settings(_Section):
     app: AppSection = AppSection()
     backend: BackendSection = BackendSection()
@@ -207,6 +216,7 @@ class Settings(_Section):
     research: ResearchSection = ResearchSection()
     models: ModelsSection = ModelsSection()
     conversation: ConversationSection = ConversationSection()
+    personality: PersonalitySection = PersonalitySection()
     voice: VoiceSection = VoiceSection()
 
     def effective_origins(self) -> tuple[str, ...]:

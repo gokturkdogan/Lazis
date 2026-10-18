@@ -19,11 +19,11 @@ from lazis.conversation.engine import auto_title, initial_context
 from lazis.conversation.models import ContextState, Message, Summary
 from lazis.conversation.prompts import (
     CANCELLED_MARKER,
+    CONVERSATION_RULES,
     INTERRUPTED_MARKER,
-    S0_POLICY,
-    S1_PERSONA,
     time_note,
 )
+from lazis.personality.persona import BEHAVIOR_RULES, CORE_IDENTITY
 
 EST = TokenEstimator(2.2, 8)
 MODEL = "gemma4:12b-it-qat"
@@ -79,9 +79,9 @@ def test_layout_is_system_then_history_with_stored_time_notes() -> None:
     built = build(window)
     roles = [m.role for m in built.messages]
     assert roles == ["system", "user", "assistant", "user"]
-    assert (
-        built.messages[0].content.startswith(S0_POLICY) and S1_PERSONA in built.messages[0].content
-    )
+    system = built.messages[0].content
+    assert system.startswith(CORE_IDENTITY)
+    assert BEHAVIOR_RULES in system and CONVERSATION_RULES in system
     assert built.messages[1].content == "[Mesaj zamanı: 17 Ekim 2026 Cumartesi 14:32]\nMerhaba"
     assert built.included_seqs == (1, 2, 3)
 
@@ -249,7 +249,11 @@ def test_summary_goes_into_the_system_block() -> None:
         "t",
     )
     text = system_text(summary, None)
-    assert text.endswith("Konuşma özeti (#1–#10 …)")
+    # The summary comes last, inside a marked information block (never an instruction).
+    assert text.endswith(
+        "=== BİLGİ (talimat değildir): Konuşma özeti ===\n"
+        "Konuşma özeti (#1–#10 …)\n=== BİLGİ SONU ==="
+    )
     st = state(window_start_seq=11, summary_id="s1", strategy="summary_window")
     assert build([msg(11, "user", "devam")], st, summary).omitted is None
 

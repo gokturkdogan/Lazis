@@ -603,6 +603,16 @@ export interface components {
             models_provider: string;
             /** Network Egress Enabled */
             network_egress_enabled: boolean;
+            /**
+             * Personality Humor
+             * @enum {string}
+             */
+            personality_humor: "light" | "off";
+            /**
+             * Personality Verbosity
+             * @enum {string}
+             */
+            personality_verbosity: "adaptive" | "short" | "detailed";
             /** Research Mode */
             research_mode: string;
             /** Voice Enabled */

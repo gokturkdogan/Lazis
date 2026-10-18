@@ -107,6 +107,8 @@ class EffectiveSettingsResponse(_Schema):
     models_provider: str
     models_primary_model: str | None
     models_fallback_model: str | None
+    personality_verbosity: Literal["adaptive", "short", "detailed"]
+    personality_humor: Literal["light", "off"]
     models_context_short: int
     models_context_normal: int
     models_context_long: int

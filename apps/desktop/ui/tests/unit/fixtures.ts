@@ -79,6 +79,9 @@ export const settingsFixture = {
   models_context_normal: 8192,
   models_context_long: 16384,
   models_keep_alive: "10m",
+  models_fallback_model: "qwen3.5:9b-q4_K_M",
+  personality_verbosity: "adaptive" as const,
+  personality_humor: "light" as const,
   backups_keep: 10,
   max_request_bytes: 65536,
 };

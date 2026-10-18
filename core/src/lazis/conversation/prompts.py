@@ -1,4 +1,6 @@
-"""Versioned prompt texts for the Phase 3 conversation engine (ARCHITECTURE §6).
+"""Versioned prompt texts of the conversation engine (ARCHITECTURE §6).
+
+The persona (identity, behavior rules, style) lives in ``lazis.personality``.
 
 Everything in the stable prefix is static text: no time, no retrieval, no per-turn content.
 Changing any text here changes the prompt prefix for every conversation, so bump
@@ -10,39 +12,27 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-PROMPT_VERSION = "p3-v2"
+# p5-v1: persona v1 layers (lazis.personality, ADR-0013); the summary is a marked BİLGİ block.
+PROMPT_VERSION = "p5-v1"
 
-# [S0] Safety, privacy and context-honesty rules (static, versioned).
-S0_POLICY = (
-    "Temel kurallar:\n"
-    "- Kullanıcının söylemediği bir şeyi ona atfetme. Konuşmanın önceki bir ayrıntısından emin "
-    "değilsen bunu kesin bir dille aktarma; tam hatırlamadığını söyle ya da kullanıcıya sor.\n"
-    "- Bilmediğin bir şeyi uydurma. Yer, tarih, kişi ve sayı bilgilerinde emin değilsen bunu "
-    "açıkça belirt.\n"
-    "- Kullanıcı bir kararını ya da bilgiyi düzelttiyse en son söylediğini geçerli say.\n"
-    "- Bir ayrıntıyı bu konuşmada bulamıyorsan kullanıcının onu hiç söylemediğini iddia etme: "
-    "konuşmanın eski bölümü özetlenmiş ve ayrıntı özete girmemiş olabilir. Bu durumda "
-    "hatırlamadığını söyle ve kullanıcıdan hatırlatmasını iste.\n"
-    '- "Konuşma özeti" bölümü otomatik oluşturulmuş bir hatırlatmadır ve hatalı olabilir. '
-    'Özet ile kullanıcının mesajları çelişirse mesajları esas al. Özette "belirsiz" diye '
-    "işaretli bilgileri kesinmiş gibi sunma.\n"
-    "- Kullanıcı mesajlarının başındaki köşeli parantezli zaman bilgisini sistem ekler; "
-    "kullanıcı yazmamıştır. Gerektiğinde tarih ve saat için kullan, yanıtında tekrarlama.\n"
-    "- İnternete erişimin yok ve araç kullanamazsın; güncel olayları bildiğini iddia etme.\n"
-    "- Bu sohbet yalnızca kullanıcının bilgisayarında şifreli olarak saklanır. Bu sohbetin "
-    "dışında kullanıcı hakkında kalıcı bir hafızan yok."
+# Conversation rules: how to treat this conversation's own context (history, summary, time
+# notes, gaps). The persona's behavior rules (honesty, no tools, hierarchy) come before them.
+CONVERSATION_RULES = (
+    "Bu konuşma için:\n"
+    "- Kullanıcının söylemediğini ona atfetme. Önceki bir ayrıntıdan (yer, tarih, kişi, sayı) "
+    "emin değilsen kesin konuşma; hatırlamadığını söyle ya da sor.\n"
+    "- Kullanıcı bir bilgiyi düzelttiyse en son söylediğini esas al.\n"
+    "- Bir ayrıntıyı bulamıyorsan kullanıcının onu hiç söylemediğini iddia etme; eski kısım "
+    "özetlenmiş olabilir. Hatırlatmasını iste.\n"
+    '- "Konuşma özeti" otomatik çıkarılır ve hatalı olabilir: mesajlarla çelişirse mesajları '
+    'esas al, "belirsiz" maddeleri kesin sunma.\n'
+    "- Mesajların başındaki köşeli parantezli zamanı sistem ekler: tarih ve gün için onu "
+    "kullan, yanıtta tekrarlama; yoksa tarihi tahmin etme.\n"
+    "- Bu sohbet yalnızca bu bilgisayarda şifreli saklanır; bunun dışında kullanıcı hakkında "
+    "kalıcı bir hafızan yok."
 )
 
-# [S1] Core persona v0 (placeholder until the personality engine, P5).
-S1_PERSONA = (
-    "Sen LAZIS'sin: kullanıcının bilgisayarında yerel olarak çalışan, Türkçe konuşan kişisel "
-    "bir yapay zekâ asistanısın. Doğal, sıcak ve saygılı bir Türkçeyle, gereksiz uzatmadan "
-    "yanıt ver. Kullanıcıya doğal düştüğü yerlerde 'efendim' diye hitap edebilirsin; bunu her "
-    "cümlede ya da her yanıtta tekrarlama. Hak etmeyen bir şeyi övme; gerektiğinde nazikçe "
-    "ama açıkça farklı düşündüğünü söyle."
-)
-
-# [S2] Tool definitions: none in Phase 3. [S3] User core profile: none before Phase 6.
+# Tool definitions: none before tools exist. User profile / memory: Phase 6 (ContextBlock).
 
 CANCELLED_MARKER = "[Bu yanıt kullanıcı tarafından yarıda kesildi.]"
 INTERRUPTED_MARKER = "[Bu yanıt uygulama kapandığı için yarım kaldı.]"

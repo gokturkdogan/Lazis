@@ -2,8 +2,9 @@
 
 Layout of every request for a conversation::
 
-    [system] S0 policy · S1 persona · (S2 tools: none) · (S3 profile: none)
-             · conversation summary (changes only on compaction) · omitted-range note
+    [system] persona v1: identity · behavior rules · style · preferences (lazis.personality)
+             · conversation rules · BİLGİ blocks: summary (changes only on compaction),
+             omitted-range note (later: memory records, Phase 6)
     [H]      verbatim messages from ``window_start_seq`` on (user turns carry their stored
              time note; partial replies carry a marker)
     [N]      the new user message
@@ -24,13 +25,15 @@ from dataclasses import dataclass
 from lazis.conversation.models import CONTEXT_STATUSES, ContextState, Message, Summary
 from lazis.conversation.prompts import (
     CANCELLED_MARKER,
+    CONVERSATION_RULES,
     INTERRUPTED_MARKER,
     PROMPT_VERSION,
-    S0_POLICY,
-    S1_PERSONA,
     omitted_note,
 )
+from lazis.personality import CommunicationPreferences, ContextBlock, render_system
 from lazis.providers.llm.ports import ChatMessage
+
+DEFAULT_PREFERENCES = CommunicationPreferences()
 
 # Template tokens around one runtime-counted assistant reply (end-of-turn markers).
 ASSISTANT_TEMPLATE_TOKENS = 4
@@ -117,13 +120,19 @@ def omitted_range(state: ContextState, summary: Summary | None) -> tuple[int, in
     return (start, end) if end >= start else None
 
 
-def system_text(summary: Summary | None, omitted: tuple[int, int] | None) -> str:
-    parts = [S0_POLICY, S1_PERSONA]
+def system_text(
+    summary: Summary | None,
+    omitted: tuple[int, int] | None,
+    preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
+) -> str:
+    """The persona layers, then this conversation's rules, then its summary and gap note as
+    marked information blocks (derived from user content: never instructions)."""
+    blocks: list[ContextBlock] = []
     if summary is not None:
-        parts.append(summary.rendered)
+        blocks.append(ContextBlock("Konuşma özeti", summary.rendered))
     if omitted is not None:
-        parts.append(omitted_note(*omitted))
-    return "\n\n".join(parts)
+        blocks.append(ContextBlock("Bağlamda olmayan mesajlar", omitted_note(*omitted)))
+    return render_system(preferences, conversation_rules=CONVERSATION_RULES, blocks=blocks)
 
 
 def prefix_hash(model: str, num_ctx: int, system: str) -> str:
@@ -139,12 +148,13 @@ def assemble(
     model: str,
     num_ctx: int,
     estimator: TokenEstimator,
+    preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
 ) -> AssembledPrompt:
     """Build the request messages for ``window`` (messages with seq ≥ window_start_seq, in
     order, already including the new user message and excluding the reply being generated).
     """
     omitted = omitted_range(state, summary)
-    system = system_text(summary, omitted)
+    system = system_text(summary, omitted, preferences)
     phash = prefix_hash(model, num_ctx, system)
     chat = [ChatMessage("system", system)]
     included: list[int] = []
@@ -217,6 +227,7 @@ def trim_to_fit(
     estimator: TokenEstimator,
     limit: int,
     keep_last: int,
+    preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
 ) -> int | None:
     """Fallback when compaction is impossible: the smallest ``window_start_seq`` (dropping
     the oldest verbatim messages, never the last ``keep_last``) whose prompt fits ``limit``.
@@ -249,6 +260,7 @@ def trim_to_fit(
             model=model,
             num_ctx=num_ctx,
             estimator=estimator,
+            preferences=preferences,
         )
         if built.estimated_tokens <= limit:
             return start

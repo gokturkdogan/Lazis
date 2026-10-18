@@ -14,7 +14,7 @@ import pytest
 
 from lazis.config.model import StorageSection
 from lazis.conversation import TurnRequest, repository
-from lazis.conversation.prompts import CANCELLED_MARKER, INTERRUPTED_MARKER, S0_POLICY
+from lazis.conversation.prompts import CANCELLED_MARKER, INTERRUPTED_MARKER
 from lazis.errors import (
     ConversationNotFoundError,
     LlmBusyError,
@@ -26,6 +26,7 @@ from lazis.errors import (
     TurnDuplicateError,
 )
 from lazis.ids import utc_now_iso
+from lazis.personality.persona import CORE_IDENTITY
 from lazis.security.secrets import SecretBytes
 from lazis.storage import StorageHandle, open_storage
 from tests.conversation_support import (
@@ -108,7 +109,7 @@ def test_turns_continue_the_active_session_and_sessions_stay_isolated(
     assert list(second.messages[: len(first.messages)]) == list(first.messages)
     third = llm.chat_requests[2]  # first turn of the new session
     assert not any("Ayşe" in m.content for m in third.messages)
-    assert third.messages[0].content.startswith(S0_POLICY)
+    assert third.messages[0].content.startswith(CORE_IDENTITY)  # the persona, every session
     assert len(rows(storage, a)) == 4 and len(rows(storage, b)) == 2
 
 
@@ -343,17 +344,18 @@ def test_over_budget_turn_compacts_first_and_keeps_originals(
     tmp_path: Path, storage: StorageHandle
 ) -> None:
     llm = ScriptedLLM(reply=long_reply)
-    # Small window so a handful of turns crosses the hard limit; no idle compaction.
+    # Small window so a handful of turns crosses the hard limit; no idle compaction. (6K, not
+    # 4K: the persona v1 system prompt is a fixed ~1.2K estimated tokens; production is 16K.)
     engine = make_engine(storage, llm, tmp_path, idle_compaction_delay_s=3600.0)
-    engine.num_ctx = 4096
+    engine.num_ctx = 6144
     from lazis.conversation.context import Budget
 
-    engine.budget = Budget.build(4096, 512, 0.10, 4096)
+    engine.budget = Budget.build(6144, 512, 0.10, 6144)
 
     async def go() -> tuple[str, list[list[dict[str, object]]]]:
         all_events: list[list[dict[str, object]]] = []
         cid: str | None = None
-        for i in range(8):
+        for i in range(14):
             events, cid = await run_turn(
                 engine, f"Hedefim {i}: düzenli spor yapmak ve kitap okumak.", cid
             )
@@ -365,16 +367,16 @@ def test_over_budget_turn_compacts_first_and_keeps_originals(
     cid, all_events = asyncio.run(go())
     assert any("compacting" in stages(e) for e in all_events)
     assert llm.summary_requests
-    # Originals are untouched: 8 user + 8 assistant messages, all complete.
+    # Originals are untouched: 14 user + 14 assistant messages, all complete.
     msgs = rows(storage, cid)
-    assert len(msgs) == 16 and all(m.status == "complete" for m in msgs)
+    assert len(msgs) == 28 and all(m.status == "complete" for m in msgs)
     ctx = storage.db.run_sync(lambda c: repository.get_context(c, cid))
     assert ctx is not None and ctx.strategy == "summary_window" and ctx.window_start_seq > 1
     summaries = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
     assert summaries[-1].status == "active" and summaries[-1].to_seq == ctx.window_start_seq - 1
     # Every request stayed inside the window: prompt + reply reserve ≤ num_ctx.
     for req in llm.chat_requests:
-        assert prompt_tokens(req) + 512 <= 4096
+        assert prompt_tokens(req) + 512 <= 6144
     last = llm.chat_requests[-1].messages[0].content
     assert "Konuşma özeti (#1–" in last
 
@@ -443,7 +445,7 @@ def test_failed_compaction_falls_back_to_an_announced_trim(
     system = llm.chat_requests[-1].messages[0].content
     assert "şu an bağlamda yok" in system
     for req in llm.chat_requests:
-        assert prompt_tokens(req) + 512 <= 4096
+        assert prompt_tokens(req) + 512 <= 6144
 
 
 def test_prewarm_warms_the_cache_and_the_next_turn_reports_warm(
