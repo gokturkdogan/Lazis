@@ -213,6 +213,7 @@ describe("diagnostics", () => {
     expect(card).toContain("Açık (yazabilen model: gemma4:12b-it-qat)");
     expect(card).toContain("1 yeni kayıt, 0 onay bekleyen");
     expect(card).toContain("3 kayıt · 0 onay bekleyen");
+    expect(card).toContain("2 güncel · 0 geçmiş");
     wrapper.unmount();
   });
 });

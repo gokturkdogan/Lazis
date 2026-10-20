@@ -892,6 +892,10 @@ export interface components {
             relations_created?: number | null;
             /** Relations Inbox */
             relations_inbox?: number | null;
+            /** Relations Not Applied */
+            relations_not_applied?: {
+                [key: string]: number;
+            } | null;
             /** Relations Proposed */
             relations_proposed?: number | null;
             /** Relations Rejected */

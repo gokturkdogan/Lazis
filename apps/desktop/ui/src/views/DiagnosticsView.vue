@@ -254,6 +254,13 @@ const learningRows = computed<StatusRow[]>(() => {
       label: t("diagnostics.learning.records"),
       value: t("diagnostics.learning.recordsValue", { active: m.memories.active ?? 0, pending: m.inbox_open }),
     },
+    {
+      label: t("diagnostics.learning.relationships"),
+      value: t("diagnostics.learning.relationshipsValue", {
+        current: (m.relationships.active ?? 0) + (m.relationships.planned ?? 0) + (m.relationships.unverified ?? 0),
+        past: m.relationships.ended ?? 0,
+      }),
+    },
   ];
 });
 

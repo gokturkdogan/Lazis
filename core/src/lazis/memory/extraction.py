@@ -399,8 +399,11 @@ def validate(
                 out.drop("entity_not_grounded")
                 continue
             kinds = {k.entity.kind for k in matches}
+            hinted = kind_hint(target.text, name)  # "Atlas Yazılım'ın", "Mavi Kanat Derneği"
             if len(kinds) == 1:
                 kind = next(iter(kinds))
+            elif hinted is not None:
+                kind = hinted
             else:
                 kind = "project" if pred.subjects == ("project",) else "person"
             relation = _str(item, "relation", 80) or None
@@ -524,6 +527,10 @@ def _end_ref(
         known_kinds = {k.entity.kind for k in matches}
         kind = next(iter(known_kinds)) if len(known_kinds) == 1 else allowed[0]
     rel_words = relation if relation and _grounded(relation, grounding) else None
+    said = relations_vocab.lexicon(rel_words) if rel_words else None
+    if said is not None and not relations_vocab.says_mine(target.text, said):
+        # "kızı" in "Ahmet'in kızı Ela" is Ela's relation to Ahmet, not Ahmet's to the user.
+        rel_words = None
     if rel_words is None:
         rel_words = appositive(target.text, name)  # "çocukluk arkadaşım Ahmet'in …"
     return EntityRef(name, cast(Any, kind), rel_words), None
@@ -636,6 +643,26 @@ def appositive(message: str, name: str) -> str | None:
             if m is not None and m[1] == n and relations_vocab.first_person(m[2]):
                 return relations_vocab.TYPES[m[0]].label
     return None
+
+
+def someone_elses(message: str, name: str) -> bool:
+    """The relation noun right before the name is someone else's ("kardeşimin arkadaşı Yiğit",
+    "Selim'in oğlu Arda"): the name is related to that person, not to the user."""
+    key = text.name_key(name)
+    if not key:
+        return False
+    words = text.words(message)
+    first = key.split()[0]
+    for i, w in enumerate(words):
+        if not w.startswith(first) or len(w) - len(first) > 5:
+            continue
+        for n in (2, 1):
+            m = relations_vocab.match_at(words, i - n) if i - n >= 0 else None
+            if m is not None and m[1] == n:
+                if not relations_vocab.first_person(m[2]):
+                    return True
+                break
+    return False
 
 
 def _word_of(name: str, *, last: bool) -> str:
@@ -764,6 +791,13 @@ def validate_relations(
             src, tgt, key = None, src, back
         else:
             key = t.key
+        if (
+            src is None
+            and someone_elses(target.text, tgt.name)
+            and not relations_vocab.says_mine(target.text, key)
+        ):
+            drop("someone_elses")  # "kardeşimin arkadaşı Yiğit" is not the user's friend
+            continue
         status = _str(r, "status")
         out.append(
             ExtractedRel(
@@ -785,7 +819,38 @@ def validate_relations(
                 ),
             )
         )
+    out += _appositive_relations(out, by_tag)
     return out, dropped
+
+
+def _appositive_relations(
+    found: Sequence[ExtractedRel], by_tag: dict[str, Target]
+) -> list[ExtractedRel]:
+    """ "Kuzenim Selim'in oğlu Arda": the user also said Selim is their cousin. A first-person
+    appositive the model did not list becomes that user relationship (the user's own words)."""
+    by_message = {t.message_id: t for t in by_tag.values()}
+    have = {(e.message_id, e.candidate.type, text.name_key(e.candidate.target.name))
+            for e in found if e.candidate.source is None}  # fmt: skip
+    extra: list[ExtractedRel] = []
+    for e in found:
+        target = by_message.get(e.message_id)
+        if target is None:
+            continue
+        for ref in (e.candidate.source, e.candidate.target):
+            if ref is None or ref.kind != "person" or not ref.relation:
+                continue
+            key = relations_vocab.lexicon(ref.relation)
+            if key is None or not relations_vocab.says_mine(target.text, key):
+                continue
+            t = relations_vocab.TYPES[key]
+            mark = (e.message_id, key, text.name_key(ref.name))
+            if mark in have or not relations_vocab.kinds_ok(t, "person", "person"):
+                continue
+            have.add(mark)
+            extra.append(ExtractedRel(e.message_id, RelCandidate(
+                type=key, target=ref, source=None, quote=target.text[:MAX_STATEMENT],
+                statement="")))  # fmt: skip
+    return extra
 
 
 def relation_items(accepted: Sequence[Extracted]) -> tuple[list[Extracted], list[ExtractedRel]]:

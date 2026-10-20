@@ -400,6 +400,7 @@ class DiagLearningModel(_Schema):
     superseded: int | None = None
     inbox: int | None = None
     relations_proposed: int | None = None
+    relations_not_applied: dict[str, int] | None = None
     relations_rejected: dict[str, int] | None = None
     relations_created: int | None = None
     relations_inbox: int | None = None

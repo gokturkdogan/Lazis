@@ -192,7 +192,10 @@ def relitem(**kw: Any) -> dict[str, Any]:
 
 def test_relations_are_validated_like_facts() -> None:
     ok, dropped = extraction.validate_relations([relitem()], [RT])
-    assert dropped == {} and len(ok) == 1
+    # …plus the user's own "çocukluk arkadaşım Ahmet" (an appositive the model did not list).
+    assert dropped == {} and len(ok) == 2
+    extra = ok[1].candidate
+    assert (extra.source, extra.type, extra.target.name) == (None, "childhood_friend", "Ahmet")
     c = ok[0].candidate
     assert (c.type, c.source.name if c.source else None, c.target.name) == (
         "sibling",
@@ -307,6 +310,7 @@ def test_the_users_grammar_fixes_a_reversed_direction() -> None:
         ("Selim", "child", "Arda"),
         ("Selim", "child", "Arda"),
         ("Selim", "student", "Arda"),
+        (None, "cousin", "Selim"),  # "Kuzenim Selim": the user's own words
     ]
     assert dropped == {"direction_fixed": 2}
     assert extraction.stated_triples("Ahmet'in kardeşi Mehmet'in eşi Zeynep.") == [
@@ -384,3 +388,15 @@ def test_kind_hints_from_the_users_words() -> None:
         [job],
     )
     assert wrong == [] and dropped == {"kind_mismatch": 1}
+
+
+def test_a_relation_noun_before_a_name_belongs_to_someone_else() -> None:
+    msg = "Kardeşimin arkadaşı Yiğit bugün beni aradı."
+    target = Target("m1", "MSGY", msg)
+    found, dropped = extraction.validate_relations(
+        [relitem(quote="Kardeşimin arkadaşı Yiğit", source="", type="friend", target="Yiğit")],
+        [target],
+    )
+    assert found == [] and dropped == {"someone_elses": 1}
+    assert extraction.someone_elses("Selim'in oğlu Arda", "Arda")
+    assert not extraction.someone_elses("Çocukluk arkadaşım Ahmet geldi", "Ahmet")

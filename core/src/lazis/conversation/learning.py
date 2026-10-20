@@ -248,10 +248,13 @@ class Learner:
             for k in totals:
                 totals[k] += r.counts()[k]
         rel_totals = {"relations_created": 0, "relations_inbox": 0}
+        rel_not_applied: dict[str, int] = {}
         for rr in rel_reports.values():
             counts = rr.counts()
             for k in rel_totals:
                 rel_totals[k] += counts[k]
+            for reason, n in rr.dropped.items():
+                rel_not_applied[reason] = rel_not_applied.get(reason, 0) + n
         duration = round((time.monotonic() - started) * 1000)
         self.status = {
             "state": "done",
@@ -263,6 +266,7 @@ class Learner:
             **totals,
             "relations_proposed": len(rel_found) + len(from_items) + sum(rel_dropped.values()),
             "relations_rejected": rel_dropped,
+            "relations_not_applied": rel_not_applied,  # policy, identity, kinds (after validation)
             **rel_totals,
             "on_prefix": on_prefix,
             "prompt_tokens": None if metrics is None else metrics.prompt_tokens,

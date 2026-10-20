@@ -446,6 +446,8 @@ export const tr = {
       queueValue: "{queued} bekliyor · {deferred} ana model bekliyor · {failed} başarısız",
       records: "Kayıtlar",
       recordsValue: "{active} kayıt · {pending} onay bekleyen",
+      relationships: "İlişkiler",
+      relationshipsValue: "{current} güncel · {past} geçmiş",
     },
     nextTurn: "Sonraki yanıt için beklenti",
     expectWarm: "Hazırlanan bağlamın kullanılması bekleniyor (Ollama bunu doğrulamaz)",
