@@ -400,3 +400,31 @@ def test_a_relation_noun_before_a_name_belongs_to_someone_else() -> None:
     assert found == [] and dropped == {"someone_elses": 1}
     assert extraction.someone_elses("Selim'in oğlu Arda", "Arda")
     assert not extraction.someone_elses("Çocukluk arkadaşım Ahmet geldi", "Ahmet")
+
+
+def test_the_users_own_relation_word_does_not_type_others() -> None:
+    target = Target("m1", "MSGD", "Ablam Derya geçen yıl Kaan'la evlendi.")
+    wrong = relitem(
+        quote="Derya geçen yıl Kaan'la evlendi", source="Derya", type="sibling", target="Kaan"
+    )
+    right = relitem(
+        quote="Derya geçen yıl Kaan'la evlendi", source="Derya", type="spouse", target="Kaan"
+    )
+    found, dropped = extraction.validate_relations([wrong, right], [target])
+    assert dropped == {"type_is_the_users": 1}
+    assert [(f.candidate.type, f.candidate.target.name) for f in found] == [
+        ("spouse", "Kaan"),
+        ("sibling", "Derya"),
+    ]
+
+
+def test_a_workplace_fact_is_also_a_relationship() -> None:
+    from lazis.memory.models import Candidate
+
+    fact = extraction.Extracted("MSGW", Candidate(predicate="employer", value="Atlas Yazılım",
+                                statement="Kullanıcı Atlas Yazılım'da çalışıyor.", quote="Atlas Yazılım'a geçtim",
+                                change=True))  # fmt: skip
+    facts, rels = extraction.relation_items([fact])
+    assert facts == [fact]
+    assert [(r.candidate.source, r.candidate.type, r.candidate.target.name, r.candidate.change) for r in rels] == [
+        (None, "works_at", "Atlas Yazılım", True)]  # fmt: skip

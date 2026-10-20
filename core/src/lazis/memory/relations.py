@@ -257,6 +257,17 @@ def named_in(message: str, key: str) -> bool:
     return False
 
 
+def only_mine(message: str, key: str) -> bool:
+    """The message names this type only in the first person ("ablam", never "ablası")."""
+    words = text.words(message)
+    persons = [
+        first_person(m[2])
+        for i in range(len(words))
+        if (m := match_at(words, i)) is not None and (m[0] in answers(key) or key in answers(m[0]))
+    ]
+    return bool(persons) and all(persons)
+
+
 def sensitive_label(phrase: str | None) -> str | None:
     """The sensitivity category when relation words name a sensitive type ("sevgilim" →
     "intimate"), else None."""

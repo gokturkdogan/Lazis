@@ -798,6 +798,11 @@ def validate_relations(
         ):
             drop("someone_elses")  # "kardeşimin arkadaşı Yiğit" is not the user's friend
             continue
+        if src is not None and relations_vocab.only_mine(target.text, key):
+            # "Ablam Derya Kaan'la evlendi": the only sibling word is the user's own — it
+            # cannot type a relationship between Derya and Kaan.
+            drop("type_is_the_users")
+            continue
         status = _str(r, "status")
         out.append(
             ExtractedRel(
@@ -861,6 +866,14 @@ def relation_items(accepted: Sequence[Extracted]) -> tuple[list[Extracted], list
     for e in accepted:
         c = e.candidate
         key = relations_vocab.lexicon(c.value) if c.predicate == "relationship" else None
+        if c.predicate == "employer" and c.about == "user" and c.value.strip():
+            # "Atlas Yazılım'a geçtim" as a fact: the workplace is also a relationship (the
+            # fact stays — Phase 6 answers from it).
+            facts.append(e)
+            rels.append(ExtractedRel(e.message_id, RelCandidate(
+                type="works_at", target=EntityRef(c.value.strip(), "organization"),
+                quote=c.quote, statement=c.statement, change=c.change)))  # fmt: skip
+            continue
         if key is not None and c.entity is not None:
             rels.append(
                 ExtractedRel(
