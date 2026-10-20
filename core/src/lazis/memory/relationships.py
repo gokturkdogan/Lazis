@@ -339,6 +339,27 @@ def apply_relations(
     return report
 
 
+def _narrow_to_holder(conn: Connection, type_key: str, src: _End, tgt: _End) -> tuple[_End, _End]:
+    """The one namesake on the ambiguous end that holds this relationship with the other end
+    (unchanged when none or several do)."""
+    amb, other = (src, tgt) if src.state == "ambiguous" else (tgt, src)
+    if other.state != "ok" or other.entity_id is None:
+        return src, tgt
+    holders = [
+        o
+        for o in amb.options
+        if any(
+            _equivalent(r, *((o, type_key, other.entity_id) if amb is src else
+                             (other.entity_id, type_key, o)))
+            for r in gs.relationships_between(conn, o, other.entity_id, statuses=CURRENT)
+        )
+    ]  # fmt: skip
+    if len(holders) != 1:
+        return src, tgt
+    chosen = _End("ok", holders[0])
+    return (chosen, tgt) if amb is src else (src, chosen)
+
+
 def apply_one(
     conn: Connection,
     uow: UnitOfWork,
@@ -387,6 +408,9 @@ def apply_one(
     if src.state == "drop" or tgt.state == "drop":
         report.drop(src.reason or tgt.reason or "no_entity")
         return
+    if (c.negated or c.change) and (src.state == "ambiguous") != (tgt.state == "ambiguous"):
+        # Denying or ending a relationship can only be about a namesake who has it.
+        src, tgt = _narrow_to_holder(conn, c.type, src, tgt)
     if src.state == "ambiguous" or tgt.state == "ambiguous":
         _ask_which(conn, c, src, tgt, source=source, report=report, now=now)
         return

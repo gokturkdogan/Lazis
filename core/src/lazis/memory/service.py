@@ -355,6 +355,14 @@ def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
                 for mid in item.payload.get("existing", []):
                     repo.set_conflict(conn, mid, "none", now)
         return report
+    if item.type == "destructive" and item.payload.get("action") == "merge":
+        if choice not in ("approve", "reject"):
+            raise ValueError("invalid choice")
+        if choice == "approve":
+            merge_entities(conn, str(item.payload["keep"]), str(item.payload["merge"]))
+        repo.resolve_inbox(conn, item.id, status="resolved" if choice == "approve" else
+                           "dismissed", resolution=choice, now=now)  # fmt: skip
+        return report
     if item.type == "destructive":
         raise ValueError("destructive confirmations are resolved through forget")
     c = candidate_from_json(item.payload["candidate"])

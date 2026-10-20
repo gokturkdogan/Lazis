@@ -1120,7 +1120,14 @@ class ConversationEngine:
             outcome = commands.Outcome("untrusted_model")
         else:
             try:
-                if intent == "confirm" and pending is not None:
+                if intent in ("same", "different"):
+                    # Deterministic: the names in the message pick the two records.
+                    outcome = await self._q(
+                        lambda c: commands.identity(
+                            c, intent, user.content, conversation_id=conv.id
+                        )
+                    )
+                elif intent == "confirm" and pending is not None:
                     outcome = await self._q(lambda c: commands.confirm(c, pending))
                 elif intent == "decline" and pending is not None:
                     outcome = await self._q(lambda c: commands.decline(c, pending))
@@ -1136,7 +1143,15 @@ class ConversationEngine:
             handle.memory_outcome = "none"
             return ""
         handle.memory_outcome = outcome.kind
-        if outcome.kind in ("saved", "corrected", "forgotten", "confirm_needed", "declined"):
+        if outcome.kind in (
+            "saved",
+            "corrected",
+            "forgotten",
+            "confirm_needed",
+            "declined",
+            "merged",
+            "distinguished",
+        ):
             # Handled here: the background job must not process the same request again.
             await self._q(lambda c: commands.skip_job(c, user.id))
         log_event(

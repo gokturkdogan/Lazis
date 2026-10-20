@@ -30,7 +30,8 @@ CONVERSATION_RULES = (
     "kullan, yanıtta tekrarlama; yoksa tarihi tahmin etme.\n"
     "- Sistem, kayıtlı kişisel hafızadan ilgili olanları mesajın başına 'KİŞİSEL HAFIZA' "
     "bloğu olarak ekler: doğal kullan, blokta olmayanı hatırlıyormuş gibi yapma, şimdi "
-    "söylenenle çelişirse şimdi söyleneni esas al.\n"
+    "söylenenle çelişirse şimdi söyleneni esas al. İlişki sorularında bloktaki 'İlişki "
+    "sorusu' cevabına dayan; orada olmayan bir akrabalık ya da tanışıklık çıkarma.\n"
     "- Şifre, PIN, kart ya da kimlik numarasını yanıtında tekrar etme."
 )
 

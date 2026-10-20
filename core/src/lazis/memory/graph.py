@@ -711,7 +711,7 @@ def _answer_chain(conn: Connection, q: Query, start: str) -> Answer:
         if reached:
             known = "; ".join(path_text(g, p) for p in partial[:MAX_LISTED])
             lines.append(f"Bilinen: {known}")
-        missing = " / ".join(_describe_chain(g, h, rest) for h in heads[:3])
+        missing = " / ".join(_describe_chain(g, h, rest[:1]) for h in heads[:3])
         lines.append(f"Cevap: kayıt yok — {missing} kişisel hafızada kayıtlı değil. Tahmin etme.")
         if len(rest) == 1:  # the relation may have ended: say so rather than "unknown"
             past = [p for h in heads for p in follow(conn, h, rest, statuses=("ended",))[0]]
@@ -808,6 +808,18 @@ def _answer_who(conn: Connection, q: Query, eid: str) -> Answer:
                 "sorulursa gösterilir).")  # fmt: skip
         return Answer(q, "none", (line,))
     return Answer(q, "several", tuple(out), (eid,), relationship_ids=tuple(dict.fromkeys(rels)))
+
+
+def describe_neighbours(conn: Connection, eid: str, *, limit: int) -> list[tuple[str, str]]:
+    """(relationship id, line) for an entity's direct current, non-sensitive relationships."""
+    g = _Graph(conn)
+    return [(h.rel.id, hop_text(g, h)) for h in neighbours(conn, eid)[:limit]]
+
+
+def message_names(conn: Connection, message: str) -> list[tuple[str, ...]]:
+    """The stored records each name in a message could mean, in order (one tuple per name;
+    two ids for "bu iki Ahmet")."""
+    return [e.ids for e in _elements(conn, message) if e.kind == "name"]
 
 
 def ask(conn: Connection, question: str) -> Answer | None:

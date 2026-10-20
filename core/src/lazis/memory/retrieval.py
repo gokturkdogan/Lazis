@@ -10,6 +10,11 @@ Sources, in priority order, until the token budget is used:
    marked with the old one ("eskiden Ankara");
 4. people/projects named in the previous user message (pronoun continuity), briefly.
 
+Relationships (Phase 7): a relationship question ("çocukluk arkadaşımın kardeşinin eşi kim?",
+"Zeynep'i nereden tanıyorum?") is answered by the graph (memory.graph) and its computed answer
+— with the supporting path, or "no record" — goes first after the pinned memories; people
+named in the message bring their direct current relationships too.
+
 Also: namesakes in the message ("Ahmet" → two people: ask), and topics the user asked to
 forget for the subjects in play (so a value still visible in the chat history is not used).
 
@@ -24,9 +29,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from lazis.memory import registry, text
+from lazis.memory import graph, registry, relations, text
 from lazis.memory import repository as repo
-from lazis.memory.models import Entity, Memory
+from lazis.memory.models import USER_ID, Entity, Memory
 from lazis.memory.orchestrator import mentioned_entities
 from lazis.storage.driver import Connection
 
@@ -39,6 +44,9 @@ MAX_SEARCH = 4
 SEARCH_KEEP = 0.4  # keep FTS hits scoring at least this fraction of the best hit
 MAX_FORGOTTEN = 5
 MAX_QUESTIONS = 2
+MAX_RELATIONS_PER_ENTITY = 4
+MAX_USER_RELATIONS = 10
+_PERSONAL = frozenset({"family", "social"})
 # A query term matching more than max(COMMON_TERM_MIN, share × memories) records is not used.
 COMMON_TERM_MIN = 25
 COMMON_TERM_SHARE = 0.08
@@ -64,10 +72,16 @@ class Recall:
     forgotten: tuple[str, ...] = ()
     known: tuple[str, ...] = ()  # overview only: names of stored people/projects
     questions: tuple[str, ...] = ()  # open "which Ahmet?" items worth asking now
+    answer: tuple[str, ...] = ()  # the graph's answer to a relationship question
+    relations: dict[str, tuple[str, ...]] = field(default_factory=dict[str, tuple[str, ...]])
+    relationship_ids: tuple[str, ...] = ()
 
     @property
     def empty(self) -> bool:
-        return not (self.items or self.ambiguous or self.forgotten or self.known or self.questions)
+        return not (
+            self.items or self.ambiguous or self.forgotten or self.known or self.questions
+            or self.answer or self.relations
+        )  # fmt: skip
 
     @property
     def memory_ids(self) -> list[str]:
@@ -109,6 +123,29 @@ def recall(
     for m in repo.pinned_memories(conn, PINNED, MAX_PINNED):
         take(m, "pinned")
 
+    answer: tuple[str, ...] = ()
+    rel_ids: list[str] = []
+    found = graph.ask(conn, query)
+    if found is not None and _worth_saying(found):
+        cost = sum(len(x) + 4 for x in found.lines)
+        if used + cost <= budget_chars:
+            answer = found.lines
+            rel_ids += found.relationship_ids
+            used += cost
+    rel_lines: dict[str, tuple[str, ...]] = {}
+
+    def take_relations(eid: str, limit: int) -> None:
+        nonlocal used
+        lines: list[str] = []
+        for rid, line in graph.describe_neighbours(conn, eid, limit=limit):
+            if rid in rel_ids or used + len(line) + 4 > budget_chars:
+                continue
+            lines.append(line)
+            rel_ids.append(rid)
+            used += len(line) + 4
+        if lines:
+            rel_lines[eid] = tuple(lines)
+
     known: tuple[str, ...] = ()
     if overview:
         mine = [m for m in repo.memories_for_subject(conn, None) if m.sensitivity != "sensitive"]
@@ -116,6 +153,7 @@ def recall(
         for m in mine:
             take(m, "search")
         known = tuple(_label(e) for e in repo.list_entities(conn, limit=20))
+        take_relations(USER_ID, MAX_USER_RELATIONS)
 
     named = mentioned_entities(conn, [query], limit=8)
     named_ids = {e.id for e in named}
@@ -124,6 +162,8 @@ def recall(
         facts.sort(key=lambda m: (m.importance, m.updated_at), reverse=True)
         for m in facts[:MAX_PER_ENTITY]:
             take(m, "entity")
+        if not answer:  # an answered question already carries the relevant relationships
+            take_relations(e.id, MAX_RELATIONS_PER_ENTITY)
 
     match = text.fts_match(_selective_terms(conn, text.query_terms(query)))
     if match is not None:
@@ -155,7 +195,9 @@ def recall(
             for m in facts[:2]:
                 take(m, "context")
 
-    subject_ids = {i.memory.subject_id for i in chosen if i.memory.subject_id}
+    subject_ids = {i.memory.subject_id for i in chosen if i.memory.subject_id} | {
+        eid for eid in rel_lines if eid != USER_ID
+    }
     subjects = {
         e.id: e for e in (repo.get_entity(conn, sid) for sid in subject_ids) if e is not None
     }
@@ -174,7 +216,17 @@ def recall(
         for sid, pred in repo.suppressed_topics(conn, [None, *names])
     )[:MAX_FORGOTTEN]
     questions = _open_questions(conn, query, conversation_id, recent_since)
-    return Recall(tuple(chosen), subjects, ambiguous, forgotten, known, questions)
+    return Recall(tuple(chosen), subjects, ambiguous, forgotten, known, questions, answer,
+                  rel_lines, tuple(dict.fromkeys(rel_ids)))  # fmt: skip
+
+
+def _worth_saying(a: graph.Answer) -> bool:
+    """An unknown name is worth a line only for a personal question ("Burak'ın kardeşi");
+    "Google'ın patronu" is general knowledge, not a gap in the user's memory."""
+    if a.status != "unknown":
+        return True
+    keys = [k for s in a.query.steps for k in s.types]
+    return bool(keys) and all(relations.TYPES[k].category in _PERSONAL for k in keys)
 
 
 def _open_questions(
@@ -243,18 +295,30 @@ def render(r: Recall) -> str:
     # How to use the block is explained once, in the (cached) system prompt: every token here
     # is new prefill on every turn.
     lines = [BLOCK_START]
+    if r.answer:
+        lines.append(
+            "İlişki sorusu (kayıtlı ilişkilerden hesaplandı; burada olmayan bir ilişkiyi ekleme, "
+            "tahmin etme):"
+        )
+        lines += [f"- {_safe(x)}" for x in r.answer]
     user = [i for i in r.items if i.memory.subject_id is None]
-    if user:
+    mine = r.relations.get(USER_ID, ())
+    if user or mine:
         lines.append("Kullanıcı hakkında:")
         lines += [f"- {_line(i)}" for i in user]
+        lines += [f"- İlişki: {_safe(x)}" for x in mine]
     groups: dict[str, list[RecallItem]] = {}
     for i in r.items:
         if i.memory.subject_id is not None:
             groups.setdefault(i.memory.subject_id, []).append(i)
+    for sid in r.relations:
+        if sid != USER_ID:
+            groups.setdefault(sid, [])
     for sid, items in groups.items():
         e = r.subjects.get(sid)
         lines.append(f"{_safe(_label(e)) if e else 'Kayıt'}:")
         lines += [f"- {_line(i)}" for i in items]
+        lines += [f"- İlişki: {_safe(x)}" for x in r.relations.get(sid, ())]
     if r.known:
         lines.append(f"Kayıtlı kişi ve projeler: {', '.join(_safe(k) for k in r.known)}")
     for name, labels in r.ambiguous:
