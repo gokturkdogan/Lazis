@@ -74,7 +74,7 @@ from lazis.errors import (
 )
 from lazis.i18n import message_for
 from lazis.ids import new_ulid, utc_now_iso
-from lazis.memory import commands, extraction, importer, retrieval
+from lazis.memory import commands, extraction, graphstore, importer, relationships, retrieval
 from lazis.memory import maintenance as memory_maintenance
 from lazis.memory import repository as memory_repo
 from lazis.memory.models import Candidate
@@ -271,6 +271,7 @@ class ConversationEngine:
         self._start_lock = asyncio.Lock()
         self._closing = False
         self.recovered_interrupted = 0
+        self.graph_backfill: dict[str, int] | None = None
         # Diagnostics only: numbers and states, never message content.
         self.prewarm_status: dict[str, Any] = {"state": "idle"}
         self.last_turn: dict[str, Any] | None = None
@@ -302,6 +303,15 @@ class ConversationEngine:
             recovered_jobs, waiting = await self._q(recover_jobs)
             if recovered_jobs:
                 log_event(_log, logging.WARNING, "memory.jobs_recovered", count=recovered_jobs)
+            # Phase 7, once: the user's relation labels that map exactly to the vocabulary
+            # become typed relationships (no chat is scanned; other labels stay labels).
+            try:
+                self.graph_backfill = await self._q(relationships.backfill_user_relations)
+            except Exception as exc:  # never blocks the start; retried on the next launch
+                log_event(_log, logging.WARNING, "memory.graph_backfill_failed",
+                          error=type(exc).__name__)  # fmt: skip
+            if self.graph_backfill is not None:
+                log_event(_log, logging.INFO, "memory.graph_backfill", **self.graph_backfill)
             for cid in waiting:
                 self._learn.add(cid)
                 self._pending.setdefault(cid, time.monotonic() + self._cfg.idle_compaction_delay_s)
@@ -2004,6 +2014,7 @@ class ConversationEngine:
             return {
                 "jobs": memory_repo.job_counts(conn),
                 "memories": memory_repo.count_memories(conn),
+                "relationships": graphstore.count_relationships(conn),
                 "inbox_open": len(memory_repo.list_inbox(conn, status="open")),
             }
 
@@ -2011,6 +2022,7 @@ class ConversationEngine:
             "auto_extract": self._memory.auto_extract,
             "trusted_models": list(self._memory.trusted_models),
             "learning": self.learner.status,
+            "graph_backfill": self.graph_backfill,
             **(await self._q(memory_counts)),
         }
         return {

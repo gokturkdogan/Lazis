@@ -47,12 +47,29 @@ def mentioned_entities(conn: Connection, texts: Sequence[str], *, limit: int) ->
     words = text.words(" ".join(texts))
     if not words:
         return []
-    found: list[str] = []
-    for alias_key, entity_id in repo.alias_index(conn):
-        if entity_id not in found and text.mentions_name(words, alias_key):
-            found.append(entity_id)
-    entities = [e for e in (repo.get_entity(conn, i) for i in found) if e is not None]
+    # Only the keys that could occur in these words are looked up (indexed): the cost no
+    # longer grows with the number of stored people.
+    hits = repo.aliases_matching(conn, text.candidate_keys(words))
+    first: dict[str, int] = {}
+    for key, ids in hits.items():
+        if not text.mentions_name(words, key):
+            continue
+        at = _first_position(words, key)
+        for eid in ids:
+            first[eid] = min(first.get(eid, at), at)
+    found = sorted(first, key=lambda eid: first[eid])
+    entities = [e for e in (repo.get_entity(conn, i) for i in found[: limit * 2]) if e is not None]
     return entities[:limit]
+
+
+def _first_position(words: Sequence[str], key: str) -> int:
+    parts = key.split()
+    for i in range(len(words) - len(parts) + 1):
+        if words[i : i + len(parts) - 1] == parts[:-1] and words[i + len(parts) - 1].startswith(
+            parts[-1]
+        ):
+            return i
+    return len(words)
 
 
 def extraction_context(

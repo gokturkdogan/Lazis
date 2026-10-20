@@ -336,32 +336,7 @@ def _tokens(question: str) -> list[_Tok]:
 
 def _alias_hits(conn: Connection, toks: Sequence[_Tok]) -> dict[str, list[str]]:
     """alias key → active entity ids, for every key that could occur in the question."""
-    keys: set[str] = set()
-    words = [t.word for t in toks]
-    for i in range(len(words)):
-        for n in range(1, 4):
-            if i + n > len(words):
-                break
-            head, last = words[i : i + n - 1], words[i + n - 1]
-            for k in range(max(3, len(last) - 5), len(last) + 1):
-                keys.add(" ".join([*head, last[:k]]))
-            keys.add(" ".join([*head, last]))
-    hits: dict[str, list[str]] = {}
-    ordered = sorted(keys)
-    for i in range(0, len(ordered), 400):
-        chunk = ordered[i : i + 400]
-        rows = conn.execute(
-            "SELECT a.alias_key, a.entity_id FROM memory_entity_aliases a"  # noqa: S608
-            " JOIN memory_entities e ON e.id = a.entity_id"
-            f" WHERE e.status = 'active' AND a.alias_key IN ({','.join('?' * len(chunk))})"
-            " ORDER BY e.created_at",
-            chunk,
-        ).fetchall()
-        for key, eid in rows:
-            ids = hits.setdefault(str(key), [])
-            if str(eid) not in ids:
-                ids.append(str(eid))
-    return hits
+    return repo.aliases_matching(conn, text.candidate_keys([t.word for t in toks], max_words=3))
 
 
 def _elements(conn: Connection, question: str) -> list[_El]:

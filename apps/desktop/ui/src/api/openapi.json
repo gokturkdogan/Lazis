@@ -1099,6 +1099,20 @@
             "title": "Auto Extract",
             "type": "boolean"
           },
+          "graph_backfill": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Backfill"
+          },
           "inbox_open": {
             "title": "Inbox Open",
             "type": "integer"
@@ -1118,6 +1132,14 @@
               "type": "integer"
             },
             "title": "Memories",
+            "type": "object"
+          },
+          "relationships": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Relationships",
             "type": "object"
           },
           "trusted_models": {

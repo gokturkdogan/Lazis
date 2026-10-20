@@ -288,6 +288,8 @@ export function diagnosticsFixture(overrides: Partial<DiagnosticsResponse> = {})
       learning: { state: "done", at: "2026-10-18T10:00:05.000Z", messages: 1, proposed: 1, accepted: 1, created: 1 },
       jobs: { done: 4 },
       memories: { active: 3 },
+      relationships: { active: 2 },
+      graph_backfill: null,
       inbox_open: 0,
     },
     ...overrides,

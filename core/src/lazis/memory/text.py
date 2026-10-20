@@ -220,6 +220,21 @@ def mentions_name(text_words: list[str], key: str) -> bool:
     return False
 
 
+def candidate_keys(text_words: list[str], *, max_words: int = 4) -> set[str]:
+    """Every alias key ``mentions_name`` could match in these words: spans of up to
+    ``max_words`` words whose last word may carry up to 5 suffix letters ("ahmetin")."""
+    keys: set[str] = set()
+    for i in range(len(text_words)):
+        for n in range(1, max_words + 1):
+            if i + n > len(text_words):
+                break
+            head, last = text_words[i : i + n - 1], text_words[i + n - 1]
+            keys.add(" ".join([*head, last]))
+            for k in range(max(3, len(last) - 5), len(last)):
+                keys.add(" ".join([*head, last[:k]]))
+    return keys
+
+
 def similarity(a: str, b: str) -> float:
     """Jaccard similarity of folded word sets (cheap near-duplicate test)."""
     sa, sb = set(words(a)) - STOP_WORDS, set(words(b)) - STOP_WORDS

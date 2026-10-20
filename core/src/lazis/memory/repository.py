@@ -169,6 +169,26 @@ def alias_index(conn: Connection) -> list[tuple[str, str]]:
     return [(str(r[0]), str(r[1])) for r in rows]
 
 
+def aliases_matching(conn: Connection, keys: Iterable[str]) -> dict[str, list[str]]:
+    """alias key → active entity ids (oldest first), for the given keys only (indexed)."""
+    hits: dict[str, list[str]] = {}
+    ordered = sorted(set(keys))
+    for i in range(0, len(ordered), 400):
+        chunk = ordered[i : i + 400]
+        rows = conn.execute(
+            "SELECT a.alias_key, a.entity_id FROM memory_entity_aliases a"  # noqa: S608
+            " JOIN memory_entities e ON e.id = a.entity_id"
+            f" WHERE e.status = 'active' AND a.alias_key IN ({','.join('?' * len(chunk))})"
+            " ORDER BY e.created_at",
+            chunk,
+        ).fetchall()
+        for key, eid in rows:
+            ids = hits.setdefault(str(key), [])
+            if str(eid) not in ids:
+                ids.append(str(eid))
+    return hits
+
+
 def list_entities(
     conn: Connection, *, kind: str | None = None, query: str | None = None, limit: int = 200
 ) -> list[Entity]:

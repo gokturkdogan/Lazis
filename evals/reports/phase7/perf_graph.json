@@ -1,0 +1,647 @@
+{
+ "manifest": {
+  "captured_at": "2026-10-20T17:28:21+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.92,
+   "active_gb": 8.57,
+   "wired_gb": 3.67,
+   "compressed_gb": 1.48,
+   "swap_used_mb": 4296.31,
+   "swapouts": 64205182,
+   "memory_free_percent": 77
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "results": [
+  {
+   "relationships": 100,
+   "stored": {
+    "active": 114,
+    "ended": 6
+   },
+   "people": 44,
+   "seed_s": 0.0,
+   "seed_cpu_s": 0.0,
+   "direct_ms": {
+    "p50": 0.04,
+    "p95": 0.05,
+    "max": 0.1
+   },
+   "direct_hub_ms": {
+    "p50": 0.05,
+    "p95": 0.05,
+    "max": 0.07
+   },
+   "direct_user_ms": {
+    "p50": 0.06,
+    "p95": 0.06,
+    "max": 0.08
+   },
+   "chain1_ms": {
+    "p50": 0.06,
+    "p95": 0.06,
+    "max": 0.08
+   },
+   "chain2_ms": {
+    "p50": 0.09,
+    "p95": 0.12,
+    "max": 0.17
+   },
+   "chain3_ms": {
+    "p50": 0.12,
+    "p95": 0.13,
+    "max": 0.17
+   },
+   "chain3_wide_ms": {
+    "p50": 0.18,
+    "p95": 0.2,
+    "max": 0.28
+   },
+   "paths3_random_ms": {
+    "p50": 0.15,
+    "p95": 0.21,
+    "max": 0.25
+   },
+   "paths3_user_ms": {
+    "p50": 0.27,
+    "p95": 0.29,
+    "max": 0.34
+   },
+   "ask_ms": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "p50": 0.2,
+     "p95": 0.22,
+     "max": 0.42
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "p50": 0.26,
+     "p95": 0.28,
+     "max": 0.38
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "p50": 0.32,
+     "p95": 0.34,
+     "max": 0.36
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "p50": 0.45,
+     "p95": 0.51,
+     "max": 0.55
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "p50": 0.22,
+     "p95": 0.35,
+     "max": 0.81
+    }
+   },
+   "answers": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşi",
+      "Cevap: Mehmet Yılmaz",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşi",
+      "Cevap: Elif Kaya",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşinin kardeşi",
+      "Cevap: Can Kaya",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi → Can Kaya: Elif Kaya'nın kardeşi"
+     ]
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "status": "several",
+     "lines": [
+      "Kullanıcı ile Can Kaya arasındaki kayıtlı bağlantılar (kısadan uzuna):",
+      "- Elif Aydın 25: kullanıcının kuzeni → İrem Yıldız 16: Elif Aydın 25'ın çocukluk arkadaşı → Can Kaya: İrem Yıldız 16'ın yakın arkadaşı",
+      "- Elif Aydın 25: kullanıcının kuzeni → Elif Aydın 25: Pınar Yıldız 18'ın tanıdığı → Can Kaya: Pınar Yıldız 18'ın iş arkadaşı"
+     ]
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "status": "several",
+     "lines": [
+      "Mehmet Yılmaz'ın kayıtlı ilişkileri:",
+      "Aile: Ahmet Yılmaz: Mehmet Yılmaz'ın kardeşi; Elif Kaya: Mehmet Yılmaz'ın eşi",
+      "Sosyal: Elif Aydın 25: Mehmet Yılmaz'ın arkadaşı; Emre Yıldız 13: Mehmet Yılmaz'ın çocukluk arkadaşı; Zeynep Yıldız 3: Mehmet Yılmaz'ın çocukluk arkadaşı"
+     ]
+    }
+   },
+   "recall_relationship_question_ms": {
+    "p50": 0.41,
+    "p95": 0.53,
+    "max": 0.71
+   },
+   "recall_plain_ms": {
+    "p50": 0.15,
+    "p95": 0.19,
+    "max": 0.2
+   },
+   "map_depth2_ms": {
+    "p50": 0.23,
+    "p95": 0.27,
+    "max": 0.32
+   },
+   "write_ms": {
+    "p50": 0.44,
+    "p95": 0.57,
+    "max": 2.84
+   },
+   "db_bytes": 532485,
+   "bytes_per_relationship": 5325,
+   "peak_rss_mb": 55.2
+  },
+  {
+   "relationships": 1000,
+   "stored": {
+    "active": 932,
+    "ended": 88
+   },
+   "people": 254,
+   "seed_s": 0.02,
+   "seed_cpu_s": 0.02,
+   "direct_ms": {
+    "p50": 0.05,
+    "p95": 0.07,
+    "max": 0.16
+   },
+   "direct_hub_ms": {
+    "p50": 0.14,
+    "p95": 0.17,
+    "max": 0.2
+   },
+   "direct_user_ms": {
+    "p50": 0.32,
+    "p95": 0.36,
+    "max": 0.39
+   },
+   "chain1_ms": {
+    "p50": 0.34,
+    "p95": 0.37,
+    "max": 0.44
+   },
+   "chain2_ms": {
+    "p50": 0.77,
+    "p95": 0.81,
+    "max": 0.9
+   },
+   "chain3_ms": {
+    "p50": 1.06,
+    "p95": 1.1,
+    "max": 1.22
+   },
+   "chain3_wide_ms": {
+    "p50": 2.24,
+    "p95": 2.33,
+    "max": 2.56
+   },
+   "paths3_random_ms": {
+    "p50": 0.43,
+    "p95": 0.79,
+    "max": 1.27
+   },
+   "paths3_user_ms": {
+    "p50": 2.7,
+    "p95": 2.8,
+    "max": 2.94
+   },
+   "ask_ms": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "p50": 0.49,
+     "p95": 0.53,
+     "max": 0.63
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "p50": 0.58,
+     "p95": 0.83,
+     "max": 4.28
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "p50": 0.61,
+     "p95": 0.66,
+     "max": 0.72
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "p50": 2.92,
+     "p95": 3.1,
+     "max": 3.84
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "p50": 0.25,
+     "p95": 0.3,
+     "max": 0.36
+    }
+   },
+   "answers": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşi",
+      "Cevap: Mehmet Yılmaz",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşi",
+      "Cevap: Elif Kaya",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşinin kardeşi",
+      "Cevap: Can Kaya",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi → Can Kaya: Elif Kaya'nın kardeşi"
+     ]
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "status": "several",
+     "lines": [
+      "Kullanıcı ile Can Kaya arasındaki kayıtlı bağlantılar (kısadan uzuna):",
+      "- Pınar Şahin 118: kullanıcının yakın arkadaşı → Can Kaya: Pınar Şahin 118'in yakın arkadaşı",
+      "- Tolga Şahin 119: kullanıcının çocukluk arkadaşı → Can Kaya: Tolga Şahin 119'in yakın arkadaşı"
+     ]
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "status": "several",
+     "lines": [
+      "Mehmet Yılmaz'ın kayıtlı ilişkileri:",
+      "Aile: Elif Kaya: Mehmet Yılmaz'ın eşi; Ahmet Yılmaz: Mehmet Yılmaz'ın kardeşi; Gül Aydın 34: Mehmet Yılmaz'ın kardeşi",
+      "İş: Gül Demir 154: Mehmet Yılmaz'ın müşterisi; Ece Öztürk 248: Mehmet Yılmaz'ın iş ortağı; Tolga Doğan 99: Mehmet Yılmaz'ın yöneticisi"
+     ]
+    }
+   },
+   "recall_relationship_question_ms": {
+    "p50": 0.75,
+    "p95": 0.89,
+    "max": 0.93
+   },
+   "recall_plain_ms": {
+    "p50": 0.21,
+    "p95": 0.36,
+    "max": 0.39
+   },
+   "map_depth2_ms": {
+    "p50": 1.73,
+    "p95": 1.89,
+    "max": 1.96
+   },
+   "write_ms": {
+    "p50": 0.52,
+    "p95": 0.65,
+    "max": 2.64
+   },
+   "db_bytes": 999429,
+   "bytes_per_relationship": 999,
+   "peak_rss_mb": 57.7
+  },
+  {
+   "relationships": 10000,
+   "stored": {
+    "active": 9108,
+    "ended": 912
+   },
+   "people": 2504,
+   "seed_s": 0.24,
+   "seed_cpu_s": 0.24,
+   "direct_ms": {
+    "p50": 0.04,
+    "p95": 0.07,
+    "max": 0.27
+   },
+   "direct_hub_ms": {
+    "p50": 0.18,
+    "p95": 0.22,
+    "max": 0.26
+   },
+   "direct_user_ms": {
+    "p50": 0.49,
+    "p95": 0.55,
+    "max": 0.66
+   },
+   "chain1_ms": {
+    "p50": 0.52,
+    "p95": 0.65,
+    "max": 0.79
+   },
+   "chain2_ms": {
+    "p50": 1.31,
+    "p95": 1.38,
+    "max": 1.55
+   },
+   "chain3_ms": {
+    "p50": 1.77,
+    "p95": 1.86,
+    "max": 1.97
+   },
+   "chain3_wide_ms": {
+    "p50": 3.78,
+    "p95": 3.98,
+    "max": 4.2
+   },
+   "paths3_random_ms": {
+    "p50": 0.32,
+    "p95": 0.81,
+    "max": 1.89
+   },
+   "paths3_user_ms": {
+    "p50": 5.19,
+    "p95": 5.42,
+    "max": 10.06
+   },
+   "ask_ms": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "p50": 0.65,
+     "p95": 0.69,
+     "max": 0.82
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "p50": 0.75,
+     "p95": 0.81,
+     "max": 1.04
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "p50": 0.84,
+     "p95": 0.87,
+     "max": 0.94
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "p50": 5.31,
+     "p95": 6.34,
+     "max": 10.23
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "p50": 0.25,
+     "p95": 0.27,
+     "max": 0.35
+    }
+   },
+   "answers": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "status": "several",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşi",
+      "Cevap: 2 kayıt var:",
+      "- Mehmet Yılmaz — dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşi",
+      "Cevap: Elif Kaya",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "status": "several",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşinin kardeşi",
+      "Cevap: 2 kayıt var:",
+      "- Can Kaya — dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi → Can Kaya: Elif Kaya'nın kardeşi"
+     ]
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "status": "none",
+     "lines": [
+      "Kullanıcı ile Can Kaya arasında kayıtlı bir bağlantı yok (en fazla 3 adım arandı). Bağlantı uydurma."
+     ]
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "status": "several",
+     "lines": [
+      "Mehmet Yılmaz'ın kayıtlı ilişkileri:",
+      "Aile: Elif Kaya: Mehmet Yılmaz'ın eşi; Ahmet Yılmaz: Mehmet Yılmaz'ın kardeşi",
+      "Sosyal: Emre Doğan 93: Mehmet Yılmaz'ın komşusu; Mert Arslan 2271: Mehmet Yılmaz'ın tanıdığı; Mehmet Yıldız 201: Mehmet Yılmaz'ın çocukluk arkadaşı; Hakan Öztürk 1655: Mehmet Yılmaz'ın öğretmeni"
+     ]
+    }
+   },
+   "recall_relationship_question_ms": {
+    "p50": 0.96,
+    "p95": 1.01,
+    "max": 1.12
+   },
+   "recall_plain_ms": {
+    "p50": 0.19,
+    "p95": 0.22,
+    "max": 0.31
+   },
+   "map_depth2_ms": {
+    "p50": 2.19,
+    "p95": 2.34,
+    "max": 2.43
+   },
+   "write_ms": {
+    "p50": 0.51,
+    "p95": 0.67,
+    "max": 3.34
+   },
+   "db_bytes": 5783557,
+   "bytes_per_relationship": 578,
+   "peak_rss_mb": 66.1
+  },
+  {
+   "relationships": 50000,
+   "stored": {
+    "active": 45556,
+    "ended": 4464
+   },
+   "people": 12504,
+   "seed_s": 1.23,
+   "seed_cpu_s": 1.22,
+   "direct_ms": {
+    "p50": 0.1,
+    "p95": 0.16,
+    "max": 0.26
+   },
+   "direct_hub_ms": {
+    "p50": 0.35,
+    "p95": 0.47,
+    "max": 0.5
+   },
+   "direct_user_ms": {
+    "p50": 0.51,
+    "p95": 0.56,
+    "max": 0.68
+   },
+   "chain1_ms": {
+    "p50": 0.51,
+    "p95": 0.54,
+    "max": 0.66
+   },
+   "chain2_ms": {
+    "p50": 1.06,
+    "p95": 1.17,
+    "max": 2.03
+   },
+   "chain3_ms": {
+    "p50": 1.63,
+    "p95": 1.79,
+    "max": 2.29
+   },
+   "chain3_wide_ms": {
+    "p50": 3.84,
+    "p95": 4.15,
+    "max": 7.25
+   },
+   "paths3_random_ms": {
+    "p50": 0.57,
+    "p95": 1.23,
+    "max": 4.35
+   },
+   "paths3_user_ms": {
+    "p50": 5.15,
+    "p95": 5.44,
+    "max": 10.7
+   },
+   "ask_ms": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "p50": 0.67,
+     "p95": 0.71,
+     "max": 0.89
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "p50": 0.72,
+     "p95": 0.75,
+     "max": 0.81
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "p50": 0.8,
+     "p95": 0.9,
+     "max": 0.94
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "p50": 5.3,
+     "p95": 5.6,
+     "max": 5.94
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "p50": 0.26,
+     "p95": 0.28,
+     "max": 0.4
+    }
+   },
+   "answers": {
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşi",
+      "Cevap: Mehmet Yılmaz",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?": {
+     "status": "unique",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşi",
+      "Cevap: Elif Kaya",
+      "Dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi"
+     ]
+    },
+    "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşinin kardeşi kim?": {
+     "status": "several",
+     "lines": [
+      "Soru: Ahmet Yılmaz'ın kardeşinin eşinin kardeşi",
+      "Cevap: 2 kayıt var:",
+      "- Can Kaya — dayanak: Mehmet Yılmaz: Ahmet Yılmaz'ın kardeşi → Elif Kaya: Mehmet Yılmaz'ın eşi → Can Kaya: Elif Kaya'nın kardeşi"
+     ]
+    },
+    "Can Kaya'yı nereden tanıyorum?": {
+     "status": "none",
+     "lines": [
+      "Kullanıcı ile Can Kaya arasında kayıtlı bir bağlantı yok (en fazla 3 adım arandı). Bağlantı uydurma."
+     ]
+    },
+    "Mehmet Yılmaz'ın kimlerle bağlantısı var?": {
+     "status": "several",
+     "lines": [
+      "Mehmet Yılmaz'ın kayıtlı ilişkileri:",
+      "Aile: Ahmet Yılmaz: Mehmet Yılmaz'ın kardeşi; Elif Kaya: Mehmet Yılmaz'ın eşi; Selin Koç 9970: Mehmet Yılmaz'ın kardeşi",
+      "Sosyal: Oğuz Doğan 12297: Mehmet Yılmaz'ın çocukluk arkadaşı; Selin Çelik 10730: Mehmet Yılmaz'ın komşusu; Can Yıldız 1804: Mehmet Yılmaz'ın çocukluk arkadaşı"
+     ]
+    }
+   },
+   "recall_relationship_question_ms": {
+    "p50": 0.95,
+    "p95": 1.05,
+    "max": 1.12
+   },
+   "recall_plain_ms": {
+    "p50": 0.19,
+    "p95": 0.21,
+    "max": 0.3
+   },
+   "map_depth2_ms": {
+    "p50": 2.19,
+    "p95": 2.39,
+    "max": 2.63
+   },
+   "write_ms": {
+    "p50": 0.59,
+    "p95": 0.93,
+    "max": 4.67
+   },
+   "db_bytes": 27193349,
+   "bytes_per_relationship": 544,
+   "peak_rss_mb": 75.8
+  }
+ ]
+}

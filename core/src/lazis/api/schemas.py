@@ -415,6 +415,8 @@ class DiagMemoryModel(_Schema):
     learning: DiagLearningModel
     jobs: dict[str, int]
     memories: dict[str, int]
+    relationships: dict[str, int] = {}
+    graph_backfill: dict[str, int] | None = None  # the one-time label upgrade, at its launch
     inbox_open: int
 
 

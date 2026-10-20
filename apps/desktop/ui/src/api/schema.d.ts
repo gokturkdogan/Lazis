@@ -923,6 +923,10 @@ export interface components {
         DiagMemoryModel: {
             /** Auto Extract */
             auto_extract: boolean;
+            /** Graph Backfill */
+            graph_backfill?: {
+                [key: string]: number;
+            } | null;
             /** Inbox Open */
             inbox_open: number;
             /** Jobs */
@@ -932,6 +936,13 @@ export interface components {
             learning: components["schemas"]["DiagLearningModel"];
             /** Memories */
             memories: {
+                [key: string]: number;
+            };
+            /**
+             * Relationships
+             * @default {}
+             */
+            relationships: {
                 [key: string]: number;
             };
             /** Trusted Models */
