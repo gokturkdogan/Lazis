@@ -357,6 +357,7 @@ def apply_items(
                     type=key, source=src, target=EntityRef(who), quote=message[:160],
                     negated=neg, correction=not neg)))  # fmt: skip
     facts, _ = extraction.covered_by_relations(facts, [*from_items, *found])
+    facts += extraction.facts_from_relations(facts, [*from_items, *found])
     checked = replace(checked, accepted=facts)
     candidates = [
         replace(

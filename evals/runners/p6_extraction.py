@@ -195,7 +195,11 @@ def score(case: dict[str, Any], recs: list[dict[str, Any]]) -> dict[str, Any]:
         if hit is not None:
             matched.add(hit)
     allowed = set(case.get("allow", []))
-    false_records = [r for i, r in enumerate(current) if i not in matched and r["predicate"] not in allowed]
+    # Phase 7: the user's relationships (graph rows) count towards `relationship` expectations
+    # but are not "false records" — Phase 6 kept them as person labels, which were not scored.
+    false_records = [r for i, r in enumerate(current) if i not in matched and r["predicate"] not in allowed
+                     and not (r["predicate"] == "relationship" and r.get("origin") is not None
+                              and r["statement"].startswith(f"{r['about']}: kullanıcının"))]  # fmt: skip
     critical: list[str] = []
     for r in recs:
         body = text.fold(f"{r['value']} {r['statement']}")

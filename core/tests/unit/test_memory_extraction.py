@@ -8,7 +8,7 @@ from typing import Any
 
 from lazis.memory import extraction, registry, text
 from lazis.memory.extraction import Known, Target
-from lazis.memory.models import Entity
+from lazis.memory.models import Entity, EntityRef, RelCandidate
 
 T1 = Target("m1", "MSG1", "Ben artık İzmir'de yaşıyorum, Ahmet'le de dün görüştüm.")
 T2 = Target("m2", "MSG2", "Proje LAZIS'te artık FastAPI kullanıyoruz.")
@@ -515,3 +515,16 @@ def test_a_job_fact_next_to_a_relationship_is_kept() -> None:
                                statement="Emre Kervan Lojistik'te çalışıyor.", about="entity", entity=EntityRef("Emre")))  # fmt: skip
     rel = extraction.ExtractedRel("M1", RelCandidate(type="sibling", target=EntityRef("Emre")))
     assert extraction.covered_by_relations([job], [rel]) == ([job], 0)
+
+
+def test_a_relative_noun_is_not_a_name_and_places_become_profile_facts() -> None:
+    t = Target("m1", "MSGP5", "Kızım beş yaşında, bu yıl anaokuluna başladı.")
+    found, dropped = extraction.validate_relations(
+        [relitem(source="", type="child", target="Kız", quote="Kızım beş yaşında")], [t]
+    )
+    assert found == [] and dropped == {"unnamed_relative": 1}
+    lives = extraction.ExtractedRel(
+        "M1", RelCandidate(type="lives_in", target=EntityRef("İstanbul", "place"))
+    )
+    facts = extraction.facts_from_relations([], [lives])
+    assert [(f.candidate.predicate, f.candidate.value) for f in facts] == [("location", "İstanbul")]

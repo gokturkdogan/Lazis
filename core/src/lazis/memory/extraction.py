@@ -117,15 +117,15 @@ yalnızca mesajda yazıyorsa.
 Örnekler (adlar örnektir; quote her zaman incelenen mesajdan birebir alınır):
 «Bir gün Japonya'ya taşınsam nasıl olurdu?» → {"items": [], "relations": []} (varsayım)
 «Annem doktor olmamı isterdi.» → {"items": [], "relations": []} (kalıcı bilgi değil)
+«Gitar ve keman çalarım, Rust da öğreniyorum.» → üç öğe: skill "gitar"; skill "keman"; \
+technology "Rust" (her değer ayrı öğe)
 «Okuldan iki arkadaşım var, Sena ile Barış.» → relations: "" friend Sena; "" friend Barış
-«Komşum Filiz'in ağabeyi Kerim İzmir'e taşındı.» → relations: "" neighbor Filiz; Filiz \
-sibling Kerim · items: Kerim — location "İzmir" (change)
+«Komşum Filiz'in ağabeyi Kerim İzmir'e taşındı.» → items: Kerim — location "İzmir" (change) · \
+relations: "" neighbor Filiz; Filiz sibling Kerim
 «Nazlı'nın kuzeni Okan, Okan'ın arkadaşı Defne.» → relations: Nazlı cousin Okan; Okan friend \
 Defne (Nazlı ile Defne arasında ilişki YOK)
-«Kuzenim Arif öğretmen, Martı projesinde de bana yardım ediyor.» → items: Arif — occupation \
+«Kuzenim Arif öğretmen, Martı projesinde de bana yardım ediyor.» → iki öğe: Arif — occupation \
 "öğretmen"; Martı — project_person "Arif" · relations: "" cousin Arif; Arif contributes_to Martı
-«Halam Nevin, Cemil'le evli; Cemil bir dernekte gönüllü.» → relations: "" aunt_paternal Nevin; \
-Nevin spouse Cemil · items: Cemil — note "derneğe gönüllü" (ilişki bilgilerin yerine geçmez)
 """
 
 
@@ -523,6 +523,8 @@ def _end_ref(
     key = text.name_key(name)
     if not key or key in _SELF or not name[:1].isupper():
         return None, None
+    if relations_vocab.match_at(key.split(), 0) is not None and len(key.split()) <= 2:
+        return None, "unnamed_relative"  # "Kızım" is not a person named "Kız"
     matches = _known_for(key, known)
     if (
         not text.mentions_name(text.words(target.text), key)
@@ -946,6 +948,31 @@ def _appositive_relations(
             extra.append(ExtractedRel(e.message_id, RelCandidate(
                 type=key, target=ref, source=None, quote=target.text[:MAX_STATEMENT],
                 statement="")))  # fmt: skip
+    return extra
+
+
+def facts_from_relations(
+    facts: Sequence[Extracted], rels: Sequence[ExtractedRel]
+) -> list[Extracted]:
+    """The user's place and workplace said as relationships ("İstanbul'da yaşıyorum" →
+    lives_in) are also Phase 6 facts (location, employer), unless the same message already
+    gave that fact — so both the graph and the profile answer."""
+    pred_of = {"lives_in": "location", "works_at": "employer"}
+    have = {(f.message_id, f.candidate.predicate) for f in facts if f.candidate.about == "user"}
+    extra: list[Extracted] = []
+    for r in rels:
+        c = r.candidate
+        pred = pred_of.get(c.type)
+        if pred is None or c.source is not None or c.negated or c.status != "active":
+            continue
+        if (r.message_id, pred) in have:
+            continue
+        have.add((r.message_id, pred))
+        p = registry.PREDICATES[pred]
+        statement = f"Kullanıcının {p.label}: {c.target.name}."
+        extra.append(Extracted(r.message_id, Candidate(
+            predicate=pred, value=c.target.name, statement=statement, quote=c.quote,
+            change=c.change, importance=0.8)))  # fmt: skip
     return extra
 
 

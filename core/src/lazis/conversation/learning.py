@@ -203,6 +203,7 @@ class Learner:
             )
             rel_accepted = [*from_items, *rel_found]
             facts, covered = extraction.covered_by_relations(facts, rel_accepted)
+            facts += extraction.facts_from_relations(facts, rel_accepted)
             if covered:  # counted with the facts' rejections
                 checked.dropped["covered_by_relation"] = covered
 
