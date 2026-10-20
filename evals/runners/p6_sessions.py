@@ -355,7 +355,7 @@ async def namesakes(model: str, llm: Recorder, r: Report) -> None:
         inbox = p.q(lambda c: memory_repo.list_inbox(c))
         r.turn(s, "B4-ask", t, {
             "not_attached_silently": not any(m["about"] == "Ahmet" for m in mems),
-            "reply_asks_which": has(t["reply"], "hangi", "aynı kişi", "ayni kisi", "kastettiğiniz") and "?" in (t["reply"] or ""),
+            "reply_asks_which": has(t["reply"], "hangi", "aynı kişi", "ayni kisi", "kastettiğiniz", "yoksa") and "?" in (t["reply"] or ""),
         })  # fmt: skip
     finally:
         await p.stop()

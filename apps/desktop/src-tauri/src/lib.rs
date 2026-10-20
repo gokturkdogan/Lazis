@@ -201,6 +201,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<Tray> {
             &status_item,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "open", "LAZIS'i aç", true, None::<&str>)?,
+            &MenuItem::with_id(app, "memory", "Hafıza", true, None::<&str>)?,
             &MenuItem::with_id(app, "diagnostics", "Sistem durumu", true, None::<&str>)?,
             &MenuItem::with_id(app, "settings", "Ayarlar", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
@@ -216,6 +217,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<Tray> {
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "open" => show_main_window(app, None),
+            "memory" => show_main_window(app, Some("memory")),
             "diagnostics" => show_main_window(app, Some("diagnostics")),
             "settings" => show_main_window(app, Some("settings")),
             "quit" => app.exit(0),

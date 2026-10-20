@@ -244,7 +244,8 @@ Decisions: [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-le
   - `extraction_max_tokens` (700);
   - `batch_messages` (3);
   - `max_attempts` (3);
-  - `context_budget_tokens` (400; 0 disables recall).
+  - `context_budget_tokens` (200; 0 disables recall; each token is new prefill, ~4 ms on Gemma here);
+  - `learn_after_idle_s` (6.0: learning starts only after this long without a turn).
 - **Adding a predicate:**
   1. Add it to `registry.PREDICATES`, and to `registry.HINTS` if it has search words.
   2. Add it to `extraction.PROMPT_GROUPS` (the test fails until it is listed exactly once).

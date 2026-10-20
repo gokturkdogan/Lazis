@@ -19,6 +19,11 @@ The constraints come from earlier measurements:
    - The user message and its learning job are written in one transaction.
    - After the reply, the joinable re-warm runs, then one preemptible `memory` background job. That job sends the same messages plus one extraction instruction; only the instruction is new prefill, and the conversation prefix stays cached for the next turn.
    - A user turn always preempts learning; the job goes back to the queue.
+   - Measured on Gemma: after an extraction request the next turn re-processes part of the shared prefix (~+0.7 s, sliding-window attention), and a quick follow-up waited ~3 s for the extraction to be cancelled. So:
+     - learning starts only after 6 s without a turn;
+     - typing (the UI's prepare call) cancels it;
+     - the cache is not claimed warm afterwards;
+     - the conversation is re-warmed when learning is done.
    - A separate, standalone extraction prompt would have evicted the conversation from the cache on every turn and made the next reply cold. It is used only when the conversation is near its context limit.
 2. **The model proposes; code decides.** Extraction output (JSON schema, temperature 0) is validated before anything is written:
    - the quote must come from the user's message;
@@ -51,6 +56,6 @@ The constraints come from earlier measurements:
 
 - **Learning cost:** about 1,000 tokens of prefill plus about 100 output tokens per item, in the background (median ~7 s per message on this machine). A fast typist preempts it; the work resumes when idle. Facts are therefore stored seconds after the reply, which the persona respects.
 - **Request cost:** an explicit request costs one synchronous model call before the reply (~5–8 s measured).
-- **Recall cost:** recall adds a few hundred tokens to the new message's prefill only (TTFT impact measured in PHASE_6_REPORT §H).
+- **Recall cost:** each recalled token is new prefill for that turn (~4 ms on Gemma here). With the 200-token budget, median TTFT was 808 ms against 390 ms without memory for a user who reads the reply, and 720 ms against 388 ms for a quick follow-up (PHASE_6_REPORT §H).
 - **Deferred under Qwen:** when the fallback answers, nothing is learned until Gemma is back. That is deliberate.
 - **Prompt changes:** the persona and conversation prompts changed (persona-v2, p6-v1), so every conversation's prefix hash changed once; the Phase 5 persona evaluation was re-run for regressions.

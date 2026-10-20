@@ -1,0 +1,713 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "manifest": {
+  "captured_at": "2026-10-20T12:39:08+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t71%; charging; 1:18 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.23,
+   "active_gb": 2.33,
+   "wired_gb": 11.52,
+   "compressed_gb": 6.96,
+   "swap_used_mb": 10249.38,
+   "swapouts": 63346832,
+   "memory_free_percent": 20
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "runs": {
+  "patient_baseline": {
+   "summary": {
+    "ttft_ms_median": 387,
+    "ttft_ms_max": 418,
+    "warm_turns": 7,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "ttft_ms": 365.2,
+     "runtime_ttft_ms": 358.6,
+     "prompt_tokens": 1266,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 501,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 2,
+     "ttft_ms": 368.8,
+     "runtime_ttft_ms": 363.4,
+     "prompt_tokens": 1340,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 501,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 3,
+     "ttft_ms": 381.9,
+     "runtime_ttft_ms": 376.0,
+     "prompt_tokens": 1433,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 904,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 4,
+     "ttft_ms": 327.5,
+     "runtime_ttft_ms": 324.4,
+     "prompt_tokens": 1681,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 702,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 5,
+     "ttft_ms": 387.5,
+     "runtime_ttft_ms": 384.6,
+     "prompt_tokens": 1841,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 1105,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 6,
+     "ttft_ms": 417.7,
+     "runtime_ttft_ms": 411.2,
+     "prompt_tokens": 2093,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 1105,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 7,
+     "ttft_ms": 387.8,
+     "runtime_ttft_ms": 381.4,
+     "prompt_tokens": 2341,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 703,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 8,
+     "ttft_ms": 387.2,
+     "runtime_ttft_ms": 381.4,
+     "prompt_tokens": 2493,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 501,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "jobs": {}
+    }
+   ]
+  },
+  "patient_memory": {
+   "summary": {
+    "ttft_ms_median": 1534,
+    "ttft_ms_max": 2136,
+    "warm_turns": 7,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "ttft_ms": 609.4,
+     "runtime_ttft_ms": 599.4,
+     "prompt_tokens": 1347,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": 2.6,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 5128,
+     "learning": {
+      "state": "done",
+      "duration_ms": 4513,
+      "prompt_tokens": 2448,
+      "output_tokens": 6,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 2,
+     "ttft_ms": 1720.9,
+     "runtime_ttft_ms": 1714.2,
+     "prompt_tokens": 1662,
+     "cache": "warm",
+     "memory_items": 8,
+     "memory_ms": 3.3,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 11151,
+     "learning": {
+      "state": "done",
+      "duration_ms": 10597,
+      "prompt_tokens": 2552,
+      "output_tokens": 180,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 3,
+     "ttft_ms": 678.2,
+     "runtime_ttft_ms": 673.4,
+     "prompt_tokens": 1443,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.4,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 5525,
+     "learning": {
+      "state": "done",
+      "duration_ms": 4628,
+      "prompt_tokens": 2832,
+      "output_tokens": 6,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 4,
+     "ttft_ms": 2136.4,
+     "runtime_ttft_ms": 2131.4,
+     "prompt_tokens": 2009,
+     "cache": "warm",
+     "memory_items": 8,
+     "memory_ms": 2.6,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 8340,
+     "learning": {
+      "state": "done",
+      "duration_ms": 7641,
+      "prompt_tokens": 2950,
+      "output_tokens": 90,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 5,
+     "ttft_ms": 1417.9,
+     "runtime_ttft_ms": 1410.5,
+     "prompt_tokens": 1992,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 3.8,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 5929,
+     "learning": {
+      "state": "done",
+      "duration_ms": 4787,
+      "prompt_tokens": 3236,
+      "output_tokens": 6,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 6,
+     "ttft_ms": 2131.3,
+     "runtime_ttft_ms": 2124.0,
+     "prompt_tokens": 2290,
+     "cache": "warm",
+     "memory_items": 8,
+     "memory_ms": 3.7,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 8944,
+     "learning": {
+      "state": "done",
+      "duration_ms": 7830,
+      "prompt_tokens": 3460,
+      "output_tokens": 94,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 7,
+     "ttft_ms": 1518.8,
+     "runtime_ttft_ms": 1512.9,
+     "prompt_tokens": 2398,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.6,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 5924,
+     "learning": {
+      "state": "done",
+      "duration_ms": 4756,
+      "prompt_tokens": 3715,
+      "output_tokens": 6,
+      "on_prefix": true
+     }
+    },
+    {
+     "turn": 8,
+     "ttft_ms": 1534.5,
+     "runtime_ttft_ms": 1528.2,
+     "prompt_tokens": 2644,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.6,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "background_ms": 5324,
+     "learning": {
+      "state": "done",
+      "duration_ms": 4756,
+      "prompt_tokens": 3785,
+      "output_tokens": 6,
+      "on_prefix": true
+     }
+    },
+    {
+     "jobs": {
+      "done": 8
+     }
+    }
+   ]
+  },
+  "fast_baseline": {
+   "summary": {
+    "ttft_ms_median": 401,
+    "ttft_ms_max": 422,
+    "warm_turns": 7,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "ttft_ms": 406.6,
+     "runtime_ttft_ms": 400.5,
+     "prompt_tokens": 1266,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 2,
+     "ttft_ms": 422.3,
+     "runtime_ttft_ms": 416.2,
+     "prompt_tokens": 1346,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 3,
+     "ttft_ms": 373.8,
+     "runtime_ttft_ms": 368.1,
+     "prompt_tokens": 1456,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 4,
+     "ttft_ms": 371.1,
+     "runtime_ttft_ms": 365.9,
+     "prompt_tokens": 1704,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 5,
+     "ttft_ms": 386.0,
+     "runtime_ttft_ms": 380.2,
+     "prompt_tokens": 1853,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 6,
+     "ttft_ms": 414.9,
+     "runtime_ttft_ms": 412.3,
+     "prompt_tokens": 2106,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 7,
+     "ttft_ms": 409.9,
+     "runtime_ttft_ms": 403.2,
+     "prompt_tokens": 2354,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 8,
+     "ttft_ms": 401.2,
+     "runtime_ttft_ms": 394.8,
+     "prompt_tokens": 2600,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "idle",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "jobs": {}
+    }
+   ]
+  },
+  "fast_memory": {
+   "summary": {
+    "ttft_ms_median": 5146,
+    "ttft_ms_max": 5683,
+    "warm_turns": 7,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "ttft_ms": 634.7,
+     "runtime_ttft_ms": 630.1,
+     "prompt_tokens": 1347,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": 1.2,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 2,
+     "ttft_ms": 4594.8,
+     "runtime_ttft_ms": 1759.6,
+     "prompt_tokens": 1651,
+     "cache": "warm",
+     "memory_items": 8,
+     "memory_ms": 2.3,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 3,
+     "ttft_ms": 3455.8,
+     "runtime_ttft_ms": 616.7,
+     "prompt_tokens": 1415,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.5,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 4,
+     "ttft_ms": 5531.0,
+     "runtime_ttft_ms": 2168.7,
+     "prompt_tokens": 1980,
+     "cache": "warm",
+     "memory_items": 8,
+     "memory_ms": 2.8,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 5,
+     "ttft_ms": 4795.0,
+     "runtime_ttft_ms": 1499.3,
+     "prompt_tokens": 1965,
+     "cache": "warm",
+     "memory_items": 4,
+     "memory_ms": 2.9,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 6,
+     "ttft_ms": 5682.9,
+     "runtime_ttft_ms": 2006.2,
+     "prompt_tokens": 2263,
+     "cache": "warm",
+     "memory_items": 7,
+     "memory_ms": 3.0,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 7,
+     "ttft_ms": 5146.2,
+     "runtime_ttft_ms": 1553.4,
+     "prompt_tokens": 2387,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.7,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "turn": 8,
+     "ttft_ms": 5297.1,
+     "runtime_ttft_ms": 1575.1,
+     "prompt_tokens": 2633,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 1.8,
+     "memory_request": null,
+     "memory_request_ms": null,
+     "learning": {
+      "state": "running",
+      "duration_ms": null,
+      "prompt_tokens": null,
+      "output_tokens": null,
+      "on_prefix": null
+     }
+    },
+    {
+     "jobs": {
+      "queued": 5,
+      "running": 3
+     }
+    }
+   ]
+  }
+ }
+}

@@ -99,6 +99,7 @@ pub fn parse_view(arg: &str) -> Option<&'static str> {
     match arg.strip_prefix("--show=")? {
         "assistant" => Some("conversation"),
         "diagnostics" => Some("diagnostics"),
+        "memory" => Some("memory"),
         "settings" => Some("settings"),
         _ => None,
     }
@@ -200,6 +201,7 @@ mod tests {
         assert_eq!(TrayStatus::parse("listening"), None); // no microphone in Phase 4
         assert_eq!(TrayStatus::parse("<b>"), None);
         assert_eq!(parse_view("--show=diagnostics"), Some("diagnostics"));
+        assert_eq!(parse_view("--show=memory"), Some("memory"));
         assert_eq!(parse_view("--show=assistant"), Some("conversation"));
         assert_eq!(parse_view("--show=../x"), None);
         assert_eq!(parse_view("diagnostics"), None);
