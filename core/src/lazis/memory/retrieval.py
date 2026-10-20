@@ -42,6 +42,9 @@ MAX_QUESTIONS = 2
 # A query term matching more than max(COMMON_TERM_MIN, share × memories) records is not used.
 COMMON_TERM_MIN = 25
 COMMON_TERM_SHARE = 0.08
+# …and never more than this many: ranking thousands of hits costs ~100 ms at 50k records and a
+# term that common does not single anything out (names are found by the entity route).
+COMMON_TERM_MAX = 400
 
 Why = Literal["pinned", "entity", "search", "context"]
 
@@ -206,7 +209,7 @@ def _selective_terms(conn: Connection, terms: list[str]) -> list[str]:
     if not terms:
         return terms
     total = int(conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
-    limit = max(COMMON_TERM_MIN, int(total * COMMON_TERM_SHARE))
+    limit = min(COMMON_TERM_MAX, max(COMMON_TERM_MIN, int(total * COMMON_TERM_SHARE)))
     kept: list[str] = []
     for term in terms:
         match = text.fts_match([term])

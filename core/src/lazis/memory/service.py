@@ -205,7 +205,9 @@ def apply_one(
         )
         report.inbox.append(iid)
         return
-    current = repo.memories_for_subject(conn, subject_id, predicate=c.predicate)
+    current = repo.consolidation_candidates(
+        conn, subject_id, c.predicate, value=c.value, replaces=c.replaces
+    )
     plan = consolidation.plan(c, current, explicit=explicit)
     if force == "create":
         plan = consolidation.Plan("create")

@@ -31,6 +31,7 @@ _MEMORY_COLS = (
     " confidence, importance, sensitivity, sensitivity_category, event_time, valid_from, valid_to,"
     " supersedes_id, conflict_state, recall_count, created_at, updated_at, version"
 )
+_MEMORY_COLS_M = ", ".join(f"m.{c.strip()}" for c in _MEMORY_COLS.split(","))
 _ENTITY_COLS = (
     "id, kind, name, name_key, relation, relation_key, description, status, merged_into,"
     " created_at, updated_at"
@@ -348,6 +349,46 @@ def memories_for_subject(
         args.append(predicate)
     sql += " ORDER BY created_at"
     return [_memory(r) for r in conn.execute(sql, args).fetchall()]
+
+
+def consolidation_candidates(
+    conn: Connection,
+    subject_id: str | None,
+    predicate: str,
+    *,
+    value: str,
+    replaces: str | None,
+    limit: int = 40,
+) -> list[Memory]:
+    """The current records a new value must be compared with. A single-valued predicate has
+    few; a multi-valued one can have thousands ("likes"), so only records sharing a word with
+    the new value (or with the value it replaces) are candidates — found through the index,
+    not by comparing every record."""
+    pred = registry.get(predicate)
+    if pred is None or pred.cardinality == "single":
+        return memories_for_subject(conn, subject_id, predicate=predicate)
+    subject_sql = "m.subject_id IS NULL" if subject_id is None else "m.subject_id = ?"
+    base: list[Any] = [] if subject_id is None else [subject_id]
+    rows = conn.execute(
+        f"SELECT {_MEMORY_COLS_M} FROM memories m WHERE {subject_sql} AND m.predicate = ?"  # noqa: S608
+        " AND m.status = 'active' AND m.value_key = ?",
+        (*base, predicate, text.fold(value).strip()),
+    ).fetchall()
+    found = {r[0]: r for r in rows}
+    match = text.fts_match(text.query_terms(f"{value} {replaces or ''}"))
+    if match is not None:
+        # CROSS JOIN keeps the index hits as the outer loop: one rowid lookup per hit instead of
+        # walking every record of a large predicate (measured: 16 ms → under 1 ms at 50k).
+        rows = conn.execute(
+            f"SELECT {_MEMORY_COLS_M} FROM (SELECT rowid AS r FROM memory_fts"  # noqa: S608
+            " WHERE memory_fts MATCH ? LIMIT 500) f CROSS JOIN memories m ON m.rowid = f.r"
+            f" WHERE {subject_sql} AND m.predicate = ? AND m.status = 'active'"
+            " ORDER BY m.updated_at DESC LIMIT ?",
+            (match, *base, predicate, limit),
+        ).fetchall()
+        for r in rows:
+            found.setdefault(r[0], r)
+    return [_memory(r) for r in found.values()]
 
 
 def pinned_memories(conn: Connection, predicates: Sequence[str], limit: int) -> list[Memory]:

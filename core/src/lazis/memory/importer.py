@@ -207,7 +207,9 @@ def preview(conn: Connection, candidates: Sequence[Candidate]) -> list[PreviewIt
                 items.append(PreviewItem(i, c, "new", subject, sensitive=sensitive))
                 continue
             subject_id = res.entity_id
-        current = repo.memories_for_subject(conn, subject_id, predicate=c.predicate)
+        current = repo.consolidation_candidates(
+            conn, subject_id, c.predicate, value=c.value, replaces=c.replaces
+        )
         plan = consolidation.plan(c, current, explicit=False)
         existing = [m.value for m in current if m.id in plan.target_ids]
         status = _STATUS[plan.action]
