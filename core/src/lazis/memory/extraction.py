@@ -117,7 +117,8 @@ konusu (bütçe uygulaması) hassas değildir.
 PROMPT_GROUPS: tuple[tuple[str, str], ...] = (
     ("Kişi", "relationship* (kişinin kullanıcıyla ilişkisi: arkadaş, kuzen, iş ortağı)"),
     ("Profil", "preferred_name* (hitap), occupation* (meslek), employer* (işyeri), location* "
-     "(şehir), birthday*, language (konuştuğu dil), skill (beceri), family (aile)"),
+     "(yaşadığı şehir; gezi ya da ziyaret değil, o event), birthday*, language (konuştuğu dil), "
+     "skill (beceri), family (aile)"),
     ("Cihaz ve araç (yalnız kullanıcı)", "computer* (bilgisayarı ve özellikleri: RAM, "
      "işlemci), phone* (kullandığı telefon modeli), device, operating_system, technology "
      "(yazılım dili/araç)"),
@@ -319,6 +320,13 @@ def validate(
                 relation = None
             ref = EntityRef(name, cast(Any, kind), relation)
             subject_kind = kind if kind in ("person", "project") else "other"
+        if (
+            pred.key == "family"
+            and ref is not None
+            and ref.relation
+            and text.fold(value).strip() in text.fold(ref.relation)
+        ):
+            pred = registry.PREDICATES["relationship"]  # "Ahmet — family: arkadaş" is a relation
         if policy.contact_detected(value) and pred.key != "contact":
             pred = registry.PREDICATES["contact"]  # a phone number or e-mail address
         if subject_kind not in pred.subjects:

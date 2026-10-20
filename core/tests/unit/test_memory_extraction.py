@@ -159,3 +159,10 @@ def test_an_entity_that_is_not_a_name_means_the_user() -> None:
                   value="her sabah 8.30'da başlıyor", statement="Kullanıcının kızının okulu 8.30'da başlıyor.")  # fmt: skip
     c = extraction.validate([school], [t]).accepted[0].candidate
     assert c.about == "user" and c.entity is None
+
+
+def test_a_relation_filed_as_family_becomes_relationship() -> None:
+    t = Target("m1", "MSG7", "Benim iki arkadaşım var. Birinin adı Ahmet, diğerinin adı Mehmet.")
+    fam = item(entity="Ahmet", relation="arkadaş", predicate="family", value="arkadaş", quote="Birinin adı Ahmet",
+               statement="Kullanıcının Ahmet adında bir arkadaşı var.")  # fmt: skip
+    assert extraction.validate([fam], [t]).accepted[0].candidate.predicate == "relationship"
