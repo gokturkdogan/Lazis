@@ -476,3 +476,31 @@ def test_maintenance_rebuilds_a_drifted_index_and_folds_duplicates(storage: Stor
     )  # the duplicate's evidence kept
     assert not run(storage, lambda c: maintenance.due(c, 1000.0 + 3600))
     assert run(storage, lambda c: maintenance.due(c, 1000.0 + 25 * 3600))
+
+
+def test_an_open_namesake_question_blocks_guessing(storage: StorageHandle) -> None:
+    friend = apply(
+        storage,
+        cand("occupation", "öğretmen", "Ahmet öğretmen.", **about("Ahmet", "çocukluk arkadaşı")),
+    )
+    # "İş ortağım da Ahmet": maybe a second Ahmet → a question, no second entity yet.
+    asked = apply(
+        storage,
+        cand("occupation", "avukat", "İş ortağı Ahmet avukat.", **about("Ahmet", "iş ortağı")),
+    )
+    assert (
+        len(asked.inbox) == 1 and len(run(storage, lambda c: repo.find_entities(c, "ahmet"))) == 1
+    )
+    # "Ahmet bugün aradı…" (no relation): attaching to the only stored Ahmet would be a guess.
+    vague = apply(
+        storage, cand("interest", "satranç", "Ahmet satranç kulübüne yazıldı.", **about("Ahmet"))
+    )
+    assert vague.created == [] and len(vague.inbox) == 1
+    # With the user's relation it is not a guess.
+    sure = apply(
+        storage,
+        cand("likes", "kahve", "Ahmet kahve sever.", **about("Ahmet", "çocukluk arkadaşım")),
+    )
+    assert len(sure.created) == 1
+    m = run(storage, lambda c: repo.get_memory(c, sure.created[0]))
+    assert m is not None and m.subject_id == friend.entities_created[0]

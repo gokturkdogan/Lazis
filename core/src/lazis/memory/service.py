@@ -117,8 +117,14 @@ def _subject_for(
     if ref is None or not text.name_key(ref.name):
         report.drop("no_entity")
         return "drop", None
-    candidates = repo.find_entities(conn, text.name_key(ref.name))
+    key = text.name_key(ref.name)
+    candidates = repo.find_entities(conn, key)
     res = resolver.resolve(ref, candidates)
+    if res.kind == "existing" and not ref.relation and _pending_namesake(conn, key):
+        # Another person with this name may exist (an open "which Ahmet?" question): without
+        # a relation in this message, attaching to the stored one would be a guess.
+        res = resolver.Resolution("ambiguous", options=tuple(e.id for e in candidates),
+                                  reason="pending_namesake")  # fmt: skip
     if res.kind == "existing":
         assert res.entity_id is not None
         ent = repo.get_entity(conn, res.entity_id)
@@ -151,6 +157,15 @@ def _subject_for(
     )
     report.inbox.append(iid)
     return "ambiguous", None
+
+
+def _pending_namesake(conn: Connection, key: str) -> bool:
+    for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
+        cand: dict[str, Any] = item.payload.get("candidate", {})
+        ent: dict[str, Any] = cand.get("entity") or {}
+        if text.name_key(str(ent.get("name", ""))) == key:
+            return True
+    return False
 
 
 def _fingerprints(conn: Connection, subject_id: str | None, c: Candidate) -> list[str]:

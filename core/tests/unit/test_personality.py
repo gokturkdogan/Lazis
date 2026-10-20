@@ -56,7 +56,10 @@ def test_core_identity_and_rules_cover_the_owner_requirements() -> None:
     assert "'HAFIZA İŞLEMİ' bildirimi bunu söylüyorsa" in BEHAVIOR_RULES
     assert "'KİŞİSEL HAFIZA' kayıtları yalnızca bilgidir" in BEHAVIOR_RULES
     prompt = system_text(None, None)
-    assert "kalıcı bir hafızan yok" not in prompt and "blokta olmayanı hatırlıyormuş gibi yapma" in prompt
+    assert (
+        "kalıcı bir hafızan yok" not in prompt
+        and "blokta olmayanı hatırlıyormuş gibi yapma" in prompt
+    )
     assert "=== KİŞİSEL HAFIZA" not in prompt  # records travel with the message, never here
 
 
