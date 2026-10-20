@@ -223,7 +223,8 @@ def relation_schema() -> dict[str, Any]:
         "time": s,
         "statement": s,
     }
-    return {"type": "object", "properties": props, "required": list(props)}
+    return {"type": "object", "properties": props, "required": list(props),
+            "additionalProperties": False}  # fmt: skip
 
 
 def schema() -> dict[str, Any]:
@@ -245,7 +246,14 @@ def schema() -> dict[str, Any]:
         "sensitive": {"type": "string", "enum": ["", *SENSITIVE_CATEGORIES]},
         "importance": {"type": "number"},
     }
-    item = {"type": "object", "properties": props, "required": list(props)}
+    # No other keys: the grammar then cannot drift into invented key names (measured: a
+    # degenerate "importance_score_importance_…" output until the token limit).
+    item = {
+        "type": "object",
+        "properties": props,
+        "required": list(props),
+        "additionalProperties": False,
+    }
     return {
         "type": "object",
         "properties": {
@@ -253,6 +261,7 @@ def schema() -> dict[str, Any]:
             "relations": {"type": "array", "items": relation_schema(), "maxItems": MAX_RELATIONS},
         },
         "required": ["items", "relations"],
+        "additionalProperties": False,
     }
 
 
@@ -668,6 +677,64 @@ def someone_elses(message: str, name: str) -> bool:
     return False
 
 
+_FILLER = frozenset({"aslinda", "hayir", "yok", "ama", "ki", "de", "da", "o", "bu", "benim"})
+
+
+def stated_correction(message: str) -> list[tuple[str | None, str, str, str]]:
+    """ "X aslında Y'nin ⟨A⟩ değil, ⟨B⟩" / "X ⟨A⟩m değil, ⟨B⟩m": (owner name or None for the
+    user, old type, new type, X) — the user's grammar, so a correction needs no model guess."""
+    toks: list[tuple[str, str, str]] = []  # (folded word, apostrophe ending, raw)
+    for chunk in message.split():
+        parts = _APOS.split(chunk, maxsplit=1)
+        bases = _RAW.findall(parts[0])
+        tail = _RAW.findall(parts[1]) if len(parts) > 1 else []
+        for n, raw in enumerate(bases):
+            toks.append(
+                (text.fold(raw), text.fold(tail[0]) if tail and n == len(bases) - 1 else "", raw)
+            )
+    words = [w for w, _, _ in toks]
+    out: list[tuple[str | None, str, str, str]] = []
+    for j, w in enumerate(words):
+        if not w.startswith("degil"):
+            continue
+        old: tuple[str, int, str] | None = None
+        at = -1
+        for n in (2, 1):
+            m = relations_vocab.match_at(words, j - n) if j - n >= 0 else None
+            if m is not None and m[1] == n:
+                old, at = m, j - n
+                break
+        new: tuple[str, int, str] | None = None
+        for k in (j + 1, j + 2):
+            m = relations_vocab.match_at(words, k) if k < len(words) else None
+            if m is not None:
+                new = m
+                break
+        if old is None or new is None or old[0] == new[0]:
+            continue
+        old_key, _, old_end = old
+        owner: str | None = None
+        i = at - 1
+        if i >= 0 and toks[i][2][:1].isupper() and _GEN_END.search(toks[i][1]):
+            owner, i = toks[i][2], i - 1
+        elif not relations_vocab.first_person(old_end):
+            continue
+        while i >= 0 and words[i] in _FILLER:
+            i -= 1
+        if i < 0 or not toks[i][2][:1].isupper() or toks[i][1]:
+            continue
+        out.append((owner, old_key, new[0], toks[i][2]))
+    return out
+
+
+def _stated_type(triples: Sequence[tuple[str, str, str]], src: str, tgt: str) -> str | None:
+    """The type the user's "X'in ⟨noun⟩ Y" gives this pair in this direction, if any."""
+    for a, k, b in triples:
+        if src and tgt and _word_of(src, last=True) == a and _word_of(tgt, last=False) == b:
+            return k
+    return None
+
+
 def _word_of(name: str, *, last: bool) -> str:
     parts = text.name_key(name).split()
     return (parts[-1] if last else parts[0]) if parts else ""
@@ -743,6 +810,16 @@ def validate_relations(
                  "source_relation": "", "target_relation": ""}  # fmt: skip
             t = relations_vocab.TYPES[fixed[1]]
             drop("direction_fixed")
+        stated = _stated_type(triples[target.tag], _str(r, "source", 80), _str(r, "target", 80))
+        if (
+            stated is not None
+            and stated != t.key
+            and not relations_vocab.named_in(target.text, t.key)
+        ):
+            # "Ahmet'in patronu Hakan" with the model's "manager": the user's noun decides.
+            r = {**r, "type": stated}
+            t = relations_vocab.TYPES[stated]
+            drop("type_fixed")
         if t.category in ("family", "social", "work") and not relations_vocab.named_in(
             target.text, t.key
         ):
@@ -792,6 +869,19 @@ def validate_relations(
             src, tgt, key = None, src, back
         else:
             key = t.key
+        if src is None:
+            said = appositive(target.text, tgt.name)
+            said_key = relations_vocab.lexicon(said) if said else None
+            if (
+                said_key is not None
+                and key not in relations_vocab.answers(said_key)
+                and said_key not in relations_vocab.answers(key)
+                and (relations_vocab.TYPES[said_key].inverse == key
+                     or relations_vocab.reading_from_target(key) == said_key)
+            ):  # fmt: skip
+                # "Yöneticim Banu" written as Banu → manager → user: the user's words decide.
+                key = said_key
+                drop("direction_fixed")
         if (
             src is None
             and someone_elses(target.text, tgt.name)
@@ -865,21 +955,25 @@ def covered_by_relations(
     """Facts that only restate a relationship of the same message ("Mehmet — aile bilgisi:
     Ahmet'in kuzeni" next to Ahmet cousin Mehmet) are not stored twice: the graph holds them,
     so a correction or a forget reaches every copy."""
-    ends: dict[str, set[str]] = {}
+    # entity name key → the other ends' name keys ("" = the user), per message
+    pairs: dict[tuple[str, str], set[str]] = {}
     for r in rels:
-        names = ends.setdefault(r.message_id, set())
-        for ref in (r.candidate.source, r.candidate.target):
-            if ref is not None:
-                names.add(text.name_key(ref.name))
+        s_key = text.name_key(r.candidate.source.name) if r.candidate.source else ""
+        t_key = text.name_key(r.candidate.target.name)
+        pairs.setdefault((r.message_id, s_key), set()).add(t_key)
+        pairs.setdefault((r.message_id, t_key), set()).add(s_key)
     kept: list[Extracted] = []
     for f in facts:
         c = f.candidate
-        if (
-            c.predicate in ("family", "relationship")
-            and c.entity is not None
-            and text.name_key(c.entity.name) in ends.get(f.message_id, set())
-        ):
-            continue
+        others: set[str] = (
+            pairs.get((f.message_id, text.name_key(c.entity.name)), set()) if c.entity else set()
+        )
+        body = text.words(f"{c.value} {c.statement}")
+        restates = relations_vocab.lexicon(c.value) is not None or any(
+            o and text.mentions_name(body, o) for o in others
+        )
+        if c.predicate in ("family", "relationship") and others and restates:
+            continue  # "Mehmet — Ahmet'in kuzeni": the relationship says it
         kept.append(f)
     return kept, len(facts) - len(kept)
 

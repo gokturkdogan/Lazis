@@ -287,3 +287,19 @@ def test_an_open_namesake_question_makes_answers_cautious(storage: StorageHandle
     assert a is not None and a.status == "ambiguous"
     assert a.lines[0].startswith("Dikkat: «Ahmet» adında başka biri de olabilir")
     assert "Cevap: Mehmet" in a.lines
+
+
+def test_a_correction_follows_the_users_grammar_not_the_model(
+    tmp_path: Path, storage: StorageHandle, world: World
+) -> None:
+    msg = "Hayır, Elif Mehmet'in eşi değil, kız kardeşi."
+    confused = answer("correct", relations=[
+        rel("Elif Mehmet'in eşi değil", "Mehmet", "sibling", "Elif", negated=True, correction=True),
+        rel("kız kardeşi", "Mehmet", "spouse", "Elif", negated=True, correction=True),
+    ])  # fmt: skip
+    run(storage, tmp_path, lambda r: confused, msg)
+    between = storage.db.run_sync(
+        lambda c: gs.relationships_between(c, world["mehmet"], world["elif"])
+    )
+    current = {r.type for r in between if r.status == "active"}
+    assert current == {"sibling"}

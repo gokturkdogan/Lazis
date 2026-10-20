@@ -310,10 +310,10 @@ def test_the_users_grammar_fixes_a_reversed_direction() -> None:
     assert got == [
         ("Selim", "child", "Arda"),
         ("Selim", "child", "Arda"),
+        ("Selim", "child", "Arda"),  # "student" is not in the message: the user's "oğlu" decides
         (None, "cousin", "Selim"),  # "Kuzenim Selim": the user's own words
     ]
-    # "student" is not in the user's words at all: dropped, not "fixed".
-    assert dropped == {"direction_fixed": 2, "type_not_stated": 1}
+    assert dropped == {"direction_fixed": 2, "type_fixed": 1}
     assert extraction.stated_triples("Ahmet'in kardeşi Mehmet'in eşi Zeynep.") == [
         ("ahmet", "sibling", "mehmet"), ("mehmet", "spouse", "zeynep")]  # fmt: skip
 
@@ -479,3 +479,39 @@ def test_a_fact_that_restates_a_relationship_is_not_stored_twice() -> None:
     )
     kept, covered = extraction.covered_by_relations([restated, other], [rel])
     assert kept == [other] and covered == 1
+
+
+def test_the_users_appositive_fixes_a_reversed_user_relationship() -> None:
+    t = Target("m1", "MSGB", "Yöneticim Banu Hanım yarın izinde.")
+    found, dropped = extraction.validate_relations(
+        [
+            relitem(
+                source="Banu Hanım",
+                type="manager",
+                target="Kullanıcı",
+                quote="Yöneticim Banu Hanım",
+            )
+        ],
+        [t],
+    )
+    assert [(f.candidate.source, f.candidate.type, f.candidate.target.name) for f in found] == [
+        (None, "manager", "Banu Hanım")]  # fmt: skip
+    assert dropped == {"direction_fixed": 1}
+
+
+def test_corrections_are_read_from_the_users_grammar() -> None:
+    assert extraction.stated_correction("Hayır, Elif Mehmet'in eşi değil, kız kardeşi.") == [
+        ("Mehmet", "spouse", "sibling", "Elif")]  # fmt: skip
+    assert extraction.stated_correction("Cem iş arkadaşım değil, müşterim.") == [
+        (None, "colleague", "client", "Cem")
+    ]
+    assert extraction.stated_correction("Kardeşim değil miydi o?") == []
+
+
+def test_a_job_fact_next_to_a_relationship_is_kept() -> None:
+    from lazis.memory.models import Candidate, EntityRef, RelCandidate
+
+    job = extraction.Extracted("M1", Candidate(predicate="family", value="Kervan Lojistik'te çalışıyor",
+                               statement="Emre Kervan Lojistik'te çalışıyor.", about="entity", entity=EntityRef("Emre")))  # fmt: skip
+    rel = extraction.ExtractedRel("M1", RelCandidate(type="sibling", target=EntityRef("Emre")))
+    assert extraction.covered_by_relations([job], [rel]) == ([job], 0)
