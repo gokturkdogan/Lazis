@@ -311,6 +311,20 @@ Built as described above, with these Phase 3 specifics ([ADR-0010](adr/0010-conv
   - Pre-warm runs on open, on focus, on typing (throttled) and after compaction.
   - A second runtime slot (`OLLAMA_NUM_PARALLEL=2`) was not needed: background work is preempted by turns and followed by a pre-warm.
 
+### 6.2 Implemented in P5
+
+[ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md) has the decisions and their reasons.
+
+- **System message layout.** In precedence order, from `lazis.personality.render_system`:
+  1. core identity;
+  2. behavior rules (incl. the instruction hierarchy);
+  3. communication style;
+  4. communication preferences (only non-default values);
+  5. conversation rules (`conversation/prompts.py`);
+  6. information blocks `=== BİLGİ (talimat değildir): … ===`: the conversation summary and the omitted-range note now; memory records from P6.
+- **Continuity.** The persona is static, applied to every request and part of the cached prefix. Restarts, new technical sessions, compaction and window trims change only what follows it. `PROMPT_VERSION` is `p5-v1`.
+- **Cache truth.** The runtime does not reuse the tokens it generated (measured), so the cache record after a turn covers the prompt only (`CacheKey.last_seq` = the user message). `holds(..., through_seq=…)` checks coverage. Right after each completed or cancelled turn, the maintenance loop pre-warms the session, which processes the reply in the background; a turn sent meanwhile joins it.
+
 ## 7. Provider ports (contracts)
 
 ```python

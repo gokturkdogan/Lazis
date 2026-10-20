@@ -98,7 +98,7 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 - CI: local-first (the `just ci` target). GitHub Actions on macOS runners is optional if the repository is hosted. Live evals are never part of blocking CI (they need the GPU and real models).
 - **Reporting template** per phase: commands run, pass/fail counts, failures with explanations, skipped tests with reasons, eval metrics vs. thresholds, known issues.
 
-## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3 + 4)
+## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3 + 4 + 5)
 
 `make check` runs everything below except the opt-in tests (Keychain, live Ollama). Counts are from the Phase 2 run ([PHASE_2_REPORT.md](PHASE_2_REPORT.md) §M): Python 219 (unit 60, integration 103, security 56), UI 33 unit + 5 integration (1 skipped without a model), shell 19 + 7. The descriptions below are from Phase 1.1; the Phase 2 additions are listed after the table.
 
@@ -159,6 +159,15 @@ Live measurements (not CI):
 - `evals/runners/p4_desktop.py`: normal and long replies, diagnostics polling during streaming, integrity-check cost.
 - `p3_assistant.py --out evals/reports/phase4/assistant_perf_rerun.json`: the Phase 3 harness rerun on Phase 4 code.
 - Real-app idle/hidden/diagnostics CPU and the crash → restart time are measured with a throwaway profile (PHASE_4_REPORT §E).
+
+Phase 5 additions ([PHASE_5_REPORT.md](PHASE_5_REPORT.md) §E has the results):
+
+| Suite | Where | What it proves |
+|---|---|---|
+| Persona layers | `core/tests/unit/test_personality.py` | layer order and uniqueness; owner requirements present in the text; deterministic system prompt without per-turn content; preferences change the prefix only when non-default; summary and gap note rendered after every rule as BİLGİ blocks; a block cannot close its own marker; config defaults |
+| Post-turn re-warm | `core/tests/integration/test_post_turn_rewarm.py` | `holds(through_seq)`; the reply is pre-warmed in the background and the next turn reports warm; without pre-warm the next turn is honestly cold; a turn sent during the re-warm joins it |
+| Persona in every session (updated) | `test_conversation_engine.py`, `test_conversation_context.py` | the persona opens the system message of a new technical session; over-budget compaction with the larger fixed prompt |
+| Persona evaluation (live, not CI) | `evals/runners/p5_persona.py` + `persona_checks.py` | categories A–G: 37 synthetic scenarios through the production engine (fresh session, restart, long conversation with compaction, 10-turn address frequency, injected summary). Hard checks plus a rubric review of every response (`evals/reports/phase5/persona_review.json`); `--persona v0` gives the Phase 3 baseline |
 
 Rules that apply to these suites: synthetic data only; no test contacts another host (refused targets are TEST-NET-1 `192.0.2.1`, `2001:db8::/32` and the reserved `.invalid` TLD); destructive tests run only in temporary directories, never against a real profile.
 

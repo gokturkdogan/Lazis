@@ -1,7 +1,33 @@
 # LAZIS — Personality Engine
 
-> Status: Phase 0.1 (revised), plus the owner's form-of-address requirement from the Phase 1 brief (§2.1) · Last updated: 2026-10-17
+> Status: Phase 0.1 design (below) plus the owner's form-of-address requirement (§2.1). **Phase 5 built a deliberately smaller version: see "As built in P5" right below and [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md).** · Last updated: 2026-10-18
 > Delivers PER-01 … PER-12 ([REQUIREMENTS.md](REQUIREMENTS.md)). Core personality, policy layer, explicit preferences and situational style in **P5**. Personal memory context from **P6/P7**. Learned preferences, follow-ups and the relationship brief in **P10**.
+
+## As built in P5 (2026-10-18)
+
+The Phase 0 design below remains the long-term plan. Phase 5 built what the brief and the evaluation required, nothing more:
+
+| Phase 0 design | Phase 5 |
+|---|---|
+| L0 safety policy (`config/policy/safety.tr.yaml`) | `BEHAVIOR_RULES` in `lazis.personality.persona` (code, versioned) |
+| L1 core persona (`lazis.core.tr.yaml`, few-shot examples) | `CORE_IDENTITY` + `COMMUNICATION_STYLE` (code, versioned); two inline address examples, no few-shot dialogues |
+| L2 preferences via `PreferenceSource` | `CommunicationPreferences` (verbosity, humor) from config `[personality]`; same type for P6/P10 |
+| L3 StylePlan + turn classifier | Not built: the rules ask the model to fit length and tone, and the evaluation measures it |
+| L4 memory context | `ContextBlock` slot rendered as `BİLGİ (talimat değildir)`; used for the conversation summary now |
+| Anti-repetition store, post-generation guards | Not built (no `0003_personality` migration); the evaluation's checks play the guard role offline |
+| "Efendim": at most once per reply, ~20–35 % of replies | Situational rule: greetings, farewells, confirmations, short answers, important warnings or disagreement, once; never in explanations, recipes, plans or lists. Count-based instructions did not work (the evaluation measured 90–100 %) |
+| Form of address `siz` (to confirm with the owner) | `siz` |
+
+Precedence as built:
+
+1. behavior rules;
+2. core identity;
+3. style;
+4. preferences;
+5. conversation rules;
+6. information blocks, which are never instructions.
+
+The user's own explicit requests may change style, never honesty or identity.
 
 ## 1. Five separated layers and their precedence
 

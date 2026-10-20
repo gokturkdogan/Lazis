@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). **P4 implemented 2026-10-18; awaiting the owner's approval** ([PHASE_4_REPORT.md](PHASE_4_REPORT.md), [ADR-0012](adr/0012-desktop-experience-and-resilience.md)). P5 not started · Last updated: 2026-10-18
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 implemented and accepted by the owner ([PHASE_4_REPORT.md](PHASE_4_REPORT.md), [ADR-0012](adr/0012-desktop-experience-and-resilience.md)). **P5 implemented 2026-10-20; awaiting the owner's approval** ([PHASE_5_REPORT.md](PHASE_5_REPORT.md), [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md)). P6 not started · Last updated: 2026-10-20
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -213,6 +213,8 @@ Exit evidence: backend 100 tests, UI 19 unit + 3 integration (against a real bac
 - **Exit conditions:** a user acceptance session passes (a scripted 30-minute session plus free use, no blocking defects); tests executed.
 
 ## P5 — Personality engine, core (M)
+
+- **As built (2026-10-20):** persona v1 as versioned code in `lazis.personality` (identity, behavior rules incl. instruction hierarchy, style, two preferences), the summary as a marked information block, and a live evaluation of categories A–G against Gemma and Qwen ([ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md)). Not built: YAML persona files, turn classifier and StylePlan, anti-repetition store, post-generation guards, `0003_personality`, blind A/B by the owner (proposed as a user test in the report). Also fixed: the turn after a reply re-processed the whole reply (TTFT ≈ 5 s after long replies); the reply is now pre-warmed after each turn.
 
 - **Objective:** a consistent LAZIS character with layered separation, precedence and guards ([PERSONALITY_ENGINE.md](PERSONALITY_ENGINE.md)).
 - **Prerequisites:** P3 (P4 for evaluation convenience).

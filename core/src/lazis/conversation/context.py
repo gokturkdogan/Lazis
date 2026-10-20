@@ -124,6 +124,7 @@ def system_text(
     summary: Summary | None,
     omitted: tuple[int, int] | None,
     preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
+    model: str = "",
 ) -> str:
     """The persona layers, then this conversation's rules, then its summary and gap note as
     marked information blocks (derived from user content: never instructions)."""
@@ -132,7 +133,9 @@ def system_text(
         blocks.append(ContextBlock("Konuşma özeti", summary.rendered))
     if omitted is not None:
         blocks.append(ContextBlock("Bağlamda olmayan mesajlar", omitted_note(*omitted)))
-    return render_system(preferences, conversation_rules=CONVERSATION_RULES, blocks=blocks)
+    return render_system(
+        preferences, conversation_rules=CONVERSATION_RULES, model=model, blocks=blocks
+    )
 
 
 def prefix_hash(model: str, num_ctx: int, system: str) -> str:
@@ -154,7 +157,7 @@ def assemble(
     order, already including the new user message and excluding the reply being generated).
     """
     omitted = omitted_range(state, summary)
-    system = system_text(summary, omitted, preferences)
+    system = system_text(summary, omitted, preferences, model)
     phash = prefix_hash(model, num_ctx, system)
     chat = [ChatMessage("system", system)]
     included: list[int] = []

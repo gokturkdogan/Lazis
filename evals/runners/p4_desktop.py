@@ -140,10 +140,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--reps", type=int, default=5)
+    ap.add_argument("--out", type=Path, default=OUT / "desktop_perf.json", help="report path (later phases rerun it)")
     args = ap.parse_args()
-    OUT.mkdir(parents=True, exist_ok=True)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
     report = asyncio.run(run(args.model, args.reps))
-    (OUT / "desktop_perf.json").write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
+    args.out.write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     print(json.dumps(report["scenarios"], ensure_ascii=False, indent=1)[:5000])
 
 

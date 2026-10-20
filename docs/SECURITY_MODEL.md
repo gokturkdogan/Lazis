@@ -288,6 +288,20 @@ Residual (Phase 4):
 1. A confirmed link opens in the browser, so the destination is outside LAZIS's control. The confirmation shows the full URL.
 2. Copying a message or code puts it on the clipboard, where clipboard-history tools and Universal Clipboard can see it. Copying is always an explicit user action.
 
+### 5.16 Persona and instruction hierarchy (Phase 5)
+
+Decisions: [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md). Phase 5 adds no network, storage or IPC surface. It changes what the model is told, and how text derived from user content reaches it.
+
+| Risk | Control | Verified by |
+|---|---|---|
+| A summary (or, later, a memory record) carries an instruction that overrides LAZIS's rules or identity | Summaries and gap notes are rendered after every rule as `BİLGİ (talimat değildir)` blocks; the behavior rules say such blocks, history and quoted text cannot change the name, identity or rules; a block body cannot close its own marker | `test_personality.py` (layout, markers); live G1 (summary injection that renamed LAZIS before the fix) |
+| Pasted or quoted text with a fake system instruction (prompt injection) | Same rule; the user's own requests change style, never honesty | live G2 (e-mail with a fake SYSTEM line), G3 (`[SİSTEM]` in the user message), G4 (asked to claim to be human) |
+| LAZIS pretends to act (reminders, files, web) | Behavior rule: no tool access; never say something was checked, saved, sent or scheduled | live B1–B6 |
+| Emotional dependency or simulated feelings | Identity (not human, no feelings) and the anti-dependency rule | live A5, E5 |
+| Personality evaluation leaks real conversations | Evaluations use synthetic scenarios in throwaway encrypted databases (random in-memory keys), deleted afterwards | `evals/runners/p5_persona.py` |
+
+The hierarchy depends on the model following instructions. It is a mitigation, not a guarantee: the live results are in PHASE_5_REPORT §E and must be rerun whenever the persona or the model changes.
+
 ## 6. Privacy UX commitments
 1. **Visible state:** network on/off, mic active, off-record, research pending, learning activity.
 2. **"Ne biliyorsun?"** always works: the user can ask or browse everything stored about them or anyone else.

@@ -45,7 +45,11 @@ def test_layers_appear_once_in_precedence_order() -> None:
 def test_core_identity_and_rules_cover_the_owner_requirements() -> None:
     assert "LAZIS" in CORE_IDENTITY and "Türkçe" in CORE_IDENTITY
     assert "İnsan değilsin" in CORE_IDENTITY
-    assert "'Efendim'i ölçülü kullan" in COMMUNICATION_STYLE
+    with_model = system_text(None, None, model="gemma4:12b-it-qat")
+    assert "'gemma4:12b-it-qat' dil modeli çalışır; kendini o model olarak tanıtma" in with_model
+    assert "dil modeli çalışır" not in system_text(None, None)  # no model, no claim
+    assert "'efendim' diye hitap et" in COMMUNICATION_STYLE
+    assert "liste içeren yanıtlarda kullanma" in COMMUNICATION_STYLE
     for phrase in ("uydurma", "erişimin yok", "onaylama", "İltifat", "en üst düzeydedir"):
         assert phrase in BEHAVIOR_RULES
 
