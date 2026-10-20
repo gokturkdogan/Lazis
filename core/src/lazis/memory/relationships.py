@@ -144,6 +144,7 @@ def _resolve_end(
     now: str,
     forced: str | None = None,
     sync_source: tuple[str | None, str | None] = (None, None),
+    evidence: str | None = None,
 ) -> _End:
     if forced is not None:
         if forced == "new":
@@ -170,6 +171,21 @@ def _resolve_end(
         res = resolver.Resolution(
             "ambiguous", options=tuple(e.id for e in candidates), reason="pending_namesake"
         )
+    if res.kind == "ambiguous" and ref.relation:
+        # The user's words for how they know him ("çocukluk arkadaşım Ahmet") pick the one
+        # namesake the user has that relationship with.
+        key = relations.lexicon(ref.relation)
+        if key is not None:
+            mine = [
+                o
+                for o in res.options
+                if any(
+                    _equivalent(r, USER_ID, key, o)
+                    for r in gs.relationships_between(conn, USER_ID, o, statuses=CURRENT)
+                )
+            ]
+            if len(mine) == 1:
+                res = resolver.Resolution("existing", entity_id=mine[0])
     if res.kind == "existing":
         assert res.entity_id is not None
         if ref.relation:
@@ -182,6 +198,7 @@ def _resolve_end(
                 now=now,
                 source_type=sync_source[0],
                 source_ref=sync_source[1],
+                quote=evidence,
             )
         return _End("ok", res.entity_id)
     if res.kind == "new":
@@ -196,6 +213,7 @@ def _resolve_end(
                 now=now,
                 source_type=sync_source[0],
                 source_ref=sync_source[1],
+                quote=evidence,
             )
         return _End("ok", eid)
     return _End("ambiguous", options=res.options, reason=res.reason)
@@ -230,19 +248,28 @@ def ensure_user_relation(
     source_type: str | None = None,
     source_ref: str | None = None,
     quote: str | None = None,
+    verified: bool = False,
 ) -> str | None:
     """The user's own words about how they know someone ("çocukluk arkadaşım") → the typed
-    user relationship, when the words map exactly to the vocabulary. Otherwise only the label
-    stays (nothing is guessed)."""
+    user relationship, when the words map exactly to the vocabulary **and** the quote says it
+    in the first person ("kuzenim Selim'in oğlu Arda": "oğlu" is Selim's, not the user's).
+    Otherwise only the label stays (nothing is guessed). ``verified``: a label the user
+    already had (the one-time upgrade), taken as it is."""
     key = relations.lexicon(relation_words)
     ent = repo.get_entity(conn, entity_id)
     if ent is None or ent.is_user:
+        return None
+    if relations.sensitive_label(relation_words):
+        # "sevgilim": a sensitive relationship is never taken from a label — it goes through
+        # the user's approval (apply_one) or an explicit request; no label is kept either.
         return None
     if not ent.relation:
         before = uow.snapshot("memory_entities", ent.id)
         repo.update_entity(conn, ent.id, now=now, relation=relation_words)
         uow.record("memory_entities", ent.id, "update", before)
     if key is None:
+        return None
+    if not verified and not relations.says_mine(quote, key):
         return None
     t = relations.TYPES[key]
     if not relations.kinds_ok(t, "person", ent.kind):
@@ -339,24 +366,33 @@ def apply_relations(
     return report
 
 
-def _narrow_to_holder(conn: Connection, type_key: str, src: _End, tgt: _End) -> tuple[_End, _End]:
-    """The one namesake on the ambiguous end that holds this relationship with the other end
-    (unchanged when none or several do)."""
+def _narrow_to_holder(
+    conn: Connection, type_key: str, src: _End, tgt: _End, *, any_type: bool = False
+) -> tuple[_End, _End]:
+    """The one namesake on the ambiguous end that holds this relationship (``any_type``: any
+    current relationship) with the other end; unchanged when none or several do."""
     amb, other = (src, tgt) if src.state == "ambiguous" else (tgt, src)
     if other.state != "ok" or other.entity_id is None:
         return src, tgt
-    holders = [
-        o
-        for o in amb.options
-        if any(
-            _equivalent(r, *((o, type_key, other.entity_id) if amb is src else
-                             (other.entity_id, type_key, o)))
-            for r in gs.relationships_between(conn, o, other.entity_id, statuses=CURRENT)
-        )
-    ]  # fmt: skip
-    if len(holders) != 1:
+
+    def holders(statuses: Sequence[str] | None) -> list[str]:
+        assert other.entity_id is not None
+        return [
+            o
+            for o in amb.options
+            if any(
+                any_type or _equivalent(r, *((o, type_key, other.entity_id) if amb is src else
+                                             (other.entity_id, type_key, o)))
+                for r in gs.relationships_between(conn, o, other.entity_id, statuses=statuses)
+            )
+        ]  # fmt: skip
+
+    found = holders(CURRENT)
+    if not found and any_type:  # the old one was just retracted in this same request
+        found = holders(None)
+    if len(found) != 1:
         return src, tgt
-    chosen = _End("ok", holders[0])
+    chosen = _End("ok", found[0])
     return (chosen, tgt) if amb is src else (src, chosen)
 
 
@@ -394,6 +430,7 @@ def apply_one(
         now=now,
         forced=forced_source,
         sync_source=sync,
+        evidence=c.quote,
     )
     tgt = _resolve_end(
         conn,
@@ -404,13 +441,23 @@ def apply_one(
         now=now,
         forced=forced_target,
         sync_source=sync,
+        evidence=c.quote,
     )
     if src.state == "drop" or tgt.state == "drop":
         report.drop(src.reason or tgt.reason or "no_entity")
         return
-    if (c.negated or c.change) and (src.state == "ambiguous") != (tgt.state == "ambiguous"):
-        # Denying or ending a relationship can only be about a namesake who has it.
+    if (src.state == "ok" and src.entity_id == USER_ID and tgt.state == "ambiguous") or (
+        tgt.state == "ok" and tgt.entity_id == USER_ID and src.state == "ambiguous"
+    ):
+        # "Çocukluk arkadaşım Ahmet": restating a relationship the user has with one of the
+        # namesakes identifies him.
         src, tgt = _narrow_to_holder(conn, c.type, src, tgt)
+    if (c.negated or c.change or c.correction) and (src.state == "ambiguous") != (
+        tgt.state == "ambiguous"
+    ):
+        # Denying, ending or correcting a relationship can only be about a namesake who has
+        # one with the other end ("aslında kuzeni": the Ahmet linked to Mehmet).
+        src, tgt = _narrow_to_holder(conn, c.type, src, tgt, any_type=c.correction)
     if src.state == "ambiguous" or tgt.state == "ambiguous":
         _ask_which(conn, c, src, tgt, source=source, report=report, now=now)
         return
@@ -422,6 +469,17 @@ def apply_one(
     se, te = repo.get_entity(conn, a), repo.get_entity(conn, b)
     if se is None or te is None or not relations.kinds_ok(t, se.kind, te.kind):
         report.drop("kind_mismatch")
+        return
+    if _maybe_a_namesake(
+        conn, c, a, b, forced=forced_source is not None or forced_target is not None
+    ):
+        # "İş ortağımın adı da Ahmet" with a childhood friend Ahmet stored: the stored Ahmet
+        # is known to the user differently — the same person or a namesake? Ask.
+        other = b if a == USER_ID else a
+        known = _End("ok", USER_ID)
+        asked = _End("ambiguous", options=(other,), reason="different_relation")
+        src_end, tgt_end = (known, asked) if other == b else (asked, known)
+        _ask_which(conn, c, src_end, tgt_end, source=source, report=report, now=now)
         return
 
     fps = [gs.rel_fingerprint(conn, a, c.type, b), gs.pair_fingerprint(conn, a, b)]
@@ -437,6 +495,9 @@ def apply_one(
     between = gs.relationships_between(conn, a, b, statuses=CURRENT)
     same = [r for r in between if _equivalent(r, a, c.type, b)]
 
+    if c.negated and (c.change or c.status == "ended"):
+        # "Artık Kervan'da çalışmıyorum": the relationship ended — it was not untrue.
+        c = replace(c, negated=False, change=True, status="ended")
     if c.negated:
         for r in same:
             before = uow.snapshot("memory_relationships", r.id)
@@ -571,6 +632,27 @@ def _close(
 
 def _names(c: RelCandidate) -> list[str]:
     return [text.name_key(r.name) for r in (c.source, c.target) if r is not None]
+
+
+def _maybe_a_namesake(conn: Connection, c: RelCandidate, a: str, b: str, *, forced: bool) -> bool:
+    """A new kind of relationship between the user and a stored person who is already
+    something else to the user, named without anything that identifies the stored one."""
+    if forced or c.negated or c.change or c.correction or (a == USER_ID) == (b == USER_ID):
+        return False
+    other = b if a == USER_ID else a
+    mine = gs.relationships_between(conn, USER_ID, other, statuses=CURRENT)
+    ent = repo.get_entity(conn, other)
+    found: set[str | None] = {
+        r.type if r.source_id == USER_ID else relations.reading_from_target(r.type) for r in mine
+    }
+    if ent is not None and ent.relation:
+        found.add(relations.lexicon(ent.relation))
+    known: set[str] = {k for k in found if k}
+    if not known or any(_equivalent(r, a, c.type, b) for r in mine) or c.type in known:
+        return False
+    ref = c.target if other == b else c.source
+    said = relations.lexicon(ref.relation) if ref is not None and ref.relation else None
+    return said is None or said not in known  # "çocukluk arkadaşım Ahmet …" identifies him
 
 
 def _ask_which(
@@ -1011,6 +1093,7 @@ def backfill_user_relations(conn: Connection) -> dict[str, int] | None:
                 now=now,
                 source_type="migration",
                 quote=str(rel_text),
+                verified=True,
             )
             if rid is not None:
                 conn.execute(

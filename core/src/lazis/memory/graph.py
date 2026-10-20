@@ -522,6 +522,11 @@ def _parse_path(els: Sequence[_El], qmark: bool) -> Query | None:
         return Query("path", USER, other=_ref(named[0]))
     linked = any(w.startswith(("arasinda", "baglant", "bagli", "bagliyor", "iliski", "akraba"))
                  for w in ws) or (knows and any(w.startswith("birbir") for w in ws))  # fmt: skip
+    if len(named) >= 2 and any(w in ("nesi", "neyi", "nesidir", "neyidir", "neyiydi") for w in ws):
+        # "Mehmet, Ahmet'in neyi oluyor?": how the two are related, read from Ahmet.
+        owner = next((e for e in named if _GENITIVE.search(e.ending)), named[1])
+        other = next(e for e in named if e is not owner)
+        return Query("path", _ref(owner), other=_ref(other))
     kin_check = any(e.kind == "rel" for e in els) and any(w in _YESNO for w in ws)
     linked = linked or kin_check or any(w.startswith("evli") for w in ws)  # "… kardeş mi?"
     if len(named) >= 2 and linked:
@@ -658,17 +663,34 @@ def answer(conn: Connection, q: Query) -> Answer:
         return problem
     start = ids[0]
     if q.kind == "chain":
-        return _answer_chain(conn, q, start)
-    if q.kind == "path":
+        result = _answer_chain(conn, q, start)
+    elif q.kind == "path":
         assert q.other is not None
         oids, ocands = _resolve(conn, q.other)
         problem = _start_problem(conn, q, q.other, oids, ocands)
         if problem is not None:
             return problem
-        return _answer_path(conn, q, start, oids[0])
-    if q.kind == "neighbours":
-        return _answer_neighbours(conn, q, start)
-    return _answer_who(conn, q, start)
+        result = _answer_path(conn, q, start, oids[0])
+    elif q.kind == "neighbours":
+        result = _answer_neighbours(conn, q, start)
+    else:
+        result = _answer_who(conn, q, start)
+    return _with_namesake_caution(conn, q, result)
+
+
+def _with_namesake_caution(conn: Connection, q: Query, a: Answer) -> Answer:
+    """A name with an open "which Ahmet?" question (another person by that name may exist):
+    the answer is about the stored one only — the model must say so and ask."""
+    from lazis.memory import service
+
+    refs = [r for r in (q.start, q.other) if r is not None and not r.user and r.via is None]
+    unsure = [r.surface for r in refs if service.pending_namesake(conn, text.name_key(r.surface))]
+    if not unsure:
+        return a
+    names = ", ".join(f"«{n}»" for n in unsure)
+    line = (f"Dikkat: {names} adında başka biri de olabilir (henüz netleşmedi); aşağıdaki cevap "
+            "kayıtlı olan kişi içindir. Hangisinin kastedildiğini sor.")  # fmt: skip
+    return replace(a, status="ambiguous", lines=(line, *a.lines))
 
 
 def _rel_ids(paths: Sequence[Path]) -> tuple[str, ...]:

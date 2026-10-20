@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal
 
 from lazis.ids import utc_now_iso
-from lazis.memory import consolidation, policy, registry, resolver, text
+from lazis.memory import consolidation, policy, registry, relations, resolver, text
 from lazis.memory import repository as repo
 from lazis.memory.models import ApplyReport, Candidate, Entity, EntityRef, InboxItem, Memory
 from lazis.storage.driver import Connection
@@ -138,8 +138,11 @@ def _subject_for(
             )  # fmt: skip
         return "ok", res.entity_id
     if res.kind == "new":
+        # A sensitive relation label ("sevgilisi") is not stored on the record: it would be
+        # the relationship itself, kept without the user's approval.
+        label = None if relations.sensitive_label(ref.relation) else ref.relation
         ent = repo.insert_entity(
-            conn, kind=ref.kind, name=ref.name, relation=ref.relation, description=None, now=now
+            conn, kind=ref.kind, name=ref.name, relation=label, description=None, now=now
         )
         uow.record("memory_entities", ent.id, "create", None)
         report.entities_created.append(ent.id)
@@ -177,6 +180,11 @@ def _pending_namesake(conn: Connection, key: str) -> bool:
         if text.name_key(str(ent.get("name", ""))) == key:
             return True
     return False
+
+
+def pending_namesake(conn: Connection, key: str) -> bool:
+    """An open "which Ahmet?" question exists for this name key."""
+    return _pending_namesake(conn, key)
 
 
 def _fingerprints(conn: Connection, subject_id: str | None, c: Candidate) -> list[str]:

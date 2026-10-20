@@ -234,6 +234,37 @@ def lexicon(phrase: str) -> str | None:
     return None
 
 
+def says_mine(evidence: str | None, key: str) -> bool:
+    """Whether the user's words say this relation is theirs, in the first person
+    ("kuzenim Selim", "çocukluk arkadaşım", "annemin") — not "Selim'in oğlu"."""
+    if not evidence:
+        return False
+    words = text.words(evidence)
+    for i in range(len(words)):
+        m = match_at(words, i)
+        if m is not None and m[0] == key and first_person(m[2]):
+            return True
+    return False
+
+
+def named_in(message: str, key: str) -> bool:
+    """Whether the user's words name this type (or one it answers for) anywhere."""
+    words = text.words(message)
+    for i in range(len(words)):
+        m = match_at(words, i)
+        if m is not None and (m[0] in answers(key) or key in answers(m[0])):
+            return True
+    return False
+
+
+def sensitive_label(phrase: str | None) -> str | None:
+    """The sensitivity category when relation words name a sensitive type ("sevgilim" →
+    "intimate"), else None."""
+    key = lexicon(phrase) if phrase else None
+    t = TYPES.get(key) if key else None
+    return t.sensitivity_category if t is not None and t.sensitivity == "sensitive" else None
+
+
 def match_at(words: Sequence[str], i: int) -> tuple[str, int, str] | None:
     """A relation noun starting at ``words[i]`` (one or two words), as (type, words used,
     ending): "kardesimin" → ("sibling", 1, "imin")."""

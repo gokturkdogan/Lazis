@@ -157,6 +157,13 @@ def test_pair_questions(storage: StorageHandle, world: World) -> None:
     assert "- Elif — dayanak: Pusula: Elif'in çalıştığı proje" in work.lines
 
 
+def test_what_is_someone_to_someone(storage: StorageHandle, world: World) -> None:
+    a = answer(storage, "Elif, Mehmet'in neyi oluyor?")
+    assert a.query.kind == "path" and a.lines[1] == "- Elif: Mehmet'in eşi"
+    none = answer(storage, "Fatma, Elif'in nesi?")
+    assert none.status == "none"
+
+
 def test_paths_between_two_people(storage: StorageHandle, world: World) -> None:
     a = answer(storage, "Elif ile Zeynep arasında nasıl bir bağlantı var?")
     assert a.status == "unique"  # via Mehmet and Ahmet: 3 steps, within the bound

@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-from lazis.memory import registry
+from lazis.memory import registry, relations
 from lazis.memory.models import SENSITIVE_CATEGORIES, Candidate
 
 Outcome = Literal["save", "inbox_sensitive", "drop"]
@@ -171,6 +171,8 @@ def decide(c: Candidate, *, explicit: bool) -> Decision:
         category = None  # a city is not an address (models over-flag it)
     if category is None and contact_detected(joined):
         category = "contact"
+    if category is None and c.entity is not None:
+        category = relations.sensitive_label(c.entity.relation)  # "sevgilisi Ece ile …"
     if category is None and pred.sensitivity == "sensitive":
         category = c.predicate if c.predicate in SENSITIVE_CATEGORIES else None
     sensitivity = pred.sensitivity

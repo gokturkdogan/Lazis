@@ -124,7 +124,7 @@ def _denies_relation(words: Sequence[str]) -> bool:
             and i + head < len(words)
             and words[i + head].startswith("degil")
             and not words[i + head].startswith(("degilmi", "degil mi"))
-            and not nxt.startswith(("mi", "mu"))
+            and not re.fullmatch(r"m[iu](?:dir|dur|ydi|ydu|sin|sun|yim|yum)?", nxt)
         ):
             return True
     return False
@@ -148,7 +148,10 @@ relations: ilişki bilgileri (kim kimin nesi), kullanıcının açıkça söyled
 kullanıcı ise source boş. "Ahmet kuzenim değil", "Ahmet ile Mehmet kardeş değil" → negated=true \
 (action=correct). "Ahmet çocukluk arkadaşım değil, iş arkadaşım" → eskisi için negated=true, \
 yenisi için correction=true. "Artık birlikte çalışmıyoruz" gibi bitişlerde change=true, \
-status="ended". Zincirden ilişki türetme. Alanlar: message ("m1"), quote, source, \
+status="ended". Örnek: "Mehmet aslında Ahmet'in kardeşi değil, kuzeni." → iki öğe: \
+{source:"Ahmet", type:"sibling", target:"Mehmet", negated:true} ve {source:"Ahmet", \
+type:"cousin", target:"Mehmet", correction:true} (kullanıcı bu ilişkinin ucu değil). \
+Zincirden ilişki türetme. Alanlar: message ("m1"), quote, source, \
 source_relation, source_kind, type, target, target_relation, target_kind, negated, correction, \
 change, status, certain, time, statement.
 forget için: forget_scope = "last" (az önce söylediğim bu bilgi: "bunu unut"), "fact" (belirli \
@@ -454,14 +457,14 @@ def forget(
         _skip_jobs(conn, recent_user_message_ids)
         return Outcome("forgotten", [m.content for m in found], {"forgotten": res.memories})
 
+    if cmd.scope == "relation":
+        return _forget_relation(conn, cmd)
     who, ent, namesakes = _subject(conn, cmd.entity, cmd.relation)
     if who == "none":
         return Outcome("not_found")
     if who == "many":
         return Outcome("ambiguous", [", ".join(_label(e) for e in namesakes)])
     subject_id = ent.id if ent is not None else None
-    if cmd.scope == "relation":
-        return _forget_relation(conn, subject_id or USER_ID, cmd)
 
     if cmd.scope == "entity" and ent is not None:
         count = len(repo.memories_for_subject(conn, ent.id, statuses=statuses))
@@ -509,15 +512,31 @@ def forget(
     return Outcome("forgotten", [m.content for m in found], {"forgotten": res.memories})
 
 
-def _forget_relation(conn: Connection, a: str, cmd: Command) -> Outcome:
-    who, other, namesakes = _subject(conn, cmd.other, "")
+def _end_ids(conn: Connection, name: str, relation: str) -> list[str] | None:
+    """Candidate ids for one end of a relationship to forget (None: nobody by that name)."""
+    who, ent, namesakes = _subject(conn, name, relation)
     if who == "none":
+        return None
+    if who == "user":
+        return [USER_ID]
+    return [ent.id] if ent is not None else [e.id for e in namesakes]
+
+
+def _forget_relation(conn: Connection, cmd: Command) -> Outcome:
+    ends_a = _end_ids(conn, cmd.entity, cmd.relation)
+    ends_b = _end_ids(conn, cmd.other, "")
+    if ends_a is None or ends_b is None:
         return Outcome("not_found")
-    if who == "many":
-        return Outcome("ambiguous", [", ".join(_label(e) for e in namesakes)])
-    b = other.id if other is not None else USER_ID
-    if a == b:
+    # Two namesakes: the pair meant is the one that has a relationship ("Ahmet ile Mehmet
+    # arasındaki ilişki" — the Ahmet linked to Mehmet). Still several: ask.
+    pairs = [(x, y) for x in ends_a for y in ends_b if x != y
+             and gs.relationships_between(conn, x, y)]  # fmt: skip
+    if not pairs:
         return Outcome("not_found")
+    if len(pairs) > 1:
+        names = [e for e in (repo.get_entity(conn, i) for p in pairs for i in p) if e is not None]
+        return Outcome("ambiguous", [", ".join(dict.fromkeys(_label(e) for e in names))])
+    a, b = pairs[0]
     found = gs.relationships_between(conn, a, b)
     if cmd.rel_type:
         wanted = set(relations.answers(cmd.rel_type))

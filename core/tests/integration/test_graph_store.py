@@ -187,7 +187,8 @@ def test_a_rebuild_that_breaks_foreign_keys_is_refused(
 def test_relationships_resolve_both_ends_and_fold_inverse_statements(
     storage: StorageHandle,
 ) -> None:
-    r = rel(storage, "sibling", P("Mehmet"), P("Ahmet", "çocukluk arkadaşı"))
+    r = rel(storage, "sibling", P("Mehmet"), P("Ahmet", "çocukluk arkadaşı"),
+            quote="Çocukluk arkadaşım Ahmet'in kardeşi Mehmet")  # fmt: skip
     assert len(r.created) == 2  # the user edge (from "çocukluk arkadaşı") and the sibling edge
     assert current(storage) == [("Ahmet", "sibling", "Mehmet", "active"),
                                 ("Kullanıcı", "childhood_friend", "Ahmet", "active")]  # fmt: skip
@@ -367,3 +368,48 @@ def test_user_edits_and_history(storage: StorageHandle) -> None:
     hist = run(storage, lambda c: c.execute("SELECT COUNT(*) FROM history WHERE target_table = 'memory_relationships'"
                                             " AND target_id = ?", (rid,)).fetchone()[0])  # fmt: skip
     assert hist == 2  # created, edited
+
+
+def test_a_sensitive_label_never_becomes_a_relationship_by_itself(storage: StorageHandle) -> None:
+    """ "Sevgilim Ece …" as a fact about Ece: neither the label nor a partner edge is stored
+    without approval (the fact itself waits as sensitive)."""
+    c = Candidate(predicate="interest", value="sinema", statement="Kullanıcının sevgilisi Ece sinemayı sever.",
+                  about="entity", entity=EntityRef("Ece", relation="sevgilisi"), quote="Sevgilim Ece")  # fmt: skip
+    report = run(
+        storage, lambda conn: service.apply_candidates(conn, [c], source=SRC, explicit=False)
+    )
+    assert current(storage) == []
+    ece = run(storage, lambda conn: repo.find_entities(conn, "ece"))
+    assert [e.relation for e in ece] in ([], [None])
+    items = run(storage, lambda conn: repo.list_inbox(conn, status="open"))
+    assert [i.type for i in items] == ["sensitive"] and report.inbox
+
+
+def test_a_new_kind_of_user_relationship_asks_whether_it_is_the_same_person(
+    storage: StorageHandle,
+) -> None:
+    rel(storage, "childhood_friend", P("Ahmet"), quote="Çocukluk arkadaşım Ahmet")
+    asked = rel(storage, "business_partner", P("Ahmet"), quote="İş ortağımın adı da Ahmet")
+    assert asked.created == [] and len(asked.inbox) == 1
+    item = run(storage, lambda c: repo.get_inbox(c, asked.inbox[0]))
+    assert item is not None and item.summary.startswith("Hangi Ahmet?")
+    # "Başka biri": a second Ahmet, the user's business partner; the two are kept apart.
+    run(storage, lambda c: service.resolve_inbox(c, asked.inbox[0], "new"))
+    assert len(ids(storage, "Ahmet")) == 2
+    assert ("Kullanıcı", "business_partner", "Ahmet", "active") in current(storage)
+    # Identified by how the user knows him: the same person, both relationships.
+    both = rel(
+        storage,
+        "colleague",
+        P("Ahmet", "çocukluk arkadaşı"),
+        quote="Çocukluk arkadaşım Ahmet iş arkadaşım da",
+    )
+    assert both.created and not both.inbox
+
+
+def test_no_longer_means_ended_not_untrue(storage: StorageHandle) -> None:
+    rel(storage, "works_at", P("Kervan", kind="organization"), quote="Kervan'da çalışıyorum")
+    gone = rel(storage, "works_at", P("Kervan", kind="organization"), quote="Artık Kervan'da çalışmıyorum",
+               negated=True, change=True, status="ended")  # fmt: skip
+    assert gone.retracted == [] and gone.updated
+    assert current(storage) == [("Kullanıcı", "works_at", "Kervan", "ended")]

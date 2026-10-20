@@ -83,6 +83,8 @@ def test_relation_lines_respect_the_budget(storage: StorageHandle, world: World)
         ("Bunlar farklı kişiler.", "different"),
         ("İki Ahmet aynı kişi değil.", "different"),
         ("Kardeşim değil miydi o?", None),
+        ("Cem iş arkadaşım değil, müşterim.", "correct"),
+        ("Selin kuzenim değil mi?", None),
         ("Mehmet'in kardeşi kim?", None),
     ],
 )
@@ -237,3 +239,51 @@ def test_a_relationship_question_in_a_real_turn(
     assert "- Cevap: Elif" in prompt
     assert commands.NOTICE_START not in prompt  # a question: no memory operation, no notice
     assert llm.command_requests == []
+
+
+def test_a_correction_with_namesakes_goes_to_the_linked_one(
+    tmp_path: Path, storage: StorageHandle, world: World
+) -> None:
+    msg = "Mehmet aslında Ahmet'in kardeşi değil, kuzeni."
+    cmd = answer("correct", relations=[
+        rel("Ahmet'in kardeşi değil", "Ahmet", "sibling", "Mehmet", negated=True),
+        rel("kuzeni", "Ahmet", "cousin", "Mehmet", correction=True),
+    ])  # fmt: skip
+    llm, _ = run(storage, tmp_path, lambda r: cmd, msg)
+    between = storage.db.run_sync(
+        lambda c: gs.relationships_between(c, world["ahmet"], world["mehmet"])
+    )
+    assert {(r.type, r.status) for r in between} == {("sibling", "retracted"), ("cousin", "active")}
+    assert "Düzeltildi" in last_user(llm.chat_requests[0])
+
+
+def test_forgetting_a_pair_with_namesakes_takes_the_linked_one(
+    tmp_path: Path, storage: StorageHandle, world: World
+) -> None:
+    cmd = answer("forget", forget_scope="relation", forget_entity="Ahmet", forget_other="Mehmet")
+    llm, _ = run(storage, tmp_path, lambda r: cmd, "Ahmet ile Mehmet arasındaki ilişkiyi unut.")
+    assert (
+        storage.db.run_sync(lambda c: gs.relationships_between(c, world["ahmet"], world["mehmet"]))
+        == []
+    )
+    assert "Silindi" in last_user(llm.chat_requests[0])
+    after = storage.db.run_sync(lambda c: graph.ask(c, "Mehmet, Ahmet'in neyi oluyor?"))
+    assert after is not None and after.status in ("none", "ambiguous")
+
+
+def test_an_open_namesake_question_makes_answers_cautious(storage: StorageHandle) -> None:
+    from lazis.memory import relationships as rels
+    from lazis.memory.models import EntityRef, RelCandidate
+    from lazis.memory.service import Source
+
+    src = Source("message", "m-1", "conv-1")
+    cands = [
+        RelCandidate(type="childhood_friend", target=EntityRef("Ahmet"), quote="Çocukluk arkadaşım Ahmet"),
+        RelCandidate(type="sibling", source=EntityRef("Ahmet"), target=EntityRef("Mehmet"), quote="Ahmet'in kardeşi Mehmet"),
+        RelCandidate(type="business_partner", target=EntityRef("Ahmet"), quote="İş ortağımın adı da Ahmet"),
+    ]  # fmt: skip
+    storage.db.run_sync(lambda c: rels.apply_relations(c, cands, source=src, explicit=False))
+    a = storage.db.run_sync(lambda c: graph.ask(c, "Ahmet'in kardeşi kim?"))
+    assert a is not None and a.status == "ambiguous"
+    assert a.lines[0].startswith("Dikkat: «Ahmet» adında başka biri de olabilir")
+    assert "Cevap: Mehmet" in a.lines
