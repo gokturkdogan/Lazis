@@ -137,7 +137,7 @@ def test_a_secret_said_in_passing_gets_the_same_notice(
     assert llm.command_requests == []
     assert "hafızaya kaydedilmedi" in last_user(llm.chat_requests[0])
     llm2, _ = run(storage, tmp_path, lambda r: answer("none"), "Bugün hava çok güzel.")
-    assert "kaydedilmedi" not in last_user(llm2.chat_requests[0])
+    assert "gizli bilgi" not in last_user(llm2.chat_requests[0])
 
 
 def _seed_ahmet(storage: StorageHandle) -> str:

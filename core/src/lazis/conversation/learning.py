@@ -158,16 +158,16 @@ class Learner:
         built = prompt.built
         room = self._num_ctx - self._safety - self.cfg.extraction_max_tokens
         on_prefix = built.estimated_tokens + self._estimator.message(instruction) <= room
-        target = self.target_key(model, conversation_id, prompt)
         warm = self._scheduler.holds(model, self._num_ctx, conversation_id, built.prefix_hash,
                                      through_seq=prompt.last_seq)  # fmt: skip
         if on_prefix:
             messages = [*built.messages, ChatMessage("user", instruction)]
         else:  # rare: the conversation is near its limit — do not risk the turn's context
             messages = [ChatMessage("system", STANDALONE_SYSTEM), ChatMessage("user", instruction)]
-        # The runtime keeps the processed prefix when this request is cut short by a turn;
-        # what it adds (the instruction, the JSON) is discarded by the next request.
-        self._scheduler.cache = target if (on_prefix and warm) else None
+        # Measured (PHASE_6_REPORT §H): after an extraction request the next turn re-processes
+        # part of the shared prefix (sliding-window attention), so the cache is not claimed
+        # warm afterwards; the engine re-warms the conversation once learning is done.
+        self._scheduler.cache = None
         self.status = {"state": "running", "at": now, "messages": len(targets)}
         text = ""
         metrics: GenerationMetrics | None = None
@@ -190,8 +190,6 @@ class Learner:
                         text += event.text
                 else:
                     metrics = event.metrics
-            if on_prefix:
-                self._scheduler.cache = target
             items = extraction.parse(text)
             if items is None:
                 raise LlmInvalidResponseError("extraction was not valid JSON")

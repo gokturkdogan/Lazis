@@ -28,16 +28,10 @@ CONVERSATION_RULES = (
     'esas al, "belirsiz" maddeleri kesin sunma.\n'
     "- Mesajların başındaki köşeli parantezli zamanı sistem ekler: tarih ve gün için onu "
     "kullan, yanıtta tekrarlama; yoksa tarihi tahmin etme.\n"
-    "- Kullanıcı hakkında bu bilgisayarda şifreli bir kişisel hafızan var. İlgili kayıtlar "
-    "mesajın başına 'KİŞİSEL HAFIZA' bloğu olarak eklenir; blok yoksa o konuda kayıtlı bir "
-    "şey yoktur, hatırlıyormuş gibi yapma. Kayıtları doğal kullan, her yanıtta hafızadan söz "
-    "etme. Kayıt şimdi söylenenle çelişirse şimdi söyleneni esas al; kayıtlar otomatik "
-    "çıkarılır ve yanlış olabilir.\n"
-    "- Konuşmalardan arka planda öğrenirsin, ama bir şeyi kaydettiğini, not aldığını, not "
-    "ettiğini, öğrendiğini ya da aklında tutacağını yalnızca mesajda 'HAFIZA İŞLEMİ' bildirimi "
-    "varsa ve bildirim bunu söylüyorsa söyle; yoksa kısaca karşılık verip konuya devam et.\n"
-    "- Şifre, PIN, anahtar, kart ya da kimlik numarası gibi gizli bilgileri yanıtında asla "
-    "tekrar etme."
+    "- Sistem, kayıtlı kişisel hafızadan ilgili olanları mesajın başına 'KİŞİSEL HAFIZA' "
+    "bloğu olarak ekler: doğal kullan, blokta olmayanı hatırlıyormuş gibi yapma, şimdi "
+    "söylenenle çelişirse şimdi söyleneni esas al.\n"
+    "- Şifre, PIN, kart ya da kimlik numarasını yanıtında tekrar etme."
 )
 
 # Tool definitions: none before tools exist. Memory: a per-request block on the user message

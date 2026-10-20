@@ -222,8 +222,11 @@ class MemorySection(_Section):
     batch_messages: int = Field(default=3, ge=1, le=10)
     # A job that failed this many times stays failed (visible in diagnostics).
     max_attempts: int = Field(default=3, ge=1, le=10)
-    # Recall: at most this many (estimated) tokens of memory in front of a user message.
-    context_budget_tokens: int = Field(default=400, ge=0, le=4000)
+    # Recall: at most this many (estimated) tokens of memory in front of a user message. Each
+    # token is new prefill for that turn (~4 ms on Gemma 4 12B here: 200 tokens ≈ +0.8 s TTFT).
+    context_budget_tokens: int = Field(default=200, ge=0, le=4000)
+    # Background learning starts only after this long without a turn.
+    learn_after_idle_s: float = Field(default=6.0, ge=0.0, le=600.0)
 
 
 class Settings(_Section):

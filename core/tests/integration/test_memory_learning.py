@@ -238,3 +238,22 @@ def test_learning_can_be_switched_off(tmp_path: Path, storage: StorageHandle) ->
 
     asyncio.run(go())
     assert llm.memory_requests == [] and jobs(storage) == {} and memories(storage) == []
+
+
+def test_learning_waits_for_the_user_to_be_idle(tmp_path: Path, storage: StorageHandle) -> None:
+    llm = ScriptedLLM(memory=extractor(CITY))
+    engine = make_engine(storage, llm, tmp_path, memory=MemorySection(learn_after_idle_s=0.6))
+
+    async def go() -> tuple[int, int]:
+        await run_turn(engine, "Ben İzmir'de yaşıyorum.")
+        await asyncio.sleep(0.3)
+        early = len(llm.memory_requests)  # not yet: the user may still be typing
+        await settle(
+            engine, until=lambda: bool(llm.memory_requests) and engine.scheduler.background is None
+        )
+        await engine.close()
+        return early, len(llm.memory_requests)
+
+    early, later = asyncio.run(go())
+    assert (early, later) == (0, 1)
+    assert [m.value for m in memories(storage)] == ["İzmir"]

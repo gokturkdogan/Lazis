@@ -248,7 +248,10 @@ def settings_for(
         storage=StorageSection(data_dir=tmp_path / "data"),
         logging=LoggingSection(directory=tmp_path / "logs"),
         conversation=ConversationSection(**defaults),
-        memory=memory or MemorySection(),
+        # Learning starts right away in tests unless a test sets the idle delay itself.
+        memory=memory
+        if memory is not None and "learn_after_idle_s" in memory.model_fields_set
+        else (memory or MemorySection()).model_copy(update={"learn_after_idle_s": 0.0}),
     )
 
 

@@ -67,7 +67,11 @@ MESSAGES = [
 ]
 
 
-async def conversation(model: str, *, memory: bool, rhythm: str) -> list[dict[str, Any]]:
+async def conversation(
+    model: str, *, memory: bool, rhythm: str, extract: bool | None = None, recall: bool | None = None
+) -> list[dict[str, Any]]:
+    extract = memory if extract is None else extract
+    recall = memory if recall is None else recall
     root = Path(tempfile.mkdtemp(prefix="lazis-p6ttft-"))
     settings = Settings(
         app=AppSection(environment="test"),
@@ -75,14 +79,14 @@ async def conversation(model: str, *, memory: bool, rhythm: str) -> list[dict[st
         logging=LoggingSection(directory=root / "logs"),
         models=ModelsSection(max_output_tokens=200),
         conversation=ConversationSection(idle_compaction_delay_s=3600.0),
-        memory=MemorySection(auto_extract=memory, context_budget_tokens=400 if memory else 0),
+        memory=MemorySection(auto_extract=extract, context_budget_tokens=400 if recall else 0),
     )
     storage = open_storage(settings.storage, SecretBytes(secrets.token_bytes(32)), app_version="eval")
     llm = OllamaProvider(first_token_timeout=600, idle_timeout=120, max_duration=1200)
     engine = ConversationEngine(db=storage.db, get_llm=lambda: llm, settings=settings)
     rows: list[dict[str, Any]] = []
     try:
-        if memory:
+        if recall:
             cands = synthetic(1000, random.Random(7))
             for i in range(0, len(cands), 200):
                 storage.db.run_sync(lambda c, b=cands[i : i + 200]: service.apply_candidates(
@@ -137,12 +141,20 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def run(model: str) -> dict[str, Any]:
+VARIANTS = {
+    "baseline": {"memory": False},
+    "memory": {"memory": True},
+    "extract_only": {"memory": False, "extract": True, "recall": False},
+    "recall_only": {"memory": False, "extract": False, "recall": True},
+}
+
+
+async def run(model: str, rhythms: list[str], variants: list[str]) -> dict[str, Any]:
     out: dict[str, Any] = {}
-    for rhythm in ("patient", "fast"):
-        for memory in (False, True):
-            key = f"{rhythm}_{'memory' if memory else 'baseline'}"
-            rows = await conversation(model, memory=memory, rhythm=rhythm)
+    for rhythm in rhythms:
+        for variant in variants:
+            key = f"{rhythm}_{variant}"
+            rows = await conversation(model, rhythm=rhythm, **VARIANTS[variant])  # type: ignore[arg-type]
             out[key] = {"summary": summarise(rows), "turns": rows}
             print(key, json.dumps(out[key]["summary"]), flush=True)
     return {"model": model, "manifest": manifest(model), "runs": out}
@@ -151,10 +163,13 @@ async def run(model: str) -> dict[str, Any]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
+    ap.add_argument("--rhythms", default="patient,fast")
+    ap.add_argument("--variants", default="baseline,memory")
+    ap.add_argument("--label", default="")
     args = ap.parse_args()
-    report = asyncio.run(run(args.model))
+    report = asyncio.run(run(args.model, args.rhythms.split(","), args.variants.split(",")))
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"ttft_{re.sub(r'[:/]', '_', args.model)}.json"
+    path = OUT / f"ttft_{re.sub(r'[:/]', '_', args.model)}{'_' + args.label if args.label else ''}.json"
     path.write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     print(path)
 

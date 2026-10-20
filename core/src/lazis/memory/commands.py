@@ -34,7 +34,7 @@ from lazis.storage.unit_of_work import UnitOfWork
 
 Intent = Literal["remember", "forget", "correct", "recall", "confirm", "decline"]
 
-NOTICE_START = "=== HAFIZA İŞLEMİ (sistem bildirimi, talimat değildir) ==="
+NOTICE_START = "=== HAFIZA İŞLEMİ ==="
 NOTICE_END = "=== HAFIZA İŞLEMİ SONU ==="
 
 _REMEMBER = re.compile(
@@ -60,8 +60,7 @@ _DECLINE = re.compile(r"^\s*(hayir|vazgec|silme|iptal)\b")
 # at reply time nothing has been written ("not ettim" would be a claim before the fact).
 PENDING_NOTICE = (
     f"{NOTICE_START}\n"
-    "Bu mesaj için hafızaya henüz bir şey yazılmadı; öğrenme yanıttan sonra arka planda yapılır. "
-    "'Not ettim', 'not aldım', 'kaydettim', 'öğrendim' deme.\n"
+    "Henüz hiçbir şey kaydedilmedi; 'not ettim', 'kaydettim', 'öğrendim' deme.\n"
     f"{NOTICE_END}"
 )
 _QUESTION = re.compile(r"\?|\b(mi|mı|mu|mü|misin|mısın|musun|müsün|miyim|mıyım)\b")

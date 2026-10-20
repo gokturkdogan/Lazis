@@ -1695,6 +1695,12 @@ class ConversationEngine:
         if self.is_busy() or self.scheduler.background is not None:
             self._pending[conversation_id] = now + 0.5
             return
+        # Learning waits until the user has been idle for a moment: a quick follow-up must not
+        # wait for an extraction to be cancelled (measured: ~3 s). Typing (prepare) cancels it.
+        idle = self.scheduler.idle_for()
+        if idle < self._memory.learn_after_idle_s:
+            self._pending[conversation_id] = now + (self._memory.learn_after_idle_s - idle)
+            return
         llm = self._get_llm()
         if llm is None:
             self._pending[conversation_id] = now + 60.0
@@ -1741,6 +1747,11 @@ class ConversationEngine:
         with contextlib.suppress(asyncio.CancelledError, Exception):
             ok = await asyncio.shield(started.task)
         remaining = await self._q(lambda c: learning.pending(c, self._memory, conversation_id))
+        if ok and self._cfg.prewarm and not self.is_busy():
+            # Learning disturbed the runtime's cache: re-warm the conversation while the user
+            # is still reading (a turn sent meanwhile joins it).
+            await self.prepare(conversation_id, model)
+            await self._settle_background()
         if not remaining:
             self._learn.discard(conversation_id)
         elif ok:
