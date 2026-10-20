@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-EntityKind = Literal["person", "project", "organization", "place", "thing"]
+EntityKind = Literal["person", "project", "organization", "place", "event", "group", "thing"]
 Status = Literal["active", "superseded", "retracted"]
 Origin = Literal["stated", "requested", "confirmed", "imported", "user_edit", "inferred"]
 Sensitivity = Literal["normal", "personal", "sensitive"]
@@ -14,6 +14,9 @@ JobStatus = Literal["queued", "running", "done", "skipped", "deferred", "failed"
 
 # Sensitivity categories the extractor may report. "secret" is never stored anywhere.
 SENSITIVE_CATEGORIES = ("health", "finance", "identity", "contact", "address", "intimate")
+
+
+USER_ID = "user"  # the fixed id of the user's entity row (0005_graph)
 
 
 @dataclass(frozen=True)
@@ -30,6 +33,9 @@ class Entity:
     created_at: str
     updated_at: str
     aliases: tuple[str, ...] = ()
+    is_user: bool = False  # the user's own row: a relationship endpoint only (Phase 7)
+    confidence: float = 0.85
+    origin: str = "stated"
 
 
 @dataclass(frozen=True)
@@ -154,3 +160,53 @@ class ApplyReport:
             "entities_created": len(self.entities_created),
             **{f"dropped_{k}": v for k, v in self.dropped.items()},
         }
+
+
+# ----- relationships (Phase 7) ------------------------------------------------------------
+RelStatus = Literal["active", "ended", "planned", "unverified", "superseded", "retracted"]
+RelOrigin = Literal["stated", "requested", "confirmed", "imported", "user_edit", "migrated"]
+CURRENT: tuple[RelStatus, ...] = ("active", "planned", "unverified")
+
+
+@dataclass(frozen=True)
+class Relationship:
+    """One stated relationship, stored once: (source, type, target). See memory.relations."""
+
+    id: str
+    source_id: str
+    type: str
+    target_id: str
+    qualifier: str | None
+    status: RelStatus
+    origin: RelOrigin
+    confidence: float
+    sensitivity: Sensitivity
+    sensitivity_category: str | None
+    time_text: str | None
+    valid_from: str | None
+    valid_to: str | None
+    supersedes_id: str | None
+    conflict_state: Literal["none", "pending"]
+    version: int
+    created_at: str
+    updated_at: str
+
+
+@dataclass(frozen=True)
+class RelCandidate:
+    """A relationship proposed by the extractor, a chat request, the UI or an import. ``source``
+    None means the user. Nothing is written before both ends are resolved."""
+
+    type: str
+    target: EntityRef
+    source: EntityRef | None = None
+    qualifier: str | None = None
+    quote: str | None = None
+    statement: str = ""
+    change: bool = False  # it changed in the real world ("artık", "taşındı")
+    correction: bool = False  # an earlier statement was wrong ("yanlış söyledim", "aslında")
+    negated: bool = False  # "Ahmet ile Mehmet kardeş değil"
+    status: Literal["active", "ended", "planned"] = "active"
+    certain: bool = True
+    time_text: str | None = None
+    origin: RelOrigin = "stated"

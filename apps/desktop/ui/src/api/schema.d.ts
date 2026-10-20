@@ -1145,7 +1145,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "person" | "project" | "organization" | "place" | "thing";
+            kind: "person" | "project" | "organization" | "place" | "event" | "group" | "thing";
             /** Name */
             name: string;
             /** Records */
@@ -1301,7 +1301,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "person" | "project" | "organization" | "place" | "thing";
+            kind: "person" | "project" | "organization" | "place" | "event" | "group" | "thing";
             /** Name */
             name: string;
             /** Relation */
@@ -1388,7 +1388,7 @@ export interface components {
              * @default person
              * @enum {string}
              */
-            kind: "person" | "project" | "organization" | "place" | "thing";
+            kind: "person" | "project" | "organization" | "place" | "event" | "group" | "thing";
             /** Name */
             name: string;
             /** Relation */

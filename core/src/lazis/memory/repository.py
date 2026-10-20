@@ -32,10 +32,11 @@ _MEMORY_COLS = (
     " supersedes_id, conflict_state, recall_count, created_at, updated_at, version"
 )
 _MEMORY_COLS_M = ", ".join(f"m.{c.strip()}" for c in _MEMORY_COLS.split(","))
-_ENTITY_COLS = (
+_ENTITY_INSERT_COLS = (
     "id, kind, name, name_key, relation, relation_key, description, status, merged_into,"
     " created_at, updated_at"
 )
+_ENTITY_COLS = _ENTITY_INSERT_COLS + ", is_user, confidence, origin"
 
 
 def _memory(row: Sequence[Any]) -> Memory:
@@ -87,6 +88,9 @@ def _entity(conn: Connection, row: Sequence[Any]) -> Entity:
         created_at=str(row[9]),
         updated_at=str(row[10]),
         aliases=aliases,
+        is_user=bool(row[11]),
+        confidence=float(row[12]),
+        origin=str(row[13]),
     )
 
 
@@ -103,7 +107,7 @@ def insert_entity(
 ) -> Entity:
     eid = new_ulid()
     conn.execute(
-        f"INSERT INTO memory_entities ({_ENTITY_COLS})"  # noqa: S608 - fixed column list
+        f"INSERT INTO memory_entities ({_ENTITY_INSERT_COLS})"  # noqa: S608 - fixed column list
         " VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NULL, ?, ?)",
         (
             eid,
@@ -145,7 +149,8 @@ def get_entity(conn: Connection, entity_id: str) -> Entity | None:
 def find_entities(conn: Connection, key: str, *, kind: str | None = None) -> list[Entity]:
     """Active entities whose name or an alias has this folded key."""
     rows = conn.execute(
-        f"SELECT {_ENTITY_COLS} FROM memory_entities WHERE status = 'active' AND id IN ("  # noqa: S608
+        f"SELECT {_ENTITY_COLS} FROM memory_entities WHERE status = 'active' AND is_user = 0"  # noqa: S608
+        " AND id IN ("
         " SELECT entity_id FROM memory_entity_aliases WHERE alias_key = ?"
         " UNION SELECT id FROM memory_entities WHERE name_key = ?)"
         + (" AND kind = ?" if kind else "")
@@ -167,7 +172,7 @@ def alias_index(conn: Connection) -> list[tuple[str, str]]:
 def list_entities(
     conn: Connection, *, kind: str | None = None, query: str | None = None, limit: int = 200
 ) -> list[Entity]:
-    sql = f"SELECT {_ENTITY_COLS} FROM memory_entities WHERE status = 'active'"  # noqa: S608
+    sql = f"SELECT {_ENTITY_COLS} FROM memory_entities WHERE status = 'active' AND is_user = 0"  # noqa: S608
     args: list[Any] = []
     if kind:
         sql += " AND kind = ?"

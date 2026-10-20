@@ -125,13 +125,17 @@ def _subject_for(
         # a relation in this message, attaching to the stored one would be a guess.
         res = resolver.Resolution("ambiguous", options=tuple(e.id for e in candidates),
                                   reason="pending_namesake")  # fmt: skip
+    from lazis.memory import relationships
+
     if res.kind == "existing":
         assert res.entity_id is not None
-        ent = repo.get_entity(conn, res.entity_id)
-        if ent is not None and ref.relation and not ent.relation:
-            before = uow.snapshot("memory_entities", ent.id)
-            repo.update_entity(conn, ent.id, now=now, relation=ref.relation)
-            uow.record("memory_entities", ent.id, "update", before)
+        if ref.relation:
+            # The user's own words for how they know them → the typed user relationship
+            # (only when the words map exactly to the vocabulary; else just the label).
+            relationships.ensure_user_relation(
+                conn, uow, res.entity_id, ref.relation, now=now,
+                source_type=source.type, source_ref=source.ref, quote=c.quote,
+            )  # fmt: skip
         return "ok", res.entity_id
     if res.kind == "new":
         ent = repo.insert_entity(
@@ -139,6 +143,11 @@ def _subject_for(
         )
         uow.record("memory_entities", ent.id, "create", None)
         report.entities_created.append(ent.id)
+        if ref.relation:
+            relationships.ensure_user_relation(
+                conn, uow, ent.id, ref.relation, now=now,
+                source_type=source.type, source_ref=source.ref, quote=c.quote,
+            )  # fmt: skip
         return "ok", ent.id
     options = [repo.get_entity(conn, oid) for oid in res.options]
     payload = {
@@ -161,6 +170,8 @@ def _subject_for(
 
 def _pending_namesake(conn: Connection, key: str) -> bool:
     for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
+        if key in item.payload.get("pending_names", []):
+            return True
         cand: dict[str, Any] = item.payload.get("candidate", {})
         ent: dict[str, Any] = cand.get("entity") or {}
         if text.name_key(str(ent.get("name", ""))) == key:
@@ -325,6 +336,15 @@ def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
     item = repo.get_inbox(conn, item_id)
     if item is None or item.status != "open":
         raise NotFound("inbox item not found")
+    if item.payload.get("target") == "relationship":
+        from lazis.memory import relationships
+
+        rel_report = relationships.resolve_item(conn, item_id, choice)
+        return ApplyReport(
+            created=rel_report.created, updated=rel_report.updated,
+            superseded=rel_report.superseded + rel_report.ended, inbox=rel_report.inbox,
+            entities_created=rel_report.entities_created, dropped=rel_report.dropped,
+        )  # fmt: skip
     now = utc_now_iso()
     report = ApplyReport()
     src = Source("confirmation", item.source_message_id, item.conversation_id)
@@ -486,7 +506,10 @@ def _forget(
                 reason="forgotten",
                 now=now,
             )
+        from lazis.memory import relationships
+
         for eid in entities:
+            relationships.delete_for_entity(conn, uow, eid)
             repo.delete_entity(conn, eid)
             repo.purge_history(conn, "memory_entities", eid)
             conn.execute("DELETE FROM memory_inbox WHERE payload_json LIKE ?", (f'%"{eid}"%',))
@@ -533,7 +556,7 @@ def forget_topic(
 
 def forget_entity(conn: Connection, entity_id: str, *, actor: Actor = "user") -> ForgetResult:
     ent = repo.get_entity(conn, entity_id)
-    if ent is None:
+    if ent is None or ent.is_user:
         raise NotFound("entity not found")
     found = repo.memories_for_subject(
         conn, entity_id, statuses=("active", "superseded", "retracted")
@@ -574,11 +597,16 @@ def edit_memory(conn: Connection, memory_id: str, *, value: str, content: str) -
 
 def merge_entities(conn: Connection, keep_id: str, merge_id: str) -> Entity:
     """The user says two records are one person/project: move everything to ``keep_id``."""
+    from lazis.memory import graphstore, relationships
+
     keep, other = repo.get_entity(conn, keep_id), repo.get_entity(conn, merge_id)
-    if keep is None or other is None or keep.id == other.id:
+    if keep is None or other is None or keep.id == other.id or keep.is_user or other.is_user:
         raise NotFound("entity not found")
+    if graphstore.are_distinct(conn, keep.id, other.id):
+        raise ValueError("these were marked as different people")
     now = utc_now_iso()
     with UnitOfWork(conn, kind="merge", actor="user", summary="2 kayıt birleştirildi") as uow:
+        moved = relationships.move_on_merge(conn, uow, keep.id, other.id, now)
         for alias in (other.name, *other.aliases):
             repo.add_alias(conn, keep.id, alias)
         if not keep.relation and other.relation:
@@ -613,6 +641,7 @@ def merge_entities(conn: Connection, keep_id: str, merge_id: str) -> Entity:
             actor="user",
             change_set_id=uow.change_set_id,
             target_refs=[keep.id, other.id],
+            details={k: v for k, v in moved.items()},
         )
     merged = repo.get_entity(conn, keep.id)
     assert merged is not None
@@ -620,11 +649,20 @@ def merge_entities(conn: Connection, keep_id: str, merge_id: str) -> Entity:
 
 
 def split_entity(
-    conn: Connection, entity_id: str, memory_ids: list[str], *, name: str, relation: str | None
+    conn: Connection,
+    entity_id: str,
+    memory_ids: list[str],
+    *,
+    name: str,
+    relation: str | None,
+    relationship_ids: list[str] | None = None,
 ) -> Entity:
-    """The user says some facts belong to a different person: move them to a new record."""
+    """The user says some facts belong to a different person: move them (and the relationships
+    the user assigned) to a new record; the two are then marked as different people."""
+    from lazis.memory import relationships
+
     ent = repo.get_entity(conn, entity_id)
-    if ent is None:
+    if ent is None or ent.is_user:
         raise NotFound("entity not found")
     now = utc_now_iso()
     with UnitOfWork(
@@ -641,6 +679,7 @@ def split_entity(
             before = uow.snapshot("memories", mid)
             repo.move_subject(conn, mid, new.id, now)
             uow.record("memories", mid, "update", before)
+        relationships.move_on_split(conn, uow, entity_id, new.id, relationship_ids or [], now)
         write_audit(
             conn,
             category="memory",

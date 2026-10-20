@@ -15,7 +15,7 @@ class _Schema(BaseModel):
 
 class MemorySubjectModel(_Schema):
     id: str
-    kind: Literal["person", "project", "organization", "place", "thing"]
+    kind: Literal["person", "project", "organization", "place", "event", "group", "thing"]
     name: str
     relation: str | None
 
@@ -64,7 +64,7 @@ class MemoryRecordDetailResponse(_Schema):
 
 class MemoryEntityModel(_Schema):
     id: str
-    kind: Literal["person", "project", "organization", "place", "thing"]
+    kind: Literal["person", "project", "organization", "place", "event", "group", "thing"]
     name: str
     relation: str | None
     description: str | None
@@ -131,7 +131,9 @@ class PredicateListResponse(_Schema):
 class NewEntityModel(_Schema):
     name: str = Field(min_length=1, max_length=80)
     relation: str | None = Field(default=None, max_length=80)
-    kind: Literal["person", "project", "organization", "place", "thing"] = "person"
+    kind: Literal["person", "project", "organization", "place", "event", "group", "thing"] = (
+        "person"
+    )
 
 
 class MemoryCreateRequest(_Schema):
