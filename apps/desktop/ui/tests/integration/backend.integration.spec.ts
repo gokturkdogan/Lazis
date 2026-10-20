@@ -71,6 +71,46 @@ afterAll(async () => {
 });
 
 describe("UI API client ↔ real backend", () => {
+  it("drives the memory API: add, search, history, edit, forget, people, import", async () => {
+    const api = createApiClient({ port, token });
+    const preds = await api.memoryPredicates();
+    expect(preds.find((p) => p.key === "location")?.cardinality).toBe("single");
+    await api.addMemory({ predicate: "location", value: "Ankara", statement: "Kullanıcı Ankara'da yaşıyor." });
+    await api.addMemory({ predicate: "location", value: "İzmir", statement: "Kullanıcı İzmir'e taşındı." });
+    const found = (await api.memoryRecords({ q: "nerede yaşıyorum" })).records;
+    expect(found.map((r) => r.value)).toEqual(["İzmir"]);
+    const detail = await api.memoryRecord(found[0]!.id);
+    expect(detail.previous.map((r) => r.value)).toEqual(["Ankara"]);
+    const edited = await api.editMemory(found[0]!.id, "İzmir", "Kullanıcı İzmir Karşıyaka'da yaşıyor.");
+    expect(edited.origin).toBe("user_edit");
+    await expect(api.addMemory({ predicate: "note", value: "parolam: Yaz2026", statement: "" })).rejects.toMatchObject({
+      code: "memory_invalid",
+    });
+
+    const added = await api.addMemory({
+      predicate: "occupation", value: "öğretmen", statement: "", new_entity: { name: "Can", relation: "kuzen", kind: "person" },
+    });
+    expect(added.entities_created).toBe(1);
+    const can = (await api.memoryEntities("person"))[0]!;
+    expect((await api.memoryEntity(can.id)).records[0]!.value).toBe("öğretmen");
+    expect((await api.editEntity(can.id, { relation: "teyze oğlu" })).relation).toBe("teyze oğlu");
+
+    const preview = await api.importPreview("json", JSON.stringify({ user: { technology: ["Python", "Rust"] } }));
+    expect(preview.items.map((i) => i.status)).toEqual(["new", "new"]);
+    const applied = await api.importApply(preview.batch_id, { 0: "apply" });
+    expect(applied.created).toBe(1);
+    const second = await api.importPreview("json", JSON.stringify({ user: { likes: "çay" } }));
+    await api.importDiscard(second.batch_id);
+
+    expect(await api.forgetMemory(found[0]!.id)).toEqual({ memories: 1, entities: 0 });
+    await expect(api.memoryRecord(found[0]!.id)).rejects.toMatchObject({ code: "memory_not_found" });
+    expect(await api.forgetEntity(can.id)).toEqual({ memories: 1, entities: 1 });
+    expect(await api.memoryInbox()).toEqual([]);
+    const overview = await api.memoryOverview();
+    expect(overview.entities).toBe(0);
+    expect(overview.trusted_models).toEqual(["gemma4:12b-it-qat"]);
+  });
+
   it("reads health, app info and verified encryption status", async () => {
     const api = createApiClient({ port, token });
     expect((await api.health()).status).toBe("ok");
