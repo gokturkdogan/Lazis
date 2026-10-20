@@ -11,10 +11,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from lazis.memory import registry, service, text
+from lazis.memory import graphstore as gs
+from lazis.memory import registry, relations, service, text
 from lazis.memory import repository as repo
-from lazis.memory.extraction import Extracted, Known, Target
-from lazis.memory.models import ApplyReport, Candidate, Entity
+from lazis.memory.extraction import Extracted, ExtractedRel, Known, Target
+from lazis.memory.models import CURRENT, ApplyReport, Candidate, Entity, RelCandidate
+from lazis.memory.relationships import RelReport, apply_relations
 from lazis.memory.service import Source
 from lazis.storage.driver import Connection
 
@@ -78,7 +80,8 @@ def extraction_context(
                 _fact(m.predicate, m.value)
                 for m in repo.memories_for_subject(conn, e.id)[:MAX_FACTS_PER_ENTITY]
                 if m.sensitivity != "sensitive"
-            ),
+            )
+            + _relation_facts(conn, e),
         )
         for e in entities
     )
@@ -96,6 +99,33 @@ def extraction_context(
         for sid, pred in repo.suppressed_topics(conn, [None, *names])
     )
     return ExtractionContext(known, user_facts, forgotten, tuple(questions))
+
+
+def _relation_facts(conn: Connection, e: Entity) -> tuple[str, ...]:
+    """Current, non-sensitive relationships of a known entity, as the model will read them."""
+    out: list[str] = []
+    for r in gs.relationships_of(conn, e.id, statuses=CURRENT)[:MAX_FACTS_PER_ENTITY]:
+        if r.sensitivity == "sensitive":
+            continue
+        s, t = repo.get_entity(conn, r.source_id), repo.get_entity(conn, r.target_id)
+        if s is not None and t is not None:
+            out.append(relations.describe(s.name, r.type, t.name))
+    return tuple(out)
+
+
+def apply_relation_extraction(
+    conn: Connection, accepted: Sequence[ExtractedRel], *, conversation_id: str
+) -> dict[str, RelReport]:
+    """Relationships from validated extraction, one change set per source message."""
+    groups: dict[str, list[RelCandidate]] = {}
+    for item in accepted:
+        groups.setdefault(item.message_id, []).append(item.candidate)
+    return {
+        message_id: apply_relations(
+            conn, cands, source=Source("message", message_id, conversation_id), explicit=False
+        )
+        for message_id, cands in groups.items()
+    }
 
 
 def apply_extraction(

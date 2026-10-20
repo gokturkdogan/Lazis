@@ -257,3 +257,127 @@ def test_learning_waits_for_the_user_to_be_idle(tmp_path: Path, storage: Storage
     early, later = asyncio.run(go())
     assert (early, later) == (0, 1)
     assert [m.value for m in memories(storage)] == ["İzmir"]
+
+
+def _rel(tag: str, quote: str, source: str, type_: str, target: str, **kw: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {"message": tag, "quote": quote, "source": source, "source_relation": "",
+                            "source_kind": "person", "type": type_, "target": target,
+                            "target_relation": "", "target_kind": "person", "negated": False,
+                            "correction": False, "change": False, "status": "active",
+                            "certain": True, "time": "", "statement": ""}  # fmt: skip
+    base.update(kw)
+    return base
+
+
+def relation_extractor(
+    make: Callable[[str, str], tuple[list[dict[str, Any]], list[dict[str, Any]]]],
+) -> Callable[[ChatRequest], str]:
+    def run(request: ChatRequest) -> str:
+        items: list[dict[str, Any]] = []
+        rels: list[dict[str, Any]] = []
+        for tag, body in _TARGET.findall(request.messages[-1].content):
+            i, r = make(tag, body)
+            items += i
+            rels += r
+        return json.dumps({"items": items, "relations": rels}, ensure_ascii=False)
+
+    return run
+
+
+BRIEF_MSG = "Çocukluk arkadaşım Ahmet'in kardeşi Mehmet geçen hafta Ankara'ya taşındı."
+
+
+def _brief_answer(tag: str, body: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if "Ahmet'in kardeşi" not in body:
+        return [], []
+    moved = fact("location", "Ankara", "Mehmet Ankara'ya taşındı.", "Mehmet geçen hafta Ankara'ya taşındı",
+                 entity="Mehmet", change=True)(tag, body)  # fmt: skip
+    return [moved], [
+        _rel(tag, "Çocukluk arkadaşım Ahmet", "", "childhood_friend", "Ahmet"),
+        _rel(tag, "Ahmet'in kardeşi Mehmet", "Ahmet", "sibling", "Mehmet"),
+    ]
+
+
+def test_relationships_are_learned_from_chat(tmp_path: Path, storage: StorageHandle) -> None:
+    from lazis.memory import graphstore as gs
+    from lazis.memory.models import USER_ID
+
+    llm = ScriptedLLM(memory=relation_extractor(_brief_answer))
+    engine = make_engine(storage, llm, tmp_path)
+
+    async def go() -> dict[str, Any]:
+        await run_turn(engine, BRIEF_MSG)
+        await settle(engine)
+        diag = await engine.diagnostics()
+        await engine.close()
+        return diag
+
+    diag = asyncio.run(go())
+
+    def read(c: Any) -> list[tuple[str, str, str]]:
+        out: list[tuple[str, str, str]] = []
+        for r in gs.list_relationships(c):
+            s, t = memory_repo.get_entity(c, r.source_id), memory_repo.get_entity(c, r.target_id)
+            out.append((s.name if s else "?", r.type, t.name if t else "?"))
+        return sorted(out)
+
+    assert storage.db.run_sync(read) == [
+        ("Ahmet", "sibling", "Mehmet"),
+        ("Kullanıcı", "childhood_friend", "Ahmet"),
+    ]
+    mehmet = storage.db.run_sync(lambda c: memory_repo.find_entities(c, "mehmet"))[0]
+    assert [
+        m.value
+        for m in storage.db.run_sync(lambda c: memory_repo.memories_for_subject(c, mehmet.id))
+    ] == ["Ankara"]
+    assert (
+        storage.db.run_sync(lambda c: gs.relationships_between(c, USER_ID, mehmet.id)) == []
+    )  # nothing derived
+    learning = diag["memory"]["learning"]
+    assert learning["relations_created"] == 2 and learning["relations_proposed"] == 2
+
+
+def test_a_relationship_with_an_ambiguous_end_waits(tmp_path: Path, storage: StorageHandle) -> None:
+    from lazis.memory import graphstore as gs
+    from lazis.memory import service
+    from lazis.memory.models import Candidate, EntityRef
+    from lazis.memory.service import Source
+
+    def seed(c: Any) -> None:
+        for rel in ("çocukluk arkadaşı", "iş ortağı"):
+            cand = Candidate(predicate="note", value=rel, statement=f"Ahmet {rel}", about="entity",
+                             entity=EntityRef("Ahmet", relation=rel))  # fmt: skip
+            service.apply_candidates(c, [cand], source=Source("import"), explicit=True)
+
+    storage.db.run_sync(seed)
+    # The second Ahmet goes to the inbox (a relation that differs): make it a real entity.
+    items = storage.db.run_sync(lambda c: memory_repo.list_inbox(c))
+    for it in items:
+        storage.db.run_sync(lambda c, i=it.id: service.resolve_inbox(c, i, "new"))
+    assert len(storage.db.run_sync(lambda c: memory_repo.find_entities(c, "ahmet"))) == 2
+
+    def answer(tag: str, body: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        if "kardeşi" not in body:
+            return [], []
+        return [], [_rel(tag, "Ahmet'in kardeşi Mehmet", "Ahmet", "sibling", "Mehmet")]
+
+    llm = ScriptedLLM(memory=relation_extractor(answer))
+    engine = make_engine(storage, llm, tmp_path)
+
+    async def go() -> None:
+        await run_turn(engine, "Ahmet'in kardeşi Mehmet taşınmış.")
+        await settle(engine)
+        await engine.close()
+
+    asyncio.run(go())
+    assert (
+        storage.db.run_sync(lambda c: [r for r in gs.list_relationships(c) if r.type == "sibling"])
+        == []
+    )
+    open_items = storage.db.run_sync(lambda c: memory_repo.list_inbox(c))
+    asks = [i for i in open_items if i.payload.get("target") == "relationship"]
+    assert len(asks) == 1 and asks[0].summary.startswith("Hangi Ahmet?")
+    assert {o["label"] for o in asks[0].payload["options"]} == {
+        "Ahmet (çocukluk arkadaşı)",
+        "Ahmet (iş ortağı)",
+    }

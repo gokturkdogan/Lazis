@@ -28,7 +28,8 @@ from dataclasses import dataclass, field
 from typing import Any, cast
 
 from lazis.memory import policy, registry, text
-from lazis.memory.models import SENSITIVE_CATEGORIES, Candidate, Entity, EntityRef
+from lazis.memory import relations as relations_vocab
+from lazis.memory.models import SENSITIVE_CATEGORIES, Candidate, Entity, EntityRef, RelCandidate
 
 EXTRACTION_VERSION = "x1"
 MAX_ITEMS = 8
@@ -100,13 +101,25 @@ düzeyinde açık adres (address), telefon numarası/e-posta (contact), mahrem k
 başkasının özel hayatı (intimate); değilse boş. Şehir, meslek (muhasebeci, doktor) ve proje \
 konusu (bütçe uygulaması) hassas değildir.
 11. importance: 0–1. Kalıcı ve yararlı bilgi 0.6–1; bugüne ait önemsiz ayrıntı 0.2.
-12. JSON'u tek satırda, girintisiz yaz.
+12. İlişkiler ayrı listeye (relations) yazılır: kişiler, kurumlar, projeler, yerler ve olaylar \
+arasında AÇIKÇA söylenen bağ, source → type → target. "Ahmet'in kardeşi Mehmet" = source \
+Ahmet, type sibling, target Mehmet. Kullanıcı kendisiyse source boş: "çocukluk arkadaşım \
+Ahmet" = source "", type childhood_friend, target Ahmet. Yalnızca söyleneni yaz, zincirden \
+yeni ilişki türetme. "X ile Y kardeş değil" → negated=true. "Yanlış söyledim", "aslında" → \
+correction=true. "Artık", "ayrıldı", "taşındı" → change=true. Geçmişte kalan ("eskiden", \
+"çalışıyordu") → status ended; gelecekte ("başlayacak") → status planned. time: söylenen zaman \
+ifadesi, yoksa boş. source_relation / target_relation: o kişinin kullanıcıya göre ilişkisi, \
+yalnızca mesajda yazıyorsa.
+13. JSON'u tek satırda, girintisiz yaz.
 
 Örnekler:
 «Bir gün Japonya'ya taşınsam nasıl olurdu?» → {"items": []} (varsayım)
 «Annem doktor olmamı isterdi.» → {"items": []} (kullanıcı hakkında kalıcı bilgi değil)
-«İki arkadaşım var: Ahmet ve Mehmet.» → iki öğe: Ahmet — relationship "arkadaş" \
-(relation "arkadaş"); Mehmet — relationship "arkadaş" (relation "arkadaş")
+«İki arkadaşım var: Ahmet ve Mehmet.» → relations: "" friend Ahmet; "" friend Mehmet
+«Çocukluk arkadaşım Ahmet'in kardeşi Mehmet Ankara'ya taşındı.» → relations: "" \
+childhood_friend Ahmet; Ahmet sibling Mehmet · items: Mehmet — location "Ankara" (change)
+«Ahmet'in kardeşi Mehmet, Mehmet'in arkadaşı Zeynep.» → relations: Ahmet sibling Mehmet; \
+Mehmet friend Zeynep (Ahmet ile Zeynep arasında ilişki YOK)
 «Kuzenim Can öğretmen, Pusula'da da bana yardım ediyor.» → iki öğe: Can — occupation \
 "öğretmen"; Pusula — project_person "Can".
 """
@@ -115,7 +128,6 @@ konusu (bütçe uygulaması) hassas değildir.
 # The predicate list in the instruction, grouped and compact (``*`` = one current value).
 # Every registry key appears exactly once (tested).
 PROMPT_GROUPS: tuple[tuple[str, str], ...] = (
-    ("Kişi", "relationship* (kişinin kullanıcıyla ilişkisi: arkadaş, kuzen, iş ortağı)"),
     ("Profil", "preferred_name* (hitap), occupation* (meslek), employer* (işyeri), location* "
      "(yaşadığı şehir; gezi ya da ziyaret değil, o event), birthday*, language (konuştuğu dil), "
      "skill (beceri), family (aile)"),
@@ -146,7 +158,14 @@ def build_instruction(
     forgotten: Sequence[str] = (),
     questions: Sequence[str] = (),
 ) -> str:
-    parts = [RULES, "", predicates_for_prompt()]
+    parts = [
+        RULES,
+        "",
+        predicates_for_prompt(),
+        "",
+        "İlişki türleri (type):",
+        relations_vocab.describe_for_prompt(),
+    ]
     if user_facts:
         parts += ["", "Kullanıcı hakkında kayıtlı bilgiler:", *(f"- {f}" for f in user_facts)]
     if known:
@@ -173,6 +192,36 @@ def build_instruction(
     return "\n".join(parts)
 
 
+# Predicates kept for stored data but not offered to the model (relationships replace them).
+NOT_IN_PROMPT = frozenset({"relationship"})
+MAX_RELATIONS = 8
+ENTITY_KINDS = ("", "person", "organization", "project", "place", "event", "group")
+
+
+def relation_schema() -> dict[str, Any]:
+    s: dict[str, Any] = {"type": "string"}
+    kinds: dict[str, Any] = {"type": "string", "enum": list(ENTITY_KINDS)}
+    props: dict[str, Any] = {
+        "message": s,
+        "quote": s,
+        "source": s,
+        "source_relation": s,
+        "source_kind": kinds,
+        "type": {"type": "string", "enum": list(relations_vocab.KEYS)},
+        "target": s,
+        "target_relation": s,
+        "target_kind": kinds,
+        "negated": {"type": "boolean"},
+        "correction": {"type": "boolean"},
+        "change": {"type": "boolean"},
+        "status": {"type": "string", "enum": ["active", "ended", "planned"]},
+        "certain": {"type": "boolean"},
+        "time": s,
+        "statement": s,
+    }
+    return {"type": "object", "properties": props, "required": list(props)}
+
+
 def schema() -> dict[str, Any]:
     s: dict[str, Any] = {"type": "string"}
     props: dict[str, Any] = {
@@ -180,7 +229,10 @@ def schema() -> dict[str, Any]:
         "quote": s,
         "entity": s,
         "relation": s,
-        "predicate": {"type": "string", "enum": registry.keys()},
+        "predicate": {
+            "type": "string",
+            "enum": [k for k in registry.PREDICATES if k not in NOT_IN_PROMPT],
+        },
         "value": s,
         "statement": s,
         "change": {"type": "boolean"},
@@ -192,8 +244,11 @@ def schema() -> dict[str, Any]:
     item = {"type": "object", "properties": props, "required": list(props)}
     return {
         "type": "object",
-        "properties": {"items": {"type": "array", "items": item, "maxItems": MAX_ITEMS}},
-        "required": ["items"],
+        "properties": {
+            "items": {"type": "array", "items": item, "maxItems": MAX_ITEMS},
+            "relations": {"type": "array", "items": relation_schema(), "maxItems": MAX_RELATIONS},
+        },
+        "required": ["items", "relations"],
     }
 
 
@@ -375,3 +430,175 @@ def _grounded(phrase: str, texts: Sequence[str]) -> bool:
 
 # The model sometimes names the user as the entity.
 _SELF = frozenset({"kullanici", "ben", "kendisi", "user"})
+
+
+# ----- relationships (Phase 7) -------------------------------------------------------------
+@dataclass(frozen=True)
+class ExtractedRel:
+    message_id: str
+    candidate: RelCandidate
+
+
+def parse_relations(raw: str) -> list[dict[str, Any]]:
+    """The relations of the model's JSON (empty when absent or malformed: facts still count)."""
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    rels = cast(dict[str, Any], data).get("relations")
+    if not isinstance(rels, list):
+        return []
+    return [
+        cast(dict[str, Any], r)
+        for r in cast(list[Any], rels)[:MAX_RELATIONS]
+        if isinstance(r, dict)
+    ]
+
+
+def _end_ref(
+    name: str,
+    relation: str,
+    kind: str,
+    allowed: Sequence[str],
+    *,
+    target: Target,
+    context_words: list[str],
+    known: Sequence[Known],
+    grounding: Sequence[str],
+) -> tuple[EntityRef | None, str | None]:
+    """(ref, drop reason). An empty name or a self word means the user (ref None)."""
+    key = text.name_key(name)
+    if not key or key in _SELF or not name[:1].isupper():
+        return None, None
+    matches = _known_for(key, known)
+    if (
+        not text.mentions_name(text.words(target.text), key)
+        and not text.mentions_name(context_words, key)
+        and not matches
+    ):
+        return None, "entity_not_grounded"
+    if kind not in allowed:
+        known_kinds = {k.entity.kind for k in matches}
+        kind = next(iter(known_kinds)) if len(known_kinds) == 1 else allowed[0]
+    rel_words = relation if relation and _grounded(relation, grounding) else None
+    return EntityRef(name, cast(Any, kind), rel_words), None
+
+
+def validate_relations(
+    rels: Sequence[dict[str, Any]],
+    targets: Sequence[Target],
+    known: Sequence[Known] = (),
+    *,
+    context: Sequence[str] = (),
+) -> tuple[list[ExtractedRel], dict[str, int]]:
+    """The same discipline as facts: the quote is the user's, both ends are named by the user
+    (or known), relation words are the user's own, the type exists and fits."""
+    out: list[ExtractedRel] = []
+    dropped: dict[str, int] = {}
+
+    def drop(reason: str) -> None:
+        dropped[reason] = dropped.get(reason, 0) + 1
+
+    by_tag = {t.tag: t for t in targets}
+    context_words = text.words(" ".join(context))
+    for r in rels:
+        target = by_tag.get(_str(r, "message"))
+        if target is None:
+            drop("unknown_message")
+            continue
+        quote = _str(r, "quote", MAX_STATEMENT)
+        if not quote_in(quote, target.text[:MAX_TARGET_CHARS]):
+            drop("quote_not_found")
+            continue
+        t = relations_vocab.get(_str(r, "type"))
+        if t is None:
+            drop("unknown_type")
+            continue
+        grounding = [target.text, *context]
+        src, why = _end_ref(
+            _str(r, "source", 80),
+            _str(r, "source_relation", 80),
+            _str(r, "source_kind"),
+            t.source_kinds,
+            target=target,
+            context_words=context_words,
+            known=known,
+            grounding=grounding,
+        )
+        if why:
+            drop(why)
+            continue
+        tgt, why = _end_ref(
+            _str(r, "target", 80),
+            _str(r, "target_relation", 80),
+            _str(r, "target_kind"),
+            t.target_kinds,
+            target=target,
+            context_words=context_words,
+            known=known,
+            grounding=grounding,
+        )
+        if why:
+            drop(why)
+            continue
+        if tgt is None:
+            if src is None:
+                drop("self")
+                continue
+            # "Ahmet benim kuzenim" written as Ahmet → cousin → user: store it from the user.
+            back = relations_vocab.reading_from_target(t.key)
+            if back is None:
+                drop("self")
+                continue
+            src, tgt, key = None, src, back
+        else:
+            key = t.key
+        status = _str(r, "status")
+        out.append(
+            ExtractedRel(
+                target.message_id,
+                RelCandidate(
+                    type=key,
+                    target=tgt,
+                    source=src,
+                    quote=quote,
+                    statement=_str(r, "statement", MAX_STATEMENT),
+                    change=r.get("change") is True,
+                    correction=r.get("correction") is True,
+                    negated=r.get("negated") is True,
+                    status=cast(
+                        Any, status if status in ("active", "ended", "planned") else "active"
+                    ),
+                    certain=r.get("certain") is not False,
+                    time_text=_str(r, "time", 80) or None,
+                ),
+            )
+        )
+    return out, dropped
+
+
+def relation_items(accepted: Sequence[Extracted]) -> tuple[list[Extracted], list[ExtractedRel]]:
+    """A Phase 6 ``relationship`` item ("Ahmet — arkadaş") is a user relationship now, when its
+    value maps to the vocabulary; the rest stay facts."""
+    facts: list[Extracted] = []
+    rels: list[ExtractedRel] = []
+    for e in accepted:
+        c = e.candidate
+        key = relations_vocab.lexicon(c.value) if c.predicate == "relationship" else None
+        if key is not None and c.entity is not None:
+            rels.append(
+                ExtractedRel(
+                    e.message_id,
+                    RelCandidate(
+                        type=key,
+                        target=EntityRef(c.entity.name, "person", c.entity.relation),
+                        quote=c.quote,
+                        statement=c.statement,
+                    ),
+                )
+            )
+        else:
+            facts.append(e)
+    return facts, rels

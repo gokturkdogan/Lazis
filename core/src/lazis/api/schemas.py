@@ -399,6 +399,10 @@ class DiagLearningModel(_Schema):
     updated: int | None = None
     superseded: int | None = None
     inbox: int | None = None
+    relations_proposed: int | None = None
+    relations_rejected: dict[str, int] | None = None
+    relations_created: int | None = None
+    relations_inbox: int | None = None
     on_prefix: bool | None = None
     prompt_tokens: int | None = None
     output_tokens: int | None = None

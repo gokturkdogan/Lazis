@@ -29,6 +29,7 @@ from lazis.memory import extraction, orchestrator
 from lazis.memory import repository as memory_repo
 from lazis.memory.extraction import Target
 from lazis.memory.models import ApplyReport, Job
+from lazis.memory.relationships import RelReport
 from lazis.observability.logging import get_logger, log_event
 from lazis.providers.llm.ports import (
     ChatMessage,
@@ -194,11 +195,21 @@ class Learner:
             if items is None:
                 raise LlmInvalidResponseError("extraction was not valid JSON")
             checked = extraction.validate(items, targets, ctx.known, context=prompt.context)
-            reports: dict[str, ApplyReport] = await self._q(
-                lambda c: orchestrator.apply_extraction(
-                    c, checked.accepted, conversation_id=conversation_id
-                )
+            facts, from_items = extraction.relation_items(checked.accepted)
+            rel_found, rel_dropped = extraction.validate_relations(
+                extraction.parse_relations(text), targets, ctx.known, context=prompt.context
             )
+            rel_accepted = [*from_items, *rel_found]
+
+            def write(c: Connection) -> tuple[dict[str, ApplyReport], dict[str, RelReport]]:
+                # Facts first: the entities they create are then found by the relationships.
+                facts_r = orchestrator.apply_extraction(c, facts, conversation_id=conversation_id)
+                rels_r = orchestrator.apply_relation_extraction(
+                    c, rel_accepted, conversation_id=conversation_id
+                )
+                return facts_r, rels_r
+
+            reports, rel_reports = await self._q(write)
         except LlmCancelledError:
             await self._requeue(list(by_message.values()), attempt=False, code=None)
             self.status = {"state": "preempted", "at": utc_now_iso()}
@@ -223,7 +234,12 @@ class Learner:
             with repository.transaction(conn):
                 for mid, j in by_message.items():
                     r = reports.get(mid)
-                    result = r.counts() if r is not None else {}
+                    rr = rel_reports.get(mid)
+                    result: dict[str, int] = {}
+                    if r is not None:
+                        result.update(r.counts())
+                    if rr is not None:
+                        result.update(rr.counts())
                     memory_repo.set_job(conn, j.id, status="done", now=done_at, result=result)
 
         await self._q(finish)
@@ -231,6 +247,11 @@ class Learner:
         for r in reports.values():
             for k in totals:
                 totals[k] += r.counts()[k]
+        rel_totals = {"relations_created": 0, "relations_inbox": 0}
+        for rr in rel_reports.values():
+            counts = rr.counts()
+            for k in rel_totals:
+                rel_totals[k] += counts[k]
         duration = round((time.monotonic() - started) * 1000)
         self.status = {
             "state": "done",
@@ -240,6 +261,9 @@ class Learner:
             "accepted": len(checked.accepted),
             "rejected": dict(checked.dropped),
             **totals,
+            "relations_proposed": len(rel_found) + len(from_items) + sum(rel_dropped.values()),
+            "relations_rejected": rel_dropped,
+            **rel_totals,
             "on_prefix": on_prefix,
             "prompt_tokens": None if metrics is None else metrics.prompt_tokens,
             "output_tokens": None if metrics is None else metrics.output_tokens,
@@ -254,6 +278,7 @@ class Learner:
             proposed=len(items),
             accepted=len(checked.accepted),
             **totals,
+            **rel_totals,
             on_prefix=on_prefix,
             cache_expected="warm" if warm else "cold",
             prompt_tokens=None if metrics is None else metrics.prompt_tokens,

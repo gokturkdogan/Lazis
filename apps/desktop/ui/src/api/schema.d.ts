@@ -781,6 +781,16 @@ export interface components {
             rejected?: {
                 [key: string]: number;
             } | null;
+            /** Relations Created */
+            relations_created?: number | null;
+            /** Relations Inbox */
+            relations_inbox?: number | null;
+            /** Relations Proposed */
+            relations_proposed?: number | null;
+            /** Relations Rejected */
+            relations_rejected?: {
+                [key: string]: number;
+            } | null;
             /**
              * State
              * @enum {string}

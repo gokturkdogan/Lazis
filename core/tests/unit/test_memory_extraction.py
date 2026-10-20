@@ -40,7 +40,7 @@ def test_instruction_quotes_targets_and_lists_context() -> None:
     assert "Ahmet — meslek" in out and "Ankara" in out
     assert "E-ahmet" not in out  # database ids never reach the model
     enum = extraction.schema()["properties"]["items"]["items"]["properties"]["predicate"]["enum"]
-    assert enum == registry.keys()
+    assert enum == [k for k in registry.PREDICATES if k not in extraction.NOT_IN_PROMPT]
 
 
 def test_parse_accepts_only_the_expected_shape() -> None:
@@ -131,8 +131,13 @@ def test_prompt_groups_cover_every_predicate_once() -> None:
         e.strip() for _, keys in extraction.PROMPT_GROUPS for e in re.split(r",(?![^(]*\))", keys)
     ]
     listed = [re.match(r"[a-z_]+", e).group(0) for e in entries]  # type: ignore[union-attr]
-    assert sorted(listed) == sorted(registry.keys())
-    singles = {k for k, p in registry.PREDICATES.items() if p.cardinality == "single"}
+    offered = [k for k in registry.PREDICATES if k not in extraction.NOT_IN_PROMPT]
+    assert sorted(listed) == sorted(offered)
+    singles = {
+        k
+        for k, p in registry.PREDICATES.items()
+        if p.cardinality == "single" and k not in extraction.NOT_IN_PROMPT
+    }
     assert {re.match(r"[a-z_]+", e).group(0) for e in entries if "*" in e} == singles  # type: ignore[union-attr]
 
 
@@ -166,3 +171,103 @@ def test_a_relation_filed_as_family_becomes_relationship() -> None:
     fam = item(entity="Ahmet", relation="arkadaş", predicate="family", value="arkadaş", quote="Birinin adı Ahmet",
                statement="Kullanıcının Ahmet adında bir arkadaşı var.")  # fmt: skip
     assert extraction.validate([fam], [t]).accepted[0].candidate.predicate == "relationship"
+
+
+# ----- relationships (Phase 7) -------------------------------------------------------------
+RT = Target(
+    "m1", "MSGR", "Çocukluk arkadaşım Ahmet'in kardeşi Mehmet geçen hafta Ankara'ya taşındı."
+)
+
+
+def relitem(**kw: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "message": "m1", "quote": "Ahmet'in kardeşi Mehmet", "source": "Ahmet", "source_relation": "",
+        "source_kind": "person", "type": "sibling", "target": "Mehmet", "target_relation": "",
+        "target_kind": "person", "negated": False, "correction": False, "change": False,
+        "status": "active", "certain": True, "time": "", "statement": "Mehmet, Ahmet'in kardeşi.",
+    }  # fmt: skip
+    base.update(kw)
+    return base
+
+
+def test_relations_are_validated_like_facts() -> None:
+    ok, dropped = extraction.validate_relations([relitem()], [RT])
+    assert dropped == {} and len(ok) == 1
+    c = ok[0].candidate
+    assert (c.type, c.source.name if c.source else None, c.target.name) == (
+        "sibling",
+        "Ahmet",
+        "Mehmet",
+    )
+    # The user as the source; the relation words are the user's own.
+    me, _ = extraction.validate_relations(
+        [
+            relitem(
+                source="", type="childhood_friend", target="Ahmet", quote="Çocukluk arkadaşım Ahmet"
+            )
+        ],
+        [RT],
+    )
+    assert me[0].candidate.source is None and me[0].candidate.type == "childhood_friend"
+    for bad, reason in [
+        (relitem(quote="Ahmet'in eşi Zeynep"), "quote_not_found"),
+        (relitem(target="Zeynep"), "entity_not_grounded"),  # a link derived from a chain
+        (relitem(type="best_friend"), "unknown_type"),
+        (relitem(message="m7"), "unknown_message"),
+        (relitem(source="", target=""), "self"),
+    ]:
+        assert extraction.validate_relations([bad], [RT])[1] == {reason: 1}, reason
+
+
+def test_relation_details_come_from_the_user() -> None:
+    copied, _ = extraction.validate_relations([relitem(source_relation="iş ortağı")], [RT])
+    assert copied[0].candidate.source is not None and copied[0].candidate.source.relation is None
+    said, _ = extraction.validate_relations([relitem(source_relation="çocukluk arkadaşı")], [RT])
+    assert (
+        said[0].candidate.source is not None
+        and said[0].candidate.source.relation == "çocukluk arkadaşı"
+    )
+    # The kind follows the type when the model gives a kind the type does not allow.
+    job = Target("m1", "MSGJ", "Murat Pusula projesinde benimle çalışıyor.")
+    w, _ = extraction.validate_relations(
+        [relitem(source="Murat", type="works_on", target="Pusula", target_kind="person",
+                 quote="Murat Pusula projesinde")], [job])  # fmt: skip
+    assert w[0].candidate.target.kind == "project"
+    # Flags and time are carried, never invented.
+    ch, _ = extraction.validate_relations(
+        [relitem(change=True, status="ended", time="geçen yıl")], [RT]
+    )
+    assert (ch[0].candidate.change, ch[0].candidate.status, ch[0].candidate.time_text) == (
+        True,
+        "ended",
+        "geçen yıl",
+    )
+    neg, _ = extraction.validate_relations([relitem(negated=True)], [RT])
+    assert neg[0].candidate.negated
+
+
+def test_a_relation_to_the_user_written_backwards_is_read_from_the_user() -> None:
+    t = Target("m1", "MSGK", "Ahmet benim kuzenim.")
+    back, _ = extraction.validate_relations(
+        [relitem(source="Ahmet", type="cousin", target="", quote="Ahmet benim kuzenim")], [t]
+    )
+    c = back[0].candidate
+    assert c.source is None and c.target.name == "Ahmet" and c.type == "cousin"
+    # A type without an inverse cannot be turned around.
+    knows, dropped = extraction.validate_relations(
+        [relitem(source="Ahmet", type="acquaintance", target="", quote="Ahmet benim kuzenim")], [t]
+    )
+    assert knows == [] and dropped == {"self": 1}
+
+
+def test_phase6_relationship_items_become_user_relationships() -> None:
+    t = Target("m1", "MSG8", "İki arkadaşım var: Ahmet ve Mehmet.")
+    v = extraction.validate([item(entity="Ahmet", predicate="relationship", value="arkadaş", quote="İki arkadaşım var",
+                                  statement="Ahmet kullanıcının arkadaşı.")], [t])  # fmt: skip
+    facts, rels = extraction.relation_items(v.accepted)
+    assert facts == [] and [(r.candidate.type, r.candidate.target.name) for r in rels] == [
+        ("friend", "Ahmet")
+    ]
+    assert (
+        extraction.parse_relations('{"items": []}') == [] and extraction.parse_relations("x") == []
+    )
