@@ -257,3 +257,38 @@ def pair_fingerprint(conn: Connection, a: str, b: str) -> str:
 def suppress(conn: Connection, fp: str, reason: str, now: str) -> None:
     # subject/predicate left empty: Phase 6 lists forgotten *topics* from them.
     repo.add_suppression(conn, fp=fp, subject_id=None, predicate=None, reason=reason, now=now)
+
+
+def edges_touching(
+    conn: Connection, ids: Sequence[str], statuses: Sequence[str]
+) -> list[tuple[str, Relationship]]:
+    """(node, relationship) for every relationship with a listed node at either end — the
+    graph walker's batched adjacency read (both indexes, one round trip per 400 nodes)."""
+    out: list[tuple[str, Relationship]] = []
+    st = ",".join("?" * len(statuses))
+    for i in range(0, len(ids), 400):
+        chunk = list(ids[i : i + 400])
+        marks = ",".join("?" * len(chunk))
+        rows = conn.execute(
+            f"SELECT source_id, {_COLS} FROM memory_relationships"  # noqa: S608
+            f" WHERE source_id IN ({marks}) AND status IN ({st})"
+            f" UNION ALL SELECT target_id, {_COLS} FROM memory_relationships"
+            f" WHERE target_id IN ({marks}) AND status IN ({st})",
+            (*chunk, *statuses, *chunk, *statuses),
+        ).fetchall()
+        out += [(str(r[0]), _rel(r[1:])) for r in rows]
+    return out
+
+
+def entity_statuses(conn: Connection, ids: Sequence[str]) -> dict[str, str]:
+    """id → status for entities that still exist (a deleted one is simply absent)."""
+    out: dict[str, str] = {}
+    unique = list(dict.fromkeys(ids))
+    for i in range(0, len(unique), 400):
+        chunk = unique[i : i + 400]
+        rows = conn.execute(
+            f"SELECT id, status FROM memory_entities WHERE id IN ({','.join('?' * len(chunk))})",  # noqa: S608
+            chunk,
+        ).fetchall()
+        out.update({str(r[0]): str(r[1]) for r in rows})
+    return out

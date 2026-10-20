@@ -104,7 +104,8 @@ TYPES: dict[str, RelType] = {
            words=("cocukluk arkadas",)),
         _R("close_friend", "yakın arkadaşı", "yakın arkadaşı", "social", symmetric=True,
            words=("yakin arkadas", "en yakin arkadas", "can dost")),
-        _R("acquaintance", "tanıdığı", "", "social", invertible=False, words=("tanidik",)),
+        _R("acquaintance", "tanıdığı", "", "social", invertible=False,
+           words=("tanidik", "tanidig")),
         _R("neighbor", "komşusu", "komşusu", "social", symmetric=True, words=("komsu",)),
         _R("teacher", "öğretmeni", "öğrencisi", "social", inverse="student",
            words=("ogretmen",)),
@@ -233,13 +234,21 @@ def lexicon(phrase: str) -> str | None:
     return None
 
 
-def match_at(words: Sequence[str], i: int) -> tuple[str, int] | None:
-    """A relation noun starting at ``words[i]`` (one or two words), as (type, words used)."""
+def match_at(words: Sequence[str], i: int) -> tuple[str, int, str] | None:
+    """A relation noun starting at ``words[i]`` (one or two words), as (type, words used,
+    ending): "kardesimin" → ("sibling", 1, "imin")."""
     for key, w, pattern in _LEXICON:
         n = len(w.split())
         if i + n <= len(words) and pattern.match(" ".join(words[i : i + n])):
-            return key, n
+            return key, n, words[i + n - 1][len(w.split()[-1]) :]
     return None
+
+
+def first_person(ending: str) -> bool:
+    """True if a relation noun's ending is first-person possessive ("arkadaşım",
+    "kardeşimin", "annem", "ablamız"), so the relation is the user's."""
+    e = re.sub(r"^(?:ler|lar)", "", ending)
+    return bool(re.match(r"^(?:y?im|y?um|m)", e))
 
 
 # ----- Turkish rendering ------------------------------------------------------------------
@@ -273,6 +282,14 @@ def genitive(name: str) -> str:
     }[v]
     ends_vowel = text.casefold(name)[-1:] in _VOWELS
     return f"{name}'{'n' if ends_vowel else ''}{suffix}"
+
+
+def genitive_of_noun(noun: str) -> str:
+    """A possessed noun in the genitive: "kardeşi" → "kardeşinin", "çalıştığı yer" →
+    "çalıştığı yerin", "çocukluk arkadaşı" → "çocukluk arkadaşının"."""
+    suffix = {"a": "ın", "ı": "ın", "o": "un", "u": "un", "e": "in", "i": "in", "ö": "ün",
+              "ü": "ün"}[_last_vowel(noun)]  # fmt: skip
+    return f"{noun}{'n' if text.casefold(noun)[-1:] in _VOWELS else ''}{suffix}"
 
 
 def locative(name: str) -> str:
