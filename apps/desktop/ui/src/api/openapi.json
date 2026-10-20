@@ -115,6 +115,48 @@
         "title": "AppInfoResponse",
         "type": "object"
       },
+      "ApplyResultResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "dropped": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Dropped",
+            "type": "object"
+          },
+          "entities_created": {
+            "title": "Entities Created",
+            "type": "integer"
+          },
+          "inbox": {
+            "title": "Inbox",
+            "type": "integer"
+          },
+          "superseded": {
+            "title": "Superseded",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created",
+          "updated",
+          "superseded",
+          "inbox",
+          "entities_created",
+          "dropped"
+        ],
+        "title": "ApplyResultResponse",
+        "type": "object"
+      },
       "AssistantStateResponse": {
         "additionalProperties": false,
         "description": "The one assistant: its active technical session (None before the first message), that\nsession's context state, and where the session starts in the timeline (messages before\n``active_from_timeline_seq`` are not in the model's current context).",
@@ -225,7 +267,8 @@
           "kind": {
             "enum": [
               "prewarm",
-              "compaction"
+              "compaction",
+              "memory"
             ],
             "title": "Kind",
             "type": "string"
@@ -381,7 +424,8 @@
               {
                 "enum": [
                   "prewarm",
-                  "compaction"
+                  "compaction",
+                  "memory"
                 ],
                 "type": "string"
               },
@@ -645,6 +689,61 @@
             ],
             "title": "Failed Stage"
           },
+          "memory_items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Items"
+          },
+          "memory_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Ms"
+          },
+          "memory_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Outcome"
+          },
+          "memory_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Request"
+          },
+          "memory_request_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Request Ms"
+          },
           "outcome": {
             "enum": [
               "completed",
@@ -724,6 +823,185 @@
         "title": "DiagLastTurnModel",
         "type": "object"
       },
+      "DiagLearningModel": {
+        "additionalProperties": false,
+        "description": "The last background learning run: counts, codes and durations only.",
+        "properties": {
+          "accepted": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "created": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "inbox": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inbox"
+          },
+          "messages": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messages"
+          },
+          "on_prefix": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Prefix"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "proposed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed"
+          },
+          "rejected": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected"
+          },
+          "state": {
+            "enum": [
+              "idle",
+              "running",
+              "done",
+              "failed",
+              "preempted"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "superseded": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded"
+          },
+          "updated": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "DiagLearningModel",
+        "type": "object"
+      },
       "DiagLoadedModel": {
         "additionalProperties": false,
         "properties": {
@@ -765,6 +1043,53 @@
           "expires_at"
         ],
         "title": "DiagLoadedModel",
+        "type": "object"
+      },
+      "DiagMemoryModel": {
+        "additionalProperties": false,
+        "properties": {
+          "auto_extract": {
+            "title": "Auto Extract",
+            "type": "boolean"
+          },
+          "inbox_open": {
+            "title": "Inbox Open",
+            "type": "integer"
+          },
+          "jobs": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Jobs",
+            "type": "object"
+          },
+          "learning": {
+            "$ref": "#/components/schemas/DiagLearningModel"
+          },
+          "memories": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Memories",
+            "type": "object"
+          },
+          "trusted_models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Trusted Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "auto_extract",
+          "trusted_models",
+          "learning",
+          "jobs",
+          "memories",
+          "inbox_open"
+        ],
+        "title": "DiagMemoryModel",
         "type": "object"
       },
       "DiagModelModel": {
@@ -975,7 +1300,8 @@
               {
                 "enum": [
                   "prewarm",
-                  "compaction"
+                  "compaction",
+                  "memory"
                 ],
                 "type": "string"
               },
@@ -999,6 +1325,9 @@
               }
             ]
           },
+          "memory": {
+            "$ref": "#/components/schemas/DiagMemoryModel"
+          },
           "model": {
             "$ref": "#/components/schemas/DiagModelModel"
           },
@@ -1020,7 +1349,8 @@
           "prewarm",
           "cache_expected_warm",
           "background",
-          "turn_active"
+          "turn_active",
+          "memory"
         ],
         "title": "DiagnosticsResponse",
         "type": "object"
@@ -1153,6 +1483,103 @@
         "title": "EffectiveSettingsResponse",
         "type": "object"
       },
+      "EntityEditRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          }
+        },
+        "title": "EntityEditRequest",
+        "type": "object"
+      },
+      "EntityMergeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "other_id": {
+            "pattern": "^[0-9A-Za-z_-]{1,64}$",
+            "title": "Other Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "other_id"
+        ],
+        "title": "EntityMergeRequest",
+        "type": "object"
+      },
+      "EntitySplitRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "memory_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Memory Ids",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          }
+        },
+        "required": [
+          "memory_ids",
+          "name"
+        ],
+        "title": "EntitySplitRequest",
+        "type": "object"
+      },
       "ErrorBody": {
         "additionalProperties": false,
         "properties": {
@@ -1193,6 +1620,25 @@
           "error"
         ],
         "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ForgetResultResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entities": {
+            "title": "Entities",
+            "type": "integer"
+          },
+          "memories": {
+            "title": "Memories",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "memories",
+          "entities"
+        ],
+        "title": "ForgetResultResponse",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -1266,6 +1712,198 @@
           "checks"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "ImportApplyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "selections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 500,
+            "title": "Selections",
+            "type": "object"
+          }
+        },
+        "required": [
+          "selections"
+        ],
+        "title": "ImportApplyRequest",
+        "type": "object"
+      },
+      "ImportItemModel": {
+        "additionalProperties": false,
+        "properties": {
+          "existing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Existing",
+            "type": "array"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/InboxOptionModel"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "predicate_label": {
+            "title": "Predicate Label",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "sensitive": {
+            "title": "Sensitive",
+            "type": "boolean"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "duplicate",
+              "update",
+              "conflict",
+              "ambiguous",
+              "excluded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "status",
+          "subject",
+          "predicate",
+          "predicate_label",
+          "value",
+          "statement",
+          "reason",
+          "sensitive",
+          "options",
+          "existing"
+        ],
+        "title": "ImportItemModel",
+        "type": "object"
+      },
+      "ImportPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "maxLength": 60000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "json",
+              "text"
+            ],
+            "title": "Format",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "content"
+        ],
+        "title": "ImportPreviewRequest",
+        "type": "object"
+      },
+      "ImportPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportItemModel"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "batch_id",
+          "items",
+          "errors"
+        ],
+        "title": "ImportPreviewResponse",
+        "type": "object"
+      },
+      "InboxOptionModel": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "InboxOptionModel",
+        "type": "object"
+      },
+      "InboxResolveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "choice": {
+            "pattern": "^(new|old|both|approve|reject|dismiss|[0-9A-Za-z_-]{10,64})$",
+            "title": "Choice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "choice"
+        ],
+        "title": "InboxResolveRequest",
         "type": "object"
       },
       "LlmStatusResponse": {
@@ -1346,6 +1984,676 @@
           "expires_at"
         ],
         "title": "LoadedModelModel",
+        "type": "object"
+      },
+      "MemoryCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "entity_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9A-Za-z_-]{1,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "new_entity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewEntityModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "predicate": {
+            "pattern": "^[a-z_]{1,40}$",
+            "title": "Predicate",
+            "type": "string"
+          },
+          "statement": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Statement",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "predicate",
+          "value"
+        ],
+        "title": "MemoryCreateRequest",
+        "type": "object"
+      },
+      "MemoryEditRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "statement": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "statement"
+        ],
+        "title": "MemoryEditRequest",
+        "type": "object"
+      },
+      "MemoryEntityDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/MemoryEntityModel"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryRecordModel"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity",
+          "records"
+        ],
+        "title": "MemoryEntityDetailResponse",
+        "type": "object"
+      },
+      "MemoryEntityListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entities": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryEntityModel"
+            },
+            "title": "Entities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "title": "MemoryEntityListResponse",
+        "type": "object"
+      },
+      "MemoryEntityModel": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "person",
+              "project",
+              "organization",
+              "place",
+              "thing"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "records": {
+            "title": "Records",
+            "type": "integer"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "relation",
+          "description",
+          "aliases",
+          "records",
+          "updated_at"
+        ],
+        "title": "MemoryEntityModel",
+        "type": "object"
+      },
+      "MemoryEvidenceModel": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "source_type": {
+            "enum": [
+              "message",
+              "import",
+              "user_edit",
+              "confirmation"
+            ],
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_type",
+          "source_ref",
+          "quote",
+          "created_at"
+        ],
+        "title": "MemoryEvidenceModel",
+        "type": "object"
+      },
+      "MemoryInboxItemModel": {
+        "additionalProperties": false,
+        "description": "A decision waiting for the user. ``proposal`` is the fact in question (no raw payload).",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "existing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Existing",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/InboxOptionModel"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "predicate_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicate Label"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ambiguous_entity",
+              "conflict",
+              "sensitive",
+              "destructive",
+              "import_batch"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "summary",
+          "created_at",
+          "predicate_label",
+          "value",
+          "subject",
+          "options",
+          "existing",
+          "category"
+        ],
+        "title": "MemoryInboxItemModel",
+        "type": "object"
+      },
+      "MemoryInboxResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryInboxItemModel"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MemoryInboxResponse",
+        "type": "object"
+      },
+      "MemoryListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryRecordModel"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "records",
+          "has_more"
+        ],
+        "title": "MemoryListResponse",
+        "type": "object"
+      },
+      "MemoryOverviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "auto_extract": {
+            "title": "Auto Extract",
+            "type": "boolean"
+          },
+          "entities": {
+            "title": "Entities",
+            "type": "integer"
+          },
+          "inbox_open": {
+            "title": "Inbox Open",
+            "type": "integer"
+          },
+          "jobs": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Jobs",
+            "type": "object"
+          },
+          "memories": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Memories",
+            "type": "object"
+          },
+          "trusted_models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Trusted Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "memories",
+          "entities",
+          "inbox_open",
+          "jobs",
+          "auto_extract",
+          "trusted_models"
+        ],
+        "title": "MemoryOverviewResponse",
+        "type": "object"
+      },
+      "MemoryRecordDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryEvidenceModel"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "previous": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryRecordModel"
+            },
+            "title": "Previous",
+            "type": "array"
+          },
+          "record": {
+            "$ref": "#/components/schemas/MemoryRecordModel"
+          }
+        },
+        "required": [
+          "record",
+          "evidence",
+          "previous"
+        ],
+        "title": "MemoryRecordDetailResponse",
+        "type": "object"
+      },
+      "MemoryRecordModel": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "conflict_state": {
+            "enum": [
+              "none",
+              "pending"
+            ],
+            "title": "Conflict State",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Time"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "importance": {
+            "title": "Importance",
+            "type": "number"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "stated",
+              "requested",
+              "confirmed",
+              "imported",
+              "user_edit",
+              "inferred"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "predicate": {
+            "title": "Predicate",
+            "type": "string"
+          },
+          "predicate_label": {
+            "title": "Predicate Label",
+            "type": "string"
+          },
+          "recall_count": {
+            "title": "Recall Count",
+            "type": "integer"
+          },
+          "sensitivity": {
+            "enum": [
+              "normal",
+              "personal",
+              "sensitive"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          },
+          "sensitivity_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensitivity Category"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "superseded",
+              "retracted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemorySubjectModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supersedes_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Id"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "predicate",
+          "predicate_label",
+          "subject",
+          "value",
+          "content",
+          "status",
+          "origin",
+          "confidence",
+          "importance",
+          "sensitivity",
+          "sensitivity_category",
+          "conflict_state",
+          "event_time",
+          "valid_from",
+          "valid_to",
+          "supersedes_id",
+          "recall_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MemoryRecordModel",
+        "type": "object"
+      },
+      "MemorySubjectModel": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "person",
+              "project",
+              "organization",
+              "place",
+              "thing"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "relation"
+        ],
+        "title": "MemorySubjectModel",
         "type": "object"
       },
       "MessageMetricsModel": {
@@ -1605,6 +2913,114 @@
           "models"
         ],
         "title": "ModelListResponse",
+        "type": "object"
+      },
+      "NewEntityModel": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "default": "person",
+            "enum": [
+              "person",
+              "project",
+              "organization",
+              "place",
+              "thing"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "NewEntityModel",
+        "type": "object"
+      },
+      "PredicateListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "predicates": {
+            "items": {
+              "$ref": "#/components/schemas/PredicateModel"
+            },
+            "title": "Predicates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "predicates"
+        ],
+        "title": "PredicateListResponse",
+        "type": "object"
+      },
+      "PredicateModel": {
+        "additionalProperties": false,
+        "properties": {
+          "cardinality": {
+            "enum": [
+              "single",
+              "multi"
+            ],
+            "title": "Cardinality",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "sensitivity": {
+            "enum": [
+              "normal",
+              "personal",
+              "sensitive"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "cardinality",
+          "sensitivity",
+          "subjects"
+        ],
+        "title": "PredicateModel",
         "type": "object"
       },
       "PrepareRequest": {
@@ -2292,6 +3708,852 @@
           }
         },
         "summary": "Llm Status"
+      }
+    },
+    "/api/v1/memory/entities": {
+      "get": {
+        "operationId": "list_entities_api_v1_memory_entities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(person|project|organization|place|thing)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntityListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Entities"
+      }
+    },
+    "/api/v1/memory/entities/{entity_id}": {
+      "delete": {
+        "operationId": "forget_entity_api_v1_memory_entities__entity_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "confirm",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgetResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forget Entity"
+      },
+      "get": {
+        "operationId": "entity_detail_api_v1_memory_entities__entity_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntityDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Entity Detail"
+      },
+      "patch": {
+        "operationId": "edit_entity_api_v1_memory_entities__entity_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntityModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit Entity"
+      }
+    },
+    "/api/v1/memory/entities/{entity_id}/merge": {
+      "post": {
+        "operationId": "merge_entity_api_v1_memory_entities__entity_id__merge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityMergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntityModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Entity"
+      }
+    },
+    "/api/v1/memory/entities/{entity_id}/split": {
+      "post": {
+        "operationId": "split_entity_api_v1_memory_entities__entity_id__split_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntitySplitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntityModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Split Entity"
+      }
+    },
+    "/api/v1/memory/import/preview": {
+      "post": {
+        "operationId": "import_preview_api_v1_memory_import_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Preview"
+      }
+    },
+    "/api/v1/memory/import/{batch_id}": {
+      "delete": {
+        "operationId": "import_discard_api_v1_memory_import__batch_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgetResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Discard"
+      },
+      "get": {
+        "operationId": "import_batch_api_v1_memory_import__batch_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Batch"
+      }
+    },
+    "/api/v1/memory/import/{batch_id}/apply": {
+      "post": {
+        "operationId": "import_apply_api_v1_memory_import__batch_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Apply"
+      }
+    },
+    "/api/v1/memory/inbox": {
+      "get": {
+        "operationId": "inbox_api_v1_memory_inbox_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryInboxResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Inbox"
+      }
+    },
+    "/api/v1/memory/inbox/{item_id}/resolve": {
+      "post": {
+        "operationId": "resolve_api_v1_memory_inbox__item_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboxResolveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve"
+      }
+    },
+    "/api/v1/memory/overview": {
+      "get": {
+        "operationId": "overview_api_v1_memory_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Overview"
+      }
+    },
+    "/api/v1/memory/predicates": {
+      "get": {
+        "operationId": "predicates_api_v1_memory_predicates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredicateListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Predicates"
+      }
+    },
+    "/api/v1/memory/records": {
+      "get": {
+        "operationId": "list_records_api_v1_memory_records_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z_]{1,20}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "User Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "active",
+              "pattern": "^(active|superseded|all)$",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Records"
+      },
+      "post": {
+        "operationId": "add_record_api_v1_memory_records_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Record"
+      }
+    },
+    "/api/v1/memory/records/{memory_id}": {
+      "delete": {
+        "operationId": "forget_record_api_v1_memory_records__memory_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgetResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forget Record"
+      },
+      "get": {
+        "operationId": "record_detail_api_v1_memory_records__memory_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRecordDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Detail"
+      },
+      "patch": {
+        "operationId": "edit_record_api_v1_memory_records__memory_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "title": "Memory Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRecordModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit Record"
       }
     },
     "/api/v1/settings": {

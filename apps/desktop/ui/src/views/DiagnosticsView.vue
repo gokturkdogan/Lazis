@@ -204,6 +204,59 @@ const prewarmRows = computed<StatusRow[]>(() => {
   ];
 });
 
+const learningRows = computed<StatusRow[]>(() => {
+  const m = diag.value?.memory;
+  if (!m) return [];
+  const l = m.learning;
+  const jobs = m.jobs;
+  let value: string;
+  let tone: StatusRow["tone"] = "muted";
+  switch (l.state) {
+    case "running":
+      value = t("diagnostics.learning.running");
+      tone = "warn";
+      break;
+    case "done":
+      value = t("diagnostics.learning.done", {
+        created: l.created ?? 0,
+        inbox: l.inbox ?? 0,
+        duration: ms(l.duration_ms ?? null),
+      });
+      tone = "ok";
+      break;
+    case "failed":
+      value = t("diagnostics.learning.failed", { code: l.code ?? "llm_error" });
+      tone = "danger";
+      break;
+    case "preempted":
+      value = t("diagnostics.learning.preempted");
+      break;
+    default:
+      value = t("diagnostics.learning.idle");
+  }
+  return [
+    {
+      label: t("diagnostics.learning.auto"),
+      value: m.auto_extract ? t("diagnostics.learning.on", { models: m.trusted_models.join(", ") }) : t("settings.disabled"),
+      tone: m.auto_extract ? "ok" : "muted",
+    },
+    { label: t("diagnostics.learning.last"), value, tone },
+    {
+      label: t("diagnostics.learning.queue"),
+      value: t("diagnostics.learning.queueValue", {
+        queued: (jobs.queued ?? 0) + (jobs.running ?? 0),
+        deferred: jobs.deferred ?? 0,
+        failed: jobs.failed ?? 0,
+      }),
+      tone: (jobs.failed ?? 0) > 0 ? "warn" : "muted",
+    },
+    {
+      label: t("diagnostics.learning.records"),
+      value: t("diagnostics.learning.recordsValue", { active: m.memories.active ?? 0, pending: m.inbox_open }),
+    },
+  ];
+});
+
 const memoryRows = computed<StatusRow[]>(() => {
   const m = metrics.value;
   if (metricsError.value || m === null) {
@@ -237,6 +290,12 @@ function eventText(code: string): string {
       <StatusCard :title="t('diagnostics.backend')" :rows="backendRows" testid="diag-backend" />
       <StatusCard :title="t('diagnostics.model')" :rows="modelRows" testid="diag-model" />
       <StatusCard :title="t('diagnostics.performance')" :rows="perfRows" testid="diag-performance" />
+      <StatusCard
+        v-if="learningRows.length"
+        :title="t('diagnostics.personalMemory')"
+        :rows="learningRows"
+        testid="diag-learning"
+      />
       <StatusCard
         v-if="prewarmRows.length"
         :title="t('diagnostics.context')"

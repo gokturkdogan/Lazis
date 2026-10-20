@@ -1,0 +1,130 @@
+/* Shared by the memory screen's components (classes prefixed mem-). No animation. */
+.mem-panel {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mem-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.mem-input,
+.mem-select,
+.mem-textarea {
+  background: rgba(6, 10, 19, 0.6);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 6px 10px;
+  font: inherit;
+  user-select: text;
+}
+.mem-input {
+  flex: 1;
+  min-width: 160px;
+}
+.mem-textarea {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.mem-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mem-item {
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(11, 18, 33, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mem-item.old {
+  opacity: 0.65;
+}
+.mem-text {
+  user-select: text;
+}
+.mem-meta {
+  font-size: 12px;
+  color: var(--text-faint);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.mem-badge {
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+}
+.mem-badge.warn {
+  color: var(--warn);
+  border-color: rgba(255, 200, 58, 0.35);
+}
+.mem-badge.danger {
+  color: var(--danger);
+  border-color: rgba(255, 90, 90, 0.35);
+}
+.mem-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mem-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--state-idle);
+  font-size: 12px;
+}
+.mem-link.danger {
+  color: var(--danger);
+}
+.mem-confirm {
+  font-size: 12px;
+  border-left: 2px solid var(--danger);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mem-detail {
+  font-size: 12px;
+  border-left: 2px solid var(--panel-border-strong);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mem-small {
+  font-size: 12px;
+  margin: 0;
+}
+.mem-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin: 0;
+}
+.mem-ok {
+  color: var(--ok);
+  font-size: 12px;
+  margin: 0;
+}
+.mem-btn-small {
+  padding: 4px 10px;
+  font-size: 12px;
+}

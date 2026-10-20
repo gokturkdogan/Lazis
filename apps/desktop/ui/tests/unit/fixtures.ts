@@ -192,6 +192,25 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       pending_compaction: [],
     }),
     diagnostics: vi.fn().mockResolvedValue(diagnosticsFixture()),
+    memoryOverview: vi.fn().mockResolvedValue({
+      memories: {}, entities: 0, inbox_open: 0, jobs: {}, auto_extract: true, trusted_models: ["gemma4:12b-it-qat"],
+    }),
+    memoryPredicates: vi.fn().mockResolvedValue([]),
+    memoryRecords: vi.fn().mockResolvedValue({ records: [], has_more: false }),
+    memoryRecord: vi.fn(),
+    addMemory: vi.fn(),
+    editMemory: vi.fn(),
+    forgetMemory: vi.fn(),
+    memoryEntities: vi.fn().mockResolvedValue([]),
+    memoryEntity: vi.fn(),
+    editEntity: vi.fn(),
+    mergeEntities: vi.fn(),
+    forgetEntity: vi.fn(),
+    memoryInbox: vi.fn().mockResolvedValue([]),
+    resolveInbox: vi.fn(),
+    importPreview: vi.fn(),
+    importApply: vi.fn(),
+    importDiscard: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -255,6 +274,14 @@ export function diagnosticsFixture(overrides: Partial<DiagnosticsResponse> = {})
     cache_expected_warm: true,
     background: null,
     turn_active: false,
+    memory: {
+      auto_extract: true,
+      trusted_models: ["gemma4:12b-it-qat"],
+      learning: { state: "done", at: "2026-10-18T10:00:05.000Z", messages: 1, proposed: 1, accepted: 1, created: 1 },
+      jobs: { done: 4 },
+      memories: { active: 3 },
+      inbox_open: 0,
+    },
     ...overrides,
   };
 }

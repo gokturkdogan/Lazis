@@ -20,6 +20,29 @@ export type TurnSubmitRequest = Schemas["TurnSubmitRequest"];
 export type PrepareResponse = Schemas["PrepareResponse"];
 export type ActivityResponse = Schemas["ActivityResponse"];
 export type DiagnosticsResponse = Schemas["DiagnosticsResponse"];
+export type MemoryRecord = Schemas["MemoryRecordModel"];
+export type MemoryListResponse = Schemas["MemoryListResponse"];
+export type MemoryRecordDetail = Schemas["MemoryRecordDetailResponse"];
+export type MemoryEntity = Schemas["MemoryEntityModel"];
+export type MemoryEntityDetail = Schemas["MemoryEntityDetailResponse"];
+export type MemoryInboxItem = Schemas["MemoryInboxItemModel"];
+export type MemoryOverview = Schemas["MemoryOverviewResponse"];
+export type MemoryPredicate = Schemas["PredicateModel"];
+export type MemoryCreateRequest = Schemas["MemoryCreateRequest"];
+export type MemoryApplyResult = Schemas["ApplyResultResponse"];
+export type MemoryForgetResult = Schemas["ForgetResultResponse"];
+export type ImportPreview = Schemas["ImportPreviewResponse"];
+export type ImportItem = Schemas["ImportItemModel"];
+
+export interface MemoryQuery {
+  q?: string | undefined;
+  kind?: string | undefined;
+  subject_id?: string | undefined;
+  user_only?: boolean | undefined;
+  status?: "active" | "superseded" | "all";
+  limit?: number;
+  offset?: number;
+}
 type ErrorResponse = Schemas["ErrorResponse"];
 
 export interface ChatMetrics {
@@ -46,6 +69,7 @@ export type TurnStage =
   | "compacting"
   | "context_trimmed"
   | "loading_model"
+  | "memory"
   | "processing_context";
 
 /** One line of the NDJSON stream from POST /turns. */
@@ -117,6 +141,24 @@ export interface ApiClient {
     signal?: AbortSignal,
   ): Promise<void>;
   cancelTurn(clientId: string): Promise<boolean>;
+  // ----- personal memory (Phase 6) -----
+  memoryOverview(): Promise<MemoryOverview>;
+  memoryPredicates(): Promise<MemoryPredicate[]>;
+  memoryRecords(query?: MemoryQuery): Promise<MemoryListResponse>;
+  memoryRecord(id: string): Promise<MemoryRecordDetail>;
+  addMemory(body: MemoryCreateRequest): Promise<MemoryApplyResult>;
+  editMemory(id: string, value: string, statement: string): Promise<MemoryRecord>;
+  forgetMemory(id: string): Promise<MemoryForgetResult>;
+  memoryEntities(kind?: string, q?: string): Promise<MemoryEntity[]>;
+  memoryEntity(id: string): Promise<MemoryEntityDetail>;
+  editEntity(id: string, body: { name?: string; relation?: string | null; description?: string | null }): Promise<MemoryEntity>;
+  mergeEntities(keepId: string, otherId: string): Promise<MemoryEntity>;
+  forgetEntity(id: string): Promise<MemoryForgetResult>;
+  memoryInbox(): Promise<MemoryInboxItem[]>;
+  resolveInbox(id: string, choice: string): Promise<MemoryApplyResult>;
+  importPreview(format: "json" | "text", content: string): Promise<ImportPreview>;
+  importApply(batchId: string, selections: Record<string, string>): Promise<MemoryApplyResult>;
+  importDiscard(batchId: string): Promise<void>;
   prepare(model: string): Promise<PrepareResponse>;
   activity(): Promise<ActivityResponse>;
   /** Model, runtime, last-turn timings and pre-warm state; never message content. */
@@ -210,9 +252,14 @@ export function createApiClient(
     }
   }
 
-  async function send<T>(method: "POST", path: string, payload?: unknown): Promise<T> {
+  async function send<T>(
+    method: "POST" | "PATCH" | "DELETE",
+    path: string,
+    payload?: unknown,
+    timeout = timeoutMs,
+  ): Promise<T> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), timeout);
     let response: Response;
     try {
       response = await fetchImpl(`${base}${path}`, {
@@ -235,6 +282,13 @@ export function createApiClient(
   }
 
   const post = <T>(path: string, payload: unknown) => send<T>("POST", path, payload);
+  const enc = encodeURIComponent;
+  const queryString = (params: Record<string, string | number | boolean | undefined>) => {
+    const parts = Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== "")
+      .map(([k, v]) => `${k}=${enc(String(v))}`);
+    return parts.length ? `?${parts.join("&")}` : "";
+  };
 
   async function get<T>(path: string): Promise<T> {
     const controller = new AbortController();
@@ -288,5 +342,31 @@ export function createApiClient(
     prepare: (model) => post<PrepareResponse>("/chat/prepare", { model }),
     activity: () => get<ActivityResponse>("/chat/activity"),
     diagnostics: () => get<DiagnosticsResponse>("/diagnostics"),
+    memoryOverview: () => get<MemoryOverview>("/memory/overview"),
+    memoryPredicates: async () =>
+      (await get<{ predicates: MemoryPredicate[] }>("/memory/predicates")).predicates,
+    memoryRecords: (query = {}) => get<MemoryListResponse>(`/memory/records${queryString({ ...query })}`),
+    memoryRecord: (id) => get<MemoryRecordDetail>(`/memory/records/${enc(id)}`),
+    addMemory: (body) => post<MemoryApplyResult>("/memory/records", body),
+    editMemory: (id, value, statement) =>
+      send<MemoryRecord>("PATCH", `/memory/records/${enc(id)}`, { value, statement }),
+    forgetMemory: (id) => send<MemoryForgetResult>("DELETE", `/memory/records/${enc(id)}`),
+    memoryEntities: async (kind, q) =>
+      (await get<{ entities: MemoryEntity[] }>(`/memory/entities${queryString({ kind, q })}`)).entities,
+    memoryEntity: (id) => get<MemoryEntityDetail>(`/memory/entities/${enc(id)}`),
+    editEntity: (id, body) => send<MemoryEntity>("PATCH", `/memory/entities/${enc(id)}`, body),
+    mergeEntities: (keepId, otherId) =>
+      post<MemoryEntity>(`/memory/entities/${enc(keepId)}/merge`, { other_id: otherId }),
+    forgetEntity: (id) => send<MemoryForgetResult>("DELETE", `/memory/entities/${enc(id)}?confirm=true`),
+    memoryInbox: async () => (await get<{ items: MemoryInboxItem[] }>("/memory/inbox")).items,
+    resolveInbox: (id, choice) => post<MemoryApplyResult>(`/memory/inbox/${enc(id)}/resolve`, { choice }),
+    // A text import runs the local model over the text: allow it minutes, not seconds.
+    importPreview: (format, content) =>
+      send<ImportPreview>("POST", "/memory/import/preview", { format, content }, 300_000),
+    importApply: (batchId, selections) =>
+      post<MemoryApplyResult>(`/memory/import/${enc(batchId)}/apply`, { selections }),
+    importDiscard: async (batchId) => {
+      await send<unknown>("DELETE", `/memory/import/${enc(batchId)}`);
+    },
   };
 }

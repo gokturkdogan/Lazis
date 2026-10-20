@@ -47,7 +47,7 @@ export interface ProcessMetrics {
   ollama_found: boolean;
 }
 
-export type View = "conversation" | "overview" | "settings" | "diagnostics";
+export type View = "conversation" | "memory" | "overview" | "settings" | "diagnostics";
 
 export interface Platform {
   getConnection(): Promise<BackendConnection>;
@@ -73,7 +73,7 @@ export interface Platform {
 export const CONNECTION_EVENT = "lazis://backend-connection";
 export const WAKE_EVENT = "lazis://system-woke";
 export const NAVIGATE_EVENT = "lazis://navigate";
-const VIEWS: readonly View[] = ["conversation", "overview", "settings", "diagnostics"];
+const VIEWS: readonly View[] = ["conversation", "memory", "overview", "settings", "diagnostics"];
 
 function asView(value: unknown): View | null {
   return VIEWS.find((v) => v === value) ?? null;

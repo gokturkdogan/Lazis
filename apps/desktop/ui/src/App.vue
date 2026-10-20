@@ -12,6 +12,7 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { usePresence } from "@/stores/presence";
 import AssistantView from "@/views/AssistantView.vue";
 import DiagnosticsView from "@/views/DiagnosticsView.vue";
+import MemoryView from "@/views/MemoryView.vue";
 import OverviewView from "@/views/OverviewView.vue";
 import SettingsView from "@/views/SettingsView.vue";
 
@@ -20,7 +21,7 @@ const preferences = usePreferencesStore();
 const presence = usePresence();
 const { t } = useI18n();
 const tab = ref<View>("conversation");
-const tabs: View[] = ["conversation", "overview", "settings", "diagnostics"];
+const tabs: View[] = ["conversation", "memory", "overview", "settings", "diagnostics"];
 
 const version = computed(() => store.info?.version ?? "—");
 const showError = computed(
@@ -92,6 +93,7 @@ onBeforeUnmount(() => offNavigate?.());
       <template v-else>
         <StartupError v-if="showError" />
         <AssistantView v-if="tab === 'conversation' && store.phase === 'connected'" />
+        <MemoryView v-else-if="tab === 'memory' && store.phase === 'connected'" />
         <OverviewView v-else-if="tab === 'overview' && store.phase === 'connected'" />
         <SettingsView v-else-if="tab === 'settings'" />
         <DiagnosticsView v-else-if="tab === 'diagnostics'" />

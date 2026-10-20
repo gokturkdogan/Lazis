@@ -51,6 +51,8 @@ const stageLabel = computed(() => {
       return t("conversation.stage.loading_model");
     case "compacting":
       return t("conversation.stage.compacting");
+    case "memory":
+      return t("conversation.stage.memory");
     case "processing_context":
       return turn.cache === "cold"
         ? t("conversation.stage.processing_cold", { tokens: turn.contextTokens ?? "?" })

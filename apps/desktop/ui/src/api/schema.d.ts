@@ -174,6 +174,233 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memory/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Entities */
+        get: operations["list_entities_api_v1_memory_entities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/entities/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entity Detail */
+        get: operations["entity_detail_api_v1_memory_entities__entity_id__get"];
+        put?: never;
+        post?: never;
+        /** Forget Entity */
+        delete: operations["forget_entity_api_v1_memory_entities__entity_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit Entity */
+        patch: operations["edit_entity_api_v1_memory_entities__entity_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/memory/entities/{entity_id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merge Entity */
+        post: operations["merge_entity_api_v1_memory_entities__entity_id__merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/entities/{entity_id}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Split Entity */
+        post: operations["split_entity_api_v1_memory_entities__entity_id__split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Preview */
+        post: operations["import_preview_api_v1_memory_import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/import/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import Batch */
+        get: operations["import_batch_api_v1_memory_import__batch_id__get"];
+        put?: never;
+        post?: never;
+        /** Import Discard */
+        delete: operations["import_discard_api_v1_memory_import__batch_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/import/{batch_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Apply */
+        post: operations["import_apply_api_v1_memory_import__batch_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inbox */
+        get: operations["inbox_api_v1_memory_inbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/inbox/{item_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve */
+        post: operations["resolve_api_v1_memory_inbox__item_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_v1_memory_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/predicates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Predicates */
+        get: operations["predicates_api_v1_memory_predicates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Records */
+        get: operations["list_records_api_v1_memory_records_get"];
+        put?: never;
+        /** Add Record */
+        post: operations["add_record_api_v1_memory_records_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/records/{memory_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Record Detail */
+        get: operations["record_detail_api_v1_memory_records__memory_id__get"];
+        put?: never;
+        post?: never;
+        /** Forget Record */
+        delete: operations["forget_record_api_v1_memory_records__memory_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit Record */
+        patch: operations["edit_record_api_v1_memory_records__memory_id__patch"];
+        trace?: never;
+    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -296,6 +523,23 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** ApplyResultResponse */
+        ApplyResultResponse: {
+            /** Created */
+            created: number;
+            /** Dropped */
+            dropped: {
+                [key: string]: number;
+            };
+            /** Entities Created */
+            entities_created: number;
+            /** Inbox */
+            inbox: number;
+            /** Superseded */
+            superseded: number;
+            /** Updated */
+            updated: number;
+        };
         /**
          * AssistantStateResponse
          * @description The one assistant: its active technical session (None before the first message), that
@@ -335,7 +579,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "prewarm" | "compaction";
+            kind: "prewarm" | "compaction" | "memory";
         };
         /** ChatCancelRequest */
         ChatCancelRequest: {
@@ -385,7 +629,7 @@ export interface components {
             /** Anchored */
             anchored: boolean;
             /** Background */
-            background: ("prewarm" | "compaction") | null;
+            background: ("prewarm" | "compaction" | "memory") | null;
             /**
              * Cache
              * @enum {string}
@@ -480,6 +724,16 @@ export interface components {
             decode_tps: number | null;
             /** Failed Stage */
             failed_stage?: string | null;
+            /** Memory Items */
+            memory_items?: number | null;
+            /** Memory Ms */
+            memory_ms?: number | null;
+            /** Memory Outcome */
+            memory_outcome?: string | null;
+            /** Memory Request */
+            memory_request?: string | null;
+            /** Memory Request Ms */
+            memory_request_ms?: number | null;
             /**
              * Outcome
              * @enum {string}
@@ -496,6 +750,47 @@ export interface components {
             /** Ttft Ms */
             ttft_ms: number | null;
         };
+        /**
+         * DiagLearningModel
+         * @description The last background learning run: counts, codes and durations only.
+         */
+        DiagLearningModel: {
+            /** Accepted */
+            accepted?: number | null;
+            /** At */
+            at?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Created */
+            created?: number | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Inbox */
+            inbox?: number | null;
+            /** Messages */
+            messages?: number | null;
+            /** On Prefix */
+            on_prefix?: boolean | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Prompt Tokens */
+            prompt_tokens?: number | null;
+            /** Proposed */
+            proposed?: number | null;
+            /** Rejected */
+            rejected?: {
+                [key: string]: number;
+            } | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "idle" | "running" | "done" | "failed" | "preempted";
+            /** Superseded */
+            superseded?: number | null;
+            /** Updated */
+            updated?: number | null;
+        };
         /** DiagLoadedModel */
         DiagLoadedModel: {
             /** Context Length */
@@ -506,6 +801,24 @@ export interface components {
             name: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /** DiagMemoryModel */
+        DiagMemoryModel: {
+            /** Auto Extract */
+            auto_extract: boolean;
+            /** Inbox Open */
+            inbox_open: number;
+            /** Jobs */
+            jobs: {
+                [key: string]: number;
+            };
+            learning: components["schemas"]["DiagLearningModel"];
+            /** Memories */
+            memories: {
+                [key: string]: number;
+            };
+            /** Trusted Models */
+            trusted_models: string[];
         };
         /** DiagModelModel */
         DiagModelModel: {
@@ -560,10 +873,11 @@ export interface components {
          */
         DiagnosticsResponse: {
             /** Background */
-            background: ("prewarm" | "compaction") | null;
+            background: ("prewarm" | "compaction" | "memory") | null;
             /** Cache Expected Warm */
             cache_expected_warm: boolean;
             last_turn: components["schemas"]["DiagLastTurnModel"] | null;
+            memory: components["schemas"]["DiagMemoryModel"];
             model: components["schemas"]["DiagModelModel"];
             prewarm: components["schemas"]["DiagPrewarmModel"];
             runtime: components["schemas"]["DiagRuntimeModel"];
@@ -620,6 +934,29 @@ export interface components {
             /** Voice Interaction Mode */
             voice_interaction_mode: string;
         };
+        /** EntityEditRequest */
+        EntityEditRequest: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Relation */
+            relation?: string | null;
+        };
+        /** EntityMergeRequest */
+        EntityMergeRequest: {
+            /** Other Id */
+            other_id: string;
+        };
+        /** EntitySplitRequest */
+        EntitySplitRequest: {
+            /** Memory Ids */
+            memory_ids: string[];
+            /** Name */
+            name: string;
+            /** Relation */
+            relation?: string | null;
+        };
         /** ErrorBody */
         ErrorBody: {
             /** Code */
@@ -634,6 +971,13 @@ export interface components {
         /** ErrorResponse */
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** ForgetResultResponse */
+        ForgetResultResponse: {
+            /** Entities */
+            entities: number;
+            /** Memories */
+            memories: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -664,6 +1008,72 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** ImportApplyRequest */
+        ImportApplyRequest: {
+            /** Selections */
+            selections: {
+                [key: string]: string;
+            };
+        };
+        /** ImportItemModel */
+        ImportItemModel: {
+            /** Existing */
+            existing: string[];
+            /** Index */
+            index: number;
+            /** Options */
+            options: components["schemas"]["InboxOptionModel"][];
+            /** Predicate */
+            predicate: string;
+            /** Predicate Label */
+            predicate_label: string;
+            /** Reason */
+            reason: string | null;
+            /** Sensitive */
+            sensitive: boolean;
+            /** Statement */
+            statement: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "duplicate" | "update" | "conflict" | "ambiguous" | "excluded";
+            /** Subject */
+            subject: string;
+            /** Value */
+            value: string;
+        };
+        /** ImportPreviewRequest */
+        ImportPreviewRequest: {
+            /** Content */
+            content: string;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "json" | "text";
+        };
+        /** ImportPreviewResponse */
+        ImportPreviewResponse: {
+            /** Batch Id */
+            batch_id: string;
+            /** Errors */
+            errors: string[];
+            /** Items */
+            items: components["schemas"]["ImportItemModel"][];
+        };
+        /** InboxOptionModel */
+        InboxOptionModel: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** InboxResolveRequest */
+        InboxResolveRequest: {
+            /** Choice */
+            choice: string;
+        };
         /** LlmStatusResponse */
         LlmStatusResponse: {
             /**
@@ -689,6 +1099,213 @@ export interface components {
             size_bytes: number;
             /** Vram Bytes */
             vram_bytes: number;
+        };
+        /** MemoryCreateRequest */
+        MemoryCreateRequest: {
+            /** Entity Id */
+            entity_id?: string | null;
+            new_entity?: components["schemas"]["NewEntityModel"] | null;
+            /** Predicate */
+            predicate: string;
+            /**
+             * Statement
+             * @default
+             */
+            statement: string;
+            /** Value */
+            value: string;
+        };
+        /** MemoryEditRequest */
+        MemoryEditRequest: {
+            /** Statement */
+            statement: string;
+            /** Value */
+            value: string;
+        };
+        /** MemoryEntityDetailResponse */
+        MemoryEntityDetailResponse: {
+            entity: components["schemas"]["MemoryEntityModel"];
+            /** Records */
+            records: components["schemas"]["MemoryRecordModel"][];
+        };
+        /** MemoryEntityListResponse */
+        MemoryEntityListResponse: {
+            /** Entities */
+            entities: components["schemas"]["MemoryEntityModel"][];
+        };
+        /** MemoryEntityModel */
+        MemoryEntityModel: {
+            /** Aliases */
+            aliases: string[];
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "person" | "project" | "organization" | "place" | "thing";
+            /** Name */
+            name: string;
+            /** Records */
+            records: number;
+            /** Relation */
+            relation: string | null;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** MemoryEvidenceModel */
+        MemoryEvidenceModel: {
+            /** Created At */
+            created_at: string;
+            /** Quote */
+            quote: string | null;
+            /** Source Ref */
+            source_ref: string | null;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "message" | "import" | "user_edit" | "confirmation";
+        };
+        /**
+         * MemoryInboxItemModel
+         * @description A decision waiting for the user. ``proposal`` is the fact in question (no raw payload).
+         */
+        MemoryInboxItemModel: {
+            /** Category */
+            category: string | null;
+            /** Created At */
+            created_at: string;
+            /** Existing */
+            existing: string[];
+            /** Id */
+            id: string;
+            /** Options */
+            options: components["schemas"]["InboxOptionModel"][];
+            /** Predicate Label */
+            predicate_label: string | null;
+            /** Subject */
+            subject: string | null;
+            /** Summary */
+            summary: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "ambiguous_entity" | "conflict" | "sensitive" | "destructive" | "import_batch";
+            /** Value */
+            value: string | null;
+        };
+        /** MemoryInboxResponse */
+        MemoryInboxResponse: {
+            /** Items */
+            items: components["schemas"]["MemoryInboxItemModel"][];
+        };
+        /** MemoryListResponse */
+        MemoryListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Records */
+            records: components["schemas"]["MemoryRecordModel"][];
+        };
+        /** MemoryOverviewResponse */
+        MemoryOverviewResponse: {
+            /** Auto Extract */
+            auto_extract: boolean;
+            /** Entities */
+            entities: number;
+            /** Inbox Open */
+            inbox_open: number;
+            /** Jobs */
+            jobs: {
+                [key: string]: number;
+            };
+            /** Memories */
+            memories: {
+                [key: string]: number;
+            };
+            /** Trusted Models */
+            trusted_models: string[];
+        };
+        /** MemoryRecordDetailResponse */
+        MemoryRecordDetailResponse: {
+            /** Evidence */
+            evidence: components["schemas"]["MemoryEvidenceModel"][];
+            /** Previous */
+            previous: components["schemas"]["MemoryRecordModel"][];
+            record: components["schemas"]["MemoryRecordModel"];
+        };
+        /** MemoryRecordModel */
+        MemoryRecordModel: {
+            /** Confidence */
+            confidence: number;
+            /**
+             * Conflict State
+             * @enum {string}
+             */
+            conflict_state: "none" | "pending";
+            /** Content */
+            content: string;
+            /** Created At */
+            created_at: string;
+            /** Event Time */
+            event_time: string | null;
+            /** Id */
+            id: string;
+            /** Importance */
+            importance: number;
+            /** Kind */
+            kind: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "stated" | "requested" | "confirmed" | "imported" | "user_edit" | "inferred";
+            /** Predicate */
+            predicate: string;
+            /** Predicate Label */
+            predicate_label: string;
+            /** Recall Count */
+            recall_count: number;
+            /**
+             * Sensitivity
+             * @enum {string}
+             */
+            sensitivity: "normal" | "personal" | "sensitive";
+            /** Sensitivity Category */
+            sensitivity_category: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "superseded" | "retracted";
+            subject: components["schemas"]["MemorySubjectModel"] | null;
+            /** Supersedes Id */
+            supersedes_id: string | null;
+            /** Updated At */
+            updated_at: string;
+            /** Valid From */
+            valid_from: string | null;
+            /** Valid To */
+            valid_to: string | null;
+            /** Value */
+            value: string;
+        };
+        /** MemorySubjectModel */
+        MemorySubjectModel: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "person" | "project" | "organization" | "place" | "thing";
+            /** Name */
+            name: string;
+            /** Relation */
+            relation: string | null;
         };
         /** MessageMetricsModel */
         MessageMetricsModel: {
@@ -763,6 +1380,45 @@ export interface components {
         ModelListResponse: {
             /** Models */
             models: components["schemas"]["ModelInfoModel"][];
+        };
+        /** NewEntityModel */
+        NewEntityModel: {
+            /**
+             * Kind
+             * @default person
+             * @enum {string}
+             */
+            kind: "person" | "project" | "organization" | "place" | "thing";
+            /** Name */
+            name: string;
+            /** Relation */
+            relation?: string | null;
+        };
+        /** PredicateListResponse */
+        PredicateListResponse: {
+            /** Predicates */
+            predicates: components["schemas"]["PredicateModel"][];
+        };
+        /** PredicateModel */
+        PredicateModel: {
+            /**
+             * Cardinality
+             * @enum {string}
+             */
+            cardinality: "single" | "multi";
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /**
+             * Sensitivity
+             * @enum {string}
+             */
+            sensitivity: "normal" | "personal" | "sensitive";
+            /** Subjects */
+            subjects: string[];
         };
         /** PrepareRequest */
         PrepareRequest: {
@@ -1209,6 +1865,599 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlmStatusResponse"];
+                };
+            };
+        };
+    };
+    list_entities_api_v1_memory_entities_get: {
+        parameters: {
+            query?: {
+                kind?: string | null;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryEntityListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    entity_detail_api_v1_memory_entities__entity_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryEntityDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_entity_api_v1_memory_entities__entity_id__delete: {
+        parameters: {
+            query?: {
+                confirm?: boolean;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgetResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_entity_api_v1_memory_entities__entity_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryEntityModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_entity_api_v1_memory_entities__entity_id__merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityMergeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryEntityModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_entity_api_v1_memory_entities__entity_id__split_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitySplitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryEntityModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_preview_api_v1_memory_import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_batch_api_v1_memory_import__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_discard_api_v1_memory_import__batch_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgetResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_apply_api_v1_memory_import__batch_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbox_api_v1_memory_inbox_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryInboxResponse"];
+                };
+            };
+        };
+    };
+    resolve_api_v1_memory_inbox__item_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InboxResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_v1_memory_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryOverviewResponse"];
+                };
+            };
+        };
+    };
+    predicates_api_v1_memory_predicates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PredicateListResponse"];
+                };
+            };
+        };
+    };
+    list_records_api_v1_memory_records_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                kind?: string | null;
+                subject_id?: string | null;
+                user_only?: boolean;
+                status?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_record_api_v1_memory_records_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_detail_api_v1_memory_records__memory_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRecordDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_record_api_v1_memory_records__memory_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgetResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_record_api_v1_memory_records__memory_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRecordModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
