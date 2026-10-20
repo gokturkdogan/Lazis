@@ -1,0 +1,409 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "manifest": {
+  "captured_at": "2026-10-20T19:09:56+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.09,
+   "active_gb": 2.4,
+   "wired_gb": 11.51,
+   "compressed_gb": 6.97,
+   "swap_used_mb": 12225.94,
+   "swapouts": 65808654,
+   "memory_free_percent": 20
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "runs": {
+  "baseline": {
+   "summary": {
+    "ttft_ms_median": 390,
+    "ttft_ms_max": 450,
+    "recall_ms_max": null,
+    "warm_turns": 7,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "user": "Merhaba, bugün biraz plan yapmak istiyorum.",
+     "reply": "Merhaba efendim, size nasıl yardımcı olabilirim? Planlamak istediğiniz konu neyle ilgili?",
+     "ttft_ms": 354.0,
+     "runtime_ttft_ms": 350.4,
+     "prompt_tokens": 1175,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6133
+    },
+    {
+     "turn": 2,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz bu akşam bize gelecek.",
+     "reply": "Anlaşıldı efendim. Ahmet Bey'in ziyareti için nasıl bir hazırlık veya plan yapmak istersiniz?",
+     "ttft_ms": 363.6,
+     "runtime_ttft_ms": 360.2,
+     "prompt_tokens": 1242,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6133
+    },
+    {
+     "turn": 3,
+     "user": "Hafta sonu için kısa bir gezi önerir misin?",
+     "reply": "Hafta sonu için nasıl bir gezi planı düşünüyorsunuz? İlgi alanlarınıza göre (doğa, tarih, deniz veya sakin bir kaçamak gibi) birkaç farklı seçenek sunabilirim.",
+     "ttft_ms": 368.2,
+     "runtime_ttft_ms": 365.5,
+     "prompt_tokens": 1317,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6132
+    },
+    {
+     "turn": 4,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?",
+     "reply": "Bu bilgiyi şu anki konuşmamızda paylaşmadınız, bu nedenle Ahmet Yılmaz'ın kardeşinin kim olduğunu bilmiyorum. İsterseniz bana bu bilgiyi verebilirsiniz.",
+     "ttft_ms": 368.0,
+     "runtime_ttft_ms": 364.9,
+     "prompt_tokens": 1409,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6131
+    },
+    {
+     "turn": 5,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?",
+     "reply": "Bu bilgiyi de henüz benimle paylaşmadınız, bu yüzden Ahmet Yılmaz'ın kardeşinin eşinin kim olduğunu bilmiyorum.",
+     "ttft_ms": 389.9,
+     "runtime_ttft_ms": 386.6,
+     "prompt_tokens": 1499,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6131
+    },
+    {
+     "turn": 6,
+     "user": "Can Kaya'yı nereden tanıyorum?",
+     "reply": "Bu ismi daha önce konuşmamızda geçirmediniz, bu nedenle Can Kaya'yı nereden tanıdığınıza dair bir bilgim bulunmuyor.",
+     "ttft_ms": 404.9,
+     "runtime_ttft_ms": 401.8,
+     "prompt_tokens": 1570,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6132
+    },
+    {
+     "turn": 7,
+     "user": "Bilgisayarımda 24 GB RAM var, yerel model için yeter mi?",
+     "reply": "24 GB RAM, yerel olarak çalıştırılacak modeller için genel olarak yeterli bir miktardır. Ancak modelin boyutuna ve teknik detaylarına göre performans değişiklik gösterecektir.\n\nÖrneğin, 7B ile 14B parametre arasındaki modelleri (kuantizasyon yöntemlerine bağlı olarak) genellikle rahatlıkla çalıştırabilirsiniz. Daha büyük modeller için ise RAM kapasitesi yetersiz kalabilir veya sisteminiz çok yavaşlayabilir.\n\nHangi modeli çalıştırmayı planladığınızı söylerseniz, sisteminizin bu modele uygun olup olmadığı hakkında daha net bir bilgi verebilirim.",
+     "ttft_ms": 450.4,
+     "runtime_ttft_ms": 446.3,
+     "prompt_tokens": 1655,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6146
+    },
+    {
+     "turn": 8,
+     "user": "Teşekkürler, şimdilik bu kadar.",
+     "reply": "Rica ederim efendim. Başka bir ihtiyacınız olduğunda buradayım, iyi akşamlar dilerim.",
+     "ttft_ms": 402.0,
+     "runtime_ttft_ms": 398.3,
+     "prompt_tokens": 1824,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": null,
+     "memory_request": null,
+     "background_ms": 6131
+    }
+   ]
+  },
+  "memory": {
+   "summary": {
+    "ttft_ms_median": 1039,
+    "ttft_ms_max": 1628,
+    "recall_ms_max": 6.3,
+    "warm_turns": 6,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "user": "Merhaba, bugün biraz plan yapmak istiyorum.",
+     "reply": "Merhaba efendim. Planınızı oluşturmanıza yardımcı olabilirim; hangi konu üzerine yoğunlaşmak istersiniz?",
+     "ttft_ms": 496.6,
+     "runtime_ttft_ms": 489.3,
+     "prompt_tokens": 1225,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": 2.6,
+     "memory_request": null,
+     "background_ms": 14371
+    },
+    {
+     "turn": 2,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz bu akşam bize gelecek.",
+     "reply": "Ahmet Yılmaz, çocukluk arkadaşınız Can Yılmaz ile isim benzerliği taşıyor ancak hafızamda Ahmet Yılmaz'ın aşçı olan komşunuz olduğu bilgisi yer alıyor. Ahmet Yılmaz'ın çocukluk arkadaşınız olduğundan eminseniz lütfen bu bilgiyi düzeltin; aksi takdirde Ahmet Doğan, Selin Yılmaz veya Mert Yılmaz gibi diğer tanıdıklarınızdan biri olabilir mi?",
+     "ttft_ms": 1038.9,
+     "runtime_ttft_ms": 1028.6,
+     "prompt_tokens": 1442,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 4.6,
+     "memory_request": null,
+     "background_ms": 19595
+    },
+    {
+     "turn": 3,
+     "user": "Hafta sonu için kısa bir gezi önerir misin?",
+     "reply": "Nereye gitmek istediğinize dair belirli bir tercihiniz veya ulaşım süresi gibi kriterleriniz var mı? Eğer bir fikriniz yoksa, ilgi alanınıza göre sakin bir doğa kaçamağı veya kültürel bir rota önerebilirim.",
+     "ttft_ms": 784.4,
+     "runtime_ttft_ms": 777.5,
+     "prompt_tokens": 1500,
+     "cache": "warm",
+     "memory_items": 1,
+     "memory_ms": 2.7,
+     "memory_request": null,
+     "background_ms": 14779
+    },
+    {
+     "turn": 4,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?",
+     "reply": "Hafızamda çocukluk arkadaşınız Ahmet Yılmaz hakkında bir bilgi bulunmuyor; bu nedenle kardeşinin kim olduğu konusunda size yardımcı olamıyorum. Ahmet Yılmaz'ın kardeşi hakkında bir bilgi paylaşmak ister misiniz?",
+     "ttft_ms": 1156.7,
+     "runtime_ttft_ms": 1147.3,
+     "prompt_tokens": 1728,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 4.6,
+     "memory_request": null,
+     "background_ms": 14831
+    },
+    {
+     "turn": 5,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?",
+     "reply": "Hafızamda çocukluk arkadaşınız Ahmet Yılmaz hakkında bir bilgi bulunmuyor, bu yüzden kardeşinin eşinin kim olduğu konusunda size yardımcı olamıyorum.\n\nBu arada, daha önce Ahmet Yılmaz'ın çocukluk arkadaşınız olduğunu belirtmiştiniz; ancak kayıtlarımda Ahmet Yılmaz bir komşu olarak görünüyor. Gelen kişi bu komşunuz mu yoksa farklı bir Ahmet Yılmaz mı, netleştirebilir misiniz efendim?",
+     "ttft_ms": 1185.4,
+     "runtime_ttft_ms": 1174.1,
+     "prompt_tokens": 1827,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 6.3,
+     "memory_request": null,
+     "background_ms": 14171
+    },
+    {
+     "turn": 6,
+     "user": "Can Kaya'yı nereden tanıyorum?",
+     "reply": "Hafızamdaki bilgilere göre Can Kaya, eski sınıf arkadaşınızdır efendim.",
+     "ttft_ms": 1627.5,
+     "runtime_ttft_ms": 1620.9,
+     "prompt_tokens": 1929,
+     "cache": "cold",
+     "memory_items": 6,
+     "memory_ms": 5.2,
+     "memory_request": null,
+     "background_ms": 14778
+    },
+    {
+     "turn": 7,
+     "user": "Bilgisayarımda 24 GB RAM var, yerel model için yeter mi?",
+     "reply": "Yerel olarak çalışan bir model için 24 GB RAM, özellikle 12B (12 milyar parametreli) ve benzeri orta ölçekli modelleri çalıştırmak için genellikle yeterli bir miktardır. Ancak modelin tercih ettiğiniz hassasiyette (quantization seviyesi) ve diğer açık uygulamaların kullanımına göre performans değişkenlik gösterebilir.\n\nEğer model çalışırken sisteminiz çok yavaşlıyorsa veya bellek yetersizliği uyarısı alıyorsanız, daha düşük bit değerine sahip (quantized) bir sürümü tercih etmeyi düşünebilirsiniz.",
+     "ttft_ms": 832.2,
+     "runtime_ttft_ms": 823.9,
+     "prompt_tokens": 1925,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 3.1,
+     "memory_request": null,
+     "background_ms": 18596
+    },
+    {
+     "turn": 8,
+     "user": "Teşekkürler, şimdilik bu kadar.",
+     "reply": "Rica ederim efendim, iyi akşamlar dilerim.",
+     "ttft_ms": 530.5,
+     "runtime_ttft_ms": 521.6,
+     "prompt_tokens": 2020,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.9,
+     "memory_request": null,
+     "background_ms": 14773
+    }
+   ]
+  },
+  "graph": {
+   "summary": {
+    "ttft_ms_median": 1159,
+    "ttft_ms_max": 1480,
+    "recall_ms_max": 8.8,
+    "warm_turns": 7,
+    "turns": 7
+   },
+   "turns": [
+    {
+     "turn": 1,
+     "user": "Merhaba, bugün biraz plan yapmak istiyorum.",
+     "reply": "Merhaba efendim, planınızı oluşturmanıza yardımcı olabilirim. Neler yapmak istediğinizi anlatırsanız başlayabiliriz.",
+     "ttft_ms": 520.6,
+     "runtime_ttft_ms": 512.4,
+     "prompt_tokens": 1225,
+     "cache": "cold",
+     "memory_items": 0,
+     "memory_ms": 2.5,
+     "memory_request": null,
+     "background_ms": 14374
+    },
+    {
+     "turn": 2,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz bu akşam bize gelecek.",
+     "reply": "Anlaşıldı efendim. Ahmet Yılmaz'ın gelişine yönelik bir plan mı yapmak istersiniz, yoksa başka bir hazırlığınız mı var?",
+     "ttft_ms": 1479.8,
+     "runtime_ttft_ms": 1469.6,
+     "prompt_tokens": 1573,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 5.2,
+     "memory_request": null,
+     "background_ms": 19796
+    },
+    {
+     "turn": 3,
+     "user": "Hafta sonu için kısa bir gezi önerir misin?",
+     "reply": "Hafta sonu için nasıl bir gezi planladığınıza bağlı olarak birkaç seçenek sunabilirim. Doğayla iç içe sakin bir yer mi, yoksa kültürel ve tarihi bir rota mı tercih edersiniz?",
+     "ttft_ms": 586.8,
+     "runtime_ttft_ms": 578.2,
+     "prompt_tokens": 1386,
+     "cache": "warm",
+     "memory_items": 1,
+     "memory_ms": 2.9,
+     "memory_request": null,
+     "background_ms": 14373
+    },
+    {
+     "turn": 4,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşi kim?",
+     "reply": "Çocukluk arkadaşınız Ahmet Yılmaz'ın kardeşi Mehmet Yılmaz'dır.",
+     "ttft_ms": 1159.3,
+     "runtime_ttft_ms": 1146.2,
+     "prompt_tokens": 1667,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 8.8,
+     "memory_request": null,
+     "background_ms": 14780
+    },
+    {
+     "turn": 5,
+     "user": "Çocukluk arkadaşım Ahmet Yılmaz'ın kardeşinin eşi kim?",
+     "reply": "Çocukluk arkadaşınız Ahmet Yılmaz'ın kardeşinin eşi Elif Kaya'dır.",
+     "ttft_ms": 1266.2,
+     "runtime_ttft_ms": 1255.9,
+     "prompt_tokens": 1750,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 6.7,
+     "memory_request": null,
+     "background_ms": 14980
+    },
+    {
+     "turn": 6,
+     "user": "Can Kaya'yı nereden tanıyorum?",
+     "reply": "Hafızamda \"Can Kaya\" isminde iki farklı kişi kayıtlı bulunuyor. Biri eski sınıf arkadaşınız, diğeri ise hakkında ek bilgi bulunmayan bir kişi. Hangisini kastettiğinizi belirtirseniz yardımcı olabilirim.",
+     "ttft_ms": 1172.0,
+     "runtime_ttft_ms": 1162.1,
+     "prompt_tokens": 1806,
+     "cache": "warm",
+     "memory_items": 6,
+     "memory_ms": 3.8,
+     "memory_request": null,
+     "background_ms": 14979
+    },
+    {
+     "turn": 7,
+     "user": "Bilgisayarımda 24 GB RAM var, yerel model için yeter mi?",
+     "reply": "24 GB RAM, 12B parametreli yerel modelleri çalıştırmak için genellikle yeterli bir miktardır. Ancak modelin kuantizasyon (sıkıştırma) seviyesine göre sistemin akıcılığı değişebilir; 4-bit veya 8-bit gibi yaygın sıkıştırma yöntemleriyle bu kapasitede konforlu bir deneyim yaşayabilirsiniz.",
+     "ttft_ms": 815.1,
+     "runtime_ttft_ms": 807.5,
+     "prompt_tokens": 1790,
+     "cache": "warm",
+     "memory_items": 5,
+     "memory_ms": 3.7,
+     "memory_request": null,
+     "background_ms": 17991
+    },
+    {
+     "turn": 8,
+     "user": "Teşekkürler, şimdilik bu kadar.",
+     "reply": "Rica ederim efendim. Başka bir isteğiniz olduğunda buradayım.",
+     "ttft_ms": 499.2,
+     "runtime_ttft_ms": 490.3,
+     "prompt_tokens": 1843,
+     "cache": "warm",
+     "memory_items": 0,
+     "memory_ms": 2.6,
+     "memory_request": null,
+     "background_ms": 14375
+    }
+   ]
+  }
+ }
+}

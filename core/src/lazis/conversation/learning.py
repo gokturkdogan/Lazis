@@ -194,12 +194,17 @@ class Learner:
             items = extraction.parse(text)
             if items is None:
                 raise LlmInvalidResponseError("extraction was not valid JSON")
-            checked = extraction.validate(items, targets, ctx.known, context=prompt.context)
+            checked = extraction.validate(
+                items, targets, ctx.known, context=prompt.context, unsettled=ctx.unsettled
+            )
             facts, from_items = extraction.relation_items(checked.accepted)
             rel_found, rel_dropped = extraction.validate_relations(
                 extraction.parse_relations(text), targets, ctx.known, context=prompt.context
             )
             rel_accepted = [*from_items, *rel_found]
+            facts, covered = extraction.covered_by_relations(facts, rel_accepted)
+            if covered:  # counted with the facts' rejections
+                checked.dropped["covered_by_relation"] = covered
 
             def write(c: Connection) -> tuple[dict[str, ApplyReport], dict[str, RelReport]]:
                 # Facts first: the entities they create are then found by the relationships.

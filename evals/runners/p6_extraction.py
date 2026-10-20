@@ -138,6 +138,22 @@ def records(storage: StorageHandle) -> list[dict[str, Any]]:
                             "about": e.name if e else "user", "relation": e.relation if e else None,
                             "value": m.value, "statement": m.content, "origin": m.origin,
                             "sensitivity": m.sensitivity})  # fmt: skip
+        # Phase 7: the user's relationships live in the graph (the `relationship` predicate is
+        # no longer offered to the model); they count as `relationship` records here.
+        from lazis.memory import graphstore, relations
+        from lazis.memory.models import CURRENT, USER_ID
+
+        for rel in graphstore.list_relationships(conn, statuses=CURRENT, limit=500):
+            if USER_ID not in (rel.source_id, rel.target_id):
+                continue
+            other = memory_repo.get_entity(conn, rel.target_id if rel.source_id == USER_ID else rel.source_id)
+            t = relations.TYPES.get(rel.type)
+            if other is None or t is None:
+                continue
+            out.append({"where": "memory", "status": "active", "predicate": "relationship",
+                        "about": other.name, "relation": other.relation, "value": t.label,
+                        "statement": f"{other.name}: kullanıcının {t.label}", "origin": rel.origin,
+                        "sensitivity": rel.sensitivity})  # fmt: skip
         for item in memory_repo.list_inbox(conn, status="open"):
             c = item.payload.get("candidate", {})
             ent = c.get("entity") or {}

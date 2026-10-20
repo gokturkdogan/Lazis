@@ -216,7 +216,9 @@ async def brief(model: str, llm: Recorder, r: Report) -> None:
         mems = p.memories()
         r.state(s, "1.memory", {
             "ahmet_is_developer": bool([m for m in mems if m["about"] == "Ahmet" and has(m["value"] + m["content"], "yazılım")]),
-            "mehmet_known": any(m["about"] == "Mehmet" for m in mems),
+            # Phase 7: a friend can be known as a person with a relationship and no fact yet.
+            "mehmet_known": any(m["about"] == "Mehmet" for m in mems)
+            or bool(p.q(lambda c: memory_repo.find_entities(c, "mehmet"))),
         }, mems)  # fmt: skip
 
         await p.restart()  # Oturum 2: the app was restarted

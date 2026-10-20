@@ -108,7 +108,7 @@ TYPES: dict[str, RelType] = {
            words=("tanidik", "tanidig")),
         _R("neighbor", "komşusu", "komşusu", "social", symmetric=True, words=("komsu",)),
         _R("teacher", "öğretmeni", "öğrencisi", "social", inverse="student",
-           words=("ogretmen",)),
+           words=("ogretmen", "hoca")),
         _R("student", "öğrencisi", "öğretmeni", "social", inverse="teacher",
            words=("ogrenci",)),
         # ----- work (between people)
@@ -247,9 +247,28 @@ def says_mine(evidence: str | None, key: str) -> bool:
     return False
 
 
+# Verbs that state a relationship without its noun ("evlendiler", "boşandılar", "tanıyor",
+# "birlikte çalıştık"), as folded stems.
+_CUES: dict[str, tuple[str, ...]] = {
+    "spouse": ("evli", "evlen", "nikah"),
+    "ex_spouse": ("bosan",),
+    "partner": ("cikiyor", "cikiyoruz"),
+    "colleague": ("calis",),
+    "employee": ("calis",),
+    "employer": ("calis",),
+    "acquaintance": ("tani",),
+    "teacher": ("ogret", "ders"),
+    "student": ("ogret", "ders"),
+}
+
+
 def named_in(message: str, key: str) -> bool:
-    """Whether the user's words name this type (or one it answers for) anywhere."""
+    """Whether the user's words name this type (or one it answers for), by its noun or by a
+    verb that states it ("evlendi" → spouse)."""
     words = text.words(message)
+    cues = _CUES.get(key, ())
+    if cues and any(w.startswith(cues) for w in words):
+        return True
     for i in range(len(words)):
         m = match_at(words, i)
         if m is not None and (m[0] in answers(key) or key in answers(m[0])):

@@ -148,9 +148,9 @@ relations: ilişki bilgileri (kim kimin nesi), kullanıcının açıkça söyled
 kullanıcı ise source boş. "Ahmet kuzenim değil", "Ahmet ile Mehmet kardeş değil" → negated=true \
 (action=correct). "Ahmet çocukluk arkadaşım değil, iş arkadaşım" → eskisi için negated=true, \
 yenisi için correction=true. "Artık birlikte çalışmıyoruz" gibi bitişlerde change=true, \
-status="ended". Örnek: "Mehmet aslında Ahmet'in kardeşi değil, kuzeni." → iki öğe: \
-{source:"Ahmet", type:"sibling", target:"Mehmet", negated:true} ve {source:"Ahmet", \
-type:"cousin", target:"Mehmet", correction:true} (kullanıcı bu ilişkinin ucu değil). \
+status="ended". Örnek: "Kemal aslında Sibel'in ağabeyi değil, kuzeni." → iki öğe: \
+{source:"Sibel", type:"sibling", target:"Kemal", negated:true} ve {source:"Sibel", \
+type:"cousin", target:"Kemal", correction:true} (kullanıcı bu ilişkinin ucu değil). \
 Zincirden ilişki türetme. Alanlar: message ("m1"), quote, source, \
 source_relation, source_kind, type, target, target_relation, target_kind, negated, correction, \
 change, status, certain, time, statement.
@@ -337,6 +337,7 @@ def apply_items(
     checked = extraction.validate(cmd.items, [target])
     facts, from_items = extraction.relation_items(checked.accepted)
     found, rel_dropped = extraction.validate_relations(cmd.relations, [target], known)
+    facts, _ = extraction.covered_by_relations(facts, [*from_items, *found])
     checked = replace(checked, accepted=facts)
     candidates = [
         replace(

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from lazis.memory import graphstore as gs
 from lazis.memory import registry, relations, service, text
@@ -34,6 +35,7 @@ class ExtractionContext:
     user_facts: tuple[str, ...] = ()
     forgotten: tuple[str, ...] = ()
     questions: tuple[str, ...] = ()  # open "which Ahmet?" items of this conversation
+    unsettled: frozenset[str] = frozenset()  # name keys with an open "which …?" question
 
 
 def _fact(predicate: str, value: str) -> str:
@@ -115,7 +117,14 @@ def extraction_context(
         f"{p.label if (p := registry.get(pred)) else pred}"
         for sid, pred in repo.suppressed_topics(conn, [None, *names])
     )
-    return ExtractionContext(known, user_facts, forgotten, tuple(questions))
+    unsettled: set[str] = set()
+    for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
+        unsettled.update(str(k) for k in item.payload.get("pending_names", []))
+        cand: dict[str, Any] = item.payload.get("candidate", {})
+        ent: dict[str, Any] = cand.get("entity") or {}
+        if ent.get("name"):
+            unsettled.add(text.name_key(str(ent["name"])))
+    return ExtractionContext(known, user_facts, forgotten, tuple(questions), frozenset(unsettled))
 
 
 def _relation_facts(conn: Connection, e: Entity) -> tuple[str, ...]:

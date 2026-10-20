@@ -413,3 +413,9 @@ def test_no_longer_means_ended_not_untrue(storage: StorageHandle) -> None:
                negated=True, change=True, status="ended")  # fmt: skip
     assert gone.retracted == [] and gone.updated
     assert current(storage) == [("Kullanıcı", "works_at", "Kervan", "ended")]
+
+
+def test_a_new_person_from_a_sensitive_relationship_gets_no_label(storage: StorageHandle) -> None:
+    r = rel(storage, "partner", P("Ece", "sevgilisi"), quote="Sevgilim Ece ile yemeğe çıkacağız")
+    assert r.inbox and current(storage) == []
+    assert [e.relation for e in run(storage, lambda c: repo.find_entities(c, "ece"))] == [None]

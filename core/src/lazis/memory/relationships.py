@@ -229,8 +229,9 @@ def _create_entity(
     now: str,
 ) -> str:
     kind = ref.kind if (not kinds or ref.kind in kinds) else kinds[0]
+    label = None if relations.sensitive_label(ref.relation) else ref.relation  # never "sevgilisi"
     ent = repo.insert_entity(
-        conn, kind=kind, name=ref.name, relation=ref.relation, description=None, now=now
+        conn, kind=kind, name=ref.name, relation=label, description=None, now=now
     )
     uow.record("memory_entities", ent.id, "create", None)
     report.entities_created.append(ent.id)

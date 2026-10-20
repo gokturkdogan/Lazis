@@ -23,7 +23,7 @@ from __future__ import annotations
 import difflib
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -102,33 +102,30 @@ başkasının özel hayatı (intimate); değilse boş. Şehir, meslek (muhasebec
 konusu (bütçe uygulaması) hassas değildir.
 11. importance: 0–1. Kalıcı ve yararlı bilgi 0.6–1; bugüne ait önemsiz ayrıntı 0.2.
 12. İlişkiler ayrı listeye (relations) yazılır: kişiler, kurumlar, projeler, yerler ve olaylar \
-arasında AÇIKÇA söylenen bağ, source → type → target. "Ahmet'in kardeşi Mehmet" = source Ahmet, \
-type sibling, target Mehmet; "Selim'in oğlu Arda" = source Selim, type child, target Arda (type \
-hedefin kaynağa göre ne olduğudur). Kullanıcı kendisiyse source boş: "çocukluk arkadaşım Ahmet" = \
-source "", type childhood_friend, target Ahmet. Yalnızca söyleneni yaz, zincirden yeni ilişki \
-türetme. "X ile Y kardeş değil" → negated=true. "Yanlış söyledim", "aslında" → correction=true. \
-"Artık", "ayrıldı", "taşındı" → change=true. Geçmişte kalan ("eskiden", "çalışıyordu") → status \
-ended; gelecekte ("başlayacak") → status planned. time: söylenen zaman ifadesi, yoksa boş. \
-source_relation / target_relation: o kişinin kullanıcıya göre ilişkisi, yalnızca mesajda \
-yazıyorsa.
+arasında AÇIKÇA söylenen bağ, source → type → target. "Nazlı'nın kardeşi Tuna" = source Nazlı, \
+type sibling, target Tuna; "Gül'ün oğlu Efe" = source Gül, type child, target Efe (type hedefin \
+kaynağa göre ne olduğudur). Kullanıcı kendisiyse source boş: "çocukluk arkadaşım Berk" = source \
+"", type childhood_friend, target Berk. İlişkiler bilgilerin yerine geçmez: bir kişinin işi, \
+hobisi, katıldığı ya da yaptığı şey yine items'a yazılır. Yalnızca söyleneni yaz, zincirden yeni \
+ilişki türetme. "X ile Y kardeş değil" → negated=true. "Yanlış söyledim", "aslında" → \
+correction=true. "Artık", "ayrıldı", "taşındı" → change=true. Geçmişte kalan ("eskiden", \
+"çalışıyordu") → status ended; gelecekte ("başlayacak") → status planned. time: söylenen zaman \
+ifadesi, yoksa boş. source_relation / target_relation: o kişinin kullanıcıya göre ilişkisi, \
+yalnızca mesajda yazıyorsa.
 13. JSON'u tek satırda, girintisiz yaz.
 
-Örnekler:
-«Bir gün Japonya'ya taşınsam nasıl olurdu?» → {"items": []} (varsayım)
-«Annem doktor olmamı isterdi.» → {"items": []} (kullanıcı hakkında kalıcı bilgi değil)
-«İki arkadaşım var: Ahmet ve Mehmet.» → relations: "" friend Ahmet; "" friend Mehmet
-«Çocukluk arkadaşım Ahmet'in kardeşi Mehmet Ankara'ya taşındı.» → relations: "" \
-childhood_friend Ahmet; Ahmet sibling Mehmet · items: Mehmet — location "Ankara" (change)
-«Ahmet'in kardeşi Mehmet, Mehmet'in arkadaşı Zeynep.» → relations: Ahmet sibling Mehmet; \
-Mehmet friend Zeynep (Ahmet ile Zeynep arasında ilişki YOK)
-«Kuzenim Can öğretmen, Pusula'da da bana yardım ediyor.» → iki öğe: Can — occupation \
-"öğretmen"; Pusula — project_person "Can" · relations: "" cousin Can; Can contributes_to Pusula
-«Murat, Pusula projesinde benimle çalışıyor.» → relations: Murat works_on Pusula (target_kind \
-project); "" works_on Pusula; "" colleague Murat
-«Dedem Hüseyin ile anneannem Saadet evli.» → relations: "" grandfather Hüseyin; "" grandmother \
-Saadet; Hüseyin spouse Saadet (her biri ayrı ilişki)
-«Ahmet'in patronu Hakan, Hakan'ın patronu da Sinan.» → relations: Ahmet employer Hakan; Hakan \
-employer Sinan (Ahmet ile Sinan arasında ilişki YOK)
+Örnekler (adlar örnektir; quote her zaman incelenen mesajdan birebir alınır):
+«Bir gün Japonya'ya taşınsam nasıl olurdu?» → {"items": [], "relations": []} (varsayım)
+«Annem doktor olmamı isterdi.» → {"items": [], "relations": []} (kalıcı bilgi değil)
+«Okuldan iki arkadaşım var, Sena ile Barış.» → relations: "" friend Sena; "" friend Barış
+«Komşum Filiz'in ağabeyi Kerim İzmir'e taşındı.» → relations: "" neighbor Filiz; Filiz \
+sibling Kerim · items: Kerim — location "İzmir" (change)
+«Nazlı'nın kuzeni Okan, Okan'ın arkadaşı Defne.» → relations: Nazlı cousin Okan; Okan friend \
+Defne (Nazlı ile Defne arasında ilişki YOK)
+«Kuzenim Arif öğretmen, Martı projesinde de bana yardım ediyor.» → items: Arif — occupation \
+"öğretmen"; Martı — project_person "Arif" · relations: "" cousin Arif; Arif contributes_to Martı
+«Halam Nevin, Cemil'le evli; Cemil bir dernekte gönüllü.» → relations: "" aunt_paternal Nevin; \
+Nevin spouse Cemil · items: Cemil — note "derneğe gönüllü" (ilişki bilgilerin yerine geçmez)
 """
 
 
@@ -351,9 +348,12 @@ def validate(
     known: Sequence[Known] = (),
     *,
     context: Sequence[str] = (),
+    unsettled: Collection[str] = (),
 ) -> Validation:
     """``context``: recent user messages before the targets — a person or project named
-    there may be referred to without a name ("o restoran açmış")."""
+    there may be referred to without a name ("o restoran açmış"). ``unsettled``: name keys
+    with an open "which Ahmet?" question — relation words found only in earlier messages do
+    not settle it (the user has to say it now)."""
     out = Validation()
     by_tag = {t.tag: t for t in targets}
     context_words = text.words(" ".join(context))
@@ -407,6 +407,9 @@ def validate(
             else:
                 kind = "project" if pred.subjects == ("project",) else "person"
             relation = _str(item, "relation", 80) or None
+            if relation and key in unsettled and not _grounded(relation, [target.text]):
+                out.drop("relation_not_said_now")
+                relation = None
             if relation and not _grounded(relation, [target.text, *context]):
                 # A relation the user did not write (copied from the known list) would pick
                 # one namesake silently: it is dropped, and resolution asks instead.
@@ -740,10 +743,8 @@ def validate_relations(
                  "source_relation": "", "target_relation": ""}  # fmt: skip
             t = relations_vocab.TYPES[fixed[1]]
             drop("direction_fixed")
-        if (
-            r.get("certain") is False
-            and t.category in ("family", "social", "work")
-            and not relations_vocab.named_in(target.text, t.key)
+        if t.category in ("family", "social", "work") and not relations_vocab.named_in(
+            target.text, t.key
         ):
             # "Ahmet'le Mehmet akraba olabilir": an uncertain claim whose type the user did not
             # name ("kardeş") would be the model's guess.
@@ -856,6 +857,31 @@ def _appositive_relations(
                 type=key, target=ref, source=None, quote=target.text[:MAX_STATEMENT],
                 statement="")))  # fmt: skip
     return extra
+
+
+def covered_by_relations(
+    facts: Sequence[Extracted], rels: Sequence[ExtractedRel]
+) -> tuple[list[Extracted], int]:
+    """Facts that only restate a relationship of the same message ("Mehmet — aile bilgisi:
+    Ahmet'in kuzeni" next to Ahmet cousin Mehmet) are not stored twice: the graph holds them,
+    so a correction or a forget reaches every copy."""
+    ends: dict[str, set[str]] = {}
+    for r in rels:
+        names = ends.setdefault(r.message_id, set())
+        for ref in (r.candidate.source, r.candidate.target):
+            if ref is not None:
+                names.add(text.name_key(ref.name))
+    kept: list[Extracted] = []
+    for f in facts:
+        c = f.candidate
+        if (
+            c.predicate in ("family", "relationship")
+            and c.entity is not None
+            and text.name_key(c.entity.name) in ends.get(f.message_id, set())
+        ):
+            continue
+        kept.append(f)
+    return kept, len(facts) - len(kept)
 
 
 def relation_items(accepted: Sequence[Extracted]) -> tuple[list[Extracted], list[ExtractedRel]]:

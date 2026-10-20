@@ -261,7 +261,8 @@ def test_a_relation_to_the_user_written_backwards_is_read_from_the_user() -> Non
     assert c.source is None and c.target.name == "Ahmet" and c.type == "cousin"
     # A type without an inverse cannot be turned around.
     knows, dropped = extraction.validate_relations(
-        [relitem(source="Ahmet", type="acquaintance", target="", quote="Ahmet benim kuzenim")], [t]
+        [relitem(source="Ahmet", type="acquaintance", target="", quote="Ahmet benim kuzenim")],
+        [Target("m1", "MSGK", "Ahmet benim kuzenim, beni tanıyor.")],
     )
     assert knows == [] and dropped == {"self": 1}
 
@@ -309,10 +310,10 @@ def test_the_users_grammar_fixes_a_reversed_direction() -> None:
     assert got == [
         ("Selim", "child", "Arda"),
         ("Selim", "child", "Arda"),
-        ("Selim", "student", "Arda"),
         (None, "cousin", "Selim"),  # "Kuzenim Selim": the user's own words
     ]
-    assert dropped == {"direction_fixed": 2}
+    # "student" is not in the user's words at all: dropped, not "fixed".
+    assert dropped == {"direction_fixed": 2, "type_not_stated": 1}
     assert extraction.stated_triples("Ahmet'in kardeşi Mehmet'in eşi Zeynep.") == [
         ("ahmet", "sibling", "mehmet"), ("mehmet", "spouse", "zeynep")]  # fmt: skip
 
@@ -428,3 +429,53 @@ def test_a_workplace_fact_is_also_a_relationship() -> None:
     assert facts == [fact]
     assert [(r.candidate.source, r.candidate.type, r.candidate.target.name, r.candidate.change) for r in rels] == [
         (None, "works_at", "Atlas Yazılım", True)]  # fmt: skip
+
+
+def test_a_relationship_type_must_be_in_the_users_words() -> None:
+    t = Target("m1", "MSGZ", "Zeynep'le dün kahve içtik, yeni bir işe başlamış.")
+    guess, dropped = extraction.validate_relations(
+        [relitem(source="", type="friend", target="Zeynep", quote="Zeynep'le dün kahve içtik")], [t]
+    )
+    assert guess == [] and dropped == {"type_not_stated": 1}
+    married = Target("m1", "MSGE", "Derya ile Kaan geçen ay evlendi.")
+    ok, _ = extraction.validate_relations(
+        [
+            relitem(
+                source="Derya",
+                type="spouse",
+                target="Kaan",
+                quote="Derya ile Kaan geçen ay evlendi",
+            )
+        ],
+        [married],
+    )
+    assert len(ok) == 1  # a verb that states it is enough
+
+
+def test_copied_relation_words_do_not_settle_an_open_question() -> None:
+    t = Target("m1", "MSGQ", "Ahmet bugün aradı, satranç kulübüne yazılmış.")
+    it = item(entity="Ahmet", relation="çocukluk arkadaşı", predicate="interest", value="satranç",
+              quote="satranç kulübüne yazılmış", statement="Ahmet satranç kulübüne yazıldı.")  # fmt: skip
+    v = extraction.validate(
+        [it], [t], context=["Çocukluk arkadaşım Ahmet öğretmen."], unsettled={"ahmet"}
+    )
+    assert (
+        v.accepted[0].candidate.entity is not None
+        and v.accepted[0].candidate.entity.relation is None
+    )
+    assert v.dropped == {"relation_not_said_now": 1}
+
+
+def test_a_fact_that_restates_a_relationship_is_not_stored_twice() -> None:
+    from lazis.memory.models import Candidate, EntityRef, RelCandidate
+
+    restated = extraction.Extracted("M1", Candidate(predicate="family", value="Ahmet'in kuzeni",
+                                    statement="Mehmet, Ahmet'in kuzenidir.", about="entity",
+                                    entity=EntityRef("Mehmet")))  # fmt: skip
+    other = extraction.Extracted("M1", Candidate(predicate="occupation", value="doktor", statement="Mehmet doktor.",
+                                 about="entity", entity=EntityRef("Mehmet")))  # fmt: skip
+    rel = extraction.ExtractedRel(
+        "M1", RelCandidate(type="cousin", source=EntityRef("Ahmet"), target=EntityRef("Mehmet"))
+    )
+    kept, covered = extraction.covered_by_relations([restated, other], [rel])
+    assert kept == [other] and covered == 1
