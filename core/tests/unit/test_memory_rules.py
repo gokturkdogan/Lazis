@@ -162,3 +162,28 @@ def test_multi_valued_facts_coexist_unless_replaced() -> None:
     assert consolidation.plan(switched, [windows, linux], explicit=False) == consolidation.Plan(
         "supersede", ("O1",)
     )
+
+
+@pytest.mark.parametrize(
+    "sample",
+    [
+        "Wifi şifremi kaydet: Kedi1234Gizli",
+        "wifi şifresi de şu: Ev12345",
+        "pin kodum 4826",
+        "parolam: Yaz2026",
+    ],
+)
+def test_secrets_with_words_in_between_are_detected(sample: str) -> None:
+    assert policy.secret_kind(sample) == "credential"
+
+
+@pytest.mark.parametrize(
+    "sample",
+    [
+        "Şifremi 2024'te değiştirmiştim",
+        "Parolamı geçen hafta yeniledim",
+        "Şifre politikası nasıl olmalı?",
+    ],
+)
+def test_talk_about_passwords_is_not_a_password(sample: str) -> None:
+    assert policy.secret_kind(sample) is None

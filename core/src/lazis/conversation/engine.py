@@ -1013,15 +1013,31 @@ class ConversationEngine:
         chars = int(budget * self.estimator.chars_per_token)
         started = time.monotonic()
         try:
+            since = next(
+                (
+                    m.created_at
+                    for m in reversed(loaded.window)
+                    if m.role == "user" and m.seq < user.seq
+                ),
+                None,
+            )
             found = await self._q(
                 lambda c: retrieval.recall(
-                    c, user.content, previous=previous, budget_chars=chars, overview=overview
+                    c,
+                    user.content,
+                    previous=previous,
+                    budget_chars=chars,
+                    overview=overview,
+                    conversation_id=user.conversation_id,
+                    recent_since=since,
                 )
             )
         except Exception as exc:
             log_event(_log, logging.WARNING, "memory.recall_failed", error=type(exc).__name__)
             found = retrieval.Recall()
         handle.memory_ms = round((time.monotonic() - started) * 1000, 1)
+        if not notice and commands.looks_like_statement(user.content):
+            notice = commands.PENDING_NOTICE
         note = "\n\n".join(x for x in (notice, retrieval.render(found)) if x)
         if not note or built.messages[-1].role != "user":
             return built
@@ -1052,6 +1068,13 @@ class ConversationEngine:
         user, conv = handle.user, handle.conversation
         pending = await self._q(lambda c: commands.pending_confirmation(c, conv.id))
         intent = commands.detect(user.content, pending_confirmation=pending is not None)
+        if commands.contains_secret(user.content) and intent in (None, "remember", "correct"):
+            # Deterministic: a secret is never stored, and the reply must not claim otherwise
+            # or repeat it (no model call needed to know that).
+            handle.memory_intent = intent or "secret"
+            handle.memory_outcome = "secret_not_stored"
+            log_event(_log, logging.INFO, "memory.secret_not_stored", conversation_id=conv.id)
+            return commands.Outcome("secret_not_stored").notice()
         if intent is None:
             return ""
         handle.memory_intent = intent
@@ -1080,7 +1103,7 @@ class ConversationEngine:
             handle.memory_outcome = "none"
             return ""
         handle.memory_outcome = outcome.kind
-        if outcome.kind not in ("untrusted_model", "failed"):
+        if outcome.kind in ("saved", "corrected", "forgotten", "confirm_needed", "declined"):
             # Handled here: the background job must not process the same request again.
             await self._q(lambda c: commands.skip_job(c, user.id))
         log_event(

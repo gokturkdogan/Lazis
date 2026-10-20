@@ -24,10 +24,12 @@ from lazis.memory.models import SENSITIVE_CATEGORIES, Candidate
 Outcome = Literal["save", "inbox_sensitive", "drop"]
 
 _SECRET_CUE = re.compile(
-    r"\b(şifre\w*|parola\w*|password|passwd|pin\s*kod\w*|pin|otp|doğrulama\s+kod\w*|api\s*key|anahtar\w*|token)\b"
-    r"\s*(?:[:=]|olarak|şu|şöyle|\bis\b)?\s*[\"'«]?([^\s\"'»]{4,})",
+    r"\b(şifre\w*|parola\w*|password|passwd|pin\s*kod\w*|pin|otp|doğrulama\s+kod\w*|api\s*key|"
+    r"anahtar\w*|token)\b",
     re.IGNORECASE,
 )
+# How many tokens after a cue may hold the value ("şifremi kaydet: X", "şifresi de şu: X").
+_CUE_REACH = 3
 _TOKEN_PATTERNS = (
     re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"),
     re.compile(r"\b(ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"),
@@ -90,11 +92,16 @@ def secret_kind(text: str) -> str | None:
     if not text:
         return None
     for m in _SECRET_CUE.finditer(text):
-        value = m.group(2)
-        # A value that looks like a credential (digits, or long with capitals) — not prose
-        # such as "şifremi değiştirdim".
-        if re.search(r"[0-9]", value) or (len(value) >= 8 and re.search(r"[A-Z]", value[1:])):
-            return "credential"
+        for raw in text[m.end() :].split()[:_CUE_REACH]:
+            if re.match(r"\d{1,4}['’]", raw):
+                continue  # a year or number with a suffix ("2024'te"), not a secret
+            value = raw.strip("\"'«»:=.,;!?()")
+            # A value that looks like a credential (digits, or long with inner capitals) — not
+            # prose such as "şifremi değiştirdim".
+            if len(value) >= 4 and (
+                re.search(r"[0-9]", value) or (len(value) >= 8 and re.search(r"[A-Z]", value[1:]))
+            ):
+                return "credential"
     if any(p.search(text) for p in _TOKEN_PATTERNS):
         return "token"
     if _iban(text):

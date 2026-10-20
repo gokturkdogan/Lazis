@@ -1,4 +1,4 @@
-"""Which person or project a candidate is about (pure; MEMORY_ARCHITECTURE §5, KG design §6).
+"""Which person or project a candidate is about (pure; MEMORY_ARCHITECTURE P6.5).
 
 Merging two different people is worse than keeping two records for one person, so:
 

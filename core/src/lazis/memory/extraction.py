@@ -1,5 +1,5 @@
 """Automatic extraction: the instruction, the output schema and the validation of what the
-model proposes (pure; MEMORY_ARCHITECTURE §7).
+model proposes (pure; MEMORY_ARCHITECTURE P6.4).
 
 The instruction is appended as one more message after the conversation the runtime already
 has cached (system prompt + history + the last reply), so only the instruction itself is
@@ -105,6 +105,8 @@ konusu (bütçe uygulaması) hassas değildir.
 Örnekler:
 «Bir gün Japonya'ya taşınsam nasıl olurdu?» → {"items": []} (varsayım)
 «Annem doktor olmamı isterdi.» → {"items": []} (kullanıcı hakkında kalıcı bilgi değil)
+«İki arkadaşım var: Ahmet ve Mehmet.» → iki öğe: Ahmet — relationship "arkadaş" \
+(relation "arkadaş"); Mehmet — relationship "arkadaş" (relation "arkadaş")
 «Kuzenim Can öğretmen, Pusula'da da bana yardım ediyor.» → iki öğe: Can — occupation \
 "öğretmen"; Pusula — project_person "Can".
 """
@@ -113,6 +115,7 @@ konusu (bütçe uygulaması) hassas değildir.
 # The predicate list in the instruction, grouped and compact (``*`` = one current value).
 # Every registry key appears exactly once (tested).
 PROMPT_GROUPS: tuple[tuple[str, str], ...] = (
+    ("Kişi", "relationship* (kişinin kullanıcıyla ilişkisi: arkadaş, kuzen, iş ortağı)"),
     ("Profil", "preferred_name* (hitap), occupation* (meslek), employer* (işyeri), location* "
      "(şehir), birthday*, language (konuştuğu dil), skill (beceri), family (aile)"),
     ("Cihaz ve araç (yalnız kullanıcı)", "computer* (bilgisayarı ve özellikleri: RAM, "
@@ -289,7 +292,8 @@ def validate(
             continue
         name = _str(item, "entity", 80)
         key = text.name_key(name)
-        if key in _SELF:
+        if key in _SELF or (name and not name[0].isupper()):
+            # Not a person or project name ("kızının okulu", "Kullanıcı"): about the user.
             name, key = "", ""
         ref: EntityRef | None = None
         subject_kind = "user"

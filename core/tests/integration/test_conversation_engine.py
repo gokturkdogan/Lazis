@@ -106,7 +106,10 @@ def test_turns_continue_the_active_session_and_sessions_stay_isolated(
     assert any("Ayşe" in m.content for m in second.messages)
     # Requests of one session are append-only: request 2 starts with request 1.
     first = llm.chat_requests[0]
-    assert list(second.messages[: len(first.messages)]) == list(first.messages)
+    # Append-only up to the new message; the new message itself may carry per-request memory
+    # notices (Phase 6), which later prompts do not repeat.
+    assert list(second.messages[: len(first.messages) - 1]) == list(first.messages[:-1])
+    assert first.messages[-1].content.endswith(second.messages[len(first.messages) - 1].content)
     third = llm.chat_requests[2]  # first turn of the new session
     assert not any("Ayşe" in m.content for m in third.messages)
     assert third.messages[0].content.startswith(CORE_IDENTITY)  # the persona, every session

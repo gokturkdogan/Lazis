@@ -162,3 +162,20 @@ def test_the_note_rides_on_this_request_only(tmp_path: Path, storage: StorageHan
     assert diag["last_turn"]["memory_items"] == 0  # "Teşekkürler." recalls nothing
     m = storage.db.run_sync(lambda c: memory_repo.list_memories(c))[0]
     assert m.recall_count == 1
+
+
+def test_open_namesake_questions_are_raised(storage: StorageHandle) -> None:
+    save(
+        storage, "occupation", "öğretmen", "Ahmet öğretmen.", **person("Ahmet", "çocukluk arkadaşı")
+    )
+    c = Candidate(predicate="occupation", value="avukat", statement="İş ortağı Ahmet avukat.", about="entity",
+                  entity=EntityRef("Ahmet", relation="iş ortağı"))  # fmt: skip
+    r = storage.db.run_sync(lambda conn: service.apply_candidates(
+        conn, [c], source=Source("message", "m1", "conv-1"), explicit=False))  # fmt: skip
+    assert len(r.inbox) == 1
+    asked = retrieval.render(storage.db.run_sync(lambda conn: retrieval.recall(
+        conn, "Ahmet bugün aradı", budget_chars=2000, conversation_id="conv-1")))  # fmt: skip
+    assert "Açık soru: «İş ortağı Ahmet avukat.» — kayıtlı Ahmet (çocukluk arkadaşı) mı" in asked
+    other = retrieval.render(storage.db.run_sync(lambda conn: retrieval.recall(
+        conn, "Hava nasıl?", budget_chars=2000, conversation_id="conv-1", recent_since="2999")))  # fmt: skip
+    assert "Açık soru" not in other  # not fresh and not named: not raised

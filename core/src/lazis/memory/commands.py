@@ -1,5 +1,5 @@
 """Explicit memory requests in chat: "bunu unutma", "Ahmet'in mesleğini unut", "yanlış
-hatırlıyorsun", "hakkımda ne biliyorsun?" (MEMORY_ARCHITECTURE §9).
+hatırlıyorsun", "hakkımda ne biliyorsun?" (MEMORY_ARCHITECTURE P6.8).
 
 Two stages, so ordinary messages pay nothing:
 
@@ -24,7 +24,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Literal, cast
 
 from lazis.ids import utc_now_iso
-from lazis.memory import extraction, registry, resolver, service, text
+from lazis.memory import extraction, policy, registry, resolver, service, text
 from lazis.memory import repository as repo
 from lazis.memory.extraction import Target
 from lazis.memory.models import Entity, EntityRef, Memory
@@ -54,6 +54,26 @@ _RECALL = re.compile(
 )
 _CONFIRM = re.compile(r"^\s*(evet|onayliyorum|onayla|tamam,? sil|sil gitsin|eminim)\b")
 _DECLINE = re.compile(r"^\s*(hayir|vazgec|silme|iptal)\b")
+
+
+# For a statement without a memory request: background learning happens after the reply, so
+# at reply time nothing has been written ("not ettim" would be a claim before the fact).
+PENDING_NOTICE = (
+    f"{NOTICE_START}\n"
+    "Bu mesaj için hafızaya henüz bir şey yazılmadı; öğrenme yanıttan sonra arka planda yapılır. "
+    "'Not ettim', 'not aldım', 'kaydettim', 'öğrendim' deme.\n"
+    f"{NOTICE_END}"
+)
+_QUESTION = re.compile(r"\?|\b(mi|mı|mu|mü|misin|mısın|musun|müsün|miyim|mıyım)\b")
+
+
+def looks_like_statement(message: str) -> bool:
+    """A message that may tell LAZIS something (not a question, not a one-word reply)."""
+    return len(message.split()) >= 3 and not _QUESTION.search(text.casefold(message))
+
+
+def contains_secret(message: str) -> bool:
+    return policy.secret_kind(message) is not None
 
 
 def detect(message: str, *, pending_confirmation: bool = False) -> Intent | None:
@@ -176,7 +196,7 @@ class Outcome:
 
     kind: Literal[
         "saved", "corrected", "forgotten", "confirm_needed", "ambiguous", "not_found",
-        "refused", "nothing", "failed", "declined", "untrusted_model",
+        "refused", "nothing", "failed", "declined", "untrusted_model", "secret_not_stored",
     ]  # fmt: skip
     lines: list[str] = field(default_factory=list[str])
     counts: dict[str, int] = field(default_factory=dict[str, int])
@@ -196,21 +216,26 @@ class Outcome:
             "declined": "Silme iptal edildi; hiçbir şey silinmedi.",
             "untrusted_model": "Şu anki yedek model hafızaya yazamaz; hafıza değişmedi. "
             "Kullanıcı ana modele dönebilir ya da Hafıza ekranını kullanabilir.",
+            "secret_not_stored": "Bu mesajdaki gizli bilgi (şifre, anahtar, kart, IBAN ya da "
+            "kimlik numarası) hafızaya kaydedilmedi ve kaydedilmeyecek (güvenlik kuralı).",
         }[self.kind]
         rules = {
             "saved": "Yalnızca bu bildirimde kaydedildiği yazanlar için 'kaydettim' de.",
             "corrected": "Düzelttiğini kısaca söyle.",
-            "forgotten": "Unuttuğunu kısaca söyle. Sohbet geçmişinin ve yedeklerin ayrı "
-            "tutulduğunu, geçmiş mesajların bu işlemle silinmediğini belirt; silinen bilgiyi "
+            "forgotten": "Unuttuğunu kısaca söyle ve şunu da ekle: sohbet geçmişindeki eski "
+            "mesajlar ve yedekler bu işlemle silinmez (onlar ayrı tutulur). Silinen bilgiyi "
             "tekrar etme.",
             "confirm_needed": "Silmeden önce kullanıcıdan açıkça onay iste (evet/hayır).",
             "ambiguous": "Hangisini kastettiğini sor.",
             "not_found": "Kayıt bulamadığını söyle; unuttum deme.",
-            "refused": "Neden kaydedilmediğini kısaca açıkla; kaydettim deme.",
-            "nothing": "Kaydettim/unuttum deme.",
-            "failed": "Kaydettim/unuttum deme; işlemin yapılamadığını söyle.",
+            "refused": "Neden kaydedilmediğini kısaca açıkla; kaydettim ya da not aldım deme.",
+            "nothing": "Kaydettim, not aldım, not ettim ya da unuttum deme; neyi kaydetmemi "
+            "istediğini sorabilirsin.",
+            "failed": "Kaydettim, not aldım ya da unuttum deme; işlemin yapılamadığını söyle.",
             "declined": "Silmediğini söyle.",
-            "untrusted_model": "Kaydettim/unuttum deme.",
+            "untrusted_model": "Kaydettim, not aldım ya da unuttum deme.",
+            "secret_not_stored": "Kaydettim ya da not aldım deme; gizli bilgiyi yanıtında tekrar "
+            "etme. Gerekirse bunun için bir parola yöneticisi önerebilirsin.",
         }[self.kind]
         lines = [NOTICE_START, body, *(f"- {_safe(x)}" for x in self.lines), rules, NOTICE_END]
         return "\n".join(lines)
@@ -346,7 +371,9 @@ def forget(
             {"inbox": 1, "pending": count},
         )
 
-    if cmd.predicate and not cmd.value:
+    # A named topic ("Ahmet'in mesleği") means every value of it, past ones included — even
+    # when the model also quoted the current value.
+    if cmd.predicate and cmd.scope in ("topic", "fact", ""):
         found = repo.memories_for_subject(
             conn, subject_id, predicate=cmd.predicate, statuses=statuses
         )

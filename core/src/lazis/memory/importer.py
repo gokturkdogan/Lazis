@@ -1,4 +1,4 @@
-"""Starting-profile import (MEMORY_ARCHITECTURE §12): JSON or plain text, always previewed;
+"""Starting-profile import (MEMORY_ARCHITECTURE P6.10): JSON or plain text, always previewed;
 nothing is written until the user applies the items they selected.
 
 JSON format (every part optional; values are strings or lists of strings)::

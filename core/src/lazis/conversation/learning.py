@@ -1,4 +1,4 @@
-"""Background learning: turning queued user messages into memory (MEMORY_ARCHITECTURE §7).
+"""Background learning: turning queued user messages into memory (MEMORY_ARCHITECTURE P6.4).
 
 Every user message gets a durable job in the same transaction that stores it (so nothing is
 lost on a crash or restart, and a message is never processed twice: one job per message).

@@ -119,24 +119,25 @@ def test_remember_is_written_before_the_reply_claims_it(
     assert job == {"skipped": 1}
 
 
-def test_secrets_are_refused_with_the_reason(tmp_path: Path, storage: StorageHandle) -> None:
+def test_secrets_are_refused_without_a_model_call(tmp_path: Path, storage: StorageHandle) -> None:
     msg = "Wifi şifremi kaydet: Kedi1234Gizli"
-    cmd = answer(
-        "remember",
-        items=[
-            item(
-                "note",
-                "wifi şifresi",
-                "Wifi şifresi Kedi1234Gizli",
-                "şifremi kaydet: Kedi1234Gizli",
-            )
-        ],
-    )
-    llm, _ = run(storage, tmp_path, lambda r: cmd, msg)
-    assert saved(storage) == []
+    llm, _ = run(storage, tmp_path, lambda r: answer("none"), msg)
+    assert saved(storage) == [] and llm.command_requests == []
     notice = last_user(llm.chat_requests[0])
-    assert "Kaydedilmedi:" in notice and "genel hafızada tutulmaz" in notice
-    assert "kaydettim deme" in notice
+    assert "gizli bilgi" in notice and "hafızaya kaydedilmedi" in notice
+    assert "gizli bilgiyi yanıtında tekrar etme" in notice
+
+
+def test_a_secret_said_in_passing_gets_the_same_notice(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    llm, _ = run(
+        storage, tmp_path, lambda r: answer("none"), "Bu arada parolam: Yaz2026, aklında olsun."
+    )
+    assert llm.command_requests == []
+    assert "hafızaya kaydedilmedi" in last_user(llm.chat_requests[0])
+    llm2, _ = run(storage, tmp_path, lambda r: answer("none"), "Bugün hava çok güzel.")
+    assert "kaydedilmedi" not in last_user(llm2.chat_requests[0])
 
 
 def _seed_ahmet(storage: StorageHandle) -> str:
@@ -163,7 +164,7 @@ def test_forgetting_a_topic_happens_before_the_reply(
     assert saved(storage) == ["Ahmet satranç oynar."]
     notice = last_user(llm.chat_requests[0])
     assert "Silindi" in notice and "Ahmet (çocukluk arkadaşı) — meslek" in notice
-    assert "geçmiş mesajların bu işlemle silinmediğini" in notice
+    assert "sohbet geçmişindeki eski mesajlar ve yedekler bu işlemle silinmez" in notice
     # In the same session: the forgotten topic is announced, the value is gone.
     later = last_user(llm.chat_requests[1])
     assert "yazılımcı" not in later and "Ahmet — meslek" in later and retrieval.BLOCK_START in later
@@ -204,7 +205,9 @@ def test_untrusted_models_never_write(tmp_path: Path, storage: StorageHandle) ->
 def test_not_a_request_adds_nothing(tmp_path: Path, storage: StorageHandle) -> None:
     llm, _ = run(storage, tmp_path, lambda r: answer("none"), "Şu dosyadaki boş satırları sil.")
     assert len(llm.command_requests) == 1
-    assert commands.NOTICE_START not in last_user(llm.chat_requests[0])
+    # Not a memory request: only the standing "nothing written yet" notice of a statement.
+    assert commands.PENDING_NOTICE in last_user(llm.chat_requests[0])
+    assert "Kaydedildi" not in last_user(llm.chat_requests[0])
 
 
 def test_a_failed_request_is_reported_not_claimed(tmp_path: Path, storage: StorageHandle) -> None:
@@ -229,3 +232,61 @@ def test_what_do_you_know_needs_no_model_call(tmp_path: Path, storage: StorageHa
         "Kullanıcı İzmir'de yaşıyor." in note
         and "Kayıtlı kişi ve projeler: Ahmet (çocukluk arkadaşı)" in note
     )
+
+
+def test_a_named_topic_is_forgotten_with_its_history(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    _seed_ahmet(storage)
+    newer = Candidate(predicate="occupation", value="restoran işletmecisi", statement="Ahmet restoran açtı.",
+                      about="entity", entity=EntityRef("Ahmet"), change=True)  # fmt: skip
+    storage.db.run_sync(
+        lambda c: service.apply_candidates(c, [newer], source=Source("import"), explicit=False)
+    )
+    # The model quoted only the current value with scope "fact" (seen with Gemma).
+    cmd = answer("forget", forget_scope="fact", forget_entity="Ahmet", forget_predicate="occupation",
+                 forget_value="restoran işletmecisi")  # fmt: skip
+    run(storage, tmp_path, lambda r: cmd, "Ahmet’in mesleği hakkındaki bilgileri unut.")
+    left = storage.db.run_sync(lambda c: memory_repo.list_memories(c, status=None))
+    assert [m.predicate for m in left] == ["interest"]  # both occupation values are gone
+
+
+def test_nothing_to_save_keeps_the_background_job(tmp_path: Path, storage: StorageHandle) -> None:
+    cmd = answer("remember", items=[item("note", "x", "x", "metinde olmayan alıntı")])
+    llm, _ = run(storage, tmp_path, lambda r: cmd, "Bunu unutma lütfen.")
+    assert "kaydettim ya da not aldım deme" in last_user(llm.chat_requests[0])
+    counts = storage.db.run_sync(lambda c: memory_repo.job_counts(c))
+    assert "skipped" not in counts and sum(counts.values()) == 1  # still learned in the background
+
+
+def test_a_database_write_failure_is_reported_not_claimed(
+    tmp_path: Path, storage: StorageHandle, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from lazis.errors import DatabaseBusyError
+
+    def fail(*_a: Any, **_k: Any) -> Any:
+        raise DatabaseBusyError("database busy")
+
+    monkeypatch.setattr(commands.service, "apply_candidates", fail)
+    cmd = answer("remember", items=[item("likes", "çay", "Kullanıcı çay sever.", "çay severim")])
+    llm, events = run(storage, tmp_path, lambda r: cmd, "Bunu kaydet: çay severim.")
+    assert events[0][-1]["type"] == "done"
+    notice = last_user(llm.chat_requests[0])
+    assert (
+        "teknik bir hata nedeniyle yapılamadı" in notice
+        and "Kaydettim, not aldım ya da unuttum deme" in notice
+    )
+
+
+@pytest.mark.parametrize(
+    ("message", "statement"),
+    [
+        ("Ahmet yazılım geliştiricisi.", True),
+        ("Ahmet ne iş yapıyor?", False),
+        ("Bu doğru mu", False),
+        ("Teşekkürler.", False),
+        ("Bugün İzmir'e taşındım", True),
+    ],
+)
+def test_statements_get_the_nothing_written_yet_notice(message: str, statement: bool) -> None:
+    assert commands.looks_like_statement(message) is statement

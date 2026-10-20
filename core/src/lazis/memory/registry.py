@@ -1,4 +1,4 @@
-"""Predicate registry: what a memory says, and how it behaves (MEMORY_ARCHITECTURE §4).
+"""Predicate registry: what a memory says, and how it behaves (MEMORY_ARCHITECTURE P6.3).
 
 Cardinality drives contradiction handling: a ``single`` predicate has one current value per
 subject (a new value needs an explicit change signal, otherwise the user is asked); a
@@ -43,6 +43,13 @@ PREDICATES: dict[str, Predicate] = {
             "single",
             subjects=("user", "person"),
             pinned=True,
+        ),
+        _P(
+            "relationship",
+            "kullanıcıyla ilişkisi",
+            "profile",
+            "single",
+            subjects=("person",),
         ),
         _P("occupation", "meslek", "profile", "single"),
         _P("employer", "çalıştığı yer", "profile", "single", "personal"),
@@ -118,6 +125,7 @@ PREDICATES: dict[str, Predicate] = {
 # ("çalışır", "kullanıyor") would match unrelated questions.
 HINTS: dict[str, str] = {
     "preferred_name": "adım ad isim hitap seslen",
+    "relationship": "arkadaş tanıdık ilişki yakını",
     "occupation": "meslek mesleği işi görevi",
     "employer": "şirket firma işyeri çalıştığı yer",
     "location": "şehir yaşıyor yaşadığı oturuyor nerede ikamet memleket",

@@ -1,5 +1,5 @@
 """The memory orchestrator: every knowledge write goes through here, in one transaction per
-batch (``UnitOfWork`` = one change set, with per-row history; MEMORY_ARCHITECTURE §6).
+batch (``UnitOfWork`` = one change set, with per-row history; MEMORY_ARCHITECTURE P6.2).
 
 Pipeline per candidate: policy (secret / instruction / durability / sensitivity) → subject
 resolution (user, or a person/project via the resolver) → suppression (forgotten or rejected

@@ -33,8 +33,11 @@ CONVERSATION_RULES = (
     "şey yoktur, hatırlıyormuş gibi yapma. Kayıtları doğal kullan, her yanıtta hafızadan söz "
     "etme. Kayıt şimdi söylenenle çelişirse şimdi söyleneni esas al; kayıtlar otomatik "
     "çıkarılır ve yanlış olabilir.\n"
-    "- Konuşmalardan arka planda öğrenirsin, ama 'not aldım', 'kaydettim', 'unutmam' gibi "
-    "sözleri yalnızca 'HAFIZA İŞLEMİ' bildirimi varsa söyle."
+    "- Konuşmalardan arka planda öğrenirsin, ama bir şeyi kaydettiğini, not aldığını, not "
+    "ettiğini, öğrendiğini ya da aklında tutacağını yalnızca mesajda 'HAFIZA İŞLEMİ' bildirimi "
+    "varsa ve bildirim bunu söylüyorsa söyle; yoksa kısaca karşılık verip konuya devam et.\n"
+    "- Şifre, PIN, anahtar, kart ya da kimlik numarası gibi gizli bilgileri yanıtında asla "
+    "tekrar etme."
 )
 
 # Tool definitions: none before tools exist. Memory: a per-request block on the user message

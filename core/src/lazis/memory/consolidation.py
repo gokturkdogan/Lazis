@@ -1,5 +1,5 @@
 """A candidate against what is stored for the same subject and predicate (pure;
-MEMORY_ARCHITECTURE §10).
+MEMORY_ARCHITECTURE P6.6).
 
 * Same value (or a near-duplicate sentence) → **duplicate**: add evidence, no new row.
 * Single-valued predicate with another current value:

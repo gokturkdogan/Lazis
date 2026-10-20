@@ -151,3 +151,11 @@ def test_a_relation_must_come_from_the_user() -> None:
         [copied], [t], known, context=["Çocukluk arkadaşım Ahmet geldi."]
     )
     assert said_before.accepted[0].candidate.entity.relation == "çocukluk arkadaşı"  # type: ignore[union-attr]
+
+
+def test_an_entity_that_is_not_a_name_means_the_user() -> None:
+    t = Target("m1", "MSG6", "Bunu unutma: kızımın okulu her sabah 8.30'da başlıyor.")
+    school = item(entity="kızının okulu", quote="kızımın okulu her sabah 8.30'da başlıyor", predicate="event",
+                  value="her sabah 8.30'da başlıyor", statement="Kullanıcının kızının okulu 8.30'da başlıyor.")  # fmt: skip
+    c = extraction.validate([school], [t]).accepted[0].candidate
+    assert c.about == "user" and c.entity is None

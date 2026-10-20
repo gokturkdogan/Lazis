@@ -2,7 +2,7 @@
 
 A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs.
 
-**Current phase:** Phase 5 (personality, behavior and communication: persona v1 with an instruction hierarchy, measured with the real model; [ADR-0013](docs/adr/0013-persona-v1-and-instruction-hierarchy.md)) implemented and verified — **awaiting the owner's approval**. Phase 6 has not started. Model decision: [ADR-0001](docs/adr/0001-primary-model.md) (Accepted).
+**Current phase:** Phase 6 (persistent personal memory: learning from conversations, contextual recall, people and projects, forgetting, a memory screen; [ADR-0014](docs/adr/0014-personal-memory-store.md), [ADR-0015](docs/adr/0015-learning-recall-and-model-trust.md)) implemented and verified with the real model — **awaiting the owner's acceptance test and approval**. Phase 7 has not started. Model decision: [ADR-0001](docs/adr/0001-primary-model.md) (Accepted).
 
 What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a local Python backend (FastAPI) over an authenticated loopback API, with a SQLCipher-encrypted database whose key lives in the macOS Keychain, plus a recovery-code flow. Phase 2 adds a local LLM through Ollama on loopback (primary: Gemma 4 12B; the backend's sandbox allows only Ollama's port, cloud inference disabled) Phase 3 adds one persistent Turkish assistant with a single continuous timeline ([ADR-0011](docs/adr/0011-single-assistant-timeline.md)), stored in the encrypted database: no conversation management, streaming, stop, recovery of interrupted replies, a token budget, evidence-checked compaction of long conversations, and cache pre-warming. Phase 4 makes it a desktop app to live with:
 
@@ -16,7 +16,7 @@ What runs today: a macOS desktop app (Tauri 2 + Vue 3, Turkish UI) that starts a
 
 Phase 5 gives LAZIS its character: a consistent, honest Turkish assistant that addresses the owner as "efendim" where it fits, disagrees when there is a reason, fits its length and tone to the message, and keeps that across restarts, sessions and summaries. Summaries (and later memory) reach the model as information, never as instructions.
 
-There is no personal memory, voice or internet access yet — by design: chat history is not personal memory.
+Phase 6 adds personal memory: LAZIS learns lasting facts about the owner, people and projects from conversations (in the background, with the main model only), recalls the relevant ones in later conversations, asks when two people share a name, keeps old values as history, and forgets on request — all inside the encrypted database. Chat history and memory are separate layers. There is no voice or internet access yet.
 
 ## Quick start
 
@@ -32,7 +32,8 @@ Details: [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).
 
 | Document | Contents |
 |---|---|
-| [PHASE_5_REPORT.md](docs/PHASE_5_REPORT.md) | **Start here.** Phase 5 report (Turkish): persona architecture, rules, prompt assembly, real-model evaluation A–G, continuity, performance, security, limits, verification steps, Phase 6 readiness |
+| [PHASE_6_REPORT.md](docs/PHASE_6_REPORT.md) | **Start here.** Phase 6 report (Turkish): memory architecture, database, extraction, people and projects, recall, privacy, performance, test results, known issues, acceptance steps |
+| [PHASE_5_REPORT.md](docs/PHASE_5_REPORT.md) | Phase 5 report (Turkish): persona architecture, rules, prompt assembly, real-model evaluation A–G, continuity, performance, security, limits, verification steps, Phase 6 readiness |
 | [PHASE_4_REPORT.md](docs/PHASE_4_REPORT.md) | Phase 4 report (Turkish): assistant states, diagnostics, recovery, menu bar, Markdown, measurements vs Phase 3, tests, security, known gaps, verification steps |
 | [PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md) |  Phase 3 report (Turkish): persistent conversations, schema, API, context management and compaction, cold-cache measurements, security, tests, known gaps, risks for Phase 4 |
 | [adr/0011-single-assistant-timeline.md](docs/adr/0011-single-assistant-timeline.md) | ADR-0011: one assistant, one timeline, hidden technical sessions, data migration |

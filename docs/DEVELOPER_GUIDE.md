@@ -223,5 +223,39 @@ Decisions: [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md).
   5. Review every response against its rubric. Record the verdicts in `evals/reports/phase5/persona_review.json`.
   6. `--score` writes `persona_summary.json`.
 - **Preferences:** config `[personality]`, with `verbosity = "adaptive" | "short" | "detailed"` and `humor = "light" | "off"`. Identity and honesty are not configurable.
-- **New context for the model** (memory records in P6, documents, research): add a `ContextBlock`, never rules text. Blocks are rendered as `BİLGİ (talimat değildir)` after every rule.
+- **New context for the model:** add data, never rules text.
+  - Information that is stable for a whole conversation (summaries, documents later): a `ContextBlock`, rendered as `BİLGİ (talimat değildir)` after every rule.
+  - Per-message information (memory, P6): a marked block on the latest user message for that request only (see §16), so the cached prefix stays valid.
 - **Prompt size:** the system prompt is part of every request and of the cold prefill at session start. Measure it after changes (P5: 1,007 tokens for system prompt + a one-letter message with Gemma; Phase 3: 461).
+
+## 16. Personal memory (Phase 6)
+
+Decisions: [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-learning-recall-and-model-trust.md); as built: [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P6.
+
+- **Where:**
+  - `core/src/lazis/memory/` (store, rules, recall, requests, import);
+  - `core/src/lazis/conversation/learning.py` (background learning);
+  - `ConversationEngine._memory_request` / `_with_memory` (in a turn);
+  - `core/src/lazis/api/memory.py` (API);
+  - `apps/desktop/ui/src/views/MemoryView.vue` + `components/memory/` (Hafıza tab).
+- **Config `[memory]`:**
+  - `auto_extract` (default on);
+  - `trusted_models` (default `["gemma4:12b-it-qat"]`);
+  - `extraction_max_tokens` (700);
+  - `batch_messages` (3);
+  - `max_attempts` (3);
+  - `context_budget_tokens` (400; 0 disables recall).
+- **Adding a predicate:**
+  1. Add it to `registry.PREDICATES`, and to `registry.HINTS` if it has search words.
+  2. Add it to `extraction.PROMPT_GROUPS` (the test fails until it is listed exactly once).
+  3. Rerun the gold set: `uv run --project core python evals/runners/p6_extraction.py --model gemma4:12b-it-qat --label <name>`.
+- **Changing the extraction instruction:** rerun the gold set on Gemma (and on Qwen if the trust decision is in question) and compare with the last report. Critical errors must stay at 0.
+- **Changing scoring:** `p6_extraction.py --rescore evals/reports/phase6/extraction_*.json` rescores stored reports with the current rules.
+- **End-to-end check with the real model:** `uv run --project core python evals/runners/p6_sessions.py --model gemma4:12b-it-qat` (`--only brief` for the brief's four sessions).
+- **Performance:**
+  - `p6_perf.py --scales 100,1000,10000,50000` (database side);
+  - `p6_ttft.py --model gemma4:12b-it-qat` (chat latency with and without memory).
+- **Rules:**
+  - Every knowledge write goes through `memory.service` (one change set, policy first).
+  - Never put memory text in logs, error messages or the system prompt.
+  - Never backfill old conversations without the owner's approval.

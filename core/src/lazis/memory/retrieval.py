@@ -1,4 +1,4 @@
-"""Contextual recall: the few memories that matter for this message (MEMORY_ARCHITECTURE §8).
+"""Contextual recall: the few memories that matter for this message (MEMORY_ARCHITECTURE P6.7).
 
 Sources, in priority order, until the token budget is used:
 
@@ -22,7 +22,7 @@ close the block early.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from lazis.memory import registry, text
 from lazis.memory import repository as repo
@@ -38,6 +38,10 @@ MAX_PER_ENTITY = 6
 MAX_SEARCH = 8
 SEARCH_KEEP = 0.4  # keep FTS hits scoring at least this fraction of the best hit
 MAX_FORGOTTEN = 5
+MAX_QUESTIONS = 2
+# A query term matching more than max(COMMON_TERM_MIN, share × memories) records is not used.
+COMMON_TERM_MIN = 25
+COMMON_TERM_SHARE = 0.08
 
 Why = Literal["pinned", "entity", "search", "context"]
 
@@ -56,10 +60,11 @@ class Recall:
     ambiguous: tuple[tuple[str, tuple[str, ...]], ...] = ()  # name, labels of the namesakes
     forgotten: tuple[str, ...] = ()
     known: tuple[str, ...] = ()  # overview only: names of stored people/projects
+    questions: tuple[str, ...] = ()  # open "which Ahmet?" items worth asking now
 
     @property
     def empty(self) -> bool:
-        return not (self.items or self.ambiguous or self.forgotten or self.known)
+        return not (self.items or self.ambiguous or self.forgotten or self.known or self.questions)
 
     @property
     def memory_ids(self) -> list[str]:
@@ -77,6 +82,8 @@ def recall(
     previous: str = "",
     budget_chars: int,
     overview: bool = False,
+    conversation_id: str | None = None,
+    recent_since: str | None = None,
 ) -> Recall:
     """``overview``: the user asked what LAZIS knows ("hakkımda ne biliyorsun?") — the most
     important user facts and the list of known people/projects come first."""
@@ -115,7 +122,7 @@ def recall(
         for m in facts[:MAX_PER_ENTITY]:
             take(m, "entity")
 
-    match = text.fts_match(text.query_terms(query))
+    match = text.fts_match(_selective_terms(conn, text.query_terms(query)))
     if match is not None:
         hits = repo.search(conn, match, limit=MAX_SEARCH * 3)
         if hits:
@@ -163,7 +170,55 @@ def recall(
         f"{p.label if (p := registry.get(pred)) else pred}"
         for sid, pred in repo.suppressed_topics(conn, [None, *names])
     )[:MAX_FORGOTTEN]
-    return Recall(tuple(chosen), subjects, ambiguous, forgotten, known)
+    questions = _open_questions(conn, query, conversation_id, recent_since)
+    return Recall(tuple(chosen), subjects, ambiguous, forgotten, known, questions)
+
+
+def _open_questions(
+    conn: Connection, query: str, conversation_id: str | None, recent_since: str | None
+) -> tuple[str, ...]:
+    """Namesake questions LAZIS could not settle alone: those about a name in this message,
+    and those raised by this conversation's latest messages (ask while it is fresh)."""
+    if conversation_id is None:
+        return ()
+    words = text.words(query)
+    out: list[str] = []
+    for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
+        if item.conversation_id != conversation_id or len(out) >= MAX_QUESTIONS:
+            continue
+        cand: dict[str, Any] = item.payload.get("candidate", {})
+        entity: dict[str, Any] = cand.get("entity") or {}
+        name = str(entity.get("name", ""))
+        fresh = recent_since is not None and item.created_at >= recent_since
+        if not fresh and not (name and text.mentions_name(words, text.name_key(name))):
+            continue
+        labels = ", ".join(str(o.get("label", "")) for o in item.payload.get("options", []))
+        out.append(
+            f"«{cand.get('statement', '')}» — kayıtlı {labels} mı, yoksa başka biri mi? "
+            "Belli değil; uygun bir anda kullanıcıya kısaca sor, varsayımda bulunma."
+        )
+    return tuple(out)
+
+
+def _selective_terms(conn: Connection, terms: list[str]) -> list[str]:
+    """Drop terms that match a large share of all memories ("projesinde", "kullanıyor"): they
+    would bring in many unrelated records. Names are found by the entity route instead."""
+    if not terms:
+        return terms
+    total = int(conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
+    limit = max(COMMON_TERM_MIN, int(total * COMMON_TERM_SHARE))
+    kept: list[str] = []
+    for term in terms:
+        match = text.fts_match([term])
+        if match is None:
+            continue
+        df = conn.execute(
+            "SELECT COUNT(*) FROM (SELECT rowid FROM memory_fts WHERE memory_fts MATCH ? LIMIT ?)",
+            (match, limit + 1),
+        ).fetchone()[0]
+        if int(df) <= limit:
+            kept.append(term)
+    return kept
 
 
 def _successor(conn: Connection, old: Memory) -> Memory | None:
@@ -207,6 +262,8 @@ def render(r: Recall) -> str:
             f'Dikkat: "{_safe(name)}" adında birden fazla kişi kayıtlı: '
             f"{', '.join(_safe(x) for x in labels)}. Hangisinin kastedildiği belli değilse sor."
         )
+    for q in r.questions:
+        lines.append(f"Açık soru: {_safe(q)}")
     if r.forgotten:
         lines.append(
             "Kullanıcının unutmanı istediği konular (sohbet geçmişinde geçse bile kullanma, "

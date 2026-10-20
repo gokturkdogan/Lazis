@@ -98,7 +98,7 @@ Vitest units (stores, WS client turn filtering, state-visual mapping); component
 - CI: local-first (the `just ci` target). GitHub Actions on macOS runners is optional if the repository is hosted. Live evals are never part of blocking CI (they need the GPU and real models).
 - **Reporting template** per phase: commands run, pass/fail counts, failures with explanations, skipped tests with reasons, eval metrics vs. thresholds, known issues.
 
-## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3 + 4 + 5)
+## 11. Implemented suites (Phase 1 + 1.1 + 2 + 3 + 4 + 5 + 6)
 
 `make check` runs everything below except the opt-in tests (Keychain, live Ollama). Counts are from the Phase 2 run ([PHASE_2_REPORT.md](PHASE_2_REPORT.md) §M): Python 219 (unit 60, integration 103, security 56), UI 33 unit + 5 integration (1 skipped without a model), shell 19 + 7. The descriptions below are from Phase 1.1; the Phase 2 additions are listed after the table.
 
@@ -168,6 +168,23 @@ Phase 5 additions ([PHASE_5_REPORT.md](PHASE_5_REPORT.md) §E has the results):
 | Post-turn re-warm | `core/tests/integration/test_post_turn_rewarm.py` | `holds(through_seq)`; the reply is pre-warmed in the background and the next turn reports warm; without pre-warm the next turn is honestly cold; a turn sent during the re-warm joins it |
 | Persona in every session (updated) | `test_conversation_engine.py`, `test_conversation_context.py` | the persona opens the system message of a new technical session; over-budget compaction with the larger fixed prompt |
 | Persona evaluation (live, not CI) | `evals/runners/p5_persona.py` + `persona_checks.py` | categories A–G: 37 synthetic scenarios through the production engine (fresh session, restart, long conversation with compaction, 10-turn address frequency, injected summary). Hard checks plus a rubric review of every response (`evals/reports/phase5/persona_review.json`); `--persona v0` gives the Phase 3 baseline |
+
+Phase 6 additions ([PHASE_6_REPORT.md](PHASE_6_REPORT.md) §I has the results):
+
+| Suite | Where | What it proves |
+|---|---|---|
+| Memory rules | `core/tests/unit/test_memory_rules.py` | Turkish casing/folding, prefix terms, suffix-tolerant names; restricted-data detectors (credentials, tokens, IBAN, TC kimlik, cards) and prose that is not a secret; instruction-like text refused; save/inbox/drop policy; namesake resolution; duplicate/supersede/conflict/coexist plans |
+| Extraction validation | `core/tests/unit/test_memory_extraction.py` | instruction content (no database ids), schema, parsing; quotes must come from the target message; grounded entities and relations; predicate–subject fit; type normalisation; list splitting; every predicate listed once |
+| Memory store | `core/tests/integration/test_memory_store.py` | on the encrypted database: save/dedupe/search, supersede with history, unsignalled change asks, coexisting values, namesakes asked, merge/split without loss, sensitive approval, secrets never stored, forgetting a topic/person leaves no trace (rows, FTS shadow tables, history) and is not re-learned, generic revert refuses memory rows, v3 → v4 upgrade with backup, a half-applied 0004 leaves v3 intact, no plaintext on disk, a later answer settles a namesake question |
+| Learning | `core/tests/integration/test_memory_learning.py` | the extraction request is the re-warmed prompt plus one instruction; a turn preempts learning and it resumes; untrusted models never write (deferred); unchecked proposals (LAZIS's words, secrets) are not written and never logged; invalid output retried then reported; jobs survive a crash; learning can be switched off |
+| Recall | `core/tests/integration/test_memory_recall.py` | only relevant memories; budget; current value with the old one; namesake and forgotten-topic notes; open questions; the block is marked and cannot be escaped; the block rides on one request only and the next prompt's prefix equals the re-warmed one |
+| Requests in chat | `core/tests/integration/test_memory_commands.py` | cue detection; remember written before the reply; secrets refused without a model call; topic forget (with history) before the reply; person forget waits for confirmation; decline; untrusted model; not-a-request; model and database failures reported, never claimed; "ne biliyorsun" needs no model call |
+| Import | `core/tests/integration/test_memory_import.py` | JSON parsing, a preview that writes nothing, only selected items applied, choices required for conflicts/namesakes, a discarded batch leaves no trace |
+| Memory API | `core/tests/integration/test_memory_api.py` | authentication; add/search/detail/edit/forget; refusals never echo the text; merge/split/confirmed delete; decisions; JSON import |
+| Memory UI | `apps/desktop/ui/tests/unit/memory.spec.ts` | records with origin, search, honest empty state, forget only after confirmation, edit, source and history, add about a new person, person delete confirmation, namesake decision, import preview with sensitive/conflict items unselected; diagnostics learning card |
+| Extraction gold set (live, not CI) | `evals/runners/p6_extraction.py` + `evals/datasets/memory_extraction_gold.json` | 41 synthetic cases through the production engine and learning job: recall, false records, critical errors (stored secrets/injections/guesses, namesakes attached); Gemma vs Qwen; `--rescore` recomputes stored reports |
+| End-to-end sessions (live) | `evals/runners/p6_sessions.py` | the brief's sessions 1–4 with real restarts, forget checked in the current context and in a clean session; categories A–G scenarios incl. a planted record trying to rename LAZIS |
+| Performance (live) | `evals/runners/p6_perf.py`, `p6_ttft.py` | database side at 100/1k/10k/50k records (write, recall, entity matching, search, size, RSS); TTFT with and without memory, patient and fast user |
 
 Rules that apply to these suites: synthetic data only; no test contacts another host (refused targets are TEST-NET-1 `192.0.2.1`, `2001:db8::/32` and the reserved `.invalid` TLD); destructive tests run only in temporary directories, never against a real profile.
 

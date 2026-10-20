@@ -391,3 +391,48 @@ def test_a_later_answer_settles_the_namesake_question(storage: StorageHandle) ->
                                    **about("Ahmet", "çocukluk arkadaşı")))  # fmt: skip
     assert len(answered.created) == 1 and answered.inbox == []
     assert run(storage, lambda c: repo.list_inbox(c)) == []  # the question is settled
+
+
+def test_a_half_applied_memory_migration_leaves_v3_intact(
+    storage_section: StorageSection, key: SecretBytes
+) -> None:
+    from lazis.errors import MigrationError
+    from lazis.storage.migrations import Migration
+
+    shipped = load_migrations("lazis")
+    v3 = shipped[:3]
+    old = open_storage(storage_section, key, app_version="p5", migrations=v3)
+    now = utc_now_iso()
+
+    def seed(c: driver.Connection) -> str:
+        with conv_repo.transaction(c):
+            conv = conv_repo.insert_conversation(c, title="Eski", model="m", now=now)
+            conv_repo.insert_message(c, conversation_id=conv.id, role="user", content="korunacak mesaj",
+                                     status="complete", now=now, client_id="client-old-0002")  # fmt: skip
+        return conv.id
+
+    cid = old.db.run_sync(seed)
+    old.db.close()
+    # 0004 dies after creating some of its tables (crash/bug mid-migration).
+    broken = Migration(4, shipped[3].name, shipped[3].sql + "\nCREATE TABLE broken (;\n")
+    with pytest.raises(MigrationError):
+        open_storage(storage_section, key, app_version="p6", migrations=[*v3, broken])
+    again = open_storage(storage_section, key, app_version="p6", migrations=v3)
+    try:
+        assert again.schema_version == 3
+        tables = again.db.run_sync(
+            lambda c: {r[0] for r in c.execute("SELECT name FROM sqlite_master")}
+        )
+        assert not any(t.startswith("memor") for t in tables)  # nothing half-created
+        msgs = again.db.run_sync(lambda c: conv_repo.messages_between(c, cid, 1))
+        assert [m.content for m in msgs] == ["korunacak mesaj"]
+    finally:
+        again.db.close()
+    fixed = open_storage(storage_section, key, app_version="p6")
+    try:
+        assert fixed.schema_version == len(shipped)
+        assert fixed.db.run_sync(lambda c: repo.count_memories(c)) == {}
+        msgs = fixed.db.run_sync(lambda c: conv_repo.messages_between(c, cid, 1))
+        assert [m.content for m in msgs] == ["korunacak mesaj"]
+    finally:
+        fixed.db.close()
