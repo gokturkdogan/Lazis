@@ -1,0 +1,237 @@
+{
+ "manifest": {
+  "captured_at": "2026-10-20T07:35:08+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t75%; charging; 0:54 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.13,
+   "active_gb": 4.7,
+   "wired_gb": 10.54,
+   "compressed_gb": 3.3,
+   "swap_used_mb": 7180.25,
+   "swapouts": 58504662,
+   "memory_free_percent": 40
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "scenarios": {
+  "open_after_runtime_restart": {
+   "send_at_once": {
+    "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+    "ttft_s": 28.621,
+    "total_s": 29.742,
+    "output_tokens": 32,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "loading_model",
+     "processing_context"
+    ],
+    "cache_expected": "cold",
+    "estimated_tokens": 7442,
+    "prompt_tokens": 7347
+   },
+   "send_after_10s": {
+    "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+    "ttft_s": 19.194,
+    "total_s": 25.407,
+    "output_tokens": 173,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "warm",
+    "estimated_tokens": 7421,
+    "prompt_tokens": 7420,
+    "send_after_s": 10.0
+   },
+   "send_after_prewarm": {
+    "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+    "ttft_s": 0.393,
+    "total_s": 6.408,
+    "output_tokens": 167,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "warm",
+    "estimated_tokens": 7631,
+    "prompt_tokens": 7633,
+    "prewarm_s": 29.819,
+    "prepare_state": "warming"
+   }
+  },
+  "same_session_followups": [
+   {
+    "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+    "ttft_s": 1.116,
+    "total_s": 5.255,
+    "output_tokens": 114,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "cold",
+    "estimated_tokens": 7842,
+    "prompt_tokens": 7844
+   },
+   {
+    "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+    "ttft_s": 0.908,
+    "total_s": 3.425,
+    "output_tokens": 70,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "cold",
+    "estimated_tokens": 8015,
+    "prompt_tokens": 8011
+   }
+  ],
+  "app_reopen_runtime_running": {
+   "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+   "ttft_s": 0.378,
+   "total_s": 2.008,
+   "output_tokens": 46,
+   "outcome": "done",
+   "stages": [
+    "waiting",
+    "processing_context"
+   ],
+   "cache_expected": "warm",
+   "estimated_tokens": 8126,
+   "prompt_tokens": 8123,
+   "prepare_state": "warming"
+  },
+  "long_history": {
+   "timeline_messages": 20040,
+   "assistant_state_ms": 1.5,
+   "first_page_ms": 0.7,
+   "older_pages_ms": {
+    "n": 20,
+    "median": 0.2,
+    "p95": 0.3,
+    "min": 0.2,
+    "max": 0.4
+   },
+   "page_near_message_5000_ms": 0.2,
+   "page_size": 50,
+   "first_turn": {
+    "conversation_id": "01M5C3SFM8HKP4A2451PBS299K",
+    "ttft_s": 0.838,
+    "total_s": 1.344,
+    "output_tokens": 15,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "warm",
+    "estimated_tokens": 8222,
+    "prompt_tokens": 8216
+   }
+  },
+  "session_change": {
+   "no_prewarm": {
+    "conversation_id": "01M5C3X5YEM5W50AVDEHRPTTQP",
+    "ttft_s": 3.714,
+    "total_s": 4.391,
+    "output_tokens": 19,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "cold",
+    "estimated_tokens": 1553,
+    "prompt_tokens": 1038
+   },
+   "prewarmed": {
+    "conversation_id": "01M5C3XA7P2Z2A43DET18ZQ7KX",
+    "ttft_s": 3.685,
+    "total_s": 4.185,
+    "output_tokens": 15,
+    "outcome": "done",
+    "stages": [
+     "waiting",
+     "processing_context"
+    ],
+    "cache_expected": "cold",
+    "estimated_tokens": 1037,
+    "prompt_tokens": 1037,
+    "state": "warming",
+    "prewarm_s": 3.482
+   }
+  },
+  "prewarm_completed": {
+   "turns_reporting_warm_after_prewarm": "2/3"
+  }
+ },
+ "memory": [
+  {
+   "at": "after opening",
+   "runner_gb": 2.55
+  },
+  {
+   "at": "after long history",
+   "runner_gb": 4.49
+  },
+  {
+   "at": "end",
+   "runner_gb": 3.72
+  }
+ ],
+ "resident_gb_end": 7.98,
+ "loaded_models_end": [
+  "gemma4:12b-it-qat"
+ ]
+}

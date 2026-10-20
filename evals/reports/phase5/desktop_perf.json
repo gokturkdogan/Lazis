@@ -1,0 +1,226 @@
+{
+ "manifest": {
+  "captured_at": "2026-10-20T07:37:52+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t77%; charging; 1:06 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.09,
+   "active_gb": 3.1,
+   "wired_gb": 11.46,
+   "compressed_gb": 5.62,
+   "swap_used_mb": 6612.25,
+   "swapouts": 58504662,
+   "memory_free_percent": 26
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "scenarios": {
+  "normal_turns": {
+   "rows": [
+    {
+     "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+     "ttft_s": 0.402,
+     "total_s": 4.866,
+     "output_tokens": 125,
+     "outcome": "done",
+     "stages": [
+      "waiting",
+      "processing_context"
+     ],
+     "cache_expected": "cold",
+     "estimated_tokens": 7416,
+     "prompt_tokens": 7409
+    },
+    {
+     "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+     "ttft_s": 0.929,
+     "total_s": 4.399,
+     "output_tokens": 98,
+     "outcome": "done",
+     "stages": [
+      "waiting",
+      "processing_context"
+     ],
+     "cache_expected": "cold",
+     "estimated_tokens": 7577,
+     "prompt_tokens": 7575
+    },
+    {
+     "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+     "ttft_s": 0.775,
+     "total_s": 2.503,
+     "output_tokens": 49,
+     "outcome": "done",
+     "stages": [
+      "waiting",
+      "processing_context"
+     ],
+     "cache_expected": "cold",
+     "estimated_tokens": 7729,
+     "prompt_tokens": 7722
+    },
+    {
+     "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+     "ttft_s": 0.535,
+     "total_s": 2.68,
+     "output_tokens": 60,
+     "outcome": "done",
+     "stages": [
+      "waiting",
+      "processing_context"
+     ],
+     "cache_expected": "cold",
+     "estimated_tokens": 7816,
+     "prompt_tokens": 7816
+    },
+    {
+     "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+     "ttft_s": 0.645,
+     "total_s": 2.406,
+     "output_tokens": 50,
+     "outcome": "done",
+     "stages": [
+      "waiting",
+      "processing_context"
+     ],
+     "cache_expected": "cold",
+     "estimated_tokens": 7922,
+     "prompt_tokens": 7921
+    }
+   ],
+   "ttft_s": {
+    "n": 5,
+    "median": 0.65,
+    "p95": 0.93,
+    "min": 0.4,
+    "max": 0.93
+   },
+   "total_s": {
+    "n": 5,
+    "median": 2.68,
+    "p95": 4.87,
+    "min": 2.41,
+    "max": 4.87
+   }
+  },
+  "long_streaming": {
+   "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+   "ttft_s": 0.761,
+   "total_s": 37.749,
+   "output_tokens": 1024,
+   "outcome": "done",
+   "stages": [
+    "waiting",
+    "processing_context"
+   ],
+   "cache_expected": "cold",
+   "estimated_tokens": 8074,
+   "prompt_tokens": 8057,
+   "decode_tps": 27.7,
+   "engine_total_ms": 37742.3
+  },
+  "diagnostics_call_idle_ms": {
+   "n": 10,
+   "median": 1.55,
+   "p95": 15.7,
+   "min": 1.4,
+   "max": 15.7
+  },
+  "long_streaming_with_diagnostics_polling": {
+   "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+   "ttft_s": 5.059,
+   "total_s": 42.588,
+   "output_tokens": 1024,
+   "outcome": "done",
+   "stages": [
+    "waiting",
+    "processing_context"
+   ],
+   "cache_expected": "warm",
+   "estimated_tokens": 9183,
+   "prompt_tokens": 9167,
+   "decode_tps": 27.3,
+   "diagnostics_calls": 84,
+   "diagnostics_call_ms": {
+    "n": 84,
+    "median": 6.55,
+    "p95": 12.0,
+    "min": 1.7,
+    "max": 19.6
+   }
+  },
+  "long_streaming_control_after_long_reply": {
+   "conversation_id": "01M5C3YA1Y91GMX50TG42NZPC7",
+   "ttft_s": 5.219,
+   "total_s": 43.293,
+   "output_tokens": 1024,
+   "outcome": "done",
+   "stages": [
+    "waiting",
+    "processing_context"
+   ],
+   "cache_expected": "warm",
+   "estimated_tokens": 10297,
+   "prompt_tokens": 10281,
+   "decode_tps": 26.9,
+   "context_prep_ms": 4645.5
+  },
+  "status_integrity_check_ms": {
+   "first_quick_check": 6.8,
+   "cached": {
+    "n": 10,
+    "median": 0.1,
+    "p95": 1.8,
+    "min": 0.1,
+    "max": 1.8
+   }
+  }
+ },
+ "loaded_models_end": [
+  "gemma4:12b-it-qat"
+ ]
+}

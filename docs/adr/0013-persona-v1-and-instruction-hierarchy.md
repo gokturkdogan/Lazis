@@ -68,3 +68,7 @@ Phase 0 designed a large engine for this: five layers, YAML persona files, a tur
 - Every new data source (memory, documents, research) must enter as a `ContextBlock`, never as rules text.
 - The prompt prefix changed (`p5-v1`): the first turn after the upgrade is a cold prefill, and existing sessions keep their history and summaries.
 - Behavior rests on the model following instructions. The evaluation (PHASE_5_REPORT §E) records where it does not.
+  - Gemma, 111 reviewed responses: 106 pass with persona v1.4, against 81 with the Phase 3 prompt.
+  - The Phase 3 prompt let a summary injection rename LAZIS (3/3) and claimed unperformed actions (3/3).
+  - Qwen (fallback) reaches 14/37 and still follows the summary injection, so it is not a personality-equivalent fallback.
+- A new technical session's first message pays the larger prompt: TTFT 1.8 s → 3.7 s. Sessions are not changed automatically (ADR-0011).
