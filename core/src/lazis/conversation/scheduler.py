@@ -23,7 +23,7 @@ from typing import Literal
 from lazis.errors import LlmCancelledError
 from lazis.ids import new_ulid
 
-JobKind = Literal["prewarm", "compaction"]
+JobKind = Literal["prewarm", "compaction", "memory"]
 
 
 @dataclass(frozen=True)

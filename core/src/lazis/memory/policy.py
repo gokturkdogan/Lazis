@@ -137,6 +137,11 @@ def confidence_for(c: Candidate) -> float:
     return round(base if c.certain else min(base, 0.55), 2)
 
 
+# The extraction instruction scores trivial details 0.2 (gold set: Gemma rates facts about
+# other people 0.3).
+LOW_IMPORTANCE = 0.25
+
+
 def decide(c: Candidate, *, explicit: bool) -> Decision:
     """Whether a candidate is saved, held for approval or dropped (and why)."""
     joined = " ".join(x for x in (c.value, c.statement, c.quote or "") if x)
@@ -152,11 +157,15 @@ def decide(c: Candidate, *, explicit: bool) -> Decision:
     if not explicit:
         if not c.durable:
             return Decision("drop", "not_durable")
-        if c.importance < 0.35:
+        if c.importance < LOW_IMPORTANCE:
             return Decision("drop", "low_importance")
     category = c.sensitivity_category if c.sensitivity_category in SENSITIVE_CATEGORIES else None
+    if category == "address" and c.predicate == "location":
+        category = None  # a city is not an address (models over-flag it)
     if category is None and contact_detected(joined):
         category = "contact"
+    if category is None and pred.sensitivity == "sensitive":
+        category = c.predicate if c.predicate in SENSITIVE_CATEGORIES else None
     sensitivity = pred.sensitivity
     if category is not None:
         sensitivity = "sensitive"

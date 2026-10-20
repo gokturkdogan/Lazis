@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from lazis.config.model import MemorySection
 from lazis.conversation import TurnRequest
 from lazis.conversation.scheduler import CacheKey, InferenceScheduler
 from lazis.storage import StorageHandle
@@ -63,7 +64,10 @@ def test_without_the_rewarm_the_next_turn_is_honestly_cold(
     tmp_path: Path, storage: StorageHandle
 ) -> None:
     llm = ScriptedLLM()
-    engine = make_engine(storage, llm, tmp_path, prewarm=False)
+    # Background learning also processes the reply (it runs on the same prefix): off here.
+    engine = make_engine(
+        storage, llm, tmp_path, prewarm=False, memory=MemorySection(auto_extract=False)
+    )
 
     async def go() -> list[dict[str, object]]:
         _, cid = await run_turn(engine, "Merhaba")

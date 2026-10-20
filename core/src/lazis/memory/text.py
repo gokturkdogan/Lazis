@@ -172,10 +172,13 @@ def name_key(name: str) -> str:
 
 
 def stem_prefix(word: str) -> str:
-    """A prefix that survives most Turkish suffixes: long words lose up to 3 letters."""
+    """A prefix that survives most Turkish suffix chains ("bilgisayarımdaki" and "bilgisayar"
+    share it): short words keep 4 letters, longer ones about two thirds (at least 5)."""
     if len(word) <= 4:
         return word
-    return word[: max(4, len(word) - 3)]
+    if len(word) <= 6:
+        return word[:4]
+    return word[: max(5, round(len(word) * 0.65))]
 
 
 def query_terms(text: str, *, limit: int = 12) -> list[str]:

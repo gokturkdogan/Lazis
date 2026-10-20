@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Any
 
 from lazis.config.model import Settings
-from lazis.conversation import compaction, repository
+from lazis.conversation import compaction, learning, repository
 from lazis.conversation.context import (
     ASSISTANT_TEMPLATE_TOKENS,
     AssembledPrompt,
@@ -66,6 +66,7 @@ from lazis.errors import (
     LlmInvalidResponseError,
     LlmModelNotFoundError,
     LlmUnavailableError,
+    MemoryModelUntrustedError,
     MessageTooLongError,
     SessionNotActiveError,
     StorageError,
@@ -73,9 +74,13 @@ from lazis.errors import (
 )
 from lazis.i18n import message_for
 from lazis.ids import new_ulid, utc_now_iso
+from lazis.memory import commands, extraction, importer, retrieval
+from lazis.memory import repository as memory_repo
+from lazis.memory.models import Candidate
 from lazis.observability.logging import get_logger, log_event
 from lazis.personality import CommunicationPreferences
 from lazis.providers.llm.ports import (
+    ChatMessage,
     ChatRequest,
     GenerationDone,
     GenerationMetrics,
@@ -120,6 +125,14 @@ class TurnHandle:
     active_request_id: str | None = None
     cancel_requested: bool = False
     shutdown: bool = False
+    # Recall for this turn (ids and sizes only; the note itself is never stored).
+    memory_ids: list[str] = field(default_factory=list[str])
+    memory_note_floor: int = 0  # a lower bound of the note's tokens (see `_with_memory`)
+    memory_ms: float | None = None
+    # An explicit memory request in this message ("bunu unutma", "Ahmet'i unut"), if any.
+    memory_intent: str | None = None
+    memory_outcome: str | None = None
+    memory_request_ms: float | None = None
 
     def check(self) -> None:
         if self.cancel_requested:
@@ -236,6 +249,19 @@ class ConversationEngine:
         # Conversations whose last reply should be processed into the runtime's cache
         # (model to use), see the post-turn re-warm in `_run_due`.
         self._rewarm: dict[str, str] = {}
+        # Conversations with queued memory jobs, processed after the re-warm (`_learn_now`).
+        self._learn: set[str] = set()
+        self._memory = settings.memory
+        self.learner = learning.Learner(
+            cfg=settings.memory,
+            q=self._q,
+            scheduler=self.scheduler,
+            estimator=self.estimator,
+            num_ctx=self.num_ctx,
+            safety=self.budget.safety,
+            options=self._options,
+            keep_alive=settings.models.keep_alive,
+        )
         self._focused: str | None = None
         self._wake = asyncio.Event()
         self._maintenance: asyncio.Task[None] | None = None
@@ -265,6 +291,18 @@ class ConversationEngine:
                     "conversation.interrupted_replies_recovered",
                     count=self.recovered_interrupted,
                 )
+
+            def recover_jobs(conn: Connection) -> tuple[int, list[str]]:
+                with repository.transaction(conn):
+                    n = memory_repo.recover_running_jobs(conn, now)
+                return n, memory_repo.conversations_with_jobs(conn, ("queued", "deferred"))
+
+            recovered_jobs, waiting = await self._q(recover_jobs)
+            if recovered_jobs:
+                log_event(_log, logging.WARNING, "memory.jobs_recovered", count=recovered_jobs)
+            for cid in waiting:
+                self._learn.add(cid)
+                self._pending.setdefault(cid, time.monotonic() + self._cfg.idle_compaction_delay_s)
             self._maintenance = asyncio.get_running_loop().create_task(
                 self._maintain(), name="lazis-conversation-maintenance"
             )
@@ -644,6 +682,14 @@ class ConversationEngine:
                     model=req.model,
                     channel=req.channel,
                 )
+                learning.enqueue(
+                    conn,
+                    self._memory,
+                    message_id=user.id,
+                    conversation_id=conv.id,
+                    model=req.model,
+                    now=now,
+                )
                 assistant = repository.insert_message(
                     conn,
                     conversation_id=conv.id,
@@ -746,6 +792,9 @@ class ConversationEngine:
                 built = self._assemble(loaded, model)
                 if built.estimated_tokens > self.budget.hard_limit:
                     loaded, built = await self._fit_for_turn(handle, llm, model, loaded, built)
+                notice = await self._memory_request(handle, llm, model, loaded, built)
+                handle.check()
+                built = await self._with_memory(handle, loaded, built, notice)
                 handle.check()
                 if model not in {m.name for m in await llm.loaded_models()}:
                     await self._stage(handle, "loading_model", model=model)
@@ -847,6 +896,7 @@ class ConversationEngine:
                 total_ms=round(metrics.total_ms, 1),
             )
             self._rewarm[conv.id] = model
+            self._learn.add(conv.id)
             self._schedule_check(conv.id, now=True)
         except LlmCancelledError:
             status: MessageStatus = "interrupted" if handle.shutdown else "cancelled"
@@ -857,7 +907,9 @@ class ConversationEngine:
                 )
                 if not handle.shutdown:
                     self._rewarm[conv.id] = model
-                    self._schedule_check(conv.id, now=True)
+            if not handle.shutdown:
+                self._learn.add(conv.id)
+                self._schedule_check(conv.id, now=True)
             await self._emit(
                 handle,
                 {"type": "cancelled", "message": None if final is None else message_view(final)},
@@ -878,6 +930,9 @@ class ConversationEngine:
                 },
             )
             log_event(_log, logging.WARNING, "turn.failed", conversation_id=conv.id, code=exc.code)
+            # The user message is stored; it can still be learned from (retried, delayed).
+            self._learn.add(conv.id)
+            self._schedule_check(conv.id)
         except Exception as exc:
             final = await self._close_reply(handle, "failed", "".join(parts), "internal_error")
             await self._emit(
@@ -933,7 +988,163 @@ class ConversationEngine:
             "decode_tps": None
             if metrics is None or metrics.decode_tps is None
             else round(metrics.decode_tps, 1),
+            "memory_items": len(handle.memory_ids),
+            "memory_ms": handle.memory_ms,
+            "memory_request": handle.memory_intent,
+            "memory_outcome": handle.memory_outcome,
+            "memory_request_ms": handle.memory_request_ms,
         }
+
+    async def _with_memory(
+        self, handle: TurnHandle, loaded: Loaded, built: AssembledPrompt, notice: str = ""
+    ) -> AssembledPrompt:
+        """Put the relevant memories (and the outcome of a memory request) in front of the new
+        user message, for this request only. Recall is a local database read (milliseconds);
+        it never blocks or fails a reply."""
+        overview = handle.memory_intent == "recall"
+        budget = self._memory.context_budget_tokens * (2 if overview else 1)
+        if budget <= 0 and not notice:
+            return built
+        user = handle.user
+        previous = next(
+            (m.content for m in reversed(loaded.window) if m.role == "user" and m.seq < user.seq),
+            "",
+        )
+        chars = int(budget * self.estimator.chars_per_token)
+        started = time.monotonic()
+        try:
+            found = await self._q(
+                lambda c: retrieval.recall(
+                    c, user.content, previous=previous, budget_chars=chars, overview=overview
+                )
+            )
+        except Exception as exc:
+            log_event(_log, logging.WARNING, "memory.recall_failed", error=type(exc).__name__)
+            found = retrieval.Recall()
+        handle.memory_ms = round((time.monotonic() - started) * 1000, 1)
+        note = "\n\n".join(x for x in (notice, retrieval.render(found)) if x)
+        if not note or built.messages[-1].role != "user":
+            return built
+        cost = self.estimator.text(note) + 2
+        if built.estimated_tokens + cost > self.budget.hard_limit:
+            log_event(_log, logging.INFO, "memory.recall_skipped", reason="context_full")
+            return built
+        handle.memory_ids = found.memory_ids
+        handle.memory_note_floor = (len(note) + 2) // 4
+        last = built.messages[-1]
+        return replace(
+            built,
+            messages=[*built.messages[:-1], ChatMessage("user", f"{note}\n\n{last.content}")],
+            estimated_tokens=built.estimated_tokens + cost,
+        )
+
+    async def _memory_request(
+        self,
+        handle: TurnHandle,
+        llm: LLMProvider,
+        model: str,
+        loaded: Loaded,
+        built: AssembledPrompt,
+    ) -> str:
+        """An explicit memory request is carried out before the reply, so the reply can only
+        claim what really happened (the HAFIZA İŞLEMİ notice). Ordinary messages stop at the
+        cue check (no model call)."""
+        user, conv = handle.user, handle.conversation
+        pending = await self._q(lambda c: commands.pending_confirmation(c, conv.id))
+        intent = commands.detect(user.content, pending_confirmation=pending is not None)
+        if intent is None:
+            return ""
+        handle.memory_intent = intent
+        if intent == "recall":
+            return ""  # only a wider recall, no model call
+        await self._stage(handle, "memory")
+        started = time.monotonic()
+        outcome: commands.Outcome | None
+        if not learning.is_trusted(self._memory, model):
+            outcome = commands.Outcome("untrusted_model")
+        else:
+            try:
+                if intent == "confirm" and pending is not None:
+                    outcome = await self._q(lambda c: commands.confirm(c, pending))
+                elif intent == "decline" and pending is not None:
+                    outcome = await self._q(lambda c: commands.decline(c, pending))
+                else:
+                    outcome = await self._run_memory_command(handle, llm, model, loaded, built)
+            except LlmCancelledError:
+                raise
+            except LazisError as exc:
+                log_event(_log, logging.WARNING, "memory.request_failed", code=exc.code)
+                outcome = commands.Outcome("failed")
+        handle.memory_request_ms = round((time.monotonic() - started) * 1000, 1)
+        if outcome is None:  # the model judged it not to be a memory request
+            handle.memory_outcome = "none"
+            return ""
+        handle.memory_outcome = outcome.kind
+        if outcome.kind not in ("untrusted_model", "failed"):
+            # Handled here: the background job must not process the same request again.
+            await self._q(lambda c: commands.skip_job(c, user.id))
+        log_event(
+            _log,
+            logging.INFO,
+            "memory.request",
+            conversation_id=conv.id,
+            intent=intent,
+            outcome=outcome.kind,
+            duration_ms=handle.memory_request_ms,
+            **outcome.counts,
+        )
+        return outcome.notice()
+
+    async def _run_memory_command(
+        self,
+        handle: TurnHandle,
+        llm: LLMProvider,
+        model: str,
+        loaded: Loaded,
+        built: AssembledPrompt,
+    ) -> commands.Outcome | None:
+        user, conv = handle.user, handle.conversation
+        # On the cached prefix (everything before this message), plus one instruction.
+        rid = f"{handle.request_id}-memory"
+        request = ChatRequest(
+            model=model,
+            messages=[
+                *built.messages[:-1],
+                ChatMessage("user", commands.instruction(user.content)),
+            ],
+            options=self._options(400, temperature=0.0, seed=7, response_format=commands.schema()),
+            request_id=rid,
+        )
+        handle.active_request_id = rid
+        raw = ""
+        self.scheduler.cache = None
+        try:
+            async for event in llm.stream(request):
+                if isinstance(event, TextDelta) and event.kind == "content":
+                    raw += event.text
+        finally:
+            handle.active_request_id = None
+        prior = [m.seq for m in loaded.window if m.seq < user.seq]
+        self.scheduler.cache = CacheKey(
+            model, self.num_ctx, conv.id, built.prefix_hash, max(prior) if prior else 0
+        )
+        cmd = commands.parse(raw)
+        if cmd is None:
+            raise LlmInvalidResponseError("memory request was not valid JSON")
+        if cmd.action == "none":
+            return None
+        if cmd.action in ("remember", "correct"):
+            return await self._q(
+                lambda c: commands.apply_items(
+                    c, cmd, message_id=user.id, message=user.content, conversation_id=conv.id
+                )
+            )
+        recent = [m.id for m in loaded.window if m.role == "user" and m.seq < user.seq][-1:]
+        return await self._q(
+            lambda c: commands.forget(
+                c, cmd, conversation_id=conv.id, recent_user_message_ids=recent
+            )
+        )
 
     async def _fit_for_turn(
         self,
@@ -1025,14 +1236,19 @@ class ConversationEngine:
     ) -> Message:
         user, assistant = handle.user, handle.assistant
         prompt_tokens = metrics.prompt_tokens
+        # What later prompts will contain of this one: without the memory note (it is not
+        # stored). Subtracting a lower bound of its tokens keeps the anchor conservative.
+        history_tokens = (
+            None if prompt_tokens is None else max(prompt_tokens - handle.memory_note_floor, 1)
+        )
         user_cost = None
-        if prompt_tokens is not None:
+        if history_tokens is not None:
             user_cost = derived_user_tokens(
                 state=loaded.state,
                 prompt_hash=built.prefix_hash,
                 window=loaded.window,
                 user_seq=user.seq,
-                prompt_tokens=prompt_tokens,
+                prompt_tokens=history_tokens,
                 estimator=self.estimator,
             )
         reply_source: TokenSource
@@ -1070,13 +1286,15 @@ class ConversationEngine:
                         replace(
                             current,
                             anchor_seq=user.seq if prompt_tokens is not None else None,
-                            anchor_tokens=prompt_tokens,
+                            anchor_tokens=history_tokens,
                             prefix_hash=built.prefix_hash,
                             last_prompt_tokens=prompt_tokens,
                             updated_at=now,
                         ),
                     )
                 repository.touch_conversation(conn, user.conversation_id, now)
+                if handle.memory_ids:
+                    memory_repo.record_recall(conn, handle.memory_ids, now)
                 final = repository.get_message(conn, assistant.id)
                 assert final is not None
                 return final
@@ -1352,6 +1570,9 @@ class ConversationEngine:
                     # Process the reply now, while the user reads it, instead of at the start
                     # of the next turn (a turn sent meanwhile joins this pre-warm).
                     await self.prepare(conversation_id, rewarm_model)
+                    await self._settle_background()
+                if conversation_id in self._learn:
+                    await self._learn_now(conversation_id)
                 continue
             idle = self.scheduler.idle_for()
             if idle < self._cfg.idle_compaction_delay_s:
@@ -1397,9 +1618,122 @@ class ConversationEngine:
                 self._pending.pop(conversation_id, None)
                 if self._focused == conversation_id and self._cfg.prewarm:
                     await self.prepare(conversation_id, conv.model)
+                if conversation_id in self._learn:
+                    self._pending[conversation_id] = time.monotonic()
             else:
                 # Preempted by a turn (it re-schedules itself after the turn) or nothing to do.
                 self._pending.pop(conversation_id, None)
+
+    async def _settle_background(self) -> None:
+        """Wait for the running background job (a turn may join or preempt it meanwhile)."""
+        job = self.scheduler.background
+        if job is not None and job.task is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await asyncio.shield(job.task)
+
+    # ----- learning ----------------------------------------------------------------------
+    async def _learn_now(self, conversation_id: str) -> None:
+        """Process this conversation's queued memory jobs in the background slot, on the
+        prefix the re-warm just cached. Never waits for or delays a turn."""
+        now = time.monotonic()
+        if self.is_busy() or self.scheduler.background is not None:
+            self._pending[conversation_id] = now + 0.5
+            return
+        llm = self._get_llm()
+        if llm is None:
+            self._pending[conversation_id] = now + 60.0
+            return
+        try:
+            conv = await self.get_conversation(conversation_id)
+        except ConversationNotFoundError:
+            self._learn.discard(conversation_id)
+            return
+        model = conv.model
+        if not learning.is_trusted(self._memory, model):
+            # Deferred until a trusted model answers in this conversation again.
+            self._learn.discard(conversation_id)
+            return
+        jobs = await self._q(lambda c: learning.pending(c, self._memory, conversation_id))
+        if not jobs:
+            self._learn.discard(conversation_id)
+            return
+        loaded = await self._load(conversation_id)
+        targets = {j.user_message_id for j in jobs}
+        recent = [m.content for m in loaded.window if m.role == "user" and m.id not in targets]
+        prompt = learning.Prompt(
+            self._assemble(loaded, model),
+            loaded.window[-1].seq if loaded.window else 0,
+            tuple(recent[-3:]),
+        )
+
+        async def work(job: BackgroundJob) -> bool:
+            return await self.learner.run(
+                job,
+                llm=llm,
+                model=model,
+                conversation_id=conversation_id,
+                jobs=jobs,
+                prompt=prompt,
+            )
+
+        target = self.learner.target_key(model, conversation_id, prompt)
+        started = self.scheduler.start_background("memory", conversation_id, work, target=target)
+        if started is None or started.task is None:
+            self._pending[conversation_id] = now + 0.5
+            return
+        ok = False
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            ok = await asyncio.shield(started.task)
+        remaining = await self._q(lambda c: learning.pending(c, self._memory, conversation_id))
+        if not remaining:
+            self._learn.discard(conversation_id)
+        elif ok:
+            self._pending[conversation_id] = time.monotonic()  # the next batch
+        elif self.learner.status.get("state") == "failed":
+            self._pending[conversation_id] = time.monotonic() + 60.0
+        else:  # preempted by a turn: that turn schedules the next attempt itself
+            self._pending[conversation_id] = time.monotonic() + 2.0
+
+    async def import_text_candidates(self, content: str) -> list[Candidate]:
+        """Starting-profile import from plain text: the extraction model reads it in chunks
+        (a user action: it takes the runtime slot like a turn). Only a trusted model."""
+        await self.ensure_started()
+        model = self._models.primary_model
+        if model is None or not learning.is_trusted(self._memory, model):
+            raise MemoryModelUntrustedError("text import needs a trusted model")
+        llm = self._llm()
+        await self._require_model(llm, model)
+        out: list[Candidate] = []
+        async with self.scheduler.foreground():
+            if model not in {m.name for m in await llm.loaded_models()}:
+                await llm.load(model, num_ctx=self.num_ctx, keep_alive=self._models.keep_alive)
+            for i, chunk in enumerate(importer.chunk_text(content)):
+                target = extraction.Target("m1", f"import-{i}", chunk)
+                request = ChatRequest(
+                    model=model,
+                    messages=[
+                        ChatMessage("system", learning.STANDALONE_SYSTEM),
+                        ChatMessage("user", extraction.build_instruction([target])),
+                    ],
+                    options=self._options(
+                        self._memory.extraction_max_tokens,
+                        temperature=0.0,
+                        seed=7,
+                        response_format=learning.SCHEMA,
+                    ),
+                    request_id=f"import-{new_ulid()}",
+                )
+                self.scheduler.cache = None
+                raw = ""
+                async for event in llm.stream(request):
+                    if isinstance(event, TextDelta) and event.kind == "content":
+                        raw += event.text
+                items = extraction.parse(raw)
+                if items is None:
+                    raise LlmInvalidResponseError("import extraction was not valid JSON")
+                for e in extraction.validate(items, [target]).accepted:
+                    out.append(replace(e.candidate, origin="imported", quote=None))
+        return out
 
     # ----- pre-warming -----------------------------------------------------------------
     async def prepare(self, conversation_id: str | None, model: str) -> dict[str, Any]:
@@ -1583,6 +1917,20 @@ class ConversationEngine:
                 through_seq=loaded_s.window[-1].seq if loaded_s.window else 0,
             )
         job = self.scheduler.background
+
+        def memory_counts(conn: Connection) -> dict[str, Any]:
+            return {
+                "jobs": memory_repo.job_counts(conn),
+                "memories": memory_repo.count_memories(conn),
+                "inbox_open": len(memory_repo.list_inbox(conn, status="open")),
+            }
+
+        memory = {
+            "auto_extract": self._memory.auto_extract,
+            "trusted_models": list(self._memory.trusted_models),
+            "learning": self.learner.status,
+            **(await self._q(memory_counts)),
+        }
         return {
             "runtime": runtime,
             "model": {
@@ -1605,6 +1953,7 @@ class ConversationEngine:
             "cache_expected_warm": cache_ok,
             "background": None if job is None else job.kind,
             "turn_active": self._turn is not None,
+            "memory": memory,
         }
 
     def activity(self) -> dict[str, Any]:

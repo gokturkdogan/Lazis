@@ -59,6 +59,9 @@ MESSAGES_TR: dict[str, str] = {
     "context_failed": "Konuşma bağlamı hazırlanamadı. Yeniden deneyin.",
     "message_too_long": "Mesaj çok uzun. Lütfen daha kısa bir mesaj gönderin.",
     "session_not_active": "Konuşma güncellendi. Sayfayı yenileyip yeniden deneyin.",
+    "memory_not_found": "Hafıza kaydı bulunamadı. Silinmiş ya da değişmiş olabilir.",
+    "memory_invalid": "Bu hafıza işlemi yapılamadı. Girdiyi kontrol edip yeniden deneyin.",
+    "memory_model_untrusted": ("Bu işlem için ana model gerekiyor; yedek model hafızaya yazamaz."),
 }
 
 

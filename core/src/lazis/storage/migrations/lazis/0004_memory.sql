@@ -77,11 +77,12 @@ CREATE TABLE memory_evidence (
 CREATE INDEX ix_memory_evidence_memory ON memory_evidence(memory_id);
 CREATE INDEX ix_memory_evidence_source ON memory_evidence(source_ref);
 
--- Full-text index over folded text (memory sentence, keywords, subject name and aliases,
--- predicate label). Contentless with real deletes: forgetting removes the terms
--- (rowid = memories.rowid; maintained by lazis.memory.repository).
+-- Full-text index over folded text. `body`: the memory sentence, value, keywords, subject
+-- name, aliases and relation. `hints`: the predicate's label and search words, ranked low
+-- (bm25 weights in lazis.memory.repository) so they only help when nothing better matches.
+-- Contentless with real deletes: forgetting removes the terms (rowid = memories.rowid).
 CREATE VIRTUAL TABLE memory_fts USING fts5(
-    body, content='', contentless_delete=1, tokenize='unicode61 remove_diacritics 2'
+    body, hints, content='', contentless_delete=1, tokenize='unicode61 remove_diacritics 2'
 );
 
 -- Decisions LAZIS must not take alone: which person is meant, a contradiction, a sensitive

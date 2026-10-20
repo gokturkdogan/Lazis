@@ -42,6 +42,7 @@ PREDICATES: dict[str, Predicate] = {
             "profile",
             "single",
             subjects=("user", "person"),
+            pinned=True,
         ),
         _P("occupation", "meslek", "profile", "single"),
         _P("employer", "çalıştığı yer", "profile", "single", "personal"),
@@ -108,6 +109,48 @@ PREDICATES: dict[str, Predicate] = {
         ),
         _P("project_person", "projedeki kişi", "project", "multi", subjects=("project",)),
     )
+}
+
+
+# Search words indexed (low-weighted) with every record of a predicate: the Turkish words people
+# use when they ask about it ("nerede yaşıyorum" → location). Prefix search alone cannot bridge
+# vowel narrowing ("yaşa-" → "yaşıyor") or synonyms. Specific words only: a generic verb
+# ("çalışır", "kullanıyor") would match unrelated questions.
+HINTS: dict[str, str] = {
+    "preferred_name": "adım ad isim hitap seslen",
+    "occupation": "meslek mesleği işi görevi",
+    "employer": "şirket firma işyeri çalıştığı yer",
+    "location": "şehir yaşıyor yaşadığı oturuyor nerede ikamet memleket",
+    "computer": "bilgisayar laptop dizüstü makine ram bellek işlemci",
+    "phone": "telefon cep",
+    "device": "cihaz alet",
+    "operating_system": "işletim sistemi",
+    "technology": "teknoloji programlama",
+    "skill": "beceri yetenek",
+    "language": "dil konuşuyor",
+    "interest": "ilgi hobi merak",
+    "likes": "seviyor sever hoşlanır",
+    "dislikes": "sevmiyor sevmez hoşlanmaz",
+    "communication_preference": "yanıt cevap üslup konuşma",
+    "work_preference": "verimli mesai",
+    "habit": "alışkanlık",
+    "goal": "hedef amaç",
+    "plan": "plan niyet",
+    "event": "olay deneyim",
+    "decision": "karar",
+    "birthday": "doğum günü doğdu yaş",
+    "family": "aile anne baba kardeş eş çocuk kızı oğlu",
+    "health": "sağlık hastalık",
+    "finance": "para borç maaş",
+    "contact": "numara telefon e-posta iletişim",
+    "address": "adres ev",
+    "project_description": "proje",
+    "project_goal": "proje amaç",
+    "project_status": "proje durum aşama",
+    "project_technology": "proje teknoloji",
+    "project_decision": "proje karar",
+    "project_milestone": "proje sürüm",
+    "project_person": "proje ekip kim",
 }
 
 

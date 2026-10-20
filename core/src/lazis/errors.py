@@ -181,6 +181,26 @@ class ConversationNotFoundError(NotFoundError):
     code = "conversation_not_found"
 
 
+class MemoryNotFoundError(NotFoundError):
+    code = "memory_not_found"
+
+
+class MemoryRequestError(LazisError):
+    """A memory edit, import or decision that cannot be carried out as asked."""
+
+    code = "memory_invalid"
+    http_status = 422
+    recoverable = True
+
+
+class MemoryModelUntrustedError(LazisError):
+    """Memory writes that need the model (text import) run only with a trusted model."""
+
+    code = "memory_model_untrusted"
+    http_status = 409
+    recoverable = True
+
+
 class TurnDuplicateError(LazisError):
     """The client re-submitted a message it already sent (same idempotency key)."""
 

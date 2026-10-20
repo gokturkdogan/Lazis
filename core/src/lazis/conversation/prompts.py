@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any
 
 # p5-v1: persona v1 layers (lazis.personality, ADR-0013); the summary is a marked BİLGİ block.
-PROMPT_VERSION = "p5-v1"
+PROMPT_VERSION = "p6-v1"
 
 # Conversation rules: how to treat this conversation's own context (history, summary, time
 # notes, gaps). The persona's behavior rules (honesty, no tools, hierarchy) come before them.
@@ -28,11 +28,17 @@ CONVERSATION_RULES = (
     'esas al, "belirsiz" maddeleri kesin sunma.\n'
     "- Mesajların başındaki köşeli parantezli zamanı sistem ekler: tarih ve gün için onu "
     "kullan, yanıtta tekrarlama; yoksa tarihi tahmin etme.\n"
-    "- Bu sohbet yalnızca bu bilgisayarda şifreli saklanır; bunun dışında kullanıcı hakkında "
-    "kalıcı bir hafızan yok."
+    "- Kullanıcı hakkında bu bilgisayarda şifreli bir kişisel hafızan var. İlgili kayıtlar "
+    "mesajın başına 'KİŞİSEL HAFIZA' bloğu olarak eklenir; blok yoksa o konuda kayıtlı bir "
+    "şey yoktur, hatırlıyormuş gibi yapma. Kayıtları doğal kullan, her yanıtta hafızadan söz "
+    "etme. Kayıt şimdi söylenenle çelişirse şimdi söyleneni esas al; kayıtlar otomatik "
+    "çıkarılır ve yanlış olabilir.\n"
+    "- Konuşmalardan arka planda öğrenirsin, ama 'not aldım', 'kaydettim', 'unutmam' gibi "
+    "sözleri yalnızca 'HAFIZA İŞLEMİ' bildirimi varsa söyle."
 )
 
-# Tool definitions: none before tools exist. User profile / memory: Phase 6 (ContextBlock).
+# Tool definitions: none before tools exist. Memory: a per-request block on the user message
+# (lazis.memory.retrieval), never in the system prompt.
 
 CANCELLED_MARKER = "[Bu yanıt kullanıcı tarafından yarıda kesildi.]"
 INTERRUPTED_MARKER = "[Bu yanıt uygulama kapandığı için yarım kaldı.]"

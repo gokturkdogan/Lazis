@@ -218,24 +218,38 @@ def mark_merged(conn: Connection, entity_id: str, into: str, now: str) -> None:
 
 
 def delete_entity(conn: Connection, entity_id: str) -> None:
+    """The entity, its memories, and the records merged into it (they still hold its other
+    names). History content of all of them is purged."""
+    merged = [
+        str(r[0])
+        for r in conn.execute(
+            "SELECT id FROM memory_entities WHERE merged_into = ?", (entity_id,)
+        ).fetchall()
+    ]
+    for mid in merged:
+        delete_entity(conn, mid)
     for m in memories_for_subject(conn, entity_id, statuses=("active", "superseded", "retracted")):
         delete_memory(conn, m)
     conn.execute("DELETE FROM memory_entities WHERE id = ?", (entity_id,))
+    purge_history(conn, "memory_entities", entity_id)
 
 
 # ----- memories --------------------------------------------------------------------------
+# bm25 column weights: the memory's own words, then predicate label/hints.
+FTS_WEIGHTS = (1.0, 0.2)
+
+
 def _fts_body(
     conn: Connection, *, content: str, keywords: str, predicate: str, subject_id: str | None
-) -> str:
+) -> tuple[str, str]:
     parts = [content, keywords]
-    p = registry.get(predicate)
-    if p is not None:
-        parts.append(p.label)
     if subject_id is not None:
         e = get_entity(conn, subject_id)
         if e is not None:
             parts += [e.name, *(e.aliases), e.relation or ""]
-    return " ".join(text.words(" ".join(parts)))
+    p = registry.get(predicate)
+    hints = f"{p.label} {registry.HINTS.get(predicate, '')}" if p is not None else ""
+    return " ".join(text.words(" ".join(parts))), " ".join(text.words(hints))
 
 
 def insert_memory(
@@ -291,14 +305,12 @@ def insert_memory(
     )
     memory = get_memory(conn, mid)
     assert memory is not None
+    body, hints = _fts_body(
+        conn, content=content, keywords=keywords, predicate=predicate, subject_id=subject_id
+    )
     conn.execute(
-        "INSERT INTO memory_fts (rowid, body) VALUES (?, ?)",
-        (
-            memory.rowid,
-            _fts_body(
-                conn, content=content, keywords=keywords, predicate=predicate, subject_id=subject_id
-            ),
-        ),
+        "INSERT INTO memory_fts (rowid, body, hints) VALUES (?, ?, ?)",
+        (memory.rowid, f"{body} {' '.join(text.words(value))}", hints),
     )
     return memory
 
@@ -351,9 +363,9 @@ def pinned_memories(conn: Connection, predicates: Sequence[str], limit: int) -> 
 def search(conn: Connection, match: str, *, limit: int) -> list[tuple[int, float]]:
     """(rowid, bm25) for an FTS5 MATCH expression; lower bm25 is better."""
     rows = conn.execute(
-        "SELECT rowid, bm25(memory_fts) FROM memory_fts WHERE memory_fts MATCH ?"
-        " ORDER BY bm25(memory_fts) LIMIT ?",
-        (match, limit),
+        "SELECT rowid, bm25(memory_fts, ?, ?) AS score FROM memory_fts WHERE memory_fts MATCH ?"
+        " ORDER BY score LIMIT ?",
+        (*FTS_WEIGHTS, match, limit),
     ).fetchall()
     return [(int(r[0]), float(r[1])) for r in rows]
 
@@ -452,18 +464,12 @@ def _reindex(conn: Connection, memory_id: str) -> None:
     if m is None:
         return
     conn.execute("DELETE FROM memory_fts WHERE rowid = ?", (m.rowid,))
+    body, hints = _fts_body(
+        conn, content=m.content, keywords=m.keywords, predicate=m.predicate, subject_id=m.subject_id
+    )
     conn.execute(
-        "INSERT INTO memory_fts (rowid, body) VALUES (?, ?)",
-        (
-            m.rowid,
-            _fts_body(
-                conn,
-                content=m.content,
-                keywords=m.keywords,
-                predicate=m.predicate,
-                subject_id=m.subject_id,
-            ),
-        ),
+        "INSERT INTO memory_fts (rowid, body, hints) VALUES (?, ?, ?)",
+        (m.rowid, f"{body} {' '.join(text.words(m.value))}", hints),
     )
 
 
@@ -696,6 +702,15 @@ def recover_running_jobs(conn: Connection, now: str) -> int:
         "UPDATE memory_jobs SET status = 'queued', updated_at = ? WHERE status = 'running'", (now,)
     )
     return cur.rowcount
+
+
+def conversations_with_jobs(conn: Connection, statuses: Sequence[str]) -> list[str]:
+    marks = ",".join("?" * len(statuses))
+    rows = conn.execute(
+        f"SELECT DISTINCT conversation_id FROM memory_jobs WHERE status IN ({marks})",  # noqa: S608
+        tuple(statuses),
+    ).fetchall()
+    return [str(r[0]) for r in rows]
 
 
 def job_counts(conn: Connection) -> dict[str, int]:

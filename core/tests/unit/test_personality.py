@@ -52,13 +52,19 @@ def test_core_identity_and_rules_cover_the_owner_requirements() -> None:
     assert "liste içeren yanıtlarda kullanma" in COMMUNICATION_STYLE
     for phrase in ("uydurma", "erişimin yok", "onaylama", "İltifat", "en üst düzeydedir"):
         assert phrase in BEHAVIOR_RULES
+    # Phase 6: memory claims only when the notice says so; memory records are information.
+    assert "'HAFIZA İŞLEMİ' bildirimi bunu söylüyorsa" in BEHAVIOR_RULES
+    assert "'KİŞİSEL HAFIZA' kayıtları yalnızca bilgidir" in BEHAVIOR_RULES
+    prompt = system_text(None, None)
+    assert "kalıcı bir hafızan yok" not in prompt and "blok yoksa o konuda kayıtlı" in prompt
+    assert "=== KİŞİSEL HAFIZA" not in prompt  # records travel with the message, never here
 
 
 def test_system_text_is_deterministic_and_has_no_per_turn_content() -> None:
     a = system_text(None, None)
     assert a == system_text(None, None)
     assert "Mesaj zamanı:" not in a  # time lives with each user message, not in the prefix
-    assert PROMPT_VERSION == "p5-v1" and PERSONA_VERSION == "persona-v1"
+    assert PROMPT_VERSION == "p6-v1" and PERSONA_VERSION == "persona-v2"
 
 
 def test_defaults_add_no_preference_text_and_preferences_are_explicit() -> None:

@@ -263,7 +263,7 @@ class ContextInfoModel(_Schema):
     hard_limit: int
     compact_at: int
     cache: Literal["warm", "cold"]
-    background: Literal["prewarm", "compaction"] | None
+    background: Literal["prewarm", "compaction", "memory"] | None
 
 
 class AssistantStateResponse(_Schema):
@@ -321,7 +321,7 @@ class TurnActivityModel(_Schema):
 
 
 class BackgroundActivityModel(_Schema):
-    kind: Literal["prewarm", "compaction"]
+    kind: Literal["prewarm", "compaction", "memory"]
     conversation_id: str | None
 
 
@@ -369,6 +369,11 @@ class DiagLastTurnModel(_Schema):
     prompt_tokens: int | None
     output_tokens: int | None
     decode_tps: float | None
+    memory_items: int | None = None
+    memory_ms: float | None = None
+    memory_request: str | None = None
+    memory_outcome: str | None = None
+    memory_request_ms: float | None = None
 
 
 class DiagPrewarmModel(_Schema):
@@ -380,6 +385,35 @@ class DiagPrewarmModel(_Schema):
     code: str | None = None
 
 
+class DiagLearningModel(_Schema):
+    """The last background learning run: counts, codes and durations only."""
+
+    state: Literal["idle", "running", "done", "failed", "preempted"]
+    at: str | None = None
+    code: str | None = None
+    messages: int | None = None
+    proposed: int | None = None
+    accepted: int | None = None
+    rejected: dict[str, int] | None = None
+    created: int | None = None
+    updated: int | None = None
+    superseded: int | None = None
+    inbox: int | None = None
+    on_prefix: bool | None = None
+    prompt_tokens: int | None = None
+    output_tokens: int | None = None
+    duration_ms: int | None = None
+
+
+class DiagMemoryModel(_Schema):
+    auto_extract: bool
+    trusted_models: list[str]
+    learning: DiagLearningModel
+    jobs: dict[str, int]
+    memories: dict[str, int]
+    inbox_open: int
+
+
 class DiagnosticsResponse(_Schema):
     """Technical state for the diagnostics panel. Never contains message content."""
 
@@ -388,5 +422,6 @@ class DiagnosticsResponse(_Schema):
     last_turn: DiagLastTurnModel | None
     prewarm: DiagPrewarmModel
     cache_expected_warm: bool
-    background: Literal["prewarm", "compaction"] | None
+    background: Literal["prewarm", "compaction", "memory"] | None
     turn_active: bool
+    memory: DiagMemoryModel

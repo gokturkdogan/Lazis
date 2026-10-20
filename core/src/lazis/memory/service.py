@@ -89,7 +89,7 @@ def apply_candidates(
         conn, kind=kind, actor=actor, summary=f"{len(candidates)} aday", source_ref=source.ref
     ) as uow:
         for c in candidates:
-            _apply_one(conn, uow, c, source=source, explicit=explicit, report=report, now=now)
+            apply_one(conn, uow, c, source=source, explicit=explicit, report=report, now=now)
         write_audit(
             conn,
             category="memory",
@@ -160,7 +160,7 @@ def _fingerprints(conn: Connection, subject_id: str | None, c: Candidate) -> lis
     ]
 
 
-def _apply_one(
+def apply_one(
     conn: Connection,
     uow: UnitOfWork,
     c: Candidate,
@@ -218,6 +218,7 @@ def _apply_one(
         )
         repo.touch(conn, target, now, confidence=decision.confidence)
         report.updated.append(target)
+        _settle_ambiguity(conn, subject_id, c, now)
         return
     if plan.action == "conflict":
         iid = repo.insert_inbox(
@@ -276,6 +277,27 @@ def _apply_one(
     )
     uow.record("memories", m.id, "create", None)
     report.created.append(m.id)
+    _settle_ambiguity(conn, subject_id, c, now)
+
+
+def _settle_ambiguity(conn: Connection, subject_id: str | None, c: Candidate, now: str) -> None:
+    """A "which Ahmet?" question is answered once the same fact is saved for one of the
+    options (the user named the relation later, or chose in the UI)."""
+    if subject_id is None:
+        return
+    key = text.fold(c.value).strip()
+    for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
+        cand = item.payload.get("candidate", {})
+        options = {str(o.get("id")) for o in item.payload.get("options", [])}
+        if (
+            subject_id in options
+            and cand.get("predicate") == c.predicate
+            and (
+                text.fold(str(cand.get("value", ""))).strip() == key
+                or text.similarity(str(cand.get("value", "")), c.value) >= 0.6
+            )
+        ):
+            repo.resolve_inbox(conn, item.id, status="resolved", resolution=subject_id, now=now)
 
 
 # ----- inbox decisions -----------------------------------------------------------------------
@@ -321,7 +343,7 @@ def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
                 subject = choice
             else:
                 raise ValueError("invalid choice")
-            _apply_one(
+            apply_one(
                 conn,
                 uow,
                 c,
@@ -334,7 +356,7 @@ def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
         elif item.type == "conflict":
             subject = item.payload.get("subject_id")
             if choice == "new":
-                _apply_one(
+                apply_one(
                     conn,
                     uow,
                     c,
@@ -346,7 +368,7 @@ def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
                     force="supersede",
                 )
             elif choice == "both":
-                _apply_one(
+                apply_one(
                     conn,
                     uow,
                     c,
@@ -374,7 +396,7 @@ def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
             subject = item.payload.get("subject_id")
             if choice == "approve":
                 c2 = replace(c, origin="confirmed")
-                _apply_one(
+                apply_one(
                     conn,
                     uow,
                     c2,
@@ -639,3 +661,76 @@ def update_entity(
 
 def inbox_open(conn: Connection) -> list[InboxItem]:
     return repo.list_inbox(conn, status="open")
+
+
+def add_memory(
+    conn: Connection,
+    *,
+    predicate: str,
+    value: str,
+    statement: str,
+    entity_id: str | None = None,
+    new_entity: EntityRef | None = None,
+) -> ApplyReport:
+    """A record the user adds in the memory screen (about themselves, an existing entity, or
+    a new person/project). Same checks as everything else: secrets and instruction-like text
+    are refused, a single-valued fact replaces the current one (kept as history)."""
+    pred = registry.get(predicate)
+    if pred is None or not value.strip():
+        raise ValueError("unknown predicate or empty value")
+    label = "Kullanıcı"
+    if entity_id is not None:
+        ent = repo.get_entity(conn, entity_id)
+        if ent is None:
+            raise NotFound("entity not found")
+        label = entity_label(ent)
+    elif new_entity is not None:
+        label = (
+            f"{new_entity.name} ({new_entity.relation})" if new_entity.relation else new_entity.name
+        )
+    c = Candidate(
+        predicate=predicate,
+        value=value.strip(),
+        statement=statement.strip() or f"{label} — {pred.label}: {value.strip()}",
+        about="entity" if (entity_id or new_entity) else "user",
+        entity=new_entity,
+        origin="user_edit",
+    )
+    decision = policy.decide(c, explicit=True)
+    if decision.outcome == "drop":
+        raise ValueError(f"not allowed in memory: {decision.reason}")
+    report = ApplyReport()
+    now = utc_now_iso()
+    with UnitOfWork(conn, kind="user_edit", actor="user", summary="1 hafıza eklendi") as uow:
+        subject = entity_id
+        if new_entity is not None and entity_id is None:
+            ent = repo.insert_entity(
+                conn,
+                kind=new_entity.kind,
+                name=new_entity.name,
+                relation=new_entity.relation,
+                description=None,
+                now=now,
+            )
+            uow.record("memory_entities", ent.id, "create", None)
+            report.entities_created.append(ent.id)
+            subject = ent.id
+        apply_one(conn, uow, c, source=Source("user_edit"), explicit=True, report=report, now=now,
+                  forced_subject=(subject,))  # fmt: skip
+    return report
+
+
+def record_detail(conn: Connection, memory_id: str) -> tuple[Memory, list[Any], list[Memory]]:
+    """A record, its evidence, and the values it replaced (newest first)."""
+    m = repo.get_memory(conn, memory_id)
+    if m is None:
+        raise NotFound("memory not found")
+    previous: list[Memory] = []
+    cursor = m.supersedes_id
+    while cursor is not None and len(previous) < 20:
+        old = repo.get_memory(conn, cursor)
+        if old is None:
+            break
+        previous.append(old)
+        cursor = old.supersedes_id
+    return m, repo.evidence_for(conn, m.id), previous

@@ -27,6 +27,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from lazis import API_VERSION, PHASE, __version__
 from lazis.api.chat import build_chat_router
 from lazis.api.conversations import build_conversation_router
+from lazis.api.memory import build_memory_router
 from lazis.api.schemas import (
     AiStatus,
     AppInfoResponse,
@@ -242,6 +243,13 @@ def create_app(ctx: ApiContext) -> FastAPI:
         build_chat_router(PREFIX, ctx.settings, lambda: ctx.llm, lambda: ctx.conversations)
     )
     app.include_router(build_conversation_router(PREFIX, lambda: ctx.conversations))
+    app.include_router(
+        build_memory_router(
+            PREFIX,
+            lambda: None if ctx.storage is None else ctx.storage.db,
+            lambda: ctx.conversations,
+        )
+    )
 
     guarded = LocalApiGuard(
         app,

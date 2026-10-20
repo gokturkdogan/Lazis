@@ -4,7 +4,8 @@
 deltas, a final metrics event with ``prompt_tokens`` / ``output_tokens`` (counted by a fixed
 "tokenizer" of 3 characters per token plus 4 template tokens per message, so the engine's
 conservative 2.2-chars estimate is checked against a different, known truth), cancellation,
-model loading, and schema-constrained summary output. Synthetic data only.
+model loading, schema-constrained summary output and memory extraction output (``memory``,
+an empty result by default). Synthetic data only.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from lazis.config.model import (
     AppSection,
     ConversationSection,
     LoggingSection,
+    MemorySection,
     Settings,
     StorageSection,
 )
@@ -83,6 +85,32 @@ def default_summary(request: ChatRequest) -> str:
     return json.dumps(body, ensure_ascii=False)
 
 
+async def _wait_or_cancel(gate: asyncio.Event, cancel: asyncio.Event) -> None:
+    waits = [asyncio.ensure_future(gate.wait()), asyncio.ensure_future(cancel.wait())]
+    _, rest = await asyncio.wait(waits, return_when=asyncio.FIRST_COMPLETED)
+    for task in rest:
+        task.cancel()
+    if cancel.is_set():
+        raise LlmCancelledError("cancelled")
+
+
+def is_extraction(request: ChatRequest) -> bool:
+    fmt = request.options.response_format
+    props = fmt.get("properties", {}) if isinstance(fmt, dict) else {}
+    return "items" in props and "action" not in props
+
+
+def is_command(request: ChatRequest) -> bool:
+    fmt = request.options.response_format
+    return isinstance(fmt, dict) and "action" in fmt.get("properties", {})
+
+
+NO_COMMAND = (
+    '{"action": "none", "items": [], "forget_scope": "", "forget_entity": "",'
+    ' "forget_relation": "", "forget_predicate": "", "forget_value": ""}'
+)
+
+
 @dataclass
 class ScriptedLLM:
     reply: Callable[[ChatRequest], str] = lambda r: "Tamam efendim, anladım."
@@ -93,6 +121,8 @@ class ScriptedLLM:
     fail_after_chunks: int = 1
     summary_fails: bool = False
     summary_fail_from: int | None = None  # fail the n-th summary request onwards (0-based)
+    memory: Callable[[ChatRequest], str] = lambda r: '{"items": []}'
+    command: Callable[[ChatRequest], str] = lambda r: NO_COMMAND
     available: bool = True
     installed: tuple[str, ...] = (MODEL,)
     loaded: set[str] = field(default_factory=lambda: {MODEL})
@@ -100,6 +130,7 @@ class ScriptedLLM:
     loads: list[str] = field(default_factory=lambda: [])
     unloads: list[str] = field(default_factory=lambda: [])
     gate: asyncio.Event | None = None
+    memory_gate: asyncio.Event | None = None  # holds extraction requests only
     _cancel: dict[str, asyncio.Event] = field(default_factory=lambda: {})
 
     @property
@@ -112,7 +143,19 @@ class ScriptedLLM:
 
     @property
     def summary_requests(self) -> list[ChatRequest]:
-        return [r for r in self.requests if r.options.response_format is not None]
+        return [
+            r
+            for r in self.requests
+            if r.options.response_format is not None and not is_extraction(r) and not is_command(r)
+        ]
+
+    @property
+    def memory_requests(self) -> list[ChatRequest]:
+        return [r for r in self.requests if is_extraction(r)]
+
+    @property
+    def command_requests(self) -> list[ChatRequest]:
+        return [r for r in self.requests if is_command(r)]
 
     @property
     def prewarm_requests(self) -> list[ChatRequest]:
@@ -133,7 +176,11 @@ class ScriptedLLM:
         self.requests.append(request)
         cancel = self._cancel.setdefault(request.request_id, asyncio.Event())
         try:
-            if request.options.response_format is not None:
+            if is_command(request):
+                text = self.command(request)
+            elif is_extraction(request):
+                text = self.memory(request)
+            elif request.options.response_format is not None:
                 index = len(self.summary_requests) - 1
                 fail = self.summary_fails or (
                     self.summary_fail_from is not None and index >= self.summary_fail_from
@@ -145,6 +192,8 @@ class ScriptedLLM:
                 text = self.reply(request)
             if self.gate is not None:
                 await self.gate.wait()
+            if self.memory_gate is not None and is_extraction(request):
+                await _wait_or_cancel(self.memory_gate, cancel)
             pieces = [text[i : i + self.chunk_size] for i in range(0, len(text), self.chunk_size)]
             for i, piece in enumerate(pieces):
                 if cancel.is_set():
@@ -189,7 +238,9 @@ class ScriptedLLM:
         return None
 
 
-def settings_for(tmp_path: Path, **conversation: Any) -> Settings:
+def settings_for(
+    tmp_path: Path, *, memory: MemorySection | None = None, **conversation: Any
+) -> Settings:
     defaults: dict[str, Any] = {"idle_compaction_delay_s": 0.0, "flush_interval_s": 0.01}
     defaults.update(conversation)
     return Settings(
@@ -197,16 +248,22 @@ def settings_for(tmp_path: Path, **conversation: Any) -> Settings:
         storage=StorageSection(data_dir=tmp_path / "data"),
         logging=LoggingSection(directory=tmp_path / "logs"),
         conversation=ConversationSection(**defaults),
+        memory=memory or MemorySection(),
     )
 
 
 def make_engine(
-    storage: StorageHandle, llm: ScriptedLLM | None, tmp_path: Path, **conversation: Any
+    storage: StorageHandle,
+    llm: ScriptedLLM | None,
+    tmp_path: Path,
+    *,
+    memory: MemorySection | None = None,
+    **conversation: Any,
 ) -> ConversationEngine:
     return ConversationEngine(
         db=storage.db,
         get_llm=lambda: llm,
-        settings=settings_for(tmp_path, **conversation),
+        settings=settings_for(tmp_path, memory=memory, **conversation),
         now_local=lambda: FIXED_NOW,
     )
 

@@ -207,6 +207,25 @@ class PersonalitySection(_Section):
     humor: Literal["light", "off"] = "light"
 
 
+class MemorySection(_Section):
+    """Personal memory (P6, MEMORY_ARCHITECTURE). Everything stays in the encrypted database."""
+
+    # Learn from conversations in the background (after each reply, on the cached prefix).
+    auto_extract: bool = True
+    # Only these models may write memory, automatically or on request. Chosen from the
+    # extraction gold set (PHASE_6_REPORT): another model's turns are queued as "deferred"
+    # and processed when a trusted model is in use again.
+    trusted_models: tuple[str, ...] = ("gemma4:12b-it-qat",)
+    # Output budget of one extraction request (an empty result is ~5 tokens).
+    extraction_max_tokens: int = Field(default=700, ge=100, le=4096)
+    # Queued user messages processed per extraction request.
+    batch_messages: int = Field(default=3, ge=1, le=10)
+    # A job that failed this many times stays failed (visible in diagnostics).
+    max_attempts: int = Field(default=3, ge=1, le=10)
+    # Recall: at most this many (estimated) tokens of memory in front of a user message.
+    context_budget_tokens: int = Field(default=400, ge=0, le=4000)
+
+
 class Settings(_Section):
     app: AppSection = AppSection()
     backend: BackendSection = BackendSection()
@@ -217,6 +236,7 @@ class Settings(_Section):
     models: ModelsSection = ModelsSection()
     conversation: ConversationSection = ConversationSection()
     personality: PersonalitySection = PersonalitySection()
+    memory: MemorySection = MemorySection()
     voice: VoiceSection = VoiceSection()
 
     def effective_origins(self) -> tuple[str, ...]:

@@ -363,3 +363,31 @@ def test_memory_text_never_reaches_disk_in_plaintext(
         assert text.fold(marker) not in dump(handle)
     finally:
         handle.db.close()
+
+
+def test_a_later_answer_settles_the_namesake_question(storage: StorageHandle) -> None:
+    from lazis.memory import orchestrator
+    from lazis.memory.extraction import Target
+
+    apply(
+        storage,
+        cand("occupation", "yazılımcı", "Ahmet yazılımcı.", **about("Ahmet", "çocukluk arkadaşı")),
+    )
+    run(storage, lambda c: repo.insert_entity(c, kind="person", name="Ahmet", relation="iş ortağı",
+                                              description=None, now=utc_now_iso()))  # fmt: skip
+    src = Source("message", "msg-q", "conv-1")
+    asked = run(storage, lambda c: service.apply_candidates(
+        c, [cand("interest", "satranç", "Ahmet satranç kulübüne yazıldı.", **about("Ahmet"))],
+        source=src, explicit=False))  # fmt: skip
+    assert len(asked.inbox) == 1
+
+    # The answer ("Çocukluk arkadaşım olan.") names nobody: the open question is context.
+    ctx = run(storage, lambda c: orchestrator.extraction_context(
+        c, [Target("m1", "msg-a", "Çocukluk arkadaşım olan.")], conversation_id="conv-1"))  # fmt: skip
+    assert ctx.questions and "Ahmet (iş ortağı)" in ctx.questions[0]
+    assert {k.entity.relation for k in ctx.known} == {"çocukluk arkadaşı", "iş ortağı"}
+
+    answered = apply(storage, cand("interest", "satranç", "Ahmet satranç kulübüne yazıldı.",
+                                   **about("Ahmet", "çocukluk arkadaşı")))  # fmt: skip
+    assert len(answered.created) == 1 and answered.inbox == []
+    assert run(storage, lambda c: repo.list_inbox(c)) == []  # the question is settled
