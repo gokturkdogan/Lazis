@@ -1,11 +1,13 @@
 <script setup lang="ts">
-/** People and projects: what is known about each, rename, merge two records, forget one. */
+/** People and projects: what is known about each, their relationships, rename, merge two
+ * records, forget one. The user's own relationships are the first row. */
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { MemoryEntity, MemoryEntityDetail } from "@/api/client";
 import { ApiError } from "@/api/client";
 import { errorKey } from "@/i18n";
 import { currentApiClient } from "@/stores/connection";
+import MemoryRelations from "./MemoryRelations.vue";
 import "./memory.css";
 
 const emit = defineEmits<{ changed: [] }>();
@@ -21,6 +23,7 @@ const editName = ref("");
 const editRelation = ref("");
 const mergeOther = ref("");
 const confirm = ref<"merge" | "forget" | null>(null);
+const mineOpen = ref(false);
 
 function client() {
   const c = currentApiClient();
@@ -111,6 +114,14 @@ function otherName(): string {
     <p v-if="loading" class="muted mem-small">{{ t("memory.loading") }}</p>
     <p v-else-if="entities.length === 0" class="muted mem-small">{{ t("memory.entities.empty") }}</p>
     <ul class="mem-list">
+      <li class="mem-item" data-testid="memory-me">
+        <button type="button" class="mem-link" data-testid="memory-me-toggle" @click="mineOpen = !mineOpen">
+          <strong>{{ t("memory.entities.me") }}</strong>
+        </button>
+        <div v-if="mineOpen" class="mem-detail">
+          <MemoryRelations entity-id="user" :name="t('memory.entities.meShort')" kind="person" :entities="entities" @changed="emit('changed')" />
+        </div>
+      </li>
       <li v-for="e in entities" :key="e.id" class="mem-item" data-testid="memory-entity">
         <button type="button" class="mem-link" @click="open(e)">
           <strong>{{ label(e) }}</strong>
@@ -126,6 +137,7 @@ function otherName(): string {
               {{ r.content }}<template v-if="r.status !== 'active'"> ({{ t("memory.badge.superseded") }})</template>
             </span>
           </template>
+          <MemoryRelations :entity-id="e.id" :name="e.name" :kind="e.kind" :entities="entities" @changed="emit('changed')" />
           <div class="mem-row">
             <input v-model="editName" class="mem-input" maxlength="80" :aria-label="t('memory.entities.name')" />
             <input v-model="editRelation" class="mem-input" maxlength="80" :placeholder="t('memory.entities.relation')" />

@@ -227,6 +227,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memory/entities/{entity_id}/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Entity Relationships
+         * @description ``entity_id`` may be ``user``: the user's own relationships.
+         */
+        get: operations["entity_relationships_api_v1_memory_entities__entity_id__relationships_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memory/entities/{entity_id}/split": {
         parameters: {
             query?: never;
@@ -238,6 +258,40 @@ export interface paths {
         put?: never;
         /** Split Entity */
         post: operations["split_entity_api_v1_memory_entities__entity_id__split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/graph/neighbourhood/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Neighbourhood */
+        get: operations["neighbourhood_api_v1_memory_graph_neighbourhood__entity_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/graph/paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paths */
+        get: operations["paths_api_v1_memory_graph_paths_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -399,6 +453,59 @@ export interface paths {
         head?: never;
         /** Edit Record */
         patch: operations["edit_record_api_v1_memory_records__memory_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/memory/relationship-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Relationship Types */
+        get: operations["relationship_types_api_v1_memory_relationship_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Relationship */
+        post: operations["add_relationship_api_v1_memory_relationships_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/relationships/{rel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Relationship Detail */
+        get: operations["relationship_detail_api_v1_memory_relationships__rel_id__get"];
+        put?: never;
+        post?: never;
+        /** Forget Relationship */
+        delete: operations["forget_relationship_api_v1_memory_relationships__rel_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit Relationship */
+        patch: operations["edit_relationship_api_v1_memory_relationships__rel_id__patch"];
         trace?: never;
     };
     "/api/v1/settings": {
@@ -989,6 +1096,58 @@ export interface components {
             /** Memories */
             memories: number;
         };
+        /** GraphEdgeModel */
+        GraphEdgeModel: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Source Id */
+            source_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "ended" | "planned" | "unverified" | "superseded" | "retracted";
+            /** Target Id */
+            target_id: string;
+            /** Type */
+            type: string;
+        };
+        /** GraphNeighbourhoodResponse */
+        GraphNeighbourhoodResponse: {
+            /** Edges */
+            edges: components["schemas"]["GraphEdgeModel"][];
+            /** Nodes */
+            nodes: components["schemas"]["GraphNodeModel"][];
+            /** Truncated */
+            truncated: boolean;
+        };
+        /** GraphNodeModel */
+        GraphNodeModel: {
+            /** Depth */
+            depth: number;
+            /** Id */
+            id: string;
+            /** Is User */
+            is_user: boolean;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+        };
+        /** GraphPathModel */
+        GraphPathModel: {
+            /** Relationship Ids */
+            relationship_ids: string[];
+            /** Steps */
+            steps: string[];
+        };
+        /** GraphPathsResponse */
+        GraphPathsResponse: {
+            /** Paths */
+            paths: components["schemas"]["GraphPathModel"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1177,13 +1336,19 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "message" | "import" | "user_edit" | "confirmation";
+            source_type: "message" | "import" | "user_edit" | "confirmation" | "migration";
         };
         /**
          * MemoryInboxItemModel
          * @description A decision waiting for the user. ``proposal`` is the fact in question (no raw payload).
          */
         MemoryInboxItemModel: {
+            /**
+             * About
+             * @default memory
+             * @enum {string}
+             */
+            about: "memory" | "relationship" | "merge";
             /** Category */
             category: string | null;
             /** Created At */
@@ -1196,6 +1361,8 @@ export interface components {
             options: components["schemas"]["InboxOptionModel"][];
             /** Predicate Label */
             predicate_label: string | null;
+            /** Relationship */
+            relationship?: string | null;
             /** Subject */
             subject: string | null;
             /** Summary */
@@ -1471,6 +1638,152 @@ export interface components {
             research_mode: "offline_only" | "ask_per_session" | "auto_public" | "custom";
             /** Voice Enabled */
             voice_enabled: boolean;
+        };
+        /** RelationshipCreateRequest */
+        RelationshipCreateRequest: {
+            /** Qualifier */
+            qualifier?: string | null;
+            /** Source Id */
+            source_id: string;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "ended" | "planned";
+            /** Target Id */
+            target_id: string;
+            /** Time Text */
+            time_text?: string | null;
+            /** Type */
+            type: string;
+        };
+        /** RelationshipDetailResponse */
+        RelationshipDetailResponse: {
+            /** Evidence */
+            evidence: components["schemas"]["MemoryEvidenceModel"][];
+            /** Previous */
+            previous: components["schemas"]["RelationshipModel"][];
+            relationship: components["schemas"]["RelationshipModel"];
+        };
+        /** RelationshipEditRequest */
+        RelationshipEditRequest: {
+            /** Qualifier */
+            qualifier?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "ended" | "planned";
+            /** Time Text */
+            time_text?: string | null;
+            /** Type */
+            type: string;
+        };
+        /** RelationshipListResponse */
+        RelationshipListResponse: {
+            /** Relationships */
+            relationships: components["schemas"]["RelationshipModel"][];
+        };
+        /**
+         * RelationshipModel
+         * @description One stored relationship, plus how it reads from the entity it was requested for.
+         */
+        RelationshipModel: {
+            /** Confidence */
+            confidence: number;
+            /**
+             * Conflict State
+             * @enum {string}
+             */
+            conflict_state: "none" | "pending";
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "stated" | "requested" | "confirmed" | "user_edit" | "migrated" | "inferred";
+            other: components["schemas"]["MemorySubjectModel"] | null;
+            /** Qualifier */
+            qualifier: string | null;
+            /** Reading */
+            reading: string | null;
+            /**
+             * Sensitivity
+             * @enum {string}
+             */
+            sensitivity: "normal" | "personal" | "sensitive";
+            source: components["schemas"]["MemorySubjectModel"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "ended" | "planned" | "unverified" | "superseded" | "retracted";
+            target: components["schemas"]["MemorySubjectModel"];
+            /** Text */
+            text: string;
+            /** Time Text */
+            time_text: string | null;
+            /** Type */
+            type: string;
+            /** Type Label */
+            type_label: string;
+            /** Updated At */
+            updated_at: string;
+            /** Valid From */
+            valid_from: string | null;
+            /** Valid To */
+            valid_to: string | null;
+        };
+        /** RelationshipTypeListResponse */
+        RelationshipTypeListResponse: {
+            /** Types */
+            types: components["schemas"]["RelationshipTypeModel"][];
+        };
+        /** RelationshipTypeModel */
+        RelationshipTypeModel: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "family" | "social" | "work" | "organization" | "project" | "place" | "event";
+            /** Inverse Label */
+            inverse_label: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Sensitivity
+             * @enum {string}
+             */
+            sensitivity: "normal" | "personal" | "sensitive";
+            /** Source Kinds */
+            source_kinds: string[];
+            /** Symmetric */
+            symmetric: boolean;
+            /** Target Kinds */
+            target_kinds: string[];
+        };
+        /** RelationshipWriteResponse */
+        RelationshipWriteResponse: {
+            /** Created */
+            created: number;
+            /** Dropped */
+            dropped: {
+                [key: string]: number;
+            };
+            /** Ended */
+            ended: number;
+            /** Inbox */
+            inbox: number;
+            /** Superseded */
+            superseded: number;
+            /** Updated */
+            updated: number;
         };
         /** RuntimeStatusModel */
         RuntimeStatusModel: {
@@ -2045,6 +2358,37 @@ export interface operations {
             };
         };
     };
+    entity_relationships_api_v1_memory_entities__entity_id__relationships_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     split_entity_api_v1_memory_entities__entity_id__split_post: {
         parameters: {
             query?: never;
@@ -2067,6 +2411,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemoryEntityModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    neighbourhood_api_v1_memory_graph_neighbourhood__entity_id__get: {
+        parameters: {
+            query?: {
+                depth?: number;
+                past?: boolean;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GraphNeighbourhoodResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    paths_api_v1_memory_graph_paths_get: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GraphPathsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2459,6 +2869,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemoryRecordModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    relationship_types_api_v1_memory_relationship_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipTypeListResponse"];
+                };
+            };
+        };
+    };
+    add_relationship_api_v1_memory_relationships_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RelationshipCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipWriteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    relationship_detail_api_v1_memory_relationships__rel_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_relationship_api_v1_memory_relationships__rel_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgetResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_relationship_api_v1_memory_relationships__rel_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RelationshipEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipModel"];
                 };
             };
             /** @description Validation Error */

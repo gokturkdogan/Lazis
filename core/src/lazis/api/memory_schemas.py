@@ -45,7 +45,7 @@ class MemoryRecordModel(_Schema):
 
 
 class MemoryEvidenceModel(_Schema):
-    source_type: Literal["message", "import", "user_edit", "confirmation"]
+    source_type: Literal["message", "import", "user_edit", "confirmation", "migration"]
     source_ref: str | None
     quote: str | None
     created_at: str
@@ -100,6 +100,8 @@ class MemoryInboxItemModel(_Schema):
     options: list[InboxOptionModel]  # ambiguous_entity
     existing: list[str]  # conflict: the current value(s)
     category: str | None  # sensitive
+    about: Literal["memory", "relationship", "merge"] = "memory"
+    relationship: str | None = None  # the relationship in question ("Mehmet: Ahmet'in kardeşi")
 
 
 class MemoryInboxResponse(_Schema):
@@ -211,3 +213,113 @@ class ImportPreviewResponse(_Schema):
 class ImportApplyRequest(_Schema):
     # index (as a string: JSON object keys) → "apply" | option id | "new" | "replace" | "both"
     selections: dict[str, str] = Field(max_length=500)
+
+
+# ----- relationship graph (Phase 7) ----------------------------------------------------------
+RelStatusLiteral = Literal["active", "ended", "planned", "unverified", "superseded", "retracted"]
+
+
+class RelationshipTypeModel(_Schema):
+    key: str
+    label: str  # what the target is to the source ("kardeşi", "çalıştığı yer")
+    inverse_label: str  # what the source is to the target ("" for a one-way type)
+    category: Literal["family", "social", "work", "organization", "project", "place", "event"]
+    symmetric: bool
+    sensitivity: Literal["normal", "personal", "sensitive"]
+    source_kinds: list[str]
+    target_kinds: list[str]
+
+
+class RelationshipTypeListResponse(_Schema):
+    types: list[RelationshipTypeModel]
+
+
+class RelationshipModel(_Schema):
+    """One stored relationship, plus how it reads from the entity it was requested for."""
+
+    id: str
+    source: MemorySubjectModel
+    type: str
+    type_label: str
+    target: MemorySubjectModel
+    text: str  # as stored: "Mehmet: Ahmet'in kardeşi"
+    reading: str | None  # from the requested entity's side (None: only one direction)
+    other: MemorySubjectModel | None  # the far end, seen from the requested entity
+    status: RelStatusLiteral
+    origin: Literal["stated", "requested", "confirmed", "user_edit", "migrated", "inferred"]
+    confidence: float
+    sensitivity: Literal["normal", "personal", "sensitive"]
+    time_text: str | None
+    qualifier: str | None
+    valid_from: str | None
+    valid_to: str | None
+    conflict_state: Literal["none", "pending"]
+    created_at: str
+    updated_at: str
+
+
+class RelationshipListResponse(_Schema):
+    relationships: list[RelationshipModel]
+
+
+class RelationshipDetailResponse(_Schema):
+    relationship: RelationshipModel
+    evidence: list[MemoryEvidenceModel]
+    previous: list[RelationshipModel]  # the claims this one replaced, newest first
+
+
+class RelationshipCreateRequest(_Schema):
+    source_id: str = Field(pattern=ID)
+    type: str = Field(pattern=r"^[a-z_]{1,40}$")
+    target_id: str = Field(pattern=ID)
+    status: Literal["active", "ended", "planned"] = "active"
+    time_text: str | None = Field(default=None, max_length=80)
+    qualifier: str | None = Field(default=None, max_length=80)
+
+
+class RelationshipEditRequest(_Schema):
+    type: str = Field(pattern=r"^[a-z_]{1,40}$")
+    status: Literal["active", "ended", "planned"]
+    time_text: str | None = Field(default=None, max_length=80)
+    qualifier: str | None = Field(default=None, max_length=80)
+
+
+class RelationshipWriteResponse(_Schema):
+    created: int
+    updated: int
+    ended: int
+    superseded: int
+    inbox: int  # waiting for a decision (e.g. a conflicting kinship)
+    dropped: dict[str, int]
+
+
+class GraphNodeModel(_Schema):
+    id: str
+    name: str
+    kind: str
+    is_user: bool
+    depth: int
+
+
+class GraphEdgeModel(_Schema):
+    id: str
+    source_id: str
+    target_id: str
+    type: str
+    label: str
+    status: RelStatusLiteral
+
+
+class GraphNeighbourhoodResponse(_Schema):
+    nodes: list[GraphNodeModel]
+    edges: list[GraphEdgeModel]
+    truncated: bool
+
+
+class GraphPathModel(_Schema):
+    steps: list[str]  # one line per relationship, from the first entity towards the second
+    relationship_ids: list[str]
+
+
+class GraphPathsResponse(_Schema):
+    paths: list[GraphPathModel]

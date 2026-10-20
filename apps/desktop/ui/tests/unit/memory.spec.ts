@@ -150,7 +150,7 @@ describe("memory screen", () => {
       id: "I1", type: "ambiguous_entity", summary: "Hangi Ahmet? — Ahmet satranç kulübüne yazıldı.",
       created_at: "2026-10-20T08:00:00Z", predicate_label: "ilgi alanı", value: "satranç", subject: "Ahmet",
       options: [{ id: "E1", label: "Ahmet (çocukluk arkadaşı)" }, { id: "E2", label: "Ahmet (iş ortağı)" }],
-      existing: [], category: null,
+      existing: [], category: null, about: "memory", relationship: null,
     };
     const resolveInbox = vi.fn().mockResolvedValue({ created: 1, updated: 0, superseded: 0, inbox: 0, entities_created: 0, dropped: {} });
     const { wrapper } = await mountMemory({

@@ -826,3 +826,48 @@ def ask(conn: Connection, question: str) -> Answer | None:
     """Parse and answer in one call (None: not a relationship question)."""
     q = parse(conn, question)
     return None if q is None else answer(conn, q)
+
+
+def neighbourhood(
+    conn: Connection,
+    eid: str,
+    *,
+    depth: int = 1,
+    max_nodes: int = 60,
+    statuses: Sequence[str] = CURRENT,
+) -> tuple[dict[str, int], list[Relationship], bool]:
+    """Entities within ``depth`` steps (id → depth) and the relationships among them, for the
+    relation map. Non-sensitive only; bounded (``truncated`` when the bound was hit)."""
+    g = _Graph(conn, statuses=statuses)
+    seen: dict[str, int] = {eid: 0}
+    edges: dict[str, Relationship] = {}
+    frontier = [eid]
+    truncated = False
+    for d in range(1, max(1, min(depth, 2)) + 1):
+        g.load(frontier)
+        nxt: list[str] = []
+        for node in frontier:
+            for h in g.hops(node):
+                if h.to not in seen:
+                    if len(seen) >= max_nodes:
+                        truncated = True
+                        continue
+                    seen[h.to] = d
+                    nxt.append(h.to)
+                edges[h.rel.id] = h.rel
+        frontier = nxt
+    return (
+        seen,
+        [r for r in edges.values() if r.source_id in seen and r.target_id in seen],
+        truncated,
+    )
+
+
+class Renderer:
+    """Turkish lines for hops outside a query (the API's paths)."""
+
+    def __init__(self, conn: Connection) -> None:
+        self._g = _Graph(conn)
+
+    def hop(self, hop: Hop) -> str:
+        return hop_text(self._g, hop)

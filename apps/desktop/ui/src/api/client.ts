@@ -33,6 +33,14 @@ export type MemoryApplyResult = Schemas["ApplyResultResponse"];
 export type MemoryForgetResult = Schemas["ForgetResultResponse"];
 export type ImportPreview = Schemas["ImportPreviewResponse"];
 export type ImportItem = Schemas["ImportItemModel"];
+export type RelationshipType = Schemas["RelationshipTypeModel"];
+export type Relationship = Schemas["RelationshipModel"];
+export type RelationshipDetail = Schemas["RelationshipDetailResponse"];
+export type RelationshipCreateRequest = Schemas["RelationshipCreateRequest"];
+export type RelationshipEditRequest = Schemas["RelationshipEditRequest"];
+export type RelationshipWriteResult = Schemas["RelationshipWriteResponse"];
+export type GraphNeighbourhood = Schemas["GraphNeighbourhoodResponse"];
+export type GraphPath = Schemas["GraphPathModel"];
 
 export interface MemoryQuery {
   q?: string | undefined;
@@ -155,6 +163,15 @@ export interface ApiClient {
   mergeEntities(keepId: string, otherId: string): Promise<MemoryEntity>;
   forgetEntity(id: string): Promise<MemoryForgetResult>;
   memoryInbox(): Promise<MemoryInboxItem[]>;
+  // ----- relationship graph (Phase 7) -----
+  relationshipTypes(): Promise<RelationshipType[]>;
+  entityRelationships(entityId: string): Promise<Relationship[]>;
+  relationship(id: string): Promise<RelationshipDetail>;
+  addRelationship(body: RelationshipCreateRequest): Promise<RelationshipWriteResult>;
+  editRelationship(id: string, body: RelationshipEditRequest): Promise<Relationship>;
+  forgetRelationship(id: string): Promise<MemoryForgetResult>;
+  graphNeighbourhood(entityId: string, depth: number, past?: boolean): Promise<GraphNeighbourhood>;
+  graphPaths(fromId: string, toId: string): Promise<GraphPath[]>;
   resolveInbox(id: string, choice: string): Promise<MemoryApplyResult>;
   importPreview(format: "json" | "text", content: string): Promise<ImportPreview>;
   importApply(batchId: string, selections: Record<string, string>): Promise<MemoryApplyResult>;
@@ -359,6 +376,21 @@ export function createApiClient(
       post<MemoryEntity>(`/memory/entities/${enc(keepId)}/merge`, { other_id: otherId }),
     forgetEntity: (id) => send<MemoryForgetResult>("DELETE", `/memory/entities/${enc(id)}?confirm=true`),
     memoryInbox: async () => (await get<{ items: MemoryInboxItem[] }>("/memory/inbox")).items,
+    relationshipTypes: async () =>
+      (await get<{ types: RelationshipType[] }>("/memory/relationship-types")).types,
+    entityRelationships: async (entityId) =>
+      (await get<{ relationships: Relationship[] }>(`/memory/entities/${enc(entityId)}/relationships`))
+        .relationships,
+    relationship: (id) => get<RelationshipDetail>(`/memory/relationships/${enc(id)}`),
+    addRelationship: (body) => post<RelationshipWriteResult>("/memory/relationships", body),
+    editRelationship: (id, body) => send<Relationship>("PATCH", `/memory/relationships/${enc(id)}`, body),
+    forgetRelationship: (id) => send<MemoryForgetResult>("DELETE", `/memory/relationships/${enc(id)}`),
+    graphNeighbourhood: (entityId, depth, past = false) =>
+      get<GraphNeighbourhood>(
+        `/memory/graph/neighbourhood/${enc(entityId)}${queryString({ depth, past: past || undefined })}`,
+      ),
+    graphPaths: async (fromId, toId) =>
+      (await get<{ paths: GraphPath[] }>(`/memory/graph/paths${queryString({ from: fromId, to: toId })}`)).paths,
     resolveInbox: (id, choice) => post<MemoryApplyResult>(`/memory/inbox/${enc(id)}/resolve`, { choice }),
     // A text import runs the local model over the text: allow it minutes, not seconds.
     importPreview: (format, content) =>

@@ -14,6 +14,7 @@ from typing import Annotated, Any, TypeVar, cast
 
 from fastapi import APIRouter, Query
 
+from lazis.api.graph import register_graph_routes
 from lazis.api.memory_schemas import (
     ApplyResultResponse,
     EntityEditRequest,
@@ -130,6 +131,40 @@ def inbox_model(item: InboxItem) -> MemoryInboxItemModel:
             subject = f"{name} ({relation})" if relation else name
     raw_options = payload.get("options")
     options = cast(list[dict[str, Any]], raw_options) if isinstance(raw_options, list) else []
+    if payload.get("target") == "relationship":
+        rel_raw = payload.get("relation")
+        rel: dict[str, Any] = cast(dict[str, Any], rel_raw) if isinstance(rel_raw, dict) else {}
+        labels = payload.get("existing_labels")
+        return MemoryInboxItemModel(
+            id=item.id,
+            type=item.type,
+            summary=item.summary,
+            created_at=item.created_at,
+            predicate_label="İlişki",
+            value=None,
+            subject=None,
+            options=[
+                InboxOptionModel(id=str(o.get("id")), label=str(o.get("label"))) for o in options
+            ],
+            existing=[str(x) for x in cast(list[Any], labels)] if isinstance(labels, list) else [],
+            category=_str_or_none(payload.get("category")),
+            about="relationship",
+            relationship=_str_or_none(rel.get("statement")) or item.summary,
+        )
+    if item.type == "destructive" and payload.get("action") == "merge":
+        return MemoryInboxItemModel(
+            id=item.id,
+            type=item.type,
+            summary=item.summary,
+            created_at=item.created_at,
+            predicate_label=None,
+            value=None,
+            subject=None,
+            options=[],
+            existing=[],
+            category=None,
+            about="merge",
+        )
     return MemoryInboxItemModel(
         id=item.id,
         type=item.type,
@@ -176,6 +211,8 @@ def build_memory_router(
             raise MemoryRequestError("memory request not possible") from None
         except DatabaseError as exc:
             raise StorageError(f"database error ({exc.__class__.__name__})") from None
+
+    register_graph_routes(router, q)
 
     # ----- overview and vocabulary -----------------------------------------------------
     @router.get("/overview", response_model=MemoryOverviewResponse)
@@ -297,7 +334,7 @@ def build_memory_router(
     @router.get("/entities", response_model=MemoryEntityListResponse)
     async def list_entities(  # pyright: ignore[reportUnusedFunction]
         kind: Annotated[
-            str | None, Query(pattern=r"^(person|project|organization|place|thing)$")
+            str | None, Query(pattern=r"^(person|project|organization|place|event|group|thing)$")
         ] = None,
         q_: Annotated[str | None, Query(alias="q", max_length=80)] = None,
     ) -> MemoryEntityListResponse:
@@ -362,7 +399,7 @@ def build_memory_router(
                 if it.type == "import_batch":
                     continue
                 model = inbox_model(it)
-                if it.type == "conflict":
+                if it.type == "conflict" and model.about == "memory":
                     old = [repo.get_memory(c, i) for i in it.payload.get("existing", [])]
                     model = model.model_copy(update={"existing": [m.value for m in old if m]})
                 items.append(model)

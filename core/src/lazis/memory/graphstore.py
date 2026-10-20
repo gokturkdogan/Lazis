@@ -155,10 +155,13 @@ def update_relationship(
     time_text: str | None, origin: str, now: str,
 ) -> None:  # fmt: skip
     conn.execute(
-        "UPDATE memory_relationships SET type = ?, qualifier = ?, status = ?, time_text = ?,"
-        " origin = ?, confidence = 1.0, conflict_state = 'none', updated_at = ?,"
-        " version = version + 1 WHERE id = ?",
-        (type, qualifier, status, time_text, origin, now, rel_id),
+        "UPDATE memory_relationships SET type = ?, qualifier = ?, time_text = ?, origin = ?,"
+        " confidence = 1.0, conflict_state = 'none', updated_at = ?, version = version + 1,"
+        # Ending stamps valid_to once; going back to current clears it.
+        " valid_to = CASE WHEN ? = 'ended' THEN COALESCE(valid_to, ?) ELSE NULL END,"
+        " valid_from = CASE WHEN ? = 'active' THEN COALESCE(valid_from, ?) ELSE valid_from END,"
+        " status = ? WHERE id = ?",
+        (type, qualifier, time_text, origin, now, status, now, status, now, status, rel_id),
     )
 
 

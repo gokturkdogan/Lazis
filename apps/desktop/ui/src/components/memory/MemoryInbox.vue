@@ -58,7 +58,8 @@ async function decide(item: MemoryInboxItem, choice: string) {
     <ul class="mem-list">
       <li v-for="item in items" :key="item.id" class="mem-item" data-testid="inbox-item">
         <div class="mem-meta">
-          <span class="mem-badge warn">{{ t(`memory.inbox.type.${item.type}`) }}</span>
+          <span class="mem-badge warn">{{ item.about === "merge" ? t("memory.inbox.merge") : t(`memory.inbox.type.${item.type}`) }}</span>
+          <span v-if="item.about === 'relationship'" class="mem-badge" data-testid="inbox-relationship">{{ t("memory.inbox.relationship") }}</span>
           <span v-if="item.subject">{{ item.subject }}</span>
           <span v-if="item.predicate_label">· {{ item.predicate_label }}</span>
         </div>
@@ -89,6 +90,10 @@ async function decide(item: MemoryInboxItem, choice: string) {
           <template v-else-if="item.type === 'sensitive'">
             <button type="button" class="btn mem-btn-small" data-testid="inbox-approve" @click="decide(item, 'approve')">{{ t("memory.inbox.approve") }}</button>
             <button type="button" class="btn mem-btn-small" data-testid="inbox-reject" @click="decide(item, 'reject')">{{ t("memory.inbox.reject") }}</button>
+          </template>
+          <template v-else-if="item.type === 'destructive' && item.about === 'merge'">
+            <button type="button" class="btn mem-btn-small" data-testid="inbox-merge" @click="decide(item, 'approve')">{{ t("memory.inbox.confirmMerge") }}</button>
+            <button type="button" class="btn mem-btn-small" @click="decide(item, 'reject')">{{ t("memory.inbox.rejectMerge") }}</button>
           </template>
           <template v-else-if="item.type === 'destructive'">
             <button type="button" class="btn mem-btn-small" @click="decide(item, 'approve')">{{ t("memory.inbox.confirmDelete") }}</button>

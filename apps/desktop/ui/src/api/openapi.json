@@ -1688,6 +1688,159 @@
         "title": "ForgetResultResponse",
         "type": "object"
       },
+      "GraphEdgeModel": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "ended",
+              "planned",
+              "unverified",
+              "superseded",
+              "retracted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_id",
+          "target_id",
+          "type",
+          "label",
+          "status"
+        ],
+        "title": "GraphEdgeModel",
+        "type": "object"
+      },
+      "GraphNeighbourhoodResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdgeModel"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNodeModel"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges",
+          "truncated"
+        ],
+        "title": "GraphNeighbourhoodResponse",
+        "type": "object"
+      },
+      "GraphNodeModel": {
+        "additionalProperties": false,
+        "properties": {
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_user": {
+            "title": "Is User",
+            "type": "boolean"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "is_user",
+          "depth"
+        ],
+        "title": "GraphNodeModel",
+        "type": "object"
+      },
+      "GraphPathModel": {
+        "additionalProperties": false,
+        "properties": {
+          "relationship_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Relationship Ids",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "steps",
+          "relationship_ids"
+        ],
+        "title": "GraphPathModel",
+        "type": "object"
+      },
+      "GraphPathsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/GraphPathModel"
+            },
+            "title": "Paths",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
+        "title": "GraphPathsResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2253,7 +2406,8 @@
               "message",
               "import",
               "user_edit",
-              "confirmation"
+              "confirmation",
+              "migration"
             ],
             "title": "Source Type",
             "type": "string"
@@ -2272,6 +2426,16 @@
         "additionalProperties": false,
         "description": "A decision waiting for the user. ``proposal`` is the fact in question (no raw payload).",
         "properties": {
+          "about": {
+            "default": "memory",
+            "enum": [
+              "memory",
+              "relationship",
+              "merge"
+            ],
+            "title": "About",
+            "type": "string"
+          },
           "category": {
             "anyOf": [
               {
@@ -2315,6 +2479,17 @@
               }
             ],
             "title": "Predicate Label"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
           },
           "subject": {
             "anyOf": [
@@ -3183,6 +3358,459 @@
         "title": "PrivacyStatus",
         "type": "object"
       },
+      "RelationshipCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "qualifier": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualifier"
+          },
+          "source_id": {
+            "pattern": "^[0-9A-Za-z_-]{1,64}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "active",
+            "enum": [
+              "active",
+              "ended",
+              "planned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_id": {
+            "pattern": "^[0-9A-Za-z_-]{1,64}$",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "time_text": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Text"
+          },
+          "type": {
+            "pattern": "^[a-z_]{1,40}$",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "type",
+          "target_id"
+        ],
+        "title": "RelationshipCreateRequest",
+        "type": "object"
+      },
+      "RelationshipDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryEvidenceModel"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "previous": {
+            "items": {
+              "$ref": "#/components/schemas/RelationshipModel"
+            },
+            "title": "Previous",
+            "type": "array"
+          },
+          "relationship": {
+            "$ref": "#/components/schemas/RelationshipModel"
+          }
+        },
+        "required": [
+          "relationship",
+          "evidence",
+          "previous"
+        ],
+        "title": "RelationshipDetailResponse",
+        "type": "object"
+      },
+      "RelationshipEditRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "qualifier": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualifier"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "ended",
+              "planned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "time_text": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Text"
+          },
+          "type": {
+            "pattern": "^[a-z_]{1,40}$",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "status"
+        ],
+        "title": "RelationshipEditRequest",
+        "type": "object"
+      },
+      "RelationshipListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "relationships": {
+            "items": {
+              "$ref": "#/components/schemas/RelationshipModel"
+            },
+            "title": "Relationships",
+            "type": "array"
+          }
+        },
+        "required": [
+          "relationships"
+        ],
+        "title": "RelationshipListResponse",
+        "type": "object"
+      },
+      "RelationshipModel": {
+        "additionalProperties": false,
+        "description": "One stored relationship, plus how it reads from the entity it was requested for.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "conflict_state": {
+            "enum": [
+              "none",
+              "pending"
+            ],
+            "title": "Conflict State",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "stated",
+              "requested",
+              "confirmed",
+              "user_edit",
+              "migrated",
+              "inferred"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "other": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemorySubjectModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "qualifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualifier"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reading"
+          },
+          "sensitivity": {
+            "enum": [
+              "normal",
+              "personal",
+              "sensitive"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MemorySubjectModel"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "ended",
+              "planned",
+              "unverified",
+              "superseded",
+              "retracted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/MemorySubjectModel"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "time_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Text"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "type_label": {
+            "title": "Type Label",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "type",
+          "type_label",
+          "target",
+          "text",
+          "reading",
+          "other",
+          "status",
+          "origin",
+          "confidence",
+          "sensitivity",
+          "time_text",
+          "qualifier",
+          "valid_from",
+          "valid_to",
+          "conflict_state",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RelationshipModel",
+        "type": "object"
+      },
+      "RelationshipTypeListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/RelationshipTypeModel"
+            },
+            "title": "Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "types"
+        ],
+        "title": "RelationshipTypeListResponse",
+        "type": "object"
+      },
+      "RelationshipTypeModel": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "family",
+              "social",
+              "work",
+              "organization",
+              "project",
+              "place",
+              "event"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "inverse_label": {
+            "title": "Inverse Label",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "sensitivity": {
+            "enum": [
+              "normal",
+              "personal",
+              "sensitive"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          },
+          "source_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Kinds",
+            "type": "array"
+          },
+          "symmetric": {
+            "title": "Symmetric",
+            "type": "boolean"
+          },
+          "target_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Target Kinds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "inverse_label",
+          "category",
+          "symmetric",
+          "sensitivity",
+          "source_kinds",
+          "target_kinds"
+        ],
+        "title": "RelationshipTypeModel",
+        "type": "object"
+      },
+      "RelationshipWriteResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "dropped": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Dropped",
+            "type": "object"
+          },
+          "ended": {
+            "title": "Ended",
+            "type": "integer"
+          },
+          "inbox": {
+            "title": "Inbox",
+            "type": "integer"
+          },
+          "superseded": {
+            "title": "Superseded",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created",
+          "updated",
+          "ended",
+          "superseded",
+          "inbox",
+          "dropped"
+        ],
+        "title": "RelationshipWriteResponse",
+        "type": "object"
+      },
       "RuntimeStatusModel": {
         "additionalProperties": false,
         "properties": {
@@ -3774,7 +4402,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "pattern": "^(person|project|organization|place|thing)$",
+                  "pattern": "^(person|project|organization|place|event|group|thing)$",
                   "type": "string"
                 },
                 {
@@ -4009,6 +4637,46 @@
         "summary": "Merge Entity"
       }
     },
+    "/api/v1/memory/entities/{entity_id}/relationships": {
+      "get": {
+        "description": "``entity_id`` may be ``user``: the user's own relationships.",
+        "operationId": "entity_relationships_api_v1_memory_entities__entity_id__relationships_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Entity Relationships"
+      }
+    },
     "/api/v1/memory/entities/{entity_id}/split": {
       "post": {
         "operationId": "split_entity_api_v1_memory_entities__entity_id__split_post",
@@ -4056,6 +4724,119 @@
           }
         },
         "summary": "Split Entity"
+      }
+    },
+    "/api/v1/memory/graph/neighbourhood/{entity_id}": {
+      "get": {
+        "operationId": "neighbourhood_api_v1_memory_graph_neighbourhood__entity_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 2,
+              "minimum": 1,
+              "title": "Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "past",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Past",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphNeighbourhoodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Neighbourhood"
+      }
+    },
+    "/api/v1/memory/graph/paths": {
+      "get": {
+        "operationId": "paths_api_v1_memory_graph_paths_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "default": "user",
+              "pattern": "^[0-9A-Za-z_-]{1,64}$",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "default": "user",
+              "pattern": "^[0-9A-Za-z_-]{1,64}$",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphPathsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Paths"
       }
     },
     "/api/v1/memory/import/preview": {
@@ -4607,6 +5388,185 @@
           }
         },
         "summary": "Edit Record"
+      }
+    },
+    "/api/v1/memory/relationship-types": {
+      "get": {
+        "operationId": "relationship_types_api_v1_memory_relationship_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipTypeListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Relationship Types"
+      }
+    },
+    "/api/v1/memory/relationships": {
+      "post": {
+        "operationId": "add_relationship_api_v1_memory_relationships_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelationshipCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipWriteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Relationship"
+      }
+    },
+    "/api/v1/memory/relationships/{rel_id}": {
+      "delete": {
+        "operationId": "forget_relationship_api_v1_memory_relationships__rel_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rel_id",
+            "required": true,
+            "schema": {
+              "title": "Rel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgetResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forget Relationship"
+      },
+      "get": {
+        "operationId": "relationship_detail_api_v1_memory_relationships__rel_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rel_id",
+            "required": true,
+            "schema": {
+              "title": "Rel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Relationship Detail"
+      },
+      "patch": {
+        "operationId": "edit_relationship_api_v1_memory_relationships__rel_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rel_id",
+            "required": true,
+            "schema": {
+              "title": "Rel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelationshipEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit Relationship"
       }
     },
     "/api/v1/settings": {
