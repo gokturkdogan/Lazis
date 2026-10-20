@@ -440,7 +440,7 @@ def update_memory_text(
         " version = version + 1 WHERE id = ?",
         (value, text.fold(value).strip(), content, keywords, origin, confidence, now, memory.id),
     )
-    _reindex(conn, memory.id)
+    reindex_memory(conn, memory.id)
 
 
 def touch(conn: Connection, memory_id: str, now: str, *, confidence: float | None = None) -> None:
@@ -456,10 +456,10 @@ def move_subject(conn: Connection, memory_id: str, subject_id: str | None, now: 
         "UPDATE memories SET subject_id = ?, updated_at = ?, version = version + 1 WHERE id = ?",
         (subject_id, now, memory_id),
     )
-    _reindex(conn, memory_id)
+    reindex_memory(conn, memory_id)
 
 
-def _reindex(conn: Connection, memory_id: str) -> None:
+def reindex_memory(conn: Connection, memory_id: str) -> None:
     m = get_memory(conn, memory_id)
     if m is None:
         return
@@ -475,7 +475,7 @@ def _reindex(conn: Connection, memory_id: str) -> None:
 
 def reindex_subject(conn: Connection, subject_id: str) -> None:
     for m in memories_for_subject(conn, subject_id, statuses=("active", "superseded", "retracted")):
-        _reindex(conn, m.id)
+        reindex_memory(conn, m.id)
 
 
 def delete_memory(conn: Connection, memory: Memory) -> None:
@@ -616,8 +616,11 @@ def list_inbox(
 def resolve_inbox(
     conn: Connection, item_id: str, *, status: str, resolution: str, now: str
 ) -> None:
+    # A closed item keeps no text: a rejected sensitive fact or an applied import batch must
+    # not linger in the database. The decision itself (status, resolution) stays.
     conn.execute(
-        "UPDATE memory_inbox SET status = ?, resolution = ?, resolved_at = ? WHERE id = ?",
+        "UPDATE memory_inbox SET status = ?, resolution = ?, resolved_at = ?, summary = '',"
+        " payload_json = '{}' WHERE id = ?",
         (status, resolution, now, item_id),
     )
 

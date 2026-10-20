@@ -20,7 +20,7 @@ from lazis.memory.service import Source
 from lazis.security.secrets import SecretBytes
 from lazis.storage import StorageHandle, driver, open_storage
 from lazis.storage.migrations import load_migrations
-from lazis.storage.unit_of_work import revert_change_set
+from lazis.storage.unit_of_work import UnitOfWork, revert_change_set
 
 SRC = Source("message", "msg-synthetic-1", None)
 
@@ -436,3 +436,43 @@ def test_a_half_applied_memory_migration_leaves_v3_intact(
         assert [m.content for m in msgs] == ["korunacak mesaj"]
     finally:
         fixed.db.close()
+
+
+def test_closed_inbox_items_keep_no_text(storage: StorageHandle) -> None:
+    health = cand("health", "migren", "GİZLİ-SAĞLIK-77 migreni var.", sensitivity_category="health")
+    item = apply(storage, health).inbox[0]
+    run(storage, lambda c: service.resolve_inbox(c, item, "reject"))
+    assert "GİZLİ-SAĞLIK-77" not in dump(storage)
+    assert apply(storage, health).dropped == {"suppressed": 1}  # the decision itself is kept
+
+
+def test_maintenance_rebuilds_a_drifted_index_and_folds_duplicates(storage: StorageHandle) -> None:
+    from lazis.memory import maintenance
+
+    mid = apply(storage, cand("skill", "Rust", "Kullanıcı Rust biliyor.")).created[0]
+
+    def drift(c: driver.Connection) -> None:
+        m = repo.get_memory(c, mid)
+        assert m is not None
+        c.execute("DELETE FROM memory_fts WHERE rowid = ?", (m.rowid,))  # the index lost a row
+        # A duplicate that slipped in (e.g. written by two paths at once).
+        with UnitOfWork(c, kind="import", actor="system", summary="test") as uow:
+            dup = repo.insert_memory(c, kind=m.kind, subject_id=None, predicate=m.predicate, value=m.value,
+                                     content=m.content, keywords="", status="active", origin="stated",
+                                     confidence=0.85, importance=0.5, sensitivity="normal",
+                                     sensitivity_category=None, event_time=None, valid_from=None,
+                                     supersedes_id=None, change_set_id=uow.change_set_id, now=utc_now_iso())  # fmt: skip
+            repo.add_evidence(
+                c, dup.id, source_type="message", source_ref="m2", quote=None, now=utc_now_iso()
+            )
+
+    run(storage, drift)
+    assert run(storage, lambda c: maintenance.due(c, 1000.0))
+    result = run(storage, lambda c: maintenance.run(c, 1000.0))
+    assert result.reindexed and result.duplicates_folded == 1
+    assert [m.id for m in find(storage, "rust")] == [mid]
+    assert (
+        len(run(storage, lambda c: repo.evidence_for(c, mid))) == 2
+    )  # the duplicate's evidence kept
+    assert not run(storage, lambda c: maintenance.due(c, 1000.0 + 3600))
+    assert run(storage, lambda c: maintenance.due(c, 1000.0 + 25 * 3600))

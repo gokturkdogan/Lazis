@@ -75,6 +75,7 @@ from lazis.errors import (
 from lazis.i18n import message_for
 from lazis.ids import new_ulid, utc_now_iso
 from lazis.memory import commands, extraction, importer, retrieval
+from lazis.memory import maintenance as memory_maintenance
 from lazis.memory import repository as memory_repo
 from lazis.memory.models import Candidate
 from lazis.observability.logging import get_logger, log_event
@@ -265,6 +266,7 @@ class ConversationEngine:
         self._focused: str | None = None
         self._wake = asyncio.Event()
         self._maintenance: asyncio.Task[None] | None = None
+        self._upkeep: asyncio.Task[None] | None = None
         self._started = False
         self._start_lock = asyncio.Lock()
         self._closing = False
@@ -303,13 +305,44 @@ class ConversationEngine:
             for cid in waiting:
                 self._learn.add(cid)
                 self._pending.setdefault(cid, time.monotonic() + self._cfg.idle_compaction_delay_s)
+            self._upkeep = asyncio.get_running_loop().create_task(
+                self._memory_upkeep(), name="lazis-memory-upkeep"
+            )
             self._maintenance = asyncio.get_running_loop().create_task(
                 self._maintain(), name="lazis-conversation-maintenance"
             )
             self._started = True
 
+    async def _memory_upkeep(self, delay_s: float = 30.0) -> None:
+        """Daily memory maintenance (index check and optimize, duplicates, closed inbox
+        text), started a little after launch and only while no turn is running."""
+        try:
+            await asyncio.sleep(delay_s)
+            for _ in range(720):  # wait (up to an hour) for a moment without a turn
+                if not self.is_busy():
+                    break
+                await asyncio.sleep(5)
+            now = time.time()
+            if not await self._q(lambda c: memory_maintenance.due(c, now)):
+                return
+            result = await self._q(lambda c: memory_maintenance.run(c, now))
+            log_event(
+                _log,
+                logging.INFO,
+                "memory.maintenance",
+                reindexed=result.reindexed,
+                duplicates_folded=result.duplicates_folded,
+                inbox_cleared=result.inbox_cleared,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            log_event(_log, logging.WARNING, "memory.maintenance_failed", error=type(exc).__name__)
+
     async def close(self) -> None:
         self._closing = True
+        if self._upkeep is not None:
+            self._upkeep.cancel()
         turn = self._turn
         if turn is not None and turn.task is not None:
             turn.shutdown = True
