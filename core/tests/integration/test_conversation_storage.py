@@ -334,7 +334,7 @@ def test_v2_parallel_conversations_become_one_timeline_without_any_loss(
     convs = before["convs"]
     upgraded = open_storage(storage_section, key, app_version="p3-timeline")
     try:
-        assert upgraded.migration.applied == (3,)
+        assert upgraded.migration.applied[0] == 3  # 0003 (then any later migrations)
         after = upgraded.db.run_sync(
             lambda c: c.execute(
                 "SELECT id, conversation_id, seq, content, status, timeline_seq FROM messages"

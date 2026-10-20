@@ -1,0 +1,641 @@
+"""The memory orchestrator: every knowledge write goes through here, in one transaction per
+batch (``UnitOfWork`` = one change set, with per-row history; MEMORY_ARCHITECTURE §6).
+
+Pipeline per candidate: policy (secret / instruction / durability / sensitivity) → subject
+resolution (user, or a person/project via the resolver) → suppression (forgotten or rejected
+knowledge is not re-learned automatically) → consolidation (duplicate / supersede / conflict /
+create) → write (row + evidence + FTS + history). Anything that needs the user's decision goes
+to the inbox instead of becoming knowledge.
+
+Functions here are synchronous and run on the database thread (``Database.run_sync``).
+"""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, replace
+from typing import Any, Literal
+
+from lazis.ids import utc_now_iso
+from lazis.memory import consolidation, policy, registry, resolver, text
+from lazis.memory import repository as repo
+from lazis.memory.models import ApplyReport, Candidate, Entity, EntityRef, InboxItem, Memory
+from lazis.storage.driver import Connection
+from lazis.storage.repositories import write_audit
+from lazis.storage.unit_of_work import Actor, UnitOfWork
+
+
+@dataclass(frozen=True)
+class Source:
+    type: Literal["message", "import", "user_edit", "confirmation"]
+    ref: str | None = None  # message id
+    conversation_id: str | None = None
+
+
+class NotFound(LookupError):
+    pass
+
+
+# ----- candidates <-> JSON (inbox payloads) ------------------------------------------------
+def candidate_to_json(c: Candidate) -> dict[str, Any]:
+    data = asdict(c)
+    data["keywords"] = list(c.keywords)
+    return data
+
+
+def candidate_from_json(data: dict[str, Any]) -> Candidate:
+    ent = data.get("entity")
+    return Candidate(
+        predicate=str(data["predicate"]),
+        value=str(data["value"]),
+        statement=str(data["statement"]),
+        about=data.get("about", "user"),
+        entity=None
+        if not ent
+        else EntityRef(
+            ent["name"], ent.get("kind", "person"), ent.get("relation"), ent.get("ref_id")
+        ),
+        quote=data.get("quote"),
+        event_time=data.get("event_time"),
+        change=bool(data.get("change", False)),
+        replaces=data.get("replaces"),
+        certain=bool(data.get("certain", True)),
+        sensitivity_category=data.get("sensitivity_category"),
+        importance=float(data.get("importance", 0.5)),
+        durable=bool(data.get("durable", True)),
+        keywords=tuple(data.get("keywords", ())),
+        origin=data.get("origin", "stated"),
+    )
+
+
+def entity_label(e: Entity) -> str:
+    return f"{e.name} ({e.relation})" if e.relation else e.name
+
+
+# ----- apply ---------------------------------------------------------------------------------
+def apply_candidates(
+    conn: Connection,
+    candidates: list[Candidate],
+    *,
+    source: Source,
+    explicit: bool,
+    actor: Actor = "pipeline",
+    kind: str = "learning_run",
+) -> ApplyReport:
+    report = ApplyReport()
+    if not candidates:
+        return report
+    now = utc_now_iso()
+    with UnitOfWork(
+        conn, kind=kind, actor=actor, summary=f"{len(candidates)} aday", source_ref=source.ref
+    ) as uow:
+        for c in candidates:
+            _apply_one(conn, uow, c, source=source, explicit=explicit, report=report, now=now)
+        write_audit(
+            conn,
+            category="memory",
+            action=kind,
+            outcome="success",
+            actor=actor,
+            change_set_id=uow.change_set_id,
+            details={k: v for k, v in report.counts().items()},
+        )
+    return report
+
+
+def _subject_for(
+    conn: Connection,
+    uow: UnitOfWork,
+    c: Candidate,
+    *,
+    source: Source,
+    report: ApplyReport,
+    now: str,
+) -> tuple[Literal["ok", "ambiguous", "drop"], str | None]:
+    if c.about == "user":
+        return "ok", None
+    ref = c.entity
+    if ref is None or not text.name_key(ref.name):
+        report.drop("no_entity")
+        return "drop", None
+    candidates = repo.find_entities(conn, text.name_key(ref.name))
+    res = resolver.resolve(ref, candidates)
+    if res.kind == "existing":
+        assert res.entity_id is not None
+        ent = repo.get_entity(conn, res.entity_id)
+        if ent is not None and ref.relation and not ent.relation:
+            before = uow.snapshot("memory_entities", ent.id)
+            repo.update_entity(conn, ent.id, now=now, relation=ref.relation)
+            uow.record("memory_entities", ent.id, "update", before)
+        return "ok", res.entity_id
+    if res.kind == "new":
+        ent = repo.insert_entity(
+            conn, kind=ref.kind, name=ref.name, relation=ref.relation, description=None, now=now
+        )
+        uow.record("memory_entities", ent.id, "create", None)
+        report.entities_created.append(ent.id)
+        return "ok", ent.id
+    options = [repo.get_entity(conn, oid) for oid in res.options]
+    payload = {
+        "candidate": candidate_to_json(c),
+        "options": [{"id": o.id, "label": entity_label(o)} for o in options if o is not None],
+        "reason": res.reason,
+    }
+    iid = repo.insert_inbox(
+        conn,
+        type="ambiguous_entity",
+        summary=f"Hangi {ref.name}? — {c.statement}",
+        payload=payload,
+        now=now,
+        conversation_id=source.conversation_id,
+        source_message_id=source.ref,
+    )
+    report.inbox.append(iid)
+    return "ambiguous", None
+
+
+def _fingerprints(conn: Connection, subject_id: str | None, c: Candidate) -> list[str]:
+    return [
+        repo.fingerprint(conn, subject_id, c.predicate, text.fold(c.value).strip()),
+        repo.fingerprint(conn, subject_id, c.predicate, "*"),
+    ]
+
+
+def _apply_one(
+    conn: Connection,
+    uow: UnitOfWork,
+    c: Candidate,
+    *,
+    source: Source,
+    explicit: bool,
+    report: ApplyReport,
+    now: str,
+    forced_subject: tuple[str | None] | None = None,
+    force: Literal["create", "supersede"] | None = None,
+) -> None:
+    decision = policy.decide(c, explicit=explicit)
+    if decision.outcome == "drop":
+        report.drop(decision.reason)
+        return
+    if forced_subject is not None:
+        subject_id = forced_subject[0]
+    else:
+        status, subject_id = _subject_for(conn, uow, c, source=source, report=report, now=now)
+        if status != "ok":
+            return
+    # Forgotten or rejected before: never re-learned (or re-offered) unless asked again.
+    fps = _fingerprints(conn, subject_id, c)
+    if explicit:
+        repo.remove_suppressions(conn, fps)
+    elif repo.is_suppressed(conn, fps):
+        report.drop("suppressed")
+        return
+    if decision.outcome == "inbox_sensitive":
+        iid = repo.insert_inbox(
+            conn,
+            type="sensitive",
+            summary=c.statement,
+            payload={
+                "candidate": candidate_to_json(c),
+                "subject_id": subject_id,
+                "category": decision.category,
+            },
+            now=now,
+            conversation_id=source.conversation_id,
+            source_message_id=source.ref,
+        )
+        report.inbox.append(iid)
+        return
+    current = repo.memories_for_subject(conn, subject_id, predicate=c.predicate)
+    plan = consolidation.plan(c, current, explicit=explicit)
+    if force == "create":
+        plan = consolidation.Plan("create")
+    elif force == "supersede":
+        plan = consolidation.Plan("supersede", tuple(m.id for m in current))
+    if plan.action == "duplicate":
+        target = plan.target_ids[0]
+        repo.add_evidence(
+            conn, target, source_type=source.type, source_ref=source.ref, quote=c.quote, now=now
+        )
+        repo.touch(conn, target, now, confidence=decision.confidence)
+        report.updated.append(target)
+        return
+    if plan.action == "conflict":
+        iid = repo.insert_inbox(
+            conn,
+            type="conflict",
+            summary=c.statement,
+            payload={
+                "candidate": candidate_to_json(c),
+                "subject_id": subject_id,
+                "existing": list(plan.target_ids),
+            },
+            now=now,
+            conversation_id=source.conversation_id,
+            source_message_id=source.ref,
+        )
+        for mid in plan.target_ids:
+            repo.set_conflict(conn, mid, "pending", now)
+        report.inbox.append(iid)
+        return
+    supersedes: str | None = None
+    if plan.action == "supersede":
+        for mid in plan.target_ids:
+            old = repo.get_memory(conn, mid)
+            if old is None:
+                continue
+            before = uow.snapshot("memories", mid)
+            repo.set_status(conn, old, "superseded", now, valid_to=now)
+            repo.set_conflict(conn, mid, "none", now)
+            uow.record("memories", mid, "update", before)
+            report.superseded.append(mid)
+            supersedes = supersedes or mid
+    pred = registry.get(c.predicate)
+    assert pred is not None
+    m = repo.insert_memory(
+        conn,
+        kind=pred.kind,
+        subject_id=subject_id,
+        predicate=c.predicate,
+        value=c.value.strip(),
+        content=c.statement.strip(),
+        keywords=" ".join(c.keywords),
+        status="active",
+        origin=c.origin,
+        confidence=decision.confidence,
+        importance=max(0.0, min(1.0, c.importance)),
+        sensitivity=decision.sensitivity,
+        sensitivity_category=decision.category,
+        event_time=c.event_time,
+        valid_from=now,
+        supersedes_id=supersedes,
+        change_set_id=uow.change_set_id,
+        now=now,
+    )
+    repo.add_evidence(
+        conn, m.id, source_type=source.type, source_ref=source.ref, quote=c.quote, now=now
+    )
+    uow.record("memories", m.id, "create", None)
+    report.created.append(m.id)
+
+
+# ----- inbox decisions -----------------------------------------------------------------------
+def resolve_inbox(conn: Connection, item_id: str, choice: str) -> ApplyReport:
+    """Apply the user's decision on an inbox item. ``choice`` depends on the type:
+    ambiguous_entity: an option id or 'new' · conflict: 'new' | 'old' | 'both' ·
+    sensitive: 'approve' | 'reject' · any: 'dismiss'."""
+    item = repo.get_inbox(conn, item_id)
+    if item is None or item.status != "open":
+        raise NotFound("inbox item not found")
+    now = utc_now_iso()
+    report = ApplyReport()
+    src = Source("confirmation", item.source_message_id, item.conversation_id)
+    if choice == "dismiss":
+        with UnitOfWork(conn, kind="review_action", actor="user", summary="1 karar") as _:
+            repo.resolve_inbox(conn, item.id, status="dismissed", resolution="dismiss", now=now)
+            if item.type == "conflict":
+                for mid in item.payload.get("existing", []):
+                    repo.set_conflict(conn, mid, "none", now)
+        return report
+    if item.type == "destructive":
+        raise ValueError("destructive confirmations are resolved through forget")
+    c = candidate_from_json(item.payload["candidate"])
+    with UnitOfWork(
+        conn, kind="review_action", actor="user", summary="1 karar", source_ref=item.id
+    ) as uow:
+        if item.type == "ambiguous_entity":
+            valid = {o["id"] for o in item.payload.get("options", [])}
+            if choice == "new":
+                assert c.entity is not None
+                ent = repo.insert_entity(
+                    conn,
+                    kind=c.entity.kind,
+                    name=c.entity.name,
+                    relation=c.entity.relation,
+                    description=None,
+                    now=now,
+                )
+                uow.record("memory_entities", ent.id, "create", None)
+                report.entities_created.append(ent.id)
+                subject = ent.id
+            elif choice in valid:
+                subject = choice
+            else:
+                raise ValueError("invalid choice")
+            _apply_one(
+                conn,
+                uow,
+                c,
+                source=src,
+                explicit=True,
+                report=report,
+                now=now,
+                forced_subject=(subject,),
+            )
+        elif item.type == "conflict":
+            subject = item.payload.get("subject_id")
+            if choice == "new":
+                _apply_one(
+                    conn,
+                    uow,
+                    c,
+                    source=src,
+                    explicit=True,
+                    report=report,
+                    now=now,
+                    forced_subject=(subject,),
+                    force="supersede",
+                )
+            elif choice == "both":
+                _apply_one(
+                    conn,
+                    uow,
+                    c,
+                    source=src,
+                    explicit=True,
+                    report=report,
+                    now=now,
+                    forced_subject=(subject,),
+                    force="create",
+                )
+            elif choice == "old":
+                repo.add_suppression(
+                    conn,
+                    fp=_fingerprints(conn, subject, c)[0],
+                    subject_id=subject,
+                    predicate=None,
+                    reason="rejected",
+                    now=now,
+                )
+            else:
+                raise ValueError("invalid choice")
+            for mid in item.payload.get("existing", []):
+                repo.set_conflict(conn, mid, "none", now)
+        elif item.type == "sensitive":
+            subject = item.payload.get("subject_id")
+            if choice == "approve":
+                c2 = replace(c, origin="confirmed")
+                _apply_one(
+                    conn,
+                    uow,
+                    c2,
+                    source=src,
+                    explicit=True,
+                    report=report,
+                    now=now,
+                    forced_subject=(subject,),
+                )
+            elif choice == "reject":
+                repo.add_suppression(
+                    conn,
+                    fp=_fingerprints(conn, subject, c)[0],
+                    subject_id=subject,
+                    predicate=None,
+                    reason="rejected",
+                    now=now,
+                )
+            else:
+                raise ValueError("invalid choice")
+        repo.resolve_inbox(conn, item.id, status="resolved", resolution=choice, now=now)
+    return report
+
+
+# ----- forgetting ----------------------------------------------------------------------------
+@dataclass(frozen=True)
+class ForgetResult:
+    memories: int
+    entities: int
+
+
+def _skip_older_jobs(conn: Connection, now: str) -> None:
+    """Queued extraction for messages written before a forget must not re-learn it."""
+    conn.execute(
+        "UPDATE memory_jobs SET status = 'skipped', last_error = 'forgotten_before_processing',"
+        " updated_at = ?"
+        " WHERE status IN ('queued', 'deferred') AND created_at <= ?",
+        (now, now),
+    )
+
+
+def _forget(
+    conn: Connection,
+    memories: list[Memory],
+    *,
+    topic: tuple[str | None, str] | None,
+    entities: list[str],
+    actor: Actor,
+    summary: str,
+) -> ForgetResult:
+    now = utc_now_iso()
+    with UnitOfWork(conn, kind="deletion", actor=actor, summary=summary) as uow:
+        for m in memories:
+            repo.add_suppression(
+                conn,
+                fp=repo.fingerprint(conn, m.subject_id, m.predicate, m.value_key),
+                subject_id=m.subject_id,
+                predicate=None,
+                reason="forgotten",
+                now=now,
+            )
+            repo.delete_memory(conn, m)
+        if topic is not None:
+            sid, pred = topic
+            repo.add_suppression(
+                conn,
+                fp=repo.fingerprint(conn, sid, pred, "*"),
+                subject_id=sid,
+                predicate=pred,
+                reason="forgotten",
+                now=now,
+            )
+        for eid in entities:
+            repo.delete_entity(conn, eid)
+            repo.purge_history(conn, "memory_entities", eid)
+            conn.execute("DELETE FROM memory_inbox WHERE payload_json LIKE ?", (f'%"{eid}"%',))
+        _skip_older_jobs(conn, now)
+        write_audit(
+            conn,
+            category="memory",
+            action="forget",
+            outcome="success",
+            actor=actor,
+            change_set_id=uow.change_set_id,
+            details={"memories": len(memories), "entities": len(entities)},
+        )
+    repo.optimize_index(conn)
+    return ForgetResult(len(memories), len(entities))
+
+
+def forget_memories(
+    conn: Connection, memory_ids: list[str], *, actor: Actor = "user"
+) -> ForgetResult:
+    found = [m for m in (repo.get_memory(conn, i) for i in memory_ids) if m is not None]
+    return _forget(
+        conn, found, topic=None, entities=[], actor=actor, summary=f"{len(found)} hafıza silindi"
+    )
+
+
+def forget_topic(
+    conn: Connection, subject_id: str | None, predicate: str, *, actor: Actor = "user"
+) -> ForgetResult:
+    """Everything (current and past values) for one subject and predicate, e.g.
+    "Ahmet'in mesleğini unut"."""
+    found = repo.memories_for_subject(
+        conn, subject_id, predicate=predicate, statuses=("active", "superseded", "retracted")
+    )
+    return _forget(
+        conn,
+        found,
+        topic=(subject_id, predicate),
+        entities=[],
+        actor=actor,
+        summary=f"{len(found)} hafıza silindi",
+    )
+
+
+def forget_entity(conn: Connection, entity_id: str, *, actor: Actor = "user") -> ForgetResult:
+    ent = repo.get_entity(conn, entity_id)
+    if ent is None:
+        raise NotFound("entity not found")
+    found = repo.memories_for_subject(
+        conn, entity_id, statuses=("active", "superseded", "retracted")
+    )
+    res = _forget(
+        conn, found, topic=None, entities=[entity_id], actor=actor, summary="1 kişi/proje silindi"
+    )
+    return ForgetResult(res.memories, res.entities)
+
+
+# ----- edits ---------------------------------------------------------------------------------
+def edit_memory(conn: Connection, memory_id: str, *, value: str, content: str) -> Memory:
+    m = repo.get_memory(conn, memory_id)
+    if m is None:
+        raise NotFound("memory not found")
+    if policy.secret_kind(f"{value} {content}") or policy.instruction_like(f"{value} {content}"):
+        raise ValueError("content not allowed in memory")
+    now = utc_now_iso()
+    with UnitOfWork(conn, kind="user_edit", actor="user", summary="1 hafıza düzenlendi") as uow:
+        before = uow.snapshot("memories", m.id)
+        repo.update_memory_text(
+            conn,
+            m,
+            value=value,
+            content=content,
+            keywords=None,
+            now=now,
+            origin="user_edit",
+            confidence=1.0,
+        )
+        repo.add_evidence(conn, m.id, source_type="user_edit", source_ref=None, quote=None, now=now)
+        repo.set_conflict(conn, m.id, "none", now)
+        uow.record("memories", m.id, "update", before)
+    updated = repo.get_memory(conn, m.id)
+    assert updated is not None
+    return updated
+
+
+def merge_entities(conn: Connection, keep_id: str, merge_id: str) -> Entity:
+    """The user says two records are one person/project: move everything to ``keep_id``."""
+    keep, other = repo.get_entity(conn, keep_id), repo.get_entity(conn, merge_id)
+    if keep is None or other is None or keep.id == other.id:
+        raise NotFound("entity not found")
+    now = utc_now_iso()
+    with UnitOfWork(conn, kind="merge", actor="user", summary="2 kayıt birleştirildi") as uow:
+        for alias in (other.name, *other.aliases):
+            repo.add_alias(conn, keep.id, alias)
+        if not keep.relation and other.relation:
+            repo.update_entity(conn, keep.id, now=now, relation=other.relation)
+        for m in repo.memories_for_subject(
+            conn, other.id, statuses=("active", "superseded", "retracted")
+        ):
+            before = uow.snapshot("memories", m.id)
+            dupes = [
+                x
+                for x in repo.memories_for_subject(
+                    conn, keep.id, predicate=m.predicate, statuses=(m.status,)
+                )
+                if x.value_key == m.value_key
+            ]
+            if dupes:
+                repo.move_evidence(conn, m.id, dupes[0].id)
+                repo.delete_memory(conn, m)
+                uow.record("memories", m.id, "delete", before)
+            else:
+                repo.move_subject(conn, m.id, keep.id, now)
+                uow.record("memories", m.id, "update", before)
+        before_e = uow.snapshot("memory_entities", other.id)
+        repo.mark_merged(conn, other.id, keep.id, now)
+        uow.record("memory_entities", other.id, "update", before_e)
+        repo.reindex_subject(conn, keep.id)
+        write_audit(
+            conn,
+            category="memory",
+            action="merge",
+            outcome="success",
+            actor="user",
+            change_set_id=uow.change_set_id,
+            target_refs=[keep.id, other.id],
+        )
+    merged = repo.get_entity(conn, keep.id)
+    assert merged is not None
+    return merged
+
+
+def split_entity(
+    conn: Connection, entity_id: str, memory_ids: list[str], *, name: str, relation: str | None
+) -> Entity:
+    """The user says some facts belong to a different person: move them to a new record."""
+    ent = repo.get_entity(conn, entity_id)
+    if ent is None:
+        raise NotFound("entity not found")
+    now = utc_now_iso()
+    with UnitOfWork(
+        conn, kind="split", actor="user", summary=f"{len(memory_ids)} hafıza ayrıldı"
+    ) as uow:
+        new = repo.insert_entity(
+            conn, kind=ent.kind, name=name, relation=relation, description=None, now=now
+        )
+        uow.record("memory_entities", new.id, "create", None)
+        for mid in memory_ids:
+            m = repo.get_memory(conn, mid)
+            if m is None or m.subject_id != entity_id:
+                raise ValueError("memory does not belong to the entity")
+            before = uow.snapshot("memories", mid)
+            repo.move_subject(conn, mid, new.id, now)
+            uow.record("memories", mid, "update", before)
+        write_audit(
+            conn,
+            category="memory",
+            action="split",
+            outcome="success",
+            actor="user",
+            change_set_id=uow.change_set_id,
+            target_refs=[entity_id, new.id],
+        )
+    return new
+
+
+def update_entity(
+    conn: Connection,
+    entity_id: str,
+    *,
+    name: str | None,
+    relation: str | None,
+    description: str | None,
+) -> Entity:
+    ent = repo.get_entity(conn, entity_id)
+    if ent is None:
+        raise NotFound("entity not found")
+    now = utc_now_iso()
+    with UnitOfWork(conn, kind="user_edit", actor="user", summary="1 kişi/proje düzenlendi") as uow:
+        before = uow.snapshot("memory_entities", entity_id)
+        repo.update_entity(
+            conn, entity_id, now=now, name=name, relation=relation, description=description
+        )
+        uow.record("memory_entities", entity_id, "update", before)
+    updated = repo.get_entity(conn, entity_id)
+    assert updated is not None
+    return updated
+
+
+def inbox_open(conn: Connection) -> list[InboxItem]:
+    return repo.list_inbox(conn, status="open")

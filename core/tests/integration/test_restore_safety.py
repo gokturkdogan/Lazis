@@ -494,7 +494,8 @@ def _logical_dump(conn: driver.Connection) -> dict[str, tuple[int, str]]:
     ]
     dump: dict[str, tuple[int, str]] = {}
     for table in tables:
-        rows = conn.execute(f'SELECT * FROM "{table}" ORDER BY rowid').fetchall()
+        # Sorted in Python: FTS5 shadow tables are WITHOUT ROWID (no ORDER BY rowid).
+        rows = sorted(conn.execute(f'SELECT * FROM "{table}"').fetchall(), key=repr)
         dump[table] = (len(rows), hashlib.sha256(repr(rows).encode()).hexdigest())
     return dump
 

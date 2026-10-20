@@ -1,7 +1,9 @@
 """Unit of work: one transaction == one change set, with per-row history for undo.
 
 Revert support is generic over the tables registered in :data:`REVERTIBLE_TABLES` (table →
-primary-key column). Later phases register their tables (memories, relationships, …).
+primary-key column). Tables whose rows need history but cannot be restored row by row (they
+have derived state, e.g. the memory FTS index) register in :data:`TRACKED_TABLES` instead;
+a revert reports them as ``table_not_revertible``.
 """
 
 from __future__ import annotations
@@ -19,6 +21,11 @@ Actor = Literal["user", "pipeline", "import", "system"]
 Change = Literal["create", "update", "delete", "restore"]
 
 REVERTIBLE_TABLES: dict[str, str] = {"settings": "key"}
+TRACKED_TABLES: dict[str, str] = {}
+
+
+def _pk(table: str) -> str:
+    return REVERTIBLE_TABLES.get(table) or TRACKED_TABLES[table]
 
 
 def _row_as_dict(conn: Connection, table: str, pk: str, target_id: str) -> dict[str, Any] | None:
@@ -88,13 +95,13 @@ class UnitOfWork:
             self.conn.execute("ROLLBACK")
 
     def snapshot(self, table: str, target_id: str) -> dict[str, Any] | None:
-        pk = REVERTIBLE_TABLES[table]
+        pk = _pk(table)
         return _row_as_dict(self.conn, table, pk, target_id)
 
     def record(
         self, table: str, target_id: str, change: Change, before: dict[str, Any] | None
     ) -> None:
-        pk = REVERTIBLE_TABLES[table]
+        pk = _pk(table)
         after = _row_as_dict(self.conn, table, pk, target_id)
         version = self.conn.execute(
             "SELECT COALESCE(MAX(version), 0) + 1 FROM history"

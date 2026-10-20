@@ -34,7 +34,12 @@ def test_diagnostics_requires_the_token_and_never_contains_content(
         assert before["last_turn"] is None and before["prewarm"]["state"] == "idle"
         body = {"client_id": client_id(), "content": SECRET, "model": MODEL}
         assert client.post("/api/v1/turns", json=body, headers=_auth(token)).status_code == 200
-        diag = client.get("/api/v1/diagnostics", headers=_auth(token))
+        # The reply is processed into the runtime cache in the background (Phase 5 re-warm).
+        for _ in range(100):
+            diag = client.get("/api/v1/diagnostics", headers=_auth(token))
+            if diag.json()["cache_expected_warm"]:
+                break
+            time.sleep(0.02)
         assert diag.status_code == 200
         assert "Tanılama-gizli" not in diag.text and "kardeşimin" not in diag.text
         data = diag.json()
@@ -46,7 +51,7 @@ def test_diagnostics_requires_the_token_and_never_contains_content(
         assert turn["outcome"] == "completed" and turn["output_tokens"] and turn["prompt_tokens"]
         assert turn["failed_stage"] is None
         assert turn["ttft_ms"] is not None and turn["total_ms"] >= turn["ttft_ms"]
-        assert data["cache_expected_warm"] is True  # nothing used the runtime since
+        assert data["cache_expected_warm"] is True  # the post-turn re-warm processed the reply
 
 
 def test_runtime_down_is_reported_not_hidden(
