@@ -90,9 +90,19 @@ def _right_after_name(name: str, value: str, quote: str) -> bool:
 _KEYWORDS = ((re.compile(r"\bdogum\s+gun"), "birthday"), (re.compile(r"\bmesle[kg]"), "occupation"))
 
 
+def _project_person_without_a_name(c: Candidate) -> bool:
+    """ "Mert tasarımda yardım ediyor" filed as Mert — project_person: no name in the value, so
+    the subject is the person, not a project called Mert."""
+    return c.predicate == "project_person" and not any(w[:1].isupper() for w in c.value.split())
+
+
 def _checked_predicate(c: Candidate) -> str:
     quote = c.quote or ""
-    if c.entity is not None and c.entity.kind != "project" and c.predicate.startswith("project_"):
+    if (
+        c.entity is not None
+        and c.predicate.startswith("project_")
+        and (c.entity.kind != "project" or _project_person_without_a_name(c))
+    ):
         return "note"  # "Mert — project_person: tasarımda yardım ediyor" is about Mert
     if c.entity is None or c.predicate not in ("family", "location"):
         return c.predicate
@@ -111,11 +121,37 @@ def _checked_predicate(c: Candidate) -> str:
 def _correct_predicates(facts: list[Extracted], corrected: dict[str, int]) -> list[Extracted]:
     out: list[Extracted] = []
     for e in facts:
-        pred = _checked_predicate(e.candidate)
-        if pred != e.candidate.predicate:
-            key = f"{e.candidate.predicate}_to_{pred}"
+        c = e.candidate
+        pred = _checked_predicate(c)
+        if pred != c.predicate:
+            key = f"{c.predicate}_to_{pred}"
             corrected[key] = corrected.get(key, 0) + 1
-            e = replace(e, candidate=replace(e.candidate, predicate=pred))
+            entity = c.entity
+            if (
+                entity is not None
+                and c.predicate.startswith("project_")
+                and entity.kind == "project"
+            ):
+                entity = replace(entity, kind="person")  # the project predicate made it a project
+            e = replace(e, candidate=replace(c, predicate=pred, entity=entity))
+        out.append(e)
+    return out
+
+
+# "Eskiden öğretmendim" in a profile is history, not a current fact: written as one, it would
+# replace the value the same line says is current ("…, artık yazılım geliştiriciyim").
+_PAST = re.compile(r"\b(eskiden|onceden|bir zamanlar|vaktiyle|bir donem)\b")
+
+
+def _drop_past(facts: list[Extracted], dropped: dict[str, int]) -> list[Extracted]:
+    out: list[Extracted] = []
+    for e in facts:
+        c = e.candidate
+        if c.predicate not in ("event", "note") and _PAST.search(
+            " ".join(text.words(c.quote or ""))
+        ):
+            dropped["past_value"] = dropped.get("past_value", 0) + 1
+            continue
         out.append(e)
     return out
 
@@ -134,7 +170,7 @@ def validate(raw: str, section: files.Section) -> SectionResult | None:
     facts += extraction.facts_from_relations(facts, rels)
     dropped = {**checked.dropped, **{f"relation_{k}": v for k, v in rel_dropped.items()}}
     corrected: dict[str, int] = {}
-    facts = _correct_predicates(facts, corrected)
+    facts = _drop_past(_correct_predicates(facts, corrected), dropped)
     if covered:
         dropped["covered_by_relation"] = covered
     return SectionResult(section, facts, rels, dropped, corrected)

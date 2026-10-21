@@ -201,3 +201,19 @@ def test_a_second_spouse_is_a_conflict_not_a_silent_replacement(
             "keep_both": {("Deniz", "active"), ("Selin", "active")},
             "keep_old": {("Deniz", "active")}}[choice]  # fmt: skip
     assert spouses == want
+
+
+def test_two_values_of_one_fact_in_the_file_need_the_users_choice(storage: StorageHandle) -> None:
+    iid = start(storage, {"facts": [{"about": "user", "predicate": "occupation", "value": "öğretmen"},
+                                    {"about": "user", "predicate": "occupation",
+                                     "value": "yazılım geliştirici"}]})  # fmt: skip
+    a, b = item(storage, iid, "öğretmen"), item(storage, iid, "yazılım geliştirici")
+    assert a.classification == b.classification == "conflict"
+    assert a.existing == ("yazılım geliştirici",) and b.existing == ("öğretmen",)
+    assert a.note == b.note == "in_file_conflict"
+    with pytest.raises(store.DecisionError):
+        decide(storage, iid, b.id, "approve")
+    decide(storage, iid, b.id, "approve", resolution="update")
+    decide(storage, iid, a.id, "reject")
+    do_apply(storage, iid)
+    assert active(storage) == {("user", "occupation", "yazılım geliştirici")}

@@ -271,6 +271,7 @@ def analyze(conn: Connection, proposals: Proposals) -> Analysis:
             v = Verdict("exact_duplicate", (f.value,), "in_file")  # said twice in the file
         seen.add(mark)
         out.facts.append(v)
+    _in_file_conflicts(proposals, out)
     for r in proposals.relations:
         ends: list[str | None] = []
         amb = False
@@ -283,6 +284,34 @@ def analyze(conn: Connection, proposals: Proposals) -> Analysis:
             ends.append(sid)
         out.relations.append(classify_relation(conn, r, ends[0], ends[1], ambiguous=amb))
     return out
+
+
+def _in_file_conflicts(proposals: Proposals, out: Analysis) -> None:
+    """Two values of a single-valued fact in one file ("öğretmen" and "yazılım geliştirici"
+    for the user's occupation): neither is written without the user's choice."""
+    groups: dict[tuple[str, str], list[int]] = {}
+    for i, f in enumerate(proposals.facts):
+        p = registry.get(f.predicate)
+        if p is not None and p.cardinality == "single":
+            groups.setdefault((f.subject, f.predicate), []).append(i)
+    for idxs in groups.values():
+        values = {text.fold(proposals.facts[i].value).strip() for i in idxs}
+        if len(values) < 2:
+            continue
+        for i in idxs:
+            v = out.facts[i]
+            if v.classification in ("excluded", "ambiguous_entity") or v.note == "in_file":
+                continue
+            mine = text.fold(proposals.facts[i].value).strip()
+            others = tuple(dict.fromkeys(
+                proposals.facts[j].value for j in idxs
+                if text.fold(proposals.facts[j].value).strip() != mine
+            ))  # fmt: skip
+            kind: Classification = (
+                v.classification if v.classification == "temporal_update" else "conflict"
+            )
+            out.facts[i] = Verdict(kind, tuple(dict.fromkeys((*v.existing, *others))),
+                                   "in_file_conflict")  # fmt: skip
 
 
 def predicate_known(key: str) -> bool:

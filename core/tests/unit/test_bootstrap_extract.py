@@ -74,3 +74,34 @@ def test_time_words_on_the_line_mark_a_change_even_outside_the_quote() -> None:
     line = files.line_text(sec, "Pusula Yazılım'da çalışıyorum")
     assert line.startswith("2025'ten beri") and analyze.temporal_words(line)
     assert not analyze.temporal_words(files.line_text(sec, "yok"))
+
+
+def test_a_person_in_a_project_predicate_without_a_name_is_a_note_about_the_person() -> None:
+    from dataclasses import replace
+
+    c = cand("project_person", "tasarımda yardım ediyor", "Mert tasarımda yardım ediyor", "Mert")
+    c = replace(c, entity=EntityRef("Mert", "project"))  # the model's predicate made it a project
+    assert extract._checked_predicate(c) == "note"  # pyright: ignore[reportPrivateUsage]
+    named = replace(
+        c, value="Mert", entity=EntityRef("Pusula", "project"), quote="Pusula'da Mert var"
+    )
+    assert extract._checked_predicate(named) == "project_person"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_a_past_value_is_not_a_current_fact() -> None:
+    import json
+
+    f = files.read("p.txt", "Eskiden öğretmendim, artık yazılım geliştiriciyim.".encode())
+    sec = f.sections[0]
+
+    def item(quote: str, value: str) -> dict[str, object]:
+        return {"message": "m1", "quote": quote, "entity": "", "relation": "",
+                "predicate": "occupation", "value": value, "statement": "x", "change": False,
+                "replaces": "", "certain": True, "sensitive": "", "importance": 0.7}  # fmt: skip
+
+    raw = json.dumps({"items": [item("artık yazılım geliştiriciyim", "yazılım geliştirici"),
+                                item("Eskiden öğretmendim", "öğretmen")]}, ensure_ascii=False)  # fmt: skip
+    r = extract.validate(raw, sec)
+    assert r is not None
+    assert [e.candidate.value for e in r.facts] == ["yazılım geliştirici"]
+    assert r.dropped.get("past_value") == 1
