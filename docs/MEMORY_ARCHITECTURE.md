@@ -1,8 +1,8 @@
 # LAZIS — Memory and Learning Architecture
 
-> Status: **as built in Phase 6** (Part P6 below) · Last updated: 2026-10-20
-> The Phase 0 design (sections 1–21, unchanged below) remains the long-term plan; Part P6 records what Phase 6 actually built, where it deliberately differs, and why. Code docstrings refer to the P6 sections.
-> Related: [KNOWLEDGE_GRAPH_DESIGN.md](KNOWLEDGE_GRAPH_DESIGN.md), [SECURITY_MODEL.md](SECURITY_MODEL.md), ADR [0014](adr/0014-personal-memory-store.md), ADR [0015](adr/0015-learning-recall-and-model-trust.md), [PHASE_6_REPORT.md](PHASE_6_REPORT.md).
+> Status: **as built in Phase 7** (Parts P6 and P7 below) · Last updated: 2026-10-20
+> The Phase 0 design (sections 1–21, unchanged below) remains the long-term plan; Parts P6 and P7 record what Phases 6 and 7 actually built, where they deliberately differ, and why. Code docstrings refer to the P6/P7 sections.
+> Related: [KNOWLEDGE_GRAPH_DESIGN.md](KNOWLEDGE_GRAPH_DESIGN.md), [SECURITY_MODEL.md](SECURITY_MODEL.md), ADR [0014](adr/0014-personal-memory-store.md), ADR [0015](adr/0015-learning-recall-and-model-trust.md), ADR [0016](adr/0016-entity-relationship-graph.md), [PHASE_6_REPORT.md](PHASE_6_REPORT.md), [PHASE_7_REPORT.md](PHASE_7_REPORT.md).
 
 ## Part P6 — As built (Phase 6)
 
@@ -99,7 +99,214 @@ Everything stays in the encrypted database; no network, no telemetry. Logs carry
 
 ### P6.12 Not built in Phase 6 (from the design below)
 
-Embeddings / sqlite-vec (FTS5 + entities measured sufficient; ADR 0014), the derived profile summary, open loops, the learning review mode (the inbox covers decisions), merging of differently-worded similar preferences, temporal reasoning over `event_time`, relationships between entities (only person→user relations), backfilling old conversations (needs the owner's approval).
+Embeddings / sqlite-vec (FTS5 + entities measured sufficient; ADR 0014), the derived profile summary, open loops, the learning review mode (the inbox covers decisions), merging of differently-worded similar preferences, temporal reasoning over `event_time`, relationships between entities (built in Phase 7, Part P7), backfilling old conversations (needs the owner's approval).
+
+## Part P7 — As built (Phase 7): entities and relationships
+
+The governing rule: *LAZIS'in bir ilişkiyi bilmemesi, yanlış bir ilişki kurmasından daha iyidir.* Every step below prefers asking, or not storing, to a guess.
+
+### P7.1 Overview and data flow
+
+```
+user message ─┬─ explicit request ("kaydet", "değil", "unut", "aynı kişi", "farklı kişiler")
+              │      └─► commands: relations validated like extraction, applied before the reply
+              │          ("aynı kişi" → confirmation; "farklı kişiler" → distinction; deterministic)
+              ├─ recall: graph.ask(question) ─► computed answer + supporting path ─┐
+              │          named people ─► their direct relationships                ├─► KİŞİSEL HAFIZA block
+              └─ background learning: the same extraction call now also returns "relations"
+                     └─► validate (grammar, grounding, first person, quotes, rules) ─► both ends resolved
+                         ─► policy (sensitive → approval) ─► consolidation (time, corrections, conflicts)
+```
+
+New modules (`core/src/lazis/memory/`):
+
+| Module | Role |
+|---|---|
+| `relations` | the vocabulary (51 types), the Turkish lexicon of relation nouns, readings and rendering |
+| `graphstore` | SQL for relationships, evidence, distinctions, fingerprints; batched adjacency |
+| `relationships` | applying relationship candidates: both ends, policy, time, corrections, conflicts, inbox decisions, forget, merge/split support, the one-time label upgrade |
+| `graph` | deterministic queries: the Turkish question parser, chains, paths, neighbours, answers |
+| `api/graph.py` | the relationship endpoints |
+
+### P7.2 Vocabulary (`relations.py`)
+
+51 types in seven categories (family, social, work, organization, project, place, event), each with a forward label ("kardeşi"), an inverse label, symmetry, the inverse type, allowed endpoint kinds, single/multi, an exclusivity group (kinship types exclude each other for one pair), a sensitivity floor and the user's words.
+
+* A stored (source, type, target) reads "target is source's ⟨label⟩" for roles ((Ahmet, sibling, Mehmet) → "Mehmet: Ahmet'in kardeşi") and "source ⟨label⟩ target" for affiliations ((Mehmet, works_at, Kervan) → "Kervan: Mehmet'in çalıştığı yer").
+* Read from the other end: a symmetric type is itself, a directed role type has its inverse (mother → child), an affiliation has an inverse label; `acquaintance` has no reading from the other end ("Ali Mehmet'i tanıyor" says nothing about Mehmet).
+* Families answer for each other only one way: "arkadaşı" finds a childhood friend; the generic `parent` never answers "annesi" (the gender was not stated).
+* Intimate types (`partner`, `ex_partner`) are sensitive.
+* The lexicon matches relation nouns on folded text with plural, possessive and genitive endings ("kardeşimin", "ablaları", "çocukluk arkadaşım") — never dative/locative, which collide with ordinary words.
+
+### P7.3 Storage (`0005_graph.sql`)
+
+* `memory_relationships`: source, type, target (FK, cascade), qualifier, status, origin, confidence, sensitivity, time text, `valid_from`/`valid_to`, `supersedes_id`, `conflict_state`, change set, version; `CHECK (source_id != target_id)`; indexes (source, status, type) and (target, status, type).
+* `memory_relationship_evidence`: the source message and the user's quote, or user edit / confirmation / migration.
+* `memory_entity_distinctions`: pairs the user said are different people (merge is refused for them).
+* `memory_entities` rebuilt: kinds `event` and `group`; `is_user`, `confidence`, `origin`. The user is one fixed row (`id='user'`, unique), only a relationship endpoint; memories about the user keep `subject_id IS NULL`.
+* The rebuild runs with foreign keys off outside the transaction (a runner marker, `-- lazis:foreign-keys=off`), then `foreign_key_check` must be empty, after the usual encrypted pre-migration backup. Tested: upgrade, half-applied run, a rebuild that would break foreign keys, corrupted v4 database (refused, untouched), new install, integrity check.
+* **One row per relationship.** Inverse and symmetric readings are computed at query time and never stored, so a corrected or forgotten relationship cannot leave stale derived rows.
+* Statuses: `active`, `planned`, `unverified` (current); `ended` (past); `superseded` (replaced by a correction); `retracted` (the user said it is not true — kept for audit, never used).
+
+### P7.4 Identity: both ends
+
+Both ends of every relationship are resolved before anything is written, with the Phase 6 resolver and these Phase 7 rules:
+
+1. An ambiguous end (either one) turns the whole relationship into a "Hangi Ahmet?" inbox item (`ambiguous_entity`, `payload.target = "relationship"`); nothing is attached until it is answered.
+2. A namesake is identified only by the user's words:
+   * the stated relation ("iş ortağım Ahmet");
+   * an appositive in the message ("çocukluk arkadaşım Ahmet'in kızı");
+   * restating a relationship the user already has with one of them;
+   * for a denial, end or correction, being the one who holds a relationship with the other end.
+3. A **new kind** of relationship between the user and a stored person who is already something else to the user ("İş ortağımın adı da Ahmet" while Ahmet is a childhood friend) asks "same person or another Ahmet?". It never attaches silently.
+4. A name with an open namesake question blocks attaching (Phase 6 rule), and graph answers about that name say so and ask.
+5. Kinds must fit the type ("Pusula projesinde" is a project, never a colleague); the user is never merged, forgotten or listed.
+6. "Bu iki Ahmet farklı kişiler" records a distinction; "aynı kişi" asks for confirmation, then merges (refused after a distinction).
+
+192 deterministic identity scenarios cover single, two and three namesakes, surnames, aliases, Turkish letters, open questions, distinctions, splits, merges, kinds, the user, both ends, relation forms, name forms and structure (`tests/integration/test_identity_scenarios.py`).
+
+### P7.5 Learning relationships (Gemma only)
+
+The Phase 6 extraction call also returns `relations` (source, type, target, relation words, negated, correction, change, status, certain, time). Rule 12 of the instruction defines direction with examples and forbids chains; the type list is part of the instruction (~6 k characters). The same model trust applies: Gemma only; Qwen turns are deferred.
+
+Validation, in order — each failure drops the relationship and is counted:
+
+* The quote must be the user's, and outside quoted text (`quoted_text`): an e-mail to summarize is someone else's words.
+* A message that tries to change the rules teaches nothing (`instruction_message`).
+* The type must exist; an uncertain claim needs its type named in the user's words (`type_not_stated`: "akraba olabilir" is not "kardeş").
+* "X'in ⟨noun⟩ Y" in the message fixes a reversed direction (`direction_fixed`); a different type is left as the model's claim.
+* Both ends must be named in the message, recent messages or known context; kinds follow the message's nouns.
+* A relationship with the user as one end needs the user in the message (first person) (`user_not_in_message`).
+* A Phase 6 `relationship` item becomes a user relationship only when its words map to the vocabulary.
+* A relationship type must be in the user's words (a noun, or a verb that states it: "evlendi", "boşandılar", "tanıyor", "çalıştık") (`type_not_stated`). When "X'in ⟨noun⟩ Y" names a type for the pair, the user's noun decides (`type_fixed`). A noun the user says only in the first person ("Ablam Derya …") cannot type a relationship between two others (`type_is_the_users`).
+* A relation noun right before a name in the third person ("kardeşimin arkadaşı Yiğit", "Selim'in oğlu Arda") is someone else's, not the user's (`someone_elses`). A relation noun is never a name ("Kızım" ≠ a person named Kız).
+
+The user's grammar also adds what the model left out or got wrong:
+
+* corrections "X aslında Y'nin A'sı değil, B'si" / "X Am değil, Bm" are parsed and replace the model's proposals for that pair, in chat requests and in background learning;
+* a first-person appositive ("Kuzenim Selim'in …") becomes that user relationship and fixes a reversed one ("Yöneticim Banu");
+* a counted or plural first-person noun ("iki arkadaşım", "arkadaşlarım") is shared by the names listed with it, next to the model's own reading of the group;
+* "X, P projesinde … çalışıyor" states X works_on P.
+
+Relationships and facts are kept consistent:
+
+* a user's lives_in / works_at relationship is also the location / employer fact, and an employer fact is also a works_at relationship;
+* a fact that only restates a relationship of the same message is not stored twice;
+* a fact whose subject is its own value is dropped.
+
+The JSON schemas forbid other keys (`additionalProperties: false`). The prompt examples are disjoint from every evaluation set (an earlier overlap was found and removed; PHASE_7_REPORT §K).
+
+The label shortcut (a person's relation words → the typed user relationship) needs the relation said in the first person ("kuzenim Selim", not "Selim'in oğlu"). It never creates a sensitive type or stores a sensitive label.
+
+### P7.6 Deterministic queries (`graph.py`)
+
+* **Parser.** Turkish questions become typed queries:
+  * chains: "çocukluk arkadaşımın kardeşinin eşi kim", "Ahmet'in kardeşi Mehmet'in eşi", "annemin adı ne", "kardeşi Mehmet mi?";
+  * paths: "Zeynep'i nereden tanıyorum", "Ahmet ile Zeynep arasında", "evli mi", "Mehmet, Ahmet'in neyi oluyor";
+  * neighbours: "kimlerle bağlantısı var", "ailesi hakkında", "ailem";
+  * affiliations: "Pusula projesinde kim çalışıyor", "nerede çalışıyor", "hangi projede";
+  * "Zeynep kim?".
+
+  Names come from the alias index (indexed lookup of only the keys that can occur in the question). Unknown capitalized names are reported as unknown. Statements are not questions.
+* **Walks.** Bounded:
+  * at most 3 steps, cycle-free (no person twice);
+  * at most 50 paths and 200 relationships per person;
+  * paths meet in the middle (two levels from one end, one from the other);
+  * current relationships only (a failed chain also checks ended ones and reports them as past).
+* **Sensitive relationships** appear only when the question names that type — never in paths, neighbour lists or the map.
+* **Answers:**
+  * unique / several, each with its supporting path;
+  * none, with where the chain broke ("Bilinen: … ; Mehmet'in annesi kayıtlı değil");
+  * ambiguous ("which Ahmet?");
+  * unknown.
+
+  The model only words the answer.
+
+### P7.7 Recall
+
+`retrieval.recall` puts the graph's answer first, after pinned memories, as "İlişki sorusu (kayıtlı ilişkilerden hesaplandı; burada olmayan bir ilişkiyi ekleme, tahmin etme)". People named in the message bring up to 4 direct current relationships each, and the overview ("hakkımda ne biliyorsun") lists up to 10 of the user's own. All of this stays within the same budget. An unknown name is mentioned only for a personal question ("Burak'ın kardeşi"), not for general knowledge ("Google'ın patronu"). The persona prompt adds one sentence: answer relationship questions from the computed answer, and infer no kinship or acquaintance.
+
+### P7.8 Requests in chat
+
+| What the user says | What happens |
+|---|---|
+| "kaydet: …" | relationship facts are written via the existing request call, with a `relations` field validated like extraction |
+| "X Y'nin kardeşi değil", "… değil, kuzeni" | the relationship is denied or corrected; detected from relation noun + "değil", not a question |
+| "X ile Y arasındaki ilişkiyi unut" | one type, or the whole pair, is forgotten (forget scope `relation`) |
+| "aynı kişi" | deterministic; the merge waits for "evet" |
+| "farklı kişiler" | deterministic; recorded as a distinction |
+
+The `HAFIZA İŞLEMİ` notice lists exactly what changed in the graph: created, retracted ("artık geçerli değil"), moved to history.
+
+### P7.9 Time, corrections, conflicts
+
+* **Change signals** ("artık", "ayrıldı", "geçti"):
+  * single-valued types and workplaces → the old relationship ends (`valid_to`);
+  * "artık … çalışmıyorum" ends a relationship — it never retracts it.
+* **Correction signals** ("aslında", "yanlış söyledim") → the old one is superseded (history kept).
+* **Denial** → retracted plus a rejection suppression.
+* **Conflicts:**
+  * another kinship for the same pair without a signal → a conflict inbox item;
+  * coexisting types (friend and colleague, two projects) are not conflicts.
+* **Time and status:**
+  * planned relationships are current but marked;
+  * uncertain ones are `unverified`;
+  * stated times are kept as text.
+
+### P7.10 Forgetting and privacy
+
+* Forgetting a relationship deletes the row, its evidence and its history content. It adds HMAC suppressions per relationship and, for a pair, per pair, so neither is learned again; an explicit request overrides.
+* Forgetting a person removes their relationships, but not the other people's facts.
+* Multi-hop answers, paths, the map and recall never run through a forgotten link (tested).
+* Sensitive relationships need approval: an inbox item, or an explicit request. Logs carry counts and codes only (tested: no names or relation words in logs).
+
+### P7.11 Merge and split
+
+* **Merge:**
+  * relationships move to the kept record;
+  * relationships between the two records become self-loops and are removed and reported;
+  * equivalent duplicates are folded, keeping their evidence;
+  * refused for a distinct pair.
+* **Split:** moves the relationships the user assigns and records a distinction.
+
+### P7.12 API and UI
+
+* **API** (`/api/v1/memory`):
+  * `relationship-types`;
+  * `entities/{id}/relationships` (also `user`; read from that side, current and past);
+  * `relationships/{id}` (evidence, earlier versions), `POST relationships`, `PATCH`/`DELETE relationships/{id}`;
+  * `graph/neighbourhood/{id}?depth=1|2&past=` (bounded, non-sensitive), `graph/paths?from=&to=`;
+  * relationship and merge decisions in `inbox`.
+* **UI** (Hafıza → Kişiler ve projeler):
+  * the user's own relationships first;
+  * per person: relationships with reading, status, time, conflicts, origin, evidence and earlier versions;
+  * add with only the types that fit both kinds, edit, delete after confirmation;
+  * a simple SVG relation map (depth 1–2, past optional);
+  * the inbox marks relationship decisions and confirms or rejects merges.
+
+### P7.13 Performance
+
+Measured in `evals/runners/p7_perf.py` (production code, encrypted database on disk). At 50,000 relationships, p95:
+
+| Query | Time (p95) |
+|---|---|
+| Direct | 0.15 ms |
+| Two steps | 1.2 ms |
+| Three steps | 1.8 ms (a wide fan-out: 4.5 ms) |
+| Paths | 1.4 ms |
+| Recall with a relationship question | 1.2 ms |
+| One write | 0.8 ms |
+
+Names in a message are found by an indexed lookup of only the keys that can occur in it, so recall no longer scans every alias (Phase 6 recall at 50,000 records: 5.5 → 0.28 ms p50). Details and chat latency: PHASE_7_REPORT §I.
+
+### P7.14 Not built in Phase 7
+
+* placeholder entities for unnamed people ("eşimin annesi" needs a name);
+* kinship composition (parent's sibling = aunt is never inferred);
+* mention-level grounding (`entity_mentions`);
+* relationship import in the starting-profile importer;
+* the event/group screens beyond the generic person detail;
+* backfilling relationships from old conversations (not scanned; needs the owner's approval).
 
 ---
 

@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 implemented and accepted by the owner ([PHASE_4_REPORT.md](PHASE_4_REPORT.md), [ADR-0012](adr/0012-desktop-experience-and-resilience.md)). **P5 implemented 2026-10-20; awaiting the owner's approval** ([PHASE_5_REPORT.md](PHASE_5_REPORT.md), [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md)). **P6 implemented 2026-10-20; awaiting the owner's acceptance test and approval** ([PHASE_6_REPORT.md](PHASE_6_REPORT.md), [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-learning-recall-and-model-trust.md)); P7 not started · Last updated: 2026-10-20
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 implemented and accepted by the owner ([PHASE_4_REPORT.md](PHASE_4_REPORT.md), [ADR-0012](adr/0012-desktop-experience-and-resilience.md)). **P5 implemented 2026-10-20; awaiting the owner's approval** ([PHASE_5_REPORT.md](PHASE_5_REPORT.md), [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md)). **P6 implemented 2026-10-20** ([PHASE_6_REPORT.md](PHASE_6_REPORT.md), [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-learning-recall-and-model-trust.md)); the owner's Phase 7 brief was taken as the go-ahead (the P6 acceptance test result was not stated). **P7 implemented 2026-10-20; awaiting the owner's acceptance test and approval** ([PHASE_7_REPORT.md](PHASE_7_REPORT.md), [ADR-0016](adr/0016-entity-relationship-graph.md)); P8 not started · Last updated: 2026-10-20
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -276,6 +276,30 @@ Exit evidence: backend 100 tests, UI 19 unit + 3 integration (against a real bac
 - **Risks:** R5.
 - **Testable result:** "Çocukluk arkadaşımın kardeşinin adı neydi?" is answered from the graph, with the right certainty.
 - **Exit conditions:** ER hard gates met (zero name-only confirmed links; zero fabricated path answers); tests executed.
+
+### P7 as implemented (2026-10-20)
+
+Built on the Phase 6 store, not beside it. Details are in [MEMORY_ARCHITECTURE.md Part P7](MEMORY_ARCHITECTURE.md) and [PHASE_7_REPORT.md](PHASE_7_REPORT.md).
+
+- **Schema.** `0005_graph`:
+  - relationships, evidence, "different people" distinctions;
+  - `memory_entities` rebuilt for event/group kinds and the fixed user row;
+  - a safe foreign-keys-off rebuild mode in the migration runner.
+- **Vocabulary.** 51 relationship types in code (`memory/relations.py`) instead of `config/relationships.yaml`, like the Phase 6 predicate registry. Kinship and role words are a Turkish lexicon in the same module.
+- **Identity.**
+  - Both ends are resolved with the Phase 6 resolver plus Phase 7 rules (namesake questions, appositives, restated relationships, holders).
+  - 192 identity scenarios.
+  - Not built: the tentative → linked → confirmed lifecycle, and mention-level grounding (`entity_mentions`).
+- **Learning.**
+  - Gemma's existing extraction call also proposes relationships, so automatic extraction of relationships moved forward from P9.
+  - Deterministic validation rules keep the user's words in charge.
+- **Answers.** Deterministic chains, paths and neighbours (`memory/graph.py`) with a Turkish question parser. The answer reaches the model as computed data.
+- **UI.** Relationships in the person detail, the user's own relationships, add/edit/delete, evidence, a simple relation map, relationship and merge decisions in the inbox.
+- **Deferred:**
+  - unmerge (split covers the need);
+  - placeholder entities for unnamed people;
+  - identity-correction propagation beyond merge/split;
+  - relationship import (P8).
 
 ## P8 — Personal knowledge bootstrap (M)
 

@@ -1,6 +1,6 @@
 # ADR-0016: Entity and relationship graph — typed edges on the Phase 6 store, deterministic paths (Phase 7)
 
-- **Status:** Proposed for Phase 7 (2026-10-20). The owner reviews it with [PHASE_7_REPORT.md](../PHASE_7_REPORT.md).
+- **Status:** Implemented in Phase 7 (2026-10-20); awaiting the owner's acceptance test and approval with [PHASE_7_REPORT.md](../PHASE_7_REPORT.md).
 - **Related:**
   - [KNOWLEDGE_GRAPH_DESIGN.md](../KNOWLEDGE_GRAPH_DESIGN.md): the Phase 0 design. This ADR records what Phase 7 builds from it and what it defers.
   - [ADR-0014](0014-personal-memory-store.md) (store), [ADR-0015](0015-learning-recall-and-model-trust.md) (learning, recall, requests, model trust).
@@ -67,7 +67,7 @@ The governing rule is the brief's own: *LAZIS'in bir ilişkiyi bilmemesi, yanlı
    - A correction signal ("yanlış söyledim", "aslında") → the old edge is superseded.
    - The same pair with another type from an exclusive group and no signal (sibling vs cousin) → a conflict inbox item; the user decides.
    - Coexisting types (friend + colleague; two employers; two projects) are not conflicts.
-6. **Both ends are resolved before anything is written.** An ambiguous end (either one) turns the whole candidate into an `ambiguous_relation` inbox item; nothing is attached until it is answered. The model's identity pick or confidence never decides identity.
+6. **Both ends are resolved before anything is written.** An ambiguous end (either one) turns the whole candidate into an inbox question. As built, this is an `ambiguous_entity` item with `payload.target = "relationship"`, so the Phase 6 readers (open questions in recall and extraction) keep working. Nothing is attached until it is answered. The model's identity pick or confidence never decides identity.
 7. **Multi-hop answers come from the graph, not the model.**
    - A deterministic Turkish chain parser ("çocukluk arkadaşımın kardeşinin eşi") turns the question into a path from the user or a named entity.
    - Bounded traversal (depth ≤ 3, cycle-free, at most 50 paths) returns every matching path with its edges' statuses.
@@ -87,3 +87,27 @@ The governing rule is the brief's own: *LAZIS'in bir ilişkiyi bilmemesi, yanlı
 - No `entity_mentions` table yet. Mention-level grounding (moving exactly the knowledge a mention grounded) stays the Phase 0 plan. Split asks the user instead.
 - No placeholder entities ("eşimin annesi" without a name): a relationship needs a named target. This is listed as a limitation.
 - Kinship composition (parent's sibling = aunt) is not inferred. Only stated types and their inverse/symmetric readings are used.
+
+## As built (Phase 7) — what changed during implementation
+
+The decisions above hold. The real-model gold set (`evals/datasets/relation_gold.json`, 50 cases) found five critical errors in its first run. Each was closed in code, not only in the prompt, and covered by a test (PHASE_7_REPORT §K). The final run had 46/50 cases, no critical errors and no false relationships. The rules added, all in the direction of asking or not storing:
+
+| Rule | Where | Stops |
+|---|---|---|
+| A sensitive relation label ("sevgilim") never becomes a relationship or a stored label by itself | `relationships.ensure_user_relation`, `service._subject_for`, `policy.decide` | an intimate relationship stored without approval |
+| A relationship with the user as one end needs the user in the message (first person); the label shortcut needs the relation said in the first person | `extraction.validate_relations`, `relations.says_mine` | "Selim'in oğlu Arda" stored as the user's child |
+| "X'in ⟨noun⟩ Y" fixes a reversed direction (never the type) | `extraction.stated_triples`, `_fix_direction` | parent/child reversed |
+| A new kind of user relationship for a stored person asks "same person or another?" | `relationships._maybe_a_namesake` | "İş ortağımın adı da Ahmet" attached to the childhood friend Ahmet |
+| Quoted text and messages that try to change the rules teach nothing | `extraction.users_own_words`, `instruction_message` | relationships learned from an e-mail to summarize or a fake system message |
+| An uncertain claim needs its type in the user's words | `type_not_stated` | "akraba olabilir" stored as siblings |
+| Namesakes are identified by appositives, restated relationships, or the link to the other end | `extraction.appositive`, `relationships._narrow_to_holder` | needless "which Ahmet?" questions and wrong attachments |
+| Answers about a name with an open namesake question say so and ask | `graph._with_namesake_caution` | an answer about the stored Ahmet given for the other one |
+| A relationship type must be in the user's words (noun or verb); the user's own noun cannot type others; a third-person noun before a name is someone else's | `relations.named_in`, `only_mine`, `extraction.someone_elses` | "kahve içtik" → friend; "Ablam Derya Kaan'la evlendi" → Derya–Kaan siblings; "kardeşimin arkadaşı" → the user's friend |
+| Corrections, appositives, counted groups and "X, P projesinde çalışıyor" are read from the user's grammar | `extraction.stated_correction`, `appositive`, `stated_group`, `stated_project_work` | the model's contradictory flags on a correction; missed or reversed relationships |
+| Copied relation words do not settle an open namesake question | `extraction.validate(unsettled=…)` | a fact attached to the stored Ahmet with words from an earlier message |
+| JSON schemas forbid other keys | `extraction.schema`, `commands.schema` | degenerate invented keys until the token limit |
+
+Two implementation choices worth recording:
+
+* **Finding names.** Names in a message are found by an indexed lookup of only the alias keys that can occur in it, instead of scanning every alias. This cut recall at 50,000 relationships from 14.6 ms to 1 ms, and Phase 6 recall at 50,000 records from 5.5 ms to 0.28 ms.
+* **The one-time label upgrade** runs at engine start and is reported in diagnostics. It keeps sensitive labels as labels.
