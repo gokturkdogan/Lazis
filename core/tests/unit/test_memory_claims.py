@@ -102,6 +102,19 @@ REWORDED = [
     ("Bunu listeme ekledim.", "Bunu anladım."),
     ("Toplantıyı ajandama yazdım.", "Toplantıyı anladım."),
     ("Anladım ve notunu aldım.", "Anladım."),
+    # A storage word further back in the sentence (real-model finding, two-Ahmet check).
+    (
+        "Not defterime Ahmet'in doğum gününün 5 Mayıs olduğunu ekledim.",
+        "Ahmet'in doğum gününün 5 Mayıs olduğunu anladım.",
+    ),
+    (
+        "Hafızama bu konuşmadan iki bilgi yazdım efendim.",
+        "Bu konuşmadan iki bilgi anladım efendim.",
+    ),
+    (
+        "Anlaşıldı, listeme yarınki toplantıyı da ekledim.",
+        "Anlaşıldı, yarınki toplantıyı da anladım.",
+    ),
 ]
 
 
@@ -171,6 +184,8 @@ UNTOUCHED = [
     "Kaydettim diye düşünmeyin, henüz bir şey yazılmadı.",
     "Listeme bakınca bugün üç işiniz var gibi görünüyor.",
     "Bir kayıt oluşturmak isterseniz söylemeniz yeterli.",
+    "Ajandama bakarsanız toplantıyı eklediğinizi görürsünüz.",
+    "Listeme göre yarın üç işiniz var.",
 ]
 
 
@@ -215,6 +230,21 @@ OUTCOMES = [
     (SAVE_FAILED, "Ahmet'in kaydını aldım.", "Ahmet'in bilgisini kaydedemedim."),
     (SAVE_PENDING, "Toplantının notunu aldım.", "Toplantının bilgisini henüz kaydetmedim."),
     (SAVED, "Notunuzu aldım efendim.", "Notunuzu aldım efendim."),
+    (  # the real-model case: two namesakes, the save waits for "which Ahmet?"
+        SAVE_PENDING,
+        "Not defterime Ahmet'in doğum gününün 5 Mayıs olduğunu ekledim.",
+        "Not defterime Ahmet'in doğum gününün 5 Mayıs olduğunu henüz kaydetmedim.",
+    ),
+    (
+        SAVE_FAILED,
+        "Hafızama bu konuşmadan iki bilgi yazdım.",
+        "Hafızama bu konuşmadan iki bilgi kaydedemedim.",
+    ),
+    (
+        SAVED,
+        "Not defterime Ahmet'in doğum gününü ekledim.",
+        "Not defterime Ahmet'in doğum gününü ekledim.",
+    ),
     (
         SAVED,
         "Kaydettim efendim. Ahmet’in kardeşi Mehmet.",
@@ -327,7 +357,8 @@ def test_without_learning_a_statement_is_no_memory_action() -> None:
 FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim", "hatirlayacagim",
              "kaydedildi", "aklimda tut", "ogrendim", "kaydediyorum", "eklendi", "notunuzu aldim",
              "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
-             "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim")  # fmt: skip
+             "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim",
+             "defterime", "hafizama bu", "listeme yarinki")  # fmt: skip
 
 
 def stream(text: str, chunks: list[int], policy: Policy) -> tuple[str, list[str]]:

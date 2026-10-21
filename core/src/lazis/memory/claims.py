@@ -178,6 +178,8 @@ _NOUN_OBJECT = re.compile(r"(?:bir )?(?:not|kayd|kayit)(u|unu|ini|lari|larini)? 
 _NOUN_SUBSTITUTE = {"u": "bilgiyi", "unu": "bilgisini", "ini": "bilgisini", "lari": "bilgileri",
                     "larini": "bilgilerini", None: ""}  # fmt: skip
 _CTX_VERB = r"(?:ekle|al|yaz|tut|kayded|kaydet|isle|sakla)"
+_DISTANT_VERB = re.compile(r"\b(?:ekle|yaz|kayded|kaydet|isle|sakla|not (?:al|ed|et))")
+_ADJACENT = ("", "bu", "bunu", "bu bilgiyi", "onu")
 _DELETE_RE = re.compile(r"\b(?:sil|kaldir|cikar)")
 _UPDATE_RE = re.compile(r"\b(?:guncell|duzelt|degistir|birlestir)")
 _COMMIT_RE = re.compile(r"\b(?:unut|hatirla)")
@@ -214,6 +216,9 @@ class _Claim:
     verb_start: int
     kind: str
     passive: bool = False  # "kaydedildi": the reworded form is passive too
+    # A storage word further back in the sentence ("Not defterime X'i ekledim"): its span, so
+    # "anladım" can drop it and keep what stands between.
+    ctx_span: tuple[int, int] | None = None
 
 
 def _word_end(f: str, i: int) -> int:
@@ -259,7 +264,13 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
     def quoted(i: int) -> bool:
         return any(a <= i < b for a, b in quotes)
 
-    def verb(start: int, stem_end: int, kind: str, ctx: int | None = None) -> None:
+    def verb(
+        start: int,
+        stem_end: int,
+        kind: str,
+        ctx: int | None = None,
+        ctx_span: tuple[int, int] | None = None,
+    ) -> None:
         if quoted(start) or any(c.verb_start == start for c in found):
             return
         end = _word_end(f, stem_end)
@@ -273,8 +284,23 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
                 return  # "kaydettiğimiz bir bilgi yok": saying nothing is stored is true
             kind = "existing"
         found.append(
-            _Claim(ctx if ctx is not None else start, end, start, kind, verdict == "passive")
+            _Claim(
+                ctx if ctx is not None else start, end, start, kind, verdict == "passive", ctx_span
+            )
         )
+
+    # A save verb later in the sentence than a storage word in the dative ("Not defterime
+    # Ahmet'in doğum gününü ekledim", "Hafızama bu konuşmadan iki bilgi yazdım").
+    for m in _CONTEXT_RE.finditer(f):
+        word = m.group(0)
+        if not word.endswith(("a", "e")) or word.endswith(("da", "de")) or quoted(m.start()):
+            continue
+        for v in _DISTANT_VERB.finditer(f, m.end()):
+            if f[m.end() : v.start()].strip() in _ADJACENT:
+                break  # adjacent: the ordinary rules below handle it
+            span_start = m.start() - 4 if f[: m.start()].endswith("not ") else m.start()
+            verb(v.start(), v.end(), "save", span_start, (span_start, m.end()))
+            break
 
     for m in _SAVE_RE.finditer(f):
         verb(m.start(), m.end(), "save", _context_before(f, m.start()))
@@ -353,6 +379,23 @@ def rewrite_sentence(
                 replacement = _PASSIVE.get(replacement, "anlaşıldı")
             # "hafızama kaydedemedim" keeps the context word; "anladım" replaces it too.
             start = c.verb_start if replacement not in (ACK, "anlaşıldı") else c.start
+            if c.ctx_span is not None:
+                # Replace the verb; "anladım" also drops the storage word ("Not defterime X'i
+                # ekledim" → "X'i anladım"), a failure keeps it ("Not defterime X'i kaydedemedim").
+                a, b = c.ctx_span
+                verb_repl = replacement
+                if _at_sentence_start(out, c.verb_start):
+                    verb_repl = verb_repl[:1].upper() + verb_repl[1:]
+                rewrites.append(Rewrite(c.kind, policy.state.value, out[c.verb_start : c.end],
+                                        verb_repl))  # fmt: skip
+                out = out[: c.verb_start] + verb_repl + out[c.end :]
+                if replacement in (ACK, "anlaşıldı"):
+                    gap = re.match(r"\s*", out[b:])
+                    tail = out[b + (gap.end() if gap else 0) :]
+                    if _at_sentence_start(out, a):
+                        tail = tail[:1].upper() + tail[1:]
+                    out = out[:a] + tail
+                continue
             if replacement == ACK and _ACK_RE.search(fold(out[: c.start])):
                 dropped = _drop(out, c, frozen)
                 if dropped is not None:
