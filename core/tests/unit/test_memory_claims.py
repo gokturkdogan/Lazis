@@ -378,6 +378,16 @@ def test_a_long_sentence_is_not_held_forever() -> None:
     assert len(shown) > 0  # decided at a word boundary after MAX_HOLD characters
 
 
+def test_a_claim_cannot_straddle_the_long_sentence_cut() -> None:
+    for pad in range(40, 53):  # the cut falls just before, inside and after "not aldım"
+        reply = (
+            "Not defterinizde " + "çok " * pad + "güzel şeyler var ve bunları not aldım efendim."
+        )
+        out, shown = stream(reply, [5] * (len(reply) // 5 + 1), AUTO)
+        assert all("not aldim" not in fold(s) for s in shown), pad
+        assert out.endswith("ve bunları anladım efendim.") or out.endswith("anladım efendim."), out
+
+
 def test_successful_explicit_saves_stream_unchanged() -> None:
     reply = "Kaydettim efendim. Ahmet’in kardeşi Mehmet."
     for sizes in splits(reply, 3):

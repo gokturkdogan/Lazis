@@ -431,6 +431,16 @@ class ClaimGuard:
                 return m.start()
         return None
 
+    def _last_risky(self, f: str, end: int) -> int:
+        """The start of the last risky word in ``f[:end]`` after the first word (0 if none)."""
+        acts = self.policy.memory_turn or _CONTEXT_RE.search(fold(self.released[-200:]))
+        last = 0
+        for m in re.finditer(r"[a-z0-9']+", f[:end]):
+            w = m.group(0)
+            if m.start() > 0 and (w.startswith(_RISKY) or (acts and w.startswith(_RISKY_ACT))):
+                last = m.start()
+        return last
+
     def _emit(self, n: int) -> str:
         piece, self.pending = self.pending[:n], self.pending[n:]
         self.released += piece
@@ -456,6 +466,8 @@ class ClaimGuard:
                 if len(self.pending) < MAX_HOLD:
                     break
                 end = self.pending.rfind(" ", 0, MAX_HOLD) + 1 or MAX_HOLD
+                # A claim must not straddle the cut: the last risky word starts the next hold.
+                end = self._last_risky(f, end) or end
             start = _sentence_start(self.released)
             sentence = self.released[start:] + self.pending[:end]
             frozen = len(self.released) - start
