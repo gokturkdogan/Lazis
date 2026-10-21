@@ -510,7 +510,45 @@ def apply_items(
         # "Bunu unutma." after the fact was learned in the background (or said before): it is
         # in the memory already — saying "kaydedemedim" would be false.
         return Outcome("saved", [f"{x} (zaten kayıtlıydı)" for x in known_lines], {"known": 1})
+    if cmd.action == "remember" and (note := _users_words_as_note(conn, message, message_id,
+                                                                    conversation_id)):  # fmt: skip
+        # The model accepted the request but proposed nothing ("Aklında olsun, hafta sonu
+        # annemlere gideceğim" read as a passing plan): the user asked, so their own words are
+        # kept as a note — checked like any other item (quote, secrets, instructions).
+        return Outcome("saved", note, {"saved": len(note), "as_note": 1})
     return Outcome("nothing")
+
+
+def request_content(message: str) -> str:
+    """The part of an explicit request that is not the request itself: after a colon, or the
+    clauses without the cue ("Aklında olsun, hafta sonu annemlere gideceğim")."""
+    if ":" in message:
+        return message.split(":", 1)[1].strip(" .")
+    if detect(message) != "remember":
+        return message.strip(" .")  # the message before a bare "Bunu unutma."
+    parts = [p for p in re.split(r"[,;]", message) if p.strip()]
+    rest = [p for p in parts if detect(p) != "remember"]
+    return ", ".join(x.strip() for x in rest).strip(" .") if len(rest) < len(parts) else ""
+
+
+def _users_words_as_note(conn: Connection, message: str, message_id: str,
+                         conversation_id: str) -> list[str]:  # fmt: skip
+    content = request_content(message)
+    if len(text.words(content)) < 2:
+        return []
+    item = {"message": "m1", "quote": content, "entity": "", "relation": "", "predicate": "note",
+            "value": content, "statement": f"Kullanıcının notu: {content}.", "change": False,
+            "replaces": "", "certain": True, "sensitive": "", "importance": 0.6}  # fmt: skip
+    checked = extraction.validate([item], [Target("m1", message_id, message)])
+    if not checked.accepted:
+        return []
+    report = service.apply_candidates(
+        conn, [replace(e.candidate, origin="requested") for e in checked.accepted],
+        source=Source("message", message_id, conversation_id), explicit=True, actor="user",
+        kind="user_request",
+    )  # fmt: skip
+    saved = [m for m in (repo.get_memory(conn, i) for i in report.created + report.updated) if m]
+    return [m.content for m in saved]
 
 
 def _already_known(conn: Connection, message: str, message_id: str) -> list[str]:

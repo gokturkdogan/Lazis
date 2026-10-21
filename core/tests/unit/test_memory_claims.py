@@ -104,6 +104,8 @@ REWORDED = [
     ("Anladım ve notunu aldım.", "Anladım."),
     ("Notumu aldım efendim.", "Anladım efendim."),
     ("Anladım efendim, notlarımı aldım.", "Anladım efendim."),
+    ("Bu bilgiyi kayıtlarım arasına ekledim.", "Bu bilgiyi anladım."),
+    ("Bunu hafızamın bir köşesine yazdım efendim.", "Bunu anladım efendim."),
     # A storage word further back in the sentence (real-model finding, two-Ahmet check).
     (
         "Not defterime Ahmet'in doğum gününün 5 Mayıs olduğunu ekledim.",
@@ -232,6 +234,11 @@ OUTCOMES = [
     (SAVE_FAILED, "Ahmet'in kaydını aldım.", "Ahmet'in bilgisini kaydedemedim."),
     (SAVE_PENDING, "Toplantının notunu aldım.", "Toplantının bilgisini henüz kaydetmedim."),
     (SAVED, "Notunuzu aldım efendim.", "Notunuzu aldım efendim."),
+    (  # the real-model case (Phase 7.2, 4th run): a save waiting for "which Mehmet?"
+        SAVE_PENDING,
+        "Anladım efendim, kayıtlarım arasına ekledim. Ancak hangi Mehmet?",
+        "Anladım efendim, kayıtlarım arasına henüz kaydetmedim. Ancak hangi Mehmet?",
+    ),
     (  # the real-model case: a save waiting for "which Çağla?"
         SAVE_PENDING,
         "Notumu aldım efendim. Bu doğum günü hangi Çağla'ya ait?",
@@ -365,7 +372,8 @@ FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim",
              "kaydedildi", "aklimda tut", "ogrendim", "kaydediyorum", "eklendi", "notunuzu aldim",
              "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
              "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim",
-             "defterime", "hafizama bu", "listeme yarinki", "notumu aldim", "notlarimi aldim")  # fmt: skip
+             "defterime", "hafizama bu", "listeme yarinki", "notumu aldim", "notlarimi aldim", "arasina ekledim",
+             "kosesine yazdim")  # fmt: skip
 
 
 def stream(text: str, chunks: list[int], policy: Policy) -> tuple[str, list[str]]:

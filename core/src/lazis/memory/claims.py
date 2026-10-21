@@ -178,7 +178,8 @@ def fold(text: str) -> str:
 # Memory context words: they make an ordinary verb a memory act ("hafızama ekledim").
 _CONTEXT = (
     r"(?:hafiza(?:m|mi|ma|mda|mdan|mdaki|miza|mizda|mizdaki)|akli(?:m|ma|mda)"
-    r"|notlarim(?:a|da)?|kayitlarim(?:a|da)?|bilgilerime|listeme|ajandama|defterime|takvimime)"
+    r"|notlarim(?:a|da|in)?|kayitlarim(?:a|da|in)?|bilgilerime|listeme|ajandama|defterime|takvimime"
+    r"|hafizamin|aklimin|bilgilerim(?:in)?|listemin)"
 )
 _CONTEXT_RE = re.compile(r"\b" + _CONTEXT + r"\b")
 _SAVE_RE = re.compile(
@@ -197,6 +198,7 @@ _NOUN_SUBSTITUTE = {"u": "bilgiyi", "unu": "bilgisini", "ini": "bilgisini", "lar
 _CTX_VERB = r"(?:ekle|al|yaz|tut|kayded|kaydet|isle|sakla)"
 _DISTANT_VERB = re.compile(r"\b(?:ekle|yaz|kayded|kaydet|isle|sakla|not (?:al|ed|et))")
 _ADJACENT = ("", "bu", "bunu", "bu bilgiyi", "onu")
+_POSTPOSITION = re.compile(r"\s+(?:bir\s+)?(?:arasina|icine|kosesine|listesine|ustune)\b")
 _DELETE_RE = re.compile(r"\b(?:sil|kaldir|cikar)")
 _UPDATE_RE = re.compile(r"\b(?:guncell|duzelt|degistir|birlestir)")
 _COMMIT_RE = re.compile(r"\b(?:unut|hatirla)")
@@ -309,14 +311,20 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
     # A save verb later in the sentence than a storage word in the dative ("Not defterime
     # Ahmet'in doğum gününü ekledim", "Hafızama bu konuşmadan iki bilgi yazdım").
     for m in _CONTEXT_RE.finditer(f):
-        word = m.group(0)
-        if not word.endswith(("a", "e")) or word.endswith(("da", "de")) or quoted(m.start()):
+        word, place_end = m.group(0), m.end()
+        # "kayıtlarım arasına", "hafızamın bir köşesine": a storage place with a postposition.
+        post = _POSTPOSITION.match(f, m.end())
+        if post is not None:
+            place_end = post.end()
+        elif not word.endswith(("a", "e")) or word.endswith(("da", "de")):
             continue
-        for v in _DISTANT_VERB.finditer(f, m.end()):
-            if f[m.end() : v.start()].strip() in _ADJACENT:
+        if quoted(m.start()):
+            continue
+        for v in _DISTANT_VERB.finditer(f, place_end):
+            if post is None and f[place_end : v.start()].strip() in _ADJACENT:
                 break  # adjacent: the ordinary rules below handle it
             span_start = m.start() - 4 if f[: m.start()].endswith("not ") else m.start()
-            verb(v.start(), v.end(), "save", span_start, (span_start, m.end()))
+            verb(v.start(), v.end(), "save", span_start, (span_start, place_end))
             break
 
     for m in _SAVE_RE.finditer(f):
@@ -497,7 +505,7 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # arrived is always held too: it may be incomplete ("Kay" + "dettim") or the connector of a
 # claim that follows ("ve" + "not aldım").
 _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
-          "bilgilerime", "listeme", "ajandama", "defterime", "takvimime")  # fmt: skip
+          "bilgilerim", "listem", "ajandam", "defterim", "takvimim")  # fmt: skip
 _RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")
 _SENTENCE_END = re.compile(r"[.!?\n]+(?=\s|$)|[:;](?=\s)")
 MAX_HOLD = 240  # characters held without a sentence end before deciding at a word boundary

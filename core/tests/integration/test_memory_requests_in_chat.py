@@ -157,3 +157,34 @@ def test_a_fact_stored_before_is_reported_as_kept(tmp_path: Path, storage: Stora
         storage, tmp_path, lambda r: answer("remember"), "Bunu unutma: Elif'in doğum günü 12 Mart."
     )
     assert "zaten kayıtlıydı" in last_user(llm.chat_requests[0])
+
+
+def test_the_users_own_words_are_kept_when_the_model_proposes_nothing(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    # Phase 7.2 real-model case: "a passing plan" — the model accepted the request, no items.
+    llm, _ = run(
+        storage,
+        tmp_path,
+        lambda r: answer("remember"),
+        "Aklında olsun, hafta sonu annemlere gideceğim.",
+    )
+    assert saved(storage) == ["Kullanıcının notu: hafta sonu annemlere gideceğim."]
+    assert "Kaydedildi" in last_user(llm.chat_requests[0])
+
+
+def test_the_model_saying_none_still_saves_nothing(tmp_path: Path, storage: StorageHandle) -> None:
+    run(
+        storage,
+        tmp_path,
+        lambda r: answer("none"),
+        "Aklında olsun, hafta sonu annemlere gideceğim.",
+    )
+    assert saved(storage) == []
+
+
+def test_a_secret_in_the_content_is_never_kept_as_a_note(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    run(storage, tmp_path, lambda r: answer("remember"), "Aklında olsun, kart şifrem 4471.")
+    assert saved(storage) == []

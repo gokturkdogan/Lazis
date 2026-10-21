@@ -51,7 +51,10 @@ SAVE = re.compile(
     r"|kayd(?:ini|inizi|a) (?:aldim|tuttum|olusturdum)|kayit (?:olusturdum|actim)"
     r"|(?:bilgilerime|listeme|ajandama|defterime|takvimime|notlarima|kayitlarima)"
     r" (?:ekledim|yazdim|kaydettim|aldim|isledim)"
-    r"|hatirlatici (?:kurdum|olusturdum)|(?:hafizamda|aklimda) (?:saklayacagim|sakliyorum|tutuyorum))"
+    r"|hatirlatici (?:kurdum|olusturdum)|(?:hafizamda|aklimda) (?:saklayacagim|sakliyorum|tutuyorum)"
+    # A storage place with a postposition ("kayıtlarım arasına ekledim", Phase 7.2), and any
+    # "ekledim": LAZIS has nowhere to add things but its memory.
+    r"|(?:arasina|icine|kosesine|listesine) (?:ekledim|yazdim|kaydettim|aldim|isledim)|ekledim)"
 )
 DELETE = re.compile(r"\b(sildim|kaldirdim|silindi|kaldirildi|hafizamdan (cikardim|attim)|unuttum)")
 UPDATE = re.compile(r"\b(guncelledim|duzelttim|degistirdim|guncellendi|duzeltildi)")
