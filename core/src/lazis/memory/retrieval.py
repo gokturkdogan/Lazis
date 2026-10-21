@@ -108,9 +108,15 @@ def recall(
     seen: set[str] = set()
     used = 0
 
+    named_all = mentioned_entities(conn, [query], limit=8)
+    # Phase 8, condition E: namesakes the message does not tell apart (or a name with an open
+    # "which one?" question) bring no facts or relationships — only who they are, so the reply
+    # asks instead of answering about one of them.
+    unsure = _unsettled(conn, query, named_all)
+
     def take(m: Memory, why: Why, previous_value: str | None = None) -> bool:
         nonlocal used
-        if m.id in seen or m.status != "active":
+        if m.id in seen or m.status != "active" or (m.subject_id in unsure):
             return False
         cost = len(m.content) + 24
         if used + cost > budget_chars:
@@ -155,8 +161,8 @@ def recall(
         known = tuple(_label(e) for e in repo.list_entities(conn, limit=20))
         take_relations(USER_ID, MAX_USER_RELATIONS)
 
-    named = mentioned_entities(conn, [query], limit=8)
-    named_ids = {e.id for e in named}
+    named = [e for e in named_all if e.id not in unsure]
+    named_ids = {e.id for e in named_all}
     for e in named:
         facts = [m for m in repo.memories_for_subject(conn, e.id) if m.sensitivity != "sensitive"]
         facts.sort(key=lambda m: (m.importance, m.updated_at), reverse=True)
@@ -186,8 +192,10 @@ def recall(
                     added += 1
 
     if previous:
-        for e in mentioned_entities(conn, [previous], limit=4):
-            if e.id in named_ids:
+        before = mentioned_entities(conn, [previous], limit=4)
+        unsure |= _unsettled(conn, previous, before)
+        for e in before:
+            if e.id in named_ids or e.id in unsure:
                 continue
             facts = repo.memories_for_subject(conn, e.id)
             facts = [m for m in facts if m.sensitivity != "sensitive"]
@@ -202,14 +210,14 @@ def recall(
         e.id: e for e in (repo.get_entity(conn, sid) for sid in subject_ids) if e is not None
     }
     by_name: dict[str, list[Entity]] = {}
-    for e in named:
+    for e in named_all:
         by_name.setdefault(e.name_key, []).append(e)
     ambiguous = tuple(
         (group[0].name, tuple(_label(e) for e in group))
         for group in by_name.values()
         if len(group) > 1
     )
-    names = {e.id: e.name for e in named}
+    names = {e.id: e.name for e in named_all}
     forgotten = tuple(
         f"{'Kullanıcı' if sid is None else names.get(sid, '?')} — "
         f"{p.label if (p := registry.get(pred)) else pred}"
@@ -218,6 +226,47 @@ def recall(
     questions = _open_questions(conn, query, conversation_id, recent_since)
     return Recall(tuple(chosen), subjects, ambiguous, forgotten, known, questions, answer,
                   rel_lines, tuple(dict.fromkeys(rel_ids)))  # fmt: skip
+
+
+def _unsettled(conn: Connection, query: str, named: list[Entity]) -> set[str]:
+    """Entities named in the message whose identity the message does not settle: several
+    stored people with the name and nothing in the message picks one ("komşum Ahmet",
+    "iş arkadaşım olan Ahmet" do), or one stored person with an open namesake question."""
+    from lazis.memory import extraction, resolver, service
+    from lazis.memory.models import EntityRef
+
+    groups: dict[str, list[Entity]] = {}
+    for e in named:
+        groups.setdefault(e.name_key, []).append(e)
+    out: set[str] = set()
+    for key, group in groups.items():
+        words = extraction.appositive(query, group[0].name) or _relation_words_near(
+            query, group[0].name
+        )
+        if len(group) > 1:
+            res = resolver.resolve(EntityRef(group[0].name, group[0].kind, words), group)  # type: ignore[arg-type]
+            if words and res.kind == "existing" and res.entity_id is not None:
+                out.update(e.id for e in group if e.id != res.entity_id)
+            else:
+                out.update(e.id for e in group)
+        elif not words and service.pending_namesake(conn, key):
+            out.add(group[0].id)
+    return out
+
+
+def _relation_words_near(query: str, name: str) -> str | None:
+    """ "komşum olan Ahmet", "Ahmet, yani iş arkadaşım": first-person relation words in the
+    message next to the name (the user saying which one)."""
+    words = text.words(query)
+    key = text.name_key(name).split()[0] if text.name_key(name) else ""
+    if not key or key not in words:
+        return None
+    i = words.index(key)
+    for j in range(max(0, i - 4), min(len(words), i + 5)):
+        m = relations.match_at(words, j)
+        if m is not None and relations.first_person(m[2]):
+            return " ".join(words[j : j + m[1]])
+    return None
 
 
 def _worth_saying(a: graph.Answer) -> bool:

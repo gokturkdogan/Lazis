@@ -19,6 +19,7 @@ class ErrorBody(_Schema):
     message: str
     recoverable: bool
     request_id: str
+    details: dict[str, int | str | list[str]] | None = None
 
 
 class ErrorResponse(_Schema):

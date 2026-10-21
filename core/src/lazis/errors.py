@@ -193,6 +193,23 @@ class MemoryRequestError(LazisError):
     recoverable = True
 
 
+class BootstrapRefusedError(LazisError):
+    """A personal knowledge import step that cannot be done as asked (Phase 8). The code names
+    the reason (``import_<reason>``); ``public_details`` holds what the UI may show (a JSON
+    file's broken line, the items that changed) — never file content."""
+
+    code = "import_refused"
+    http_status = 409
+    recoverable = True
+
+    def __init__(self, reason: str, *, status: int = 409,
+                 details: dict[str, int | str | list[str]] | None = None) -> None:  # fmt: skip
+        super().__init__(reason)
+        self.code = f"import_{reason}"
+        self.http_status = status
+        self.public_details = details
+
+
 class MemoryModelUntrustedError(LazisError):
     """Memory writes that need the model (text import) run only with a trusted model."""
 

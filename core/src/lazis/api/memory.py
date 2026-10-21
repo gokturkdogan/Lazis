@@ -14,6 +14,7 @@ from typing import Annotated, Any, TypeVar, cast
 
 from fastapi import APIRouter, Query
 
+from lazis.api.bootstrap import register_bootstrap_routes
 from lazis.api.graph import register_graph_routes
 from lazis.api.memory_schemas import (
     ApplyResultResponse,
@@ -213,6 +214,7 @@ def build_memory_router(
             raise StorageError(f"database error ({exc.__class__.__name__})") from None
 
     register_graph_routes(router, q)
+    register_bootstrap_routes(router, q, get_engine)
 
     # ----- overview and vocabulary -----------------------------------------------------
     @router.get("/overview", response_model=MemoryOverviewResponse)

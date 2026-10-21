@@ -259,6 +259,10 @@ class ConversationEngine:
         )
         self._now_local = now_local or (lambda: datetime.now().astimezone())
         self.scheduler = InferenceScheduler(self._cancel_runtime)
+        # Phase 8: Markdown/text profile imports, one model call per section (background).
+        from lazis.conversation.bootstrap_runner import BootstrapRunner
+
+        self.bootstrap = BootstrapRunner(self)
         self._turn: TurnHandle | None = None
         self._reserved = False
         self._pending: dict[str, float] = {}
@@ -319,6 +323,9 @@ class ConversationEngine:
                 return n, memory_repo.conversations_with_jobs(conn, ("queued", "deferred"))
 
             recovered_jobs, waiting = await self._q(recover_jobs)
+            # An import analysis interrupted by quitting: failed, retried only by the user.
+            running = self.bootstrap.running_ids()
+            await self._q(lambda c: _interrupt_imports(c, now, running))
             if recovered_jobs:
                 log_event(_log, logging.WARNING, "memory.jobs_recovered", count=recovered_jobs)
             # Phase 7, once: the user's relation labels that map exactly to the vocabulary
@@ -379,6 +386,7 @@ class ConversationEngine:
                 await asyncio.wait_for(asyncio.shield(turn.task), timeout=5)
             except (TimeoutError, asyncio.CancelledError, Exception):
                 turn.task.cancel()
+        await self.bootstrap.close()
         await self.scheduler.cancel_background()
         if self._maintenance is not None:
             self._maintenance.cancel()
@@ -2208,3 +2216,19 @@ class ConversationEngine:
             "cached_conversation_id": None if cache is None else cache.conversation_id,
             "pending_compaction": sorted(self._pending),
         }
+
+
+def _interrupt_imports(conn: Connection, now: str, running: frozenset[str]) -> int:
+    """An import left "analyzing" by an earlier run of the app is marked as cut short (the
+    user resumes it explicitly); one this process is reading is left alone."""
+    with repository.transaction(conn):
+        ids = [str(r[0]) for r in conn.execute(
+            "SELECT id FROM import_batches WHERE status = 'analyzing'").fetchall()
+            if str(r[0]) not in running]  # fmt: skip
+        for iid in ids:
+            conn.execute(
+                "UPDATE import_batches SET status = 'failed', error = 'interrupted',"
+                " updated_at = ? WHERE id = ? AND status = 'analyzing'",
+                (now, iid),
+            )
+        return len(ids)

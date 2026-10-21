@@ -26,7 +26,7 @@ import json
 import logging
 import threading
 import time
-from collections.abc import Awaitable, Callable, MutableMapping
+from collections.abc import Awaitable, Callable, Mapping, MutableMapping
 from typing import Any
 
 from lazis.errors import (
@@ -76,15 +76,17 @@ class TokenBucket:
             return False
 
 
-def error_payload(code: str, recoverable: bool, request_id: str) -> bytes:
-    body = {
-        "error": {
-            "code": code,
-            "message": message_for(code),
-            "recoverable": recoverable,
-            "request_id": request_id,
-        }
+def error_payload(code: str, recoverable: bool, request_id: str,
+                  details: dict[str, Any] | None = None) -> bytes:  # fmt: skip
+    err: dict[str, Any] = {
+        "code": code,
+        "message": message_for(code),
+        "recoverable": recoverable,
+        "request_id": request_id,
     }
+    if details:
+        err["details"] = details
+    body = {"error": err}
     return json.dumps(body, ensure_ascii=False).encode("utf-8")
 
 
@@ -99,12 +101,15 @@ class LocalApiGuard:
         max_request_bytes: int,
         bucket: TokenBucket,
         on_denied: Callable[[str], None] | None = None,
+        large_paths: Mapping[str, int] | None = None,
     ) -> None:
         self._app = app
         self._token_matches = token_matches
         self._allowed_host = allowed_host
         self._allowed_origins = allowed_origins
         self._max_bytes = max_request_bytes
+        # A few POST routes take a file (a profile import): a larger, still bounded body.
+        self._large_paths = dict(large_paths or {})
         self._bucket = bucket
         self._on_denied = on_denied
 
@@ -124,6 +129,7 @@ class LocalApiGuard:
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope["headers"]}
         origin = headers.get("origin")
         cors_origin = origin if origin in self._allowed_origins else None
+        limit = self._limit_for(scope)
 
         try:
             if not self._bucket.allow():
@@ -139,7 +145,7 @@ class LocalApiGuard:
                 raise AuthError()
             content_length = headers.get("content-length")
             if content_length is not None and (
-                not content_length.isdigit() or int(content_length) > self._max_bytes
+                not content_length.isdigit() or int(content_length) > limit
             ):
                 raise RequestTooLargeError()
         except LazisError as exc:
@@ -147,7 +153,9 @@ class LocalApiGuard:
             await self._reject(send, exc, request_id, cors_origin)
             return
 
-        await self._app(scope, self._limited_receive(receive), self._wrap_send(send, cors_origin))
+        await self._app(
+            scope, self._limited_receive(receive, limit), self._wrap_send(send, cors_origin)
+        )
 
     # ------------------------------------------------------------------------------------
     def _authorized(self, header: str) -> bool:
@@ -168,9 +176,13 @@ class LocalApiGuard:
         ):
             self._on_denied(exc.code)
 
-    def _limited_receive(self, receive: Receive) -> Receive:
+    def _limit_for(self, scope: Scope) -> int:
+        if scope.get("method") == "POST":
+            return self._large_paths.get(str(scope.get("path", "")), self._max_bytes)
+        return self._max_bytes
+
+    def _limited_receive(self, receive: Receive, limit: int) -> Receive:
         received = 0
-        limit = self._max_bytes
 
         async def _receive() -> Message:
             nonlocal received

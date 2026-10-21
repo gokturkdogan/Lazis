@@ -62,6 +62,33 @@ MESSAGES_TR: dict[str, str] = {
     "memory_not_found": "Hafıza kaydı bulunamadı. Silinmiş ya da değişmiş olabilir.",
     "memory_invalid": "Bu hafıza işlemi yapılamadı. Girdiyi kontrol edip yeniden deneyin.",
     "memory_model_untrusted": ("Bu işlem için ana model gerekiyor; yedek model hafızaya yazamaz."),
+    "import_file_unsupported_format": (
+        "Bu dosya türü desteklenmiyor. Markdown (.md), metin (.txt) ya da JSON (.json) seçin."
+    ),
+    "import_file_encoding": "Dosya okunamadı: UTF-8 ya da UTF-16 (BOM'lu) olarak kaydedin.",
+    "import_file_binary": "Bu bir metin dosyası gibi görünmüyor.",
+    "import_file_empty": "Dosya boş.",
+    "import_file_too_large": "Dosya çok büyük (en fazla 1 MB).",
+    "import_file_too_long": "Dosyadaki metin çok uzun (en fazla 200.000 karakter).",
+    "import_profile_invalid_json": "JSON dosyası geçersiz.",
+    "import_profile_not_an_object": "JSON dosyası bir nesne ({ … }) ile başlamalı.",
+    "import_profile_unsupported_schema": "Bu profil şeması sürümü desteklenmiyor (beklenen: 1.0).",
+    "import_profile_too_many_items": "Dosyada çok fazla bilgi var (en fazla 2.000).",
+    "import_not_editable": "Bu aktarım artık değiştirilemez.",
+    "import_link_needs_target": "Birleştirilecek kişiyi seçin.",
+    "import_link_target_missing": "Seçilen kişi artık kayıtlı değil.",
+    "import_excluded": "Bu bilgi alınmaz; onaylanamaz.",
+    "import_needs_resolution": "Önce çelişki için bir seçim yapın.",
+    "import_not_editable_value": "Bu öğe düzenlenemez.",
+    "import_edited_value_refused": "Düzenlenen değer hafızaya alınamaz (şifre ya da talimat gibi).",
+    "import_not_retryable": "Yeniden denenecek bölüm yok.",
+    "import_applied": "Kaydedilmiş bir aktarım silinemez; geri alabilirsiniz.",
+    "import_already_applied": "Bu aktarım zaten kaydedildi.",
+    "import_not_ready": "Aktarım henüz hazır değil.",
+    "import_memory_changed": "Siz önizlemedeyken hafıza değişti; lütfen tekrar bakın.",
+    "import_not_applied": "Bu aktarım kaydedilmedi; geri alınacak bir şey yok.",
+    "import_not_cancellable": "Bu aktarım iptal edilemez.",
+    "import_still_running": "Aktarım hâlâ okunuyor; önce iptal edin.",
 }
 
 

@@ -360,11 +360,14 @@ def validate(
     *,
     context: Sequence[str] = (),
     unsettled: Collection[str] = (),
+    profile_file: bool = False,
 ) -> Validation:
     """``context``: recent user messages before the targets — a person or project named
     there may be referred to without a name ("o restoran açmış"). ``unsettled``: name keys
     with an open "which Ahmet?" question — relation words found only in earlier messages do
-    not settle it (the user has to say it now)."""
+    not settle it (the user has to say it now). ``profile_file``: the targets are sections of
+    the user's own profile file (Phase 8) — written about the user, so "Meslek: analist" needs
+    no first-person word to be the user's."""
     out = Validation()
     by_tag = {t.tag: t for t in targets}
     context_words = text.words(" ".join(context))
@@ -452,7 +455,7 @@ def validate(
         if policy.contact_detected(value) and pred.key != "contact":
             pred = registry.PREDICATES["contact"]  # a phone number or e-mail address
         if ref is None and pred.key not in _NOTE_EXEMPT and (
-            thing or (pred.cardinality == "single" and pred.kind == "profile"
+            thing or (pred.cardinality == "single" and pred.kind == "profile" and not profile_file
                       and not _first_person(users_own_words(target.text)))
         ):  # fmt: skip
             # The user's birthday, city or job needs the user in the message ("doğum günüm");

@@ -25,6 +25,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lazis import API_VERSION, PHASE, __version__
+from lazis.api.bootstrap import ANALYZE_PATH, MAX_ANALYZE_BODY
 from lazis.api.chat import build_chat_router
 from lazis.api.conversations import build_conversation_router
 from lazis.api.memory import build_memory_router
@@ -80,10 +81,12 @@ class ApiContext:
         return self.storage
 
 
-def _json_error(status: int, code: str, recoverable: bool, request: Request) -> JSONResponse:
+def _json_error(status: int, code: str, recoverable: bool, request: Request,
+                details: dict[str, Any] | None = None) -> JSONResponse:  # fmt: skip
     request_id = str(request.scope.get("state", {}).get("request_id", "")) or "-"
     return JSONResponse(
-        status_code=status, content=json.loads(error_payload(code, recoverable, request_id))
+        status_code=status,
+        content=json.loads(error_payload(code, recoverable, request_id, details)),
     )
 
 
@@ -129,7 +132,8 @@ def create_app(ctx: ApiContext) -> FastAPI:
     @app.exception_handler(LazisError)
     async def _lazis_error(request: Request, exc: LazisError) -> JSONResponse:  # pyright: ignore[reportUnusedFunction]
         log_event(_log, logging.WARNING, "api.error", code=exc.code, path=request.url.path)
-        return _json_error(exc.http_status, exc.code, exc.recoverable, request)
+        details = getattr(exc, "public_details", None)
+        return _json_error(exc.http_status, exc.code, exc.recoverable, request, details)
 
     @app.exception_handler(RequestValidationError)
     async def _validation(request: Request, _exc: RequestValidationError) -> JSONResponse:  # pyright: ignore[reportUnusedFunction]
@@ -261,6 +265,7 @@ def create_app(ctx: ApiContext) -> FastAPI:
             ctx.settings.backend.rate_limit_per_second, ctx.settings.backend.rate_limit_burst
         ),
         on_denied=ctx.on_denied,
+        large_paths={f"{PREFIX}{ANALYZE_PATH}": MAX_ANALYZE_BODY},
     )
     app.state.guarded_asgi = guarded
     return app

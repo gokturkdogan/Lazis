@@ -496,3 +496,10 @@ def _plan_same(
     for item, end, _ref in about:
         _assign(item, end, eid, new_f, new_r)
         report.assigned += 1
+
+
+def slot_index(
+    item: Extracted | ExtractedRel, end: str, ref: EntityRef, slots: Sequence[Slot], key: str
+) -> int | None:
+    """Which of a counted name's slots a candidate is about (None: it fits no slot)."""
+    return _slot_index(item, end, ref, slots, key)

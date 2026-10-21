@@ -281,6 +281,981 @@
         "title": "BackgroundActivityModel",
         "type": "object"
       },
+      "BootstrapAnalyzeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "content_base64": {
+            "maxLength": 1400000,
+            "minLength": 1,
+            "title": "Content Base64",
+            "type": "string"
+          },
+          "file_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_name",
+          "content_base64"
+        ],
+        "title": "BootstrapAnalyzeRequest",
+        "type": "object"
+      },
+      "BootstrapApplyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/BootstrapBatchModel"
+          },
+          "change_set_id": {
+            "title": "Change Set Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch",
+          "change_set_id"
+        ],
+        "title": "BootstrapApplyResponse",
+        "type": "object"
+      },
+      "BootstrapBatchModel": {
+        "additionalProperties": false,
+        "properties": {
+          "applied_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied At"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "markdown",
+              "text",
+              "json"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model_calls": {
+            "title": "Model Calls",
+            "type": "integer"
+          },
+          "running": {
+            "title": "Running",
+            "type": "boolean"
+          },
+          "sections_done": {
+            "title": "Sections Done",
+            "type": "integer"
+          },
+          "sections_failed": {
+            "title": "Sections Failed",
+            "type": "integer"
+          },
+          "sections_total": {
+            "title": "Sections Total",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "analyzing",
+              "ready",
+              "failed",
+              "cancelled",
+              "applied",
+              "undone",
+              "discarded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "undo_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Undo Counts",
+            "type": "object"
+          },
+          "undone_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undone At"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "running",
+          "file_name",
+          "format",
+          "size_bytes",
+          "sections_total",
+          "sections_done",
+          "sections_failed",
+          "model_calls",
+          "error",
+          "warnings",
+          "counts",
+          "undo_counts",
+          "created_at",
+          "applied_at",
+          "undone_at"
+        ],
+        "title": "BootstrapBatchModel",
+        "type": "object"
+      },
+      "BootstrapDecisionsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapItemDecision"
+            },
+            "maxItems": 2000,
+            "title": "Items",
+            "type": "array"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapPersonDecision"
+            },
+            "maxItems": 500,
+            "title": "People",
+            "type": "array"
+          }
+        },
+        "title": "BootstrapDecisionsRequest",
+        "type": "object"
+      },
+      "BootstrapHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "batches": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapBatchModel"
+            },
+            "title": "Batches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "batches"
+        ],
+        "title": "BootstrapHistoryResponse",
+        "type": "object"
+      },
+      "BootstrapItemDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "pending",
+              "approve",
+              "reject",
+              "hold"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "edited_value": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited Value"
+          },
+          "id": {
+            "pattern": "^[0-9A-Za-z_-]{1,64}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "enum": [
+                  "keep_old",
+                  "update",
+                  "keep_both"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          }
+        },
+        "required": [
+          "id",
+          "decision"
+        ],
+        "title": "BootstrapItemDecision",
+        "type": "object"
+      },
+      "BootstrapItemModel": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "classification": {
+            "enum": [
+              "new",
+              "exact_duplicate",
+              "possible_duplicate",
+              "conflict",
+              "temporal_update",
+              "ambiguous_entity",
+              "insufficient_evidence",
+              "excluded"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "decision": {
+            "enum": [
+              "pending",
+              "approve",
+              "reject",
+              "hold"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "edited_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited Value"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "existing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Existing",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "fact",
+              "relationship"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "method": {
+            "enum": [
+              "json",
+              "gemma"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "predicate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicate"
+          },
+          "predicate_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicate Label"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "enum": [
+                  "keep_old",
+                  "update",
+                  "keep_both"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "save_state": {
+            "enum": [
+              "save_succeeded",
+              "save_failed",
+              "save_cancelled",
+              "save_rejected",
+              "save_pending_approval"
+            ],
+            "title": "Save State",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "subject_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Ref"
+          },
+          "target_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Ref"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "category",
+          "subject",
+          "subject_ref",
+          "source_ref",
+          "target_ref",
+          "predicate",
+          "predicate_label",
+          "value",
+          "statement",
+          "time",
+          "section",
+          "excerpt",
+          "line",
+          "method",
+          "confidence",
+          "classification",
+          "existing",
+          "note",
+          "decision",
+          "resolution",
+          "edited_value",
+          "blocked",
+          "result",
+          "save_state"
+        ],
+        "title": "BootstrapItemModel",
+        "type": "object"
+      },
+      "BootstrapOptionModel": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "stored": {
+            "title": "Stored",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "stored"
+        ],
+        "title": "BootstrapOptionModel",
+        "type": "object"
+      },
+      "BootstrapPersonDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "pending",
+              "create",
+              "link",
+              "unresolved",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[0-9A-Za-z_-]{1,64}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "link_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9A-Za-z_-]{1,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Id"
+          }
+        },
+        "required": [
+          "id",
+          "decision"
+        ],
+        "title": "BootstrapPersonDecision",
+        "type": "object"
+      },
+      "BootstrapPersonModel": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "pending",
+              "create",
+              "link",
+              "unresolved",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "link_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Id"
+          },
+          "match": {
+            "enum": [
+              "new",
+              "existing",
+              "ambiguous"
+            ],
+            "title": "Match",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapOptionModel"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "relation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relation"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "suggested_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Id"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "relation",
+          "description",
+          "match",
+          "options",
+          "suggested_id",
+          "note",
+          "decision",
+          "link_id",
+          "section",
+          "items"
+        ],
+        "title": "BootstrapPersonModel",
+        "type": "object"
+      },
+      "BootstrapPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/BootstrapBatchModel"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapItemModel"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapPersonModel"
+            },
+            "title": "People",
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/BootstrapSummaryModel"
+          }
+        },
+        "required": [
+          "batch",
+          "people",
+          "items",
+          "summary"
+        ],
+        "title": "BootstrapPreviewResponse",
+        "type": "object"
+      },
+      "BootstrapSummaryModel": {
+        "additionalProperties": false,
+        "properties": {
+          "analyzed": {
+            "title": "Analyzed",
+            "type": "integer"
+          },
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "blocked": {
+            "title": "Blocked",
+            "type": "integer"
+          },
+          "by_category": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "By Category",
+            "type": "object"
+          },
+          "excluded": {
+            "title": "Excluded",
+            "type": "integer"
+          },
+          "held": {
+            "title": "Held",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "people_linked": {
+            "title": "People Linked",
+            "type": "integer"
+          },
+          "people_new": {
+            "title": "People New",
+            "type": "integer"
+          },
+          "people_pending": {
+            "title": "People Pending",
+            "type": "integer"
+          },
+          "people_rejected": {
+            "title": "People Rejected",
+            "type": "integer"
+          },
+          "people_unresolved": {
+            "title": "People Unresolved",
+            "type": "integer"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "updates": {
+            "title": "Updates",
+            "type": "integer"
+          },
+          "writable": {
+            "title": "Writable",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "analyzed",
+          "approved",
+          "writable",
+          "blocked",
+          "rejected",
+          "held",
+          "pending",
+          "excluded",
+          "updates",
+          "people_new",
+          "people_linked",
+          "people_unresolved",
+          "people_rejected",
+          "people_pending",
+          "by_category"
+        ],
+        "title": "BootstrapSummaryModel",
+        "type": "object"
+      },
+      "BootstrapUndoPlanResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "already_undone": {
+            "title": "Already Undone",
+            "type": "boolean"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/BootstrapUndoStepModel"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "import_id",
+          "already_undone",
+          "steps",
+          "counts"
+        ],
+        "title": "BootstrapUndoPlanResponse",
+        "type": "object"
+      },
+      "BootstrapUndoRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "restore": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Restore",
+            "type": "array"
+          }
+        },
+        "title": "BootstrapUndoRequest",
+        "type": "object"
+      },
+      "BootstrapUndoResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/BootstrapBatchModel"
+          },
+          "change_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Set Id"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/BootstrapUndoPlanResponse"
+          }
+        },
+        "required": [
+          "batch",
+          "plan",
+          "change_set_id"
+        ],
+        "title": "BootstrapUndoResponse",
+        "type": "object"
+      },
+      "BootstrapUndoStepModel": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "remove",
+              "restore",
+              "keep",
+              "decide",
+              "remove_evidence",
+              "gone"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "table": {
+            "enum": [
+              "memory",
+              "relationship",
+              "person"
+            ],
+            "title": "Table",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "target_id",
+          "action",
+          "label",
+          "reason"
+        ],
+        "title": "BootstrapUndoStepModel",
+        "type": "object"
+      },
       "ChatCancelRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1702,6 +2677,33 @@
           "code": {
             "title": "Code",
             "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
           },
           "message": {
             "title": "Message",
@@ -4458,6 +5460,392 @@
           }
         },
         "summary": "Llm Status"
+      }
+    },
+    "/api/v1/memory/bootstrap": {
+      "get": {
+        "operationId": "history_api_v1_memory_bootstrap_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "History"
+      }
+    },
+    "/api/v1/memory/bootstrap/analyze": {
+      "post": {
+        "operationId": "analyze_api_v1_memory_bootstrap_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapBatchModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}": {
+      "delete": {
+        "operationId": "discard_api_v1_memory_bootstrap__import_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapBatchModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Discard"
+      },
+      "get": {
+        "operationId": "get_import_api_v1_memory_bootstrap__import_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Import"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}/apply": {
+      "post": {
+        "operationId": "apply_api_v1_memory_bootstrap__import_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapApplyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}/cancel": {
+      "post": {
+        "operationId": "cancel_api_v1_memory_bootstrap__import_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapBatchModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}/decisions": {
+      "post": {
+        "operationId": "decide_api_v1_memory_bootstrap__import_id__decisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapDecisionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}/retry": {
+      "post": {
+        "operationId": "retry_api_v1_memory_bootstrap__import_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapBatchModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}/undo": {
+      "post": {
+        "operationId": "do_undo_api_v1_memory_bootstrap__import_id__undo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapUndoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapUndoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Do Undo"
+      }
+    },
+    "/api/v1/memory/bootstrap/{import_id}/undo-plan": {
+      "get": {
+        "operationId": "undo_plan_api_v1_memory_bootstrap__import_id__undo_plan_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapUndoPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Undo Plan"
       }
     },
     "/api/v1/memory/entities": {

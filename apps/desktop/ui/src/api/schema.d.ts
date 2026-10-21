@@ -174,6 +174,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memory/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_api_v1_memory_bootstrap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyze */
+        post: operations["analyze_api_v1_memory_bootstrap_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Import */
+        get: operations["get_import_api_v1_memory_bootstrap__import_id__get"];
+        put?: never;
+        post?: never;
+        /** Discard */
+        delete: operations["discard_api_v1_memory_bootstrap__import_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply */
+        post: operations["apply_api_v1_memory_bootstrap__import_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_memory_bootstrap__import_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_v1_memory_bootstrap__import_id__decisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry */
+        post: operations["retry_api_v1_memory_bootstrap__import_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Do Undo */
+        post: operations["do_undo_api_v1_memory_bootstrap__import_id__undo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/bootstrap/{import_id}/undo-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Undo Plan */
+        get: operations["undo_plan_api_v1_memory_bootstrap__import_id__undo_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memory/entities": {
         parameters: {
             query?: never;
@@ -688,6 +842,306 @@ export interface components {
              */
             kind: "prewarm" | "compaction" | "memory";
         };
+        /** BootstrapAnalyzeRequest */
+        BootstrapAnalyzeRequest: {
+            /** Content Base64 */
+            content_base64: string;
+            /** File Name */
+            file_name: string;
+        };
+        /** BootstrapApplyResponse */
+        BootstrapApplyResponse: {
+            batch: components["schemas"]["BootstrapBatchModel"];
+            /** Change Set Id */
+            change_set_id: string;
+        };
+        /** BootstrapBatchModel */
+        BootstrapBatchModel: {
+            /** Applied At */
+            applied_at: string | null;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Created At */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** File Name */
+            file_name: string;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "markdown" | "text" | "json";
+            /** Id */
+            id: string;
+            /** Model Calls */
+            model_calls: number;
+            /** Running */
+            running: boolean;
+            /** Sections Done */
+            sections_done: number;
+            /** Sections Failed */
+            sections_failed: number;
+            /** Sections Total */
+            sections_total: number;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "analyzing" | "ready" | "failed" | "cancelled" | "applied" | "undone" | "discarded";
+            /** Undo Counts */
+            undo_counts: {
+                [key: string]: number;
+            };
+            /** Undone At */
+            undone_at: string | null;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** BootstrapDecisionsRequest */
+        BootstrapDecisionsRequest: {
+            /** Items */
+            items?: components["schemas"]["BootstrapItemDecision"][];
+            /** People */
+            people?: components["schemas"]["BootstrapPersonDecision"][];
+        };
+        /** BootstrapHistoryResponse */
+        BootstrapHistoryResponse: {
+            /** Batches */
+            batches: components["schemas"]["BootstrapBatchModel"][];
+        };
+        /** BootstrapItemDecision */
+        BootstrapItemDecision: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pending" | "approve" | "reject" | "hold";
+            /** Edited Value */
+            edited_value?: string | null;
+            /** Id */
+            id: string;
+            /** Resolution */
+            resolution?: ("keep_old" | "update" | "keep_both") | null;
+        };
+        /** BootstrapItemModel */
+        BootstrapItemModel: {
+            /** Blocked */
+            blocked: string | null;
+            /** Category */
+            category: string;
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "new" | "exact_duplicate" | "possible_duplicate" | "conflict" | "temporal_update" | "ambiguous_entity" | "insufficient_evidence" | "excluded";
+            /** Confidence */
+            confidence: number;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pending" | "approve" | "reject" | "hold";
+            /** Edited Value */
+            edited_value: string | null;
+            /** Excerpt */
+            excerpt: string | null;
+            /** Existing */
+            existing: string[];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "fact" | "relationship";
+            /** Line */
+            line: number | null;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "json" | "gemma";
+            /** Note */
+            note: string | null;
+            /** Predicate */
+            predicate: string | null;
+            /** Predicate Label */
+            predicate_label: string | null;
+            /** Resolution */
+            resolution: ("keep_old" | "update" | "keep_both") | null;
+            /** Result */
+            result: string | null;
+            /**
+             * Save State
+             * @enum {string}
+             */
+            save_state: "save_succeeded" | "save_failed" | "save_cancelled" | "save_rejected" | "save_pending_approval";
+            /** Section */
+            section: string;
+            /** Source Ref */
+            source_ref: string | null;
+            /** Statement */
+            statement: string;
+            /** Subject */
+            subject: string;
+            /** Subject Ref */
+            subject_ref: string | null;
+            /** Target Ref */
+            target_ref: string | null;
+            /** Time */
+            time: string | null;
+            /** Value */
+            value: string;
+        };
+        /** BootstrapOptionModel */
+        BootstrapOptionModel: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Stored */
+            stored: boolean;
+        };
+        /** BootstrapPersonDecision */
+        BootstrapPersonDecision: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pending" | "create" | "link" | "unresolved" | "reject";
+            /** Id */
+            id: string;
+            /** Link Id */
+            link_id?: string | null;
+        };
+        /** BootstrapPersonModel */
+        BootstrapPersonModel: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pending" | "create" | "link" | "unresolved" | "reject";
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: string;
+            /** Items */
+            items: number;
+            /** Kind */
+            kind: string;
+            /** Link Id */
+            link_id: string | null;
+            /**
+             * Match
+             * @enum {string}
+             */
+            match: "new" | "existing" | "ambiguous";
+            /** Name */
+            name: string;
+            /** Note */
+            note: string | null;
+            /** Options */
+            options: components["schemas"]["BootstrapOptionModel"][];
+            /** Relation */
+            relation: string | null;
+            /** Section */
+            section: string;
+            /** Suggested Id */
+            suggested_id: string | null;
+        };
+        /** BootstrapPreviewResponse */
+        BootstrapPreviewResponse: {
+            batch: components["schemas"]["BootstrapBatchModel"];
+            /** Items */
+            items: components["schemas"]["BootstrapItemModel"][];
+            /** People */
+            people: components["schemas"]["BootstrapPersonModel"][];
+            summary: components["schemas"]["BootstrapSummaryModel"];
+        };
+        /** BootstrapSummaryModel */
+        BootstrapSummaryModel: {
+            /** Analyzed */
+            analyzed: number;
+            /** Approved */
+            approved: number;
+            /** Blocked */
+            blocked: number;
+            /** By Category */
+            by_category: {
+                [key: string]: number;
+            };
+            /** Excluded */
+            excluded: number;
+            /** Held */
+            held: number;
+            /** Pending */
+            pending: number;
+            /** People Linked */
+            people_linked: number;
+            /** People New */
+            people_new: number;
+            /** People Pending */
+            people_pending: number;
+            /** People Rejected */
+            people_rejected: number;
+            /** People Unresolved */
+            people_unresolved: number;
+            /** Rejected */
+            rejected: number;
+            /** Updates */
+            updates: number;
+            /** Writable */
+            writable: number;
+        };
+        /** BootstrapUndoPlanResponse */
+        BootstrapUndoPlanResponse: {
+            /** Already Undone */
+            already_undone: boolean;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Import Id */
+            import_id: string;
+            /** Steps */
+            steps: components["schemas"]["BootstrapUndoStepModel"][];
+        };
+        /** BootstrapUndoRequest */
+        BootstrapUndoRequest: {
+            /** Restore */
+            restore?: string[];
+        };
+        /** BootstrapUndoResponse */
+        BootstrapUndoResponse: {
+            batch: components["schemas"]["BootstrapBatchModel"];
+            /** Change Set Id */
+            change_set_id: string | null;
+            plan: components["schemas"]["BootstrapUndoPlanResponse"];
+        };
+        /** BootstrapUndoStepModel */
+        BootstrapUndoStepModel: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "remove" | "restore" | "keep" | "decide" | "remove_evidence" | "gone";
+            /** Label */
+            label: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Table
+             * @enum {string}
+             */
+            table: "memory" | "relationship" | "person";
+            /** Target Id */
+            target_id: string;
+        };
         /** ChatCancelRequest */
         ChatCancelRequest: {
             /** Request Id */
@@ -1099,6 +1553,10 @@ export interface components {
         ErrorBody: {
             /** Code */
             code: string;
+            /** Details */
+            details?: {
+                [key: string]: number | string | string[];
+            } | null;
             /** Message */
             message: string;
             /** Recoverable */
@@ -2209,6 +2667,315 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlmStatusResponse"];
+                };
+            };
+        };
+    };
+    history_api_v1_memory_bootstrap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapHistoryResponse"];
+                };
+            };
+        };
+    };
+    analyze_api_v1_memory_bootstrap_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BootstrapAnalyzeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapBatchModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_import_api_v1_memory_bootstrap__import_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_api_v1_memory_bootstrap__import_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapBatchModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_api_v1_memory_bootstrap__import_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapApplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_memory_bootstrap__import_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapBatchModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_memory_bootstrap__import_id__decisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BootstrapDecisionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_api_v1_memory_bootstrap__import_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapBatchModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    do_undo_api_v1_memory_bootstrap__import_id__undo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BootstrapUndoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapUndoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_plan_api_v1_memory_bootstrap__import_id__undo_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapUndoPlanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
