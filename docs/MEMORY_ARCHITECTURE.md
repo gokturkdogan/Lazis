@@ -321,6 +321,17 @@ A reply may say that LAZIS saved, deleted or updated something only when that op
 * **Diagnostics.** Last turn: `claim_state`, `claims_rewritten`, `first_shown_ms`. Log event `memory.claims_rewritten` with state, count and kinds only.
 * **Unchanged.** Learning (extraction policy, queue, background timing), the graph, recall, the schema, and the model notices.
 
+## Part P7.2 — As built (Phase 7.2): namesakes, explicit requests, internal labels
+
+Decision record: [ADR-0018](adr/0018-namesakes-and-explicit-requests.md). Report: [PHASE_7_2_REPORT.md](PHASE_7_2_REPORT.md).
+
+* **Namesakes in one message** (`memory/namesakes.py`). Counted names and their slots ("İki Ahmet tanıyorum: biri komşum, diğeri iş arkadaşım", "Üç Ayşe: kuzenim, komşum ve iş arkadaşım", "Ahmet adında iki arkadaşım") and one person with several roles ("hem … hem") are read from the user's words. Before anything is written, each candidate gets its slot's entity (`EntityRef.planned`): a stored namesake the slot identifies, or a new one. Slot entities are marked as different people; a slot the model left out is still created; a candidate fitting no slot goes to the resolver, which asks. Runs in background learning and explicit requests.
+* **"Which Ahmet?" in chat.** An ambiguous request's notice lists the options. A short answer within 30 minutes in the same conversation ("Komşum olan.", "Mühendis olan Mehmet.") resolves the waiting inbox item through `service.resolve_inbox` before the reply; "vazgeç" dismisses it; "Hayır, iş arkadaşım olan." right after an answer moves the fact (in-memory, last answer only). Older questions stay in the memory screen; nothing is guessed after a restart.
+* **Explicit remember.** The request stage uses the learning instruction plus an explicit-request note and an `action` field (`commands.remember_instruction`). "Bunu unutma." alone keeps the previous user message. Wider cue lexicon; quoted text is not a request. Validation: a non-name subject is the user's note, never one of the user's profile facts; a single-valued user profile fact needs a first-person word; a valid quote under a wrong predicate is kept as a note; something already recorded is reported as kept.
+* **User's grammar.** "Ahmet ve Mehmet benim iş arkadaşlarım" gives both names the relationship (`extraction.stated_predicate`); a self-valued workplace in a first-person message is the user's. With an open "which Ahmet?" question, relationship answers about Ahmet are withheld until the user says which one (`graph._with_namesake_caution`).
+* **Internal labels.** The persona and conversation rules name no internal label; notes are headed "SİSTEM NOTU (kullanıcıya görünmez)" and said to be invisible; the persona gives the honest answer about what LAZIS remembers. No output filter.
+* **Unchanged.** Extraction policy and prompt for background learning, the queue and its timing, the graph's storage and queries, recall, the schema (no migration), the Phase 7.1 claim guard.
+
 ---
 
 # Phase 0 design (long-term plan)
