@@ -3,6 +3,7 @@ before the reply; other uses of "not" and "kaydet" write nothing."""
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -115,3 +116,44 @@ def test_the_untrusted_model_writes_nothing(tmp_path: Path, storage: StorageHand
         storage, tmp_path, lambda r: VEGETARIAN, "Lütfen şunu not al: Selin vejetaryen.", model=QWEN
     )
     assert saved(storage) == [] and llm.command_requests == []
+
+
+def test_a_fact_learned_in_the_background_is_reported_as_kept(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    import json
+
+    from tests.conversation_support import ScriptedLLM, make_engine
+    from tests.integration.test_namesakes_in_chat import converse
+
+    learned = json.dumps({"items": [item("birthday", "12 Mart", "Elif'in doğum günü 12 Mart.",
+                                         "Elif'in doğum günü 12 Mart", entity="Elif")], "relations": []},
+                         ensure_ascii=False)  # fmt: skip
+    llm = ScriptedLLM(memory=lambda r: learned, command=lambda r: answer("remember"))
+    engine = make_engine(storage, llm, tmp_path)
+
+    async def go() -> None:
+        await converse(engine, "Elif'in doğum günü 12 Mart.", "Bunu unutma.")
+        await engine.close()
+
+    asyncio.run(go())
+    assert saved(storage) == ["Elif'in doğum günü 12 Mart."]
+    note = last_user(llm.chat_requests[1])
+    assert "Kaydedildi" in note and "zaten kayıtlıydı" in note  # not "kaydedemedim"
+
+
+def test_a_fact_stored_before_is_reported_as_kept(tmp_path: Path, storage: StorageHandle) -> None:
+    from lazis.memory import service
+    from lazis.memory.models import Candidate, EntityRef
+
+    c = Candidate(predicate="birthday", value="12 Mart", statement="Elif'in doğum günü 12 Mart.",
+                  about="entity", entity=EntityRef("Elif"))  # fmt: skip
+    storage.db.run_sync(
+        lambda conn: service.apply_candidates(
+            conn, [c], source=service.Source("import"), explicit=True
+        )
+    )
+    llm, _ = run(
+        storage, tmp_path, lambda r: answer("remember"), "Bunu unutma: Elif'in doğum günü 12 Mart."
+    )
+    assert "zaten kayıtlıydı" in last_user(llm.chat_requests[0])

@@ -506,7 +506,29 @@ def apply_items(
     refused = [_REFUSAL[r] for r in reasons if r in _REFUSAL]
     if refused:
         return Outcome("refused", refused, {"refused": sum(reasons.values())})
+    if cmd.action == "remember" and (known_lines := _already_known(conn, message, message_id)):
+        # "Bunu unutma." after the fact was learned in the background (or said before): it is
+        # in the memory already — saying "kaydedemedim" would be false.
+        return Outcome("saved", [f"{x} (zaten kayıtlıydı)" for x in known_lines], {"known": 1})
     return Outcome("nothing")
+
+
+def _already_known(conn: Connection, message: str, message_id: str) -> list[str]:
+    """Active records that already hold what an explicit request asks to keep: learned from this
+    very message, or about a person it names with a value it states."""
+    from lazis.memory import graph
+
+    found = [m for m in (repo.get_memory(conn, i) for i in _from_messages(conn, [message_id]))
+             if m is not None and m.status == "active"]  # fmt: skip
+    if not found:
+        folded = " ".join(text.words(message))
+        subjects = {i for ids in graph.message_names(conn, message) for i in ids}
+        for sid in subjects:
+            for m in repo.memories_for_subject(conn, sid):
+                v = " ".join(text.words(m.value))
+                if m.status == "active" and v and v in folded:
+                    found.append(m)
+    return [m.content for m in found][:5]
 
 
 def question_text(item: Any) -> str:
