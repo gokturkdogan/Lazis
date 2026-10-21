@@ -296,6 +296,11 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
         if re.match(r"\s+m[iu]\b", f[end : end + 4]) or mentioned(end):  # "kaydettim mi?"
             return
         verdict = _verdict(f[stem_end:end] + f[end : end + 1])
+        perfect = re.match(r"\s+ol(?:dum|duk)\b", f[end:])
+        if verdict == "not" and perfect and re.fullmatch(r"[ae]?m[iu]s", f[stem_end:end]):
+            # "not etmiş oldum", "kaydetmiş oldum": the perfect tense, a completed act
+            # (Phase 7.2 real-model finding).
+            verdict, end = "done", end + perfect.end()
         if verdict == "not":
             return
         if verdict == "existing":

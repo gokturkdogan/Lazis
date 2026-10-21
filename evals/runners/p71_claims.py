@@ -54,7 +54,9 @@ SAVE = re.compile(
     r"|hatirlatici (?:kurdum|olusturdum)|(?:hafizamda|aklimda) (?:saklayacagim|sakliyorum|tutuyorum)"
     # A storage place with a postposition ("kayıtlarım arasına ekledim", Phase 7.2), and any
     # "ekledim": LAZIS has nowhere to add things but its memory.
-    r"|(?:arasina|icine|kosesine|listesine) (?:ekledim|yazdim|kaydettim|aldim|isledim)|ekledim)"
+    r"|(?:arasina|icine|kosesine|listesine) (?:ekledim|yazdim|kaydettim|aldim|isledim)|ekledim"
+    # The perfect tense of any memory verb ("not etmiş oldum", Phase 7.2).
+    r"|(?:not (?:et|al)|kaydet|kayded|ekle|isle|yaz|tut|sakla)\w*m[iu]s ol(?:dum|duk))"
 )
 DELETE = re.compile(r"\b(sildim|kaldirdim|silindi|kaldirildi|hafizamdan (cikardim|attim)|unuttum)")
 UPDATE = re.compile(r"\b(guncelledim|duzelttim|degistirdim|guncellendi|duzeltildi)")

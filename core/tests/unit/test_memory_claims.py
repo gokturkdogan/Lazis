@@ -103,6 +103,11 @@ REWORDED = [
     ("Toplantıyı ajandama yazdım.", "Toplantıyı anladım."),
     ("Anladım ve notunu aldım.", "Anladım."),
     ("Notumu aldım efendim.", "Anladım efendim."),
+    (
+        "Dişçi randevunuzun salı günü olduğunu not etmiş oldum.",
+        "Dişçi randevunuzun salı günü olduğunu anladım.",
+    ),
+    ("Bu bilgiyi kaydetmiş oldum efendim.", "Bu bilgiyi anladım efendim."),
     ("Anladım efendim, notlarımı aldım.", "Anladım efendim."),
     ("Bu bilgiyi kayıtlarım arasına ekledim.", "Bu bilgiyi anladım."),
     ("Bunu hafızamın bir köşesine yazdım efendim.", "Bunu anladım efendim."),
@@ -234,6 +239,11 @@ OUTCOMES = [
     (SAVE_FAILED, "Ahmet'in kaydını aldım.", "Ahmet'in bilgisini kaydedemedim."),
     (SAVE_PENDING, "Toplantının notunu aldım.", "Toplantının bilgisini henüz kaydetmedim."),
     (SAVED, "Notunuzu aldım efendim.", "Notunuzu aldım efendim."),
+    (  # the real-model case (Phase 7.2): a failed save
+        SAVE_FAILED,
+        "Bunu şu anda kaydedemedim efendim. Ancak randevunuzun salı olduğunu not etmiş oldum.",
+        "Bunu şu anda kaydedemedim efendim. Ancak randevunuzun salı olduğunu kaydedemedim.",
+    ),
     (  # the real-model case (Phase 7.2, 4th run): a save waiting for "which Mehmet?"
         SAVE_PENDING,
         "Anladım efendim, kayıtlarım arasına ekledim. Ancak hangi Mehmet?",
@@ -373,7 +383,7 @@ FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim",
              "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
              "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim",
              "defterime", "hafizama bu", "listeme yarinki", "notumu aldim", "notlarimi aldim", "arasina ekledim",
-             "kosesine yazdim")  # fmt: skip
+             "kosesine yazdim", "etmis oldum", "kaydetmis oldum")  # fmt: skip
 
 
 def stream(text: str, chunks: list[int], policy: Policy) -> tuple[str, list[str]]:
