@@ -756,6 +756,44 @@ def stated_project_work(message: str) -> list[tuple[str | None, str]]:
     return out
 
 
+_COUNTS = frozenset({"iki", "uc", "dort", "bes", "birkac", "cok"})
+_ONE_OF = ("birinin", "digerinin", "oburunun", "birisi", "digeri")
+
+
+def stated_group(message: str) -> list[tuple[str, str]]:
+    """ "Benim iki arkadaşım var. Birinin adı Ahmet, diğerinin adı Mehmet." / "Arkadaşlarım
+    Sena ve Barış": a counted or plural first-person relation noun shares its relationship
+    with the names listed after it — (type, name) pairs. Names with a case ending
+    ("İstanbul'da", "Veli'yi") and names that belong to someone else ("… Mehmet'in eşi
+    Zeynep") are not list items."""
+    out: list[tuple[str, str]] = []
+    sentences = re.split(r"(?<=[.!?])\s+(?=[A-ZÇĞİÖŞÜ])", message)
+    for n, sentence in enumerate(sentences):
+        toks: list[tuple[str, str, bool]] = []  # (folded, raw, has a case ending)
+        for chunk in sentence.split():
+            parts = _APOS.split(chunk, maxsplit=1)
+            for raw in _RAW.findall(parts[0]):
+                toks.append((text.fold(raw), raw, len(parts) > 1))
+        words = [w for w, _, _ in toks]
+        for i in range(len(words)):
+            m = relations_vocab.match_at(words, i)
+            if m is None or not relations_vocab.first_person(m[2]):
+                continue
+            if not (m[2].startswith(("ler", "lar")) or (i > 0 and words[i - 1] in _COUNTS)):
+                continue
+            names = [raw for _, raw, cased in toks[i + m[1] :] if raw[:1].isupper() and not cased]
+            nxt = sentences[n + 1] if n + 1 < len(sentences) else ""
+            if any(w in _ONE_OF for w in text.words(nxt)):  # "… var. Birinin adı A, …"
+                names += [
+                    r for r in _RAW.findall(nxt) if r[:1].isupper() and text.fold(r) not in _ONE_OF
+                ]
+            for name in dict.fromkeys(names):
+                is_noun = relations_vocab.match_at([text.fold(name)], 0) is not None
+                if not is_noun and not someone_elses(message, name):
+                    out.append((m[0], name))
+    return out
+
+
 def _stated_type(triples: Sequence[tuple[str, str, str]], src: str, tgt: str) -> str | None:
     """The type the user's "X'in ⟨noun⟩ Y" gives this pair in this direction, if any."""
     for a, k, b in triples:
@@ -945,6 +983,20 @@ def validate_relations(
             )
         )
     out = _stated_corrections(out, targets)
+    for t in targets:
+        mine = {
+            (e.candidate.type, text.name_key(e.candidate.target.name))
+            for e in out
+            if e.message_id == t.message_id and e.candidate.source is None
+        }
+        for key, name in stated_group(t.text[:MAX_TARGET_CHARS]):
+            mark = (key, text.name_key(name))
+            # Only next to the model's own reading of the group (one member is already there).
+            if mark in mine or not any(k == key for k, _ in mine):
+                continue
+            mine.add(mark)
+            out.append(ExtractedRel(t.message_id, RelCandidate(
+                type=key, target=EntityRef(name), quote=t.text[:MAX_STATEMENT])))  # fmt: skip
     for t in targets:
         for person, project in stated_project_work(t.text[:MAX_TARGET_CHARS]):
             mark = (text.name_key(person) if person else "", text.name_key(project))

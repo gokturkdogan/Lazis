@@ -550,3 +550,19 @@ def test_a_subject_that_is_its_own_value_is_dropped() -> None:
     v = extraction.validate([item(entity="Atlas Yazılım", predicate="employer", value="Atlas Yazılım",
                                   quote="Atlas Yazılım'a geçtim", statement="Kullanıcı Atlas Yazılım'a geçti.")], [t])  # fmt: skip
     assert v.accepted == [] and v.dropped == {"entity_is_value": 1}
+
+
+def test_a_counted_group_shares_its_relationship() -> None:
+    msg = "Benim iki arkadaşım var. Birinin adı Ahmet, diğerinin adı Mehmet."
+    t = Target("m1", "MSGG", msg)
+    found, _ = extraction.validate_relations(
+        [relitem(source="", type="friend", target="Ahmet", quote="Birinin adı Ahmet")], [t]
+    )
+    assert {(f.candidate.type, f.candidate.target.name) for f in found} == {
+        ("friend", "Ahmet"),
+        ("friend", "Mehmet"),
+    }
+    assert extraction.stated_group("Kuzenim Ali ile Veli'yi gördüm.") == []
+    assert extraction.stated_group("Kardeşlerim İstanbul'da yaşıyor.") == []
+    assert extraction.stated_group("İki arkadaşım var: Ahmet ve Mehmet; Mehmet'in eşi Zeynep.") == [
+        ("friend", "Ahmet"), ("friend", "Mehmet")]  # fmt: skip

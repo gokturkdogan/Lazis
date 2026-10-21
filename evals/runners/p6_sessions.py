@@ -244,7 +244,9 @@ async def brief(model: str, llm: Recorder, r: Report) -> None:
         r.state(s, "4.memory", {
             "no_occupation_records": occupations(p, None) == [] and occupations(p, "superseded") == [],
             "not_in_memory_tables_or_history": not has(dump, "restoran", "yazılım geliştirici"),
-            "ahmet_still_known": any(m["about"] == "Ahmet" for m in p.memories()),
+            # Phase 7: the person stays known with his relationship even without a fact.
+            "ahmet_still_known": any(m["about"] == "Ahmet" for m in p.memories())
+            or bool(p.q(lambda c: memory_repo.find_entities(c, "ahmet"))),
         })  # fmt: skip
         t = await p.say("Ahmet ne iş yapıyor?")
         r.turn(s, "4.2-current-context", t, {
