@@ -308,6 +308,19 @@ Names in a message are found by an indexed lookup of only the keys that can occu
 * the event/group screens beyond the generic person detail;
 * backfilling relationships from old conversations (not scanned; needs the owner's approval).
 
+## Part P7.1 — As built (Phase 7.1): truthful memory claims
+
+Decision record: [ADR-0017](adr/0017-truthful-memory-claims.md). Report: [PHASE_7_1_REPORT.md](PHASE_7_1_REPORT.md).
+
+A reply may say that LAZIS saved, deleted or updated something only when that operation really happened in the turn. The model's notice asks for this; `lazis.memory.claims` enforces it on the reply text.
+
+* **State.** `claims.state_for` maps the turn's explicit request and its executed outcome (`commands.Outcome.kind`, known before the reply starts) to a `ClaimState`: `save_/update_/delete_succeeded`, `save_/delete_pending` (waiting for the user), `save_/update_/delete_failed`, `auto_learning_pending` (a statement; background learning runs after the reply), `no_memory_action`. A `Policy` adds whether recall brought stored memory (references to existing records need it) and whether the turn is a memory request.
+* **Rules.** Deterministic Turkish rules on folded text, sentence by sentence: first person completed or committed memory acts are claims (including note/record nouns with possessive endings, "notunuzu aldım", and storage nouns, "listeme ekledim"); negation, inability, offers, questions, other persons, quotations, mentions ("not aldım gibi") and "nothing stored" are not; first person participles and passives ("kaydettiğimiz", "kaydedilmiş") are references to existing records. Delete/update verbs are memory acts only near a memory word or in a memory request.
+* **Rewording.** Only the claim: pending → "anladım" (or the redundant clause dropped after an acknowledgement), failure → "kaydedemedim / silmedim / güncelleyemedim", waiting → "henüz kaydetmedim / henüz silmedim"; an unrecalled reference to a record points at the conversation ("konuştuğumuz").
+* **Streaming.** `ClaimGuard` sits between the model stream and every consumer. It releases text with a one-word lag, holds from the first word that could begin a claim to the end of that sentence (240 characters at most), and never takes back released text. The engine stores `guard.released` — the done message, partial flushes, and cancelled or failed replies are what the user saw; the voice pipeline must read the same text.
+* **Diagnostics.** Last turn: `claim_state`, `claims_rewritten`, `first_shown_ms`. Log event `memory.claims_rewritten` with state, count and kinds only.
+* **Unchanged.** Learning (extraction policy, queue, background timing), the graph, recall, the schema, and the model notices.
+
 ---
 
 # Phase 0 design (long-term plan)
