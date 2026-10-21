@@ -111,6 +111,49 @@ describe("UI API client ↔ real backend", () => {
     expect(overview.trusted_models).toEqual(["gemma4:12b-it-qat"]);
   });
 
+  it("imports a personal profile: nothing approved by default, apply, undo (Phase 8)", async () => {
+    const api = createApiClient({ port, token });
+    const PROFILE_MARKER = "Sentetik-profil-7Q";
+    const doc = {
+      schema_version: "1.0",
+      profile: { occupation: "veri analisti" },
+      people: [{ id: "e", name: "Elif", relation: "kuzenim", facts: { interest: ["kayak"] } }],
+      facts: [PROFILE_MARKER],
+      // ~200 KB of padding: more than the normal request limit, within the import route's own
+      padding: " ".repeat(200_000),
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(doc));
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    const started = await api.bootstrapAnalyze("profil.json", btoa(binary));
+    expect(started.status).toBe("ready");
+    let preview = await api.bootstrapImport(started.id);
+    expect(preview.items.every((i) => i.decision === "pending")).toBe(true);
+    const before = (await api.memoryRecords({ status: "all" })).records.length;
+    preview = await api.bootstrapDecide(started.id, {
+      people: preview.people.map((p) => ({ id: p.id, decision: "create" })),
+      items: preview.items.filter((i) => i.value === "kayak" || i.value === "veri analisti")
+        .map((i) => ({ id: i.id, decision: "approve" })),
+    });
+    expect(preview.summary.writable).toBe(2);
+    const applied = await api.bootstrapApply(started.id);
+    expect(applied.batch.counts.written).toBe(2);
+    expect(applied.batch.counts.pending).toBeGreaterThan(0); // the rest was not written
+    await expect(api.bootstrapApply(started.id)).rejects.toMatchObject({ code: "import_already_applied" });
+    expect((await api.memoryRecords({ status: "all" })).records.length).toBe(before + 2);
+    const plan = await api.bootstrapUndoPlan(started.id);
+    expect(plan.counts.remove).toBeGreaterThanOrEqual(2);
+    const undone = await api.bootstrapUndo(started.id, []);
+    expect(undone.batch.status).toBe("undone");
+    expect((await api.memoryRecords({ status: "all" })).records.length).toBe(before);
+    expect((await api.memoryEntities("person")).map((e) => e.name)).not.toContain("Elif");
+    await expect(api.bootstrapAnalyze("x.json", btoa("{ bozuk"))).rejects.toMatchObject({
+      code: "import_profile_invalid_json", details: { line: 1 },
+    });
+    const logs = readFileSync(join(root, "logs", "core.log"), "utf8");
+    expect(logs).not.toContain(PROFILE_MARKER); // the file's content never reaches the logs
+  });
+
   it("reads health, app info and verified encryption status", async () => {
     const api = createApiClient({ port, token });
     expect((await api.health()).status).toBe("ok");

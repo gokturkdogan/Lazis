@@ -41,6 +41,15 @@ export type RelationshipEditRequest = Schemas["RelationshipEditRequest"];
 export type RelationshipWriteResult = Schemas["RelationshipWriteResponse"];
 export type GraphNeighbourhood = Schemas["GraphNeighbourhoodResponse"];
 export type GraphPath = Schemas["GraphPathModel"];
+export type BootstrapBatch = Schemas["BootstrapBatchModel"];
+export type BootstrapPreview = Schemas["BootstrapPreviewResponse"];
+export type BootstrapPerson = Schemas["BootstrapPersonModel"];
+export type BootstrapItem = Schemas["BootstrapItemModel"];
+export type BootstrapSummary = Schemas["BootstrapSummaryModel"];
+export type BootstrapDecisions = Schemas["BootstrapDecisionsRequest"];
+export type BootstrapUndoPlan = Schemas["BootstrapUndoPlanResponse"];
+export type BootstrapUndoResult = Schemas["BootstrapUndoResponse"];
+export type BootstrapApplyResult = Schemas["BootstrapApplyResponse"];
 
 export interface MemoryQuery {
   q?: string | undefined;
@@ -112,6 +121,8 @@ export class ApiError extends Error {
     readonly code: string,
     readonly userMessage: string,
     readonly recoverable: boolean,
+    /** What the backend may show about the refusal (a JSON file's broken line). */
+    readonly details: Record<string, number | string | string[]> | null = null,
   ) {
     super(code);
     this.name = "ApiError";
@@ -176,6 +187,17 @@ export interface ApiClient {
   importPreview(format: "json" | "text", content: string): Promise<ImportPreview>;
   importApply(batchId: string, selections: Record<string, string>): Promise<MemoryApplyResult>;
   importDiscard(batchId: string): Promise<void>;
+  // ----- personal knowledge import (Phase 8): nothing is approved until the user says so -----
+  bootstrapAnalyze(fileName: string, contentBase64: string): Promise<BootstrapBatch>;
+  bootstrapHistory(): Promise<BootstrapBatch[]>;
+  bootstrapImport(importId: string): Promise<BootstrapPreview>;
+  bootstrapCancel(importId: string): Promise<BootstrapBatch>;
+  bootstrapRetry(importId: string): Promise<BootstrapBatch>;
+  bootstrapDecide(importId: string, body: BootstrapDecisions): Promise<BootstrapPreview>;
+  bootstrapApply(importId: string): Promise<BootstrapApplyResult>;
+  bootstrapUndoPlan(importId: string): Promise<BootstrapUndoPlan>;
+  bootstrapUndo(importId: string, restore: string[]): Promise<BootstrapUndoResult>;
+  bootstrapDiscard(importId: string): Promise<BootstrapBatch>;
   prepare(model: string): Promise<PrepareResponse>;
   activity(): Promise<ActivityResponse>;
   /** Model, runtime, last-turn timings and pre-warm state; never message content. */
@@ -206,8 +228,8 @@ export function createApiClient(
       body = null;
     }
     if (isErrorResponse(body)) {
-      const { code, message, recoverable } = body.error;
-      return new ApiError(response.status, code, message, recoverable);
+      const { code, message, recoverable, details } = body.error;
+      return new ApiError(response.status, code, message, recoverable, details ?? null);
     }
     return new ApiError(response.status, "internal_error", "", false);
   }
@@ -331,8 +353,8 @@ export function createApiClient(
     }
     if (!response.ok) {
       if (isErrorResponse(body)) {
-        const { code, message, recoverable } = body.error;
-        throw new ApiError(response.status, code, message, recoverable);
+        const { code, message, recoverable, details } = body.error;
+        throw new ApiError(response.status, code, message, recoverable, details ?? null);
       }
       throw new ApiError(response.status, "internal_error", "", false);
     }
@@ -400,5 +422,27 @@ export function createApiClient(
     importDiscard: async (batchId) => {
       await send<unknown>("DELETE", `/memory/import/${enc(batchId)}`);
     },
+    // The file (up to 1 MB) goes up once; the model reads it in the background afterwards.
+    bootstrapAnalyze: (fileName, contentBase64) =>
+      send<BootstrapBatch>("POST", "/memory/bootstrap/analyze",
+        { file_name: fileName, content_base64: contentBase64 }, 60_000),
+    bootstrapHistory: async () =>
+      (await get<{ batches: BootstrapBatch[] }>("/memory/bootstrap")).batches,
+    bootstrapImport: (importId) => get<BootstrapPreview>(`/memory/bootstrap/${enc(importId)}`),
+    bootstrapCancel: (importId) =>
+      send<BootstrapBatch>("POST", `/memory/bootstrap/${enc(importId)}/cancel`, undefined, 20_000),
+    bootstrapRetry: (importId) =>
+      post<BootstrapBatch>(`/memory/bootstrap/${enc(importId)}/retry`, undefined),
+    bootstrapDecide: (importId, body) =>
+      post<BootstrapPreview>(`/memory/bootstrap/${enc(importId)}/decisions`, body),
+    // One transaction; a large import may take a few seconds.
+    bootstrapApply: (importId) =>
+      send<BootstrapApplyResult>("POST", `/memory/bootstrap/${enc(importId)}/apply`, undefined, 60_000),
+    bootstrapUndoPlan: (importId) =>
+      get<BootstrapUndoPlan>(`/memory/bootstrap/${enc(importId)}/undo-plan`),
+    bootstrapUndo: (importId, restore) =>
+      send<BootstrapUndoResult>("POST", `/memory/bootstrap/${enc(importId)}/undo`, { restore }, 60_000),
+    bootstrapDiscard: (importId) =>
+      send<BootstrapBatch>("DELETE", `/memory/bootstrap/${enc(importId)}`),
   };
 }

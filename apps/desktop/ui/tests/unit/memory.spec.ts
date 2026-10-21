@@ -1,7 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { describe, expect, it, vi } from "vitest";
-import type { ApiClient, ImportItem, MemoryEntity, MemoryInboxItem, MemoryRecord } from "@/api/client";
+import type { ApiClient, MemoryEntity, MemoryInboxItem, MemoryRecord } from "@/api/client";
 import { createAppI18n } from "@/i18n";
 import { useConnectionStore } from "@/stores/connection";
 import DiagnosticsView from "@/views/DiagnosticsView.vue";
@@ -167,37 +167,6 @@ describe("memory screen", () => {
     await flushPromises();
     expect(resolveInbox).toHaveBeenCalledWith("I1", "E2");
     expect(wrapper.find('[data-testid="inbox-empty"]').exists()).toBe(true);
-  });
-
-  it("imports only what the user selected; sensitive and conflicting items need a choice", async () => {
-    const items: ImportItem[] = [
-      { index: 0, status: "new", subject: "Kullanıcı", predicate: "occupation", predicate_label: "meslek", value: "analist",
-        statement: "Kullanıcı — meslek: analist", reason: null, sensitive: false, options: [], existing: [] },
-      { index: 1, status: "new", subject: "Kullanıcı", predicate: "health", predicate_label: "sağlık bilgisi", value: "astım",
-        statement: "Kullanıcı — sağlık bilgisi: astım", reason: null, sensitive: true, options: [], existing: [] },
-      { index: 2, status: "excluded", subject: "Kullanıcı", predicate: "note", predicate_label: "not", value: "wifi şifresi",
-        statement: "Kullanıcı — not: wifi şifresi …", reason: "secret", sensitive: false, options: [], existing: [] },
-      { index: 3, status: "conflict", subject: "Kullanıcı", predicate: "location", predicate_label: "yaşadığı yer (şehir)",
-        value: "Bursa", statement: "Kullanıcı — yaşadığı yer (şehir): Bursa", reason: null, sensitive: false, options: [], existing: ["İzmir"] },
-    ];
-    const importApply = vi.fn().mockResolvedValue({ created: 1, updated: 0, superseded: 0, inbox: 0, entities_created: 0, dropped: {} });
-    const { wrapper } = await mountMemory({
-      importPreview: vi.fn().mockResolvedValue({ batch_id: "B1", items, errors: [] }),
-      importApply,
-    });
-    await wrapper.get('[data-testid="memory-tab-import"]').trigger("click");
-    await wrapper.get('[data-testid="import-content"]').setValue('{"user": {}}');
-    await wrapper.get('[data-testid="import-preview"]').trigger("click");
-    await flushPromises();
-    const text = wrapper.get('[data-testid="memory-import"]').text();
-    expect(text).toContain("şifre, anahtar ya da numara: hafızaya alınmaz");
-    expect(text).toContain("Şu anki: İzmir");
-    expect((wrapper.get('[data-testid="import-check-1"]').element as HTMLInputElement).checked).toBe(false);
-    expect((wrapper.get('[data-testid="import-check-2"]').element as HTMLInputElement).disabled).toBe(true);
-    await wrapper.get('[data-testid="import-apply"]').trigger("click");
-    await flushPromises();
-    expect(importApply).toHaveBeenCalledWith("B1", { 0: "apply" });
-    expect(wrapper.text()).toContain("1 kayıt eklendi.");
   });
 });
 

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
  * Personal memory (Phase 6): what LAZIS knows, where it came from, and the user's control over
- * it — search, edit, forget, people and projects, decisions waiting for the user, import.
+ * it — search, edit, forget, people and projects, decisions waiting for the user, and the
+ * personal knowledge import (Phase 8).
  * Everything goes through the backend's memory API (same checks as learning from chat).
  */
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import MemoryEntities from "@/components/memory/MemoryEntities.vue";
-import MemoryImport from "@/components/memory/MemoryImport.vue";
+import MemoryBootstrap from "@/components/memory/MemoryBootstrap.vue";
 import MemoryInbox from "@/components/memory/MemoryInbox.vue";
 import MemoryRecords from "@/components/memory/MemoryRecords.vue";
 import { currentApiClient } from "@/stores/connection";
@@ -54,7 +55,7 @@ onMounted(refreshPending);
     <MemoryRecords v-if="section === 'records'" @changed="refreshPending" />
     <MemoryEntities v-else-if="section === 'entities'" @changed="refreshPending" />
     <MemoryInbox v-else-if="section === 'inbox'" @changed="refreshPending" />
-    <MemoryImport v-else @changed="refreshPending" />
+    <MemoryBootstrap v-else @changed="refreshPending" />
   </div>
 </template>
 

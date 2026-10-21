@@ -219,6 +219,16 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     importPreview: vi.fn(),
     importApply: vi.fn(),
     importDiscard: vi.fn().mockResolvedValue(undefined),
+    bootstrapAnalyze: vi.fn(),
+    bootstrapHistory: vi.fn().mockResolvedValue([]),
+    bootstrapImport: vi.fn(),
+    bootstrapCancel: vi.fn(),
+    bootstrapRetry: vi.fn(),
+    bootstrapDecide: vi.fn(),
+    bootstrapApply: vi.fn(),
+    bootstrapUndoPlan: vi.fn(),
+    bootstrapUndo: vi.fn(),
+    bootstrapDiscard: vi.fn(),
     ...overrides,
   };
 }

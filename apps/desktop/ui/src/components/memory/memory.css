@@ -182,3 +182,89 @@
   fill: var(--text-muted);
   font-size: 10px;
 }
+/* Personal knowledge import (Phase 8) */
+.mem-stack,
+.mem-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mem-heading {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+.mem-steps {
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.mem-steps li {
+  padding: 2px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+.mem-steps li.active {
+  color: var(--text);
+  border-color: var(--panel-border-strong);
+}
+.mem-tab {
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+.mem-tab.active {
+  border-color: var(--panel-border-strong);
+  color: var(--text);
+}
+.mem-quote {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--panel-border-strong);
+  font-size: 12px;
+  color: var(--text-muted);
+  user-select: text;
+}
+.mem-warn {
+  color: var(--warn);
+  font-size: 12px;
+}
+.mem-compare {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.mem-progress {
+  width: 100%;
+  max-width: 420px;
+}
+.mem-summary {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mem-file {
+  align-self: flex-start;
+  cursor: pointer;
+}
+.mem-file input {
+  display: none;
+}
+.mem-file.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.btn.chosen {
+  border-color: var(--panel-border-strong);
+  background: rgba(58, 160, 255, 0.18);
+}
