@@ -183,8 +183,11 @@ _CONTEXT = (
 _CONTEXT_RE = re.compile(r"\b" + _CONTEXT + r"\b")
 _SAVE_RE = re.compile(
     r"\b(?:kayded|kaydet|kayit alti[a-z]* al|kayda gecir|kayda al|(?:bir )?kayit (?:olustur|ac)"
-    r"|kayd(?:ini|inizi|larini|larinizi) (?:al|tut|olustur)"
-    r"|not(?:u|unu|unuzu|lari|larini|larinizi)? (?:al|ed|et|tut))"
+    r"|kayd(?:i|im|imi|ini|inizi|larini|larinizi) (?:al|tut|olustur)"
+    r"|kayitlar(?:i|im|imi|ini|inizi) (?:al|tut|olustur)"
+    # Every possessive and accusative form ("notumu aldım", Phase 7.2 real-model finding).
+    r"|not(?:u|um(?:u|uz|uzu)?|un(?:u|uz|uzu)?|lar(?:i|im|imi|imiz|imizi|in|ini|iniz|inizi)?)?"
+    r" (?:al|ed|et|tut))"
 )
 # A save claim with a note/record noun as its object keeps the sentence's grammar when it is
 # reworded: "Ahmet'in kaydını aldım" → "Ahmet'in bilgisini anladım" (not "Ahmet'in anladım").

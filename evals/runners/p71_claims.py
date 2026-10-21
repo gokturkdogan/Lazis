@@ -47,7 +47,7 @@ SAVE = re.compile(
     r"|kaydettik|kayda gecirdim|kayit altina aldim|hafizama (ekledim|aldim|yazdim|kaydettim|isledim)"
     r"|aklimda tutacagim|aklima (yazdim|kaydettim|not ettim)|unutmayacagim|asla unutmam"
     r"|hatirlayacagim|artik hatirlarim|ogrendim"
-    r"|not(?:u|unu|unuzu|lari|larini|larinizi) (?:aldim|ettim|tuttum)"
+    r"|not(?:u|um|umu|unu|unuzu|lari|larimi|larini|larinizi) (?:aldim|ettim|tuttum)"
     r"|kayd(?:ini|inizi|a) (?:aldim|tuttum|olusturdum)|kayit (?:olusturdum|actim)"
     r"|(?:bilgilerime|listeme|ajandama|defterime|takvimime|notlarima|kayitlarima)"
     r" (?:ekledim|yazdim|kaydettim|aldim|isledim)"
