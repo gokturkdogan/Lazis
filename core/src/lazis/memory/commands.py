@@ -72,9 +72,13 @@ _DECLINE = re.compile(r"^\s*(hayir|vazgec|silme|iptal)\b")
 
 # For a statement without a memory request: background learning happens after the reply, so
 # at reply time nothing has been written ("not ettim" would be a claim before the fact).
+# Worded positively: naming the forbidden phrases primed them (measured with Gemma on 10
+# statements: 3/10 replies claimed "not aldım" with the old wording, 1/10 with this one).
 PENDING_NOTICE = (
     f"{NOTICE_START}\n"
-    "Henüz hiçbir şey kaydedilmedi; 'not ettim', 'kaydettim', 'öğrendim' deme.\n"
+    "Bu mesajdaki bilgiler henüz hafızaya yazılmadı (gerekirse sonra arka planda yazılır). "
+    "Yanıtta yalnızca anladığını göster ve konuya devam et; kaydetmekten, not almaktan, "
+    "öğrenmekten ya da hatırlayacağından söz etme.\n"
     f"{NOTICE_END}"
 )
 _QUESTION = re.compile(r"\?|\b(mi|mı|mu|mü|misin|mısın|musun|müsün|miyim|mıyım)\b")
