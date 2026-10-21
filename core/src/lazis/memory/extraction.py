@@ -398,6 +398,11 @@ def validate(
             name, key = "", ""
         ref: EntityRef | None = None
         subject_kind = "user"
+        if key and key == text.name_key(value):
+            # "Atlas Yazılım — çalıştığı yer: Atlas Yazılım": a subject that is its own value
+            # says nothing (and would create a person named after a company).
+            out.drop("entity_is_value")
+            continue
         if key:
             matches = _known_for(key, known)
             if (

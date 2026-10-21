@@ -543,3 +543,10 @@ def test_work_on_a_named_project_comes_from_the_users_grammar() -> None:
            for f in found}  # fmt: skip
     assert got == {(None, "colleague", "Murat"), ("Murat", "works_on", "Pusula")}
     assert extraction.stated_project_work("Murat Pusula projesinde mi çalışıyor?") == []
+
+
+def test_a_subject_that_is_its_own_value_is_dropped() -> None:
+    t = Target("m1", "MSGT1", "Artık Kervan'da çalışmıyorum, Atlas Yazılım'a geçtim.")
+    v = extraction.validate([item(entity="Atlas Yazılım", predicate="employer", value="Atlas Yazılım",
+                                  quote="Atlas Yazılım'a geçtim", statement="Kullanıcı Atlas Yazılım'a geçti.")], [t])  # fmt: skip
+    assert v.accepted == [] and v.dropped == {"entity_is_value": 1}
