@@ -256,6 +256,13 @@ async function openFromHistory(b: BootstrapBatch) {
   await guarded(() => follow(b));
 }
 
+// What the backend is doing now: reading sections with the model, then (quickly) placing
+// the people and comparing everything with the memory.
+const stage = computed(() => {
+  const b = batch.value;
+  if (b === null || b.sections_done + b.sections_failed === 0) return "reading";
+  return b.sections_done + b.sections_failed < b.sections_total ? "extracting" : "comparing";
+});
 const summary = computed(() => preview.value?.summary ?? null);
 const counts = computed(() => batch.value?.counts ?? {});
 const stepOrder: Screen[] = ["select", "progress", "preview", "confirm", "result"];
@@ -320,6 +327,7 @@ onUnmounted(stopPolling);
           {{ t("memory.bootstrap.progress", { done: batch.sections_done, total: batch.sections_total }) }}
           <template v-if="batch.sections_failed"> · {{ t("memory.bootstrap.progressFailed", { n: batch.sections_failed }) }}</template>
         </p>
+        <p class="mem-small" data-testid="bootstrap-stage">{{ t(`memory.bootstrap.stage.${stage}`) }}</p>
         <p class="muted mem-small">{{ t("memory.bootstrap.progressNote") }}</p>
         <button type="button" class="btn mem-btn-small" :disabled="working" data-testid="bootstrap-cancel" @click="cancel">{{ t("memory.bootstrap.cancel") }}</button>
       </template>

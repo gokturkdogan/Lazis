@@ -9,13 +9,14 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from lazis.bootstrap import files, store
 from lazis.config.model import MemorySection
 from lazis.conversation import ConversationEngine
-from lazis.providers.llm.ports import ChatRequest
+from lazis.providers.llm.ports import ChatRequest, GenerationDone
 from lazis.storage import StorageHandle
 from tests.bootstrap_support import active, items, people, run, snapshot
 from tests.conversation_support import ScriptedLLM, is_extraction, make_engine, run_turn
@@ -193,7 +194,10 @@ def test_every_section_failing_fails_the_import(tmp_path: Path, storage: Storage
         return b
 
     b = asyncio.run(go())
-    assert b.status == "failed" and b.error == "no_section_read" and b.sections_failed == 3
+    # The two-line section was read again in halves before it counted as failed.
+    assert b.status == "failed" and b.error == "no_section_read"
+    assert b.sections_failed == b.sections_total == 4 and b.model_calls == 5
+    assert any(w.startswith("section_split: satır 2–3") for w in b.warnings)
 
 
 def test_cancelling_stops_now_and_deletes_the_draft(tmp_path: Path, storage: StorageHandle) -> None:
@@ -287,3 +291,69 @@ def test_an_analysis_cut_by_a_restart_is_marked_and_can_be_resumed(
         await engine.close()
 
     asyncio.run(go())
+
+
+class CutOff:
+    """A model that stops at its output limit while a section has more than ``limit`` lines."""
+
+    def __init__(self, inner: ScriptedLLM, limit: int) -> None:
+        self.inner = inner
+        self.limit = limit
+        self.bodies: list[str] = []
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.inner, name)
+
+    async def stream(self, request: ChatRequest) -> Any:
+        body = request.messages[-1].content.split("[m1] «", 1)[-1].split("»", 1)[0]
+        cut = "PROFİL DOSYASININ" in request.messages[-1].content and body.count("\n") >= self.limit
+        if "PROFİL DOSYASININ" in request.messages[-1].content:
+            self.bodies.append(body)
+        async for ev in self.inner.stream(request):
+            if cut and isinstance(ev, GenerationDone):
+                ev = GenerationDone(replace(ev.metrics, done_reason="length"))
+            yield ev
+
+
+DENSE = """## Aras Akın
+Kuzenim.
+Mesleği mimar.
+Bursa'da yaşıyor.
+Satranç oynar.
+"""
+
+
+def test_a_cut_off_answer_is_never_counted_and_the_section_is_read_in_halves(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    answers = {"Mesleği mimar": [it("Mesleği mimar", "occupation", "mimar", "Aras mimar.",
+                                    entity="Aras Akın", relation="kuzenim")]}  # fmt: skip
+    llm = CutOff(ScriptedLLM(memory=scripted(answers)), limit=3)
+    engine = make_engine(storage, llm, tmp_path)  # type: ignore[arg-type]
+
+    async def go() -> store.Batch:
+        iid = await begin(engine, storage, text=DENSE)
+        b = await until(storage, iid)
+        await engine.close()
+        return b
+
+    b = asyncio.run(go())
+    assert b.status == "ready" and b.sections_failed == 0 and b.sections_total == 2
+    assert b.model_calls == 3 and any(w.startswith("section_split") for w in b.warnings)
+    halves = llm.bodies[1:]
+    assert all(h.startswith("## Aras Akın") for h in halves)  # the person's heading in both
+    assert "Mesleği mimar" in halves[0] and "Satranç" in halves[1]
+
+
+def test_a_single_cut_off_line_fails(tmp_path: Path, storage: StorageHandle) -> None:
+    llm = CutOff(ScriptedLLM(memory=scripted()), limit=0)
+    engine = make_engine(storage, llm, tmp_path)  # type: ignore[arg-type]
+
+    async def go() -> store.Batch:
+        iid = await begin(engine, storage, text="Meslek: veri analisti", name="p.txt")
+        b = await until(storage, iid)
+        await engine.close()
+        return b
+
+    b = asyncio.run(go())
+    assert b.status == "failed" and b.sections_failed == 1 and b.model_calls == 1

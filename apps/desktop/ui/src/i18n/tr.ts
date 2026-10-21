@@ -310,6 +310,11 @@ export const tr = {
       },
       progress: "{done} / {total} bölüm okundu",
       progressFailed: "{n} bölüm okunamadı",
+      stage: {
+        reading: "Dosya okunuyor…",
+        extracting: "Bilgiler çıkarılıyor…",
+        comparing: "Kişiler eşleştiriliyor ve hafızayla karşılaştırılıyor…",
+      },
       progressNote: "Model dosyayı bölüm bölüm okuyor. Bu sırada sohbet edebilirsiniz; sohbet önce gelir.",
       cancel: "İptal et",
       cancelled: "Aktarım iptal edildi; dosyadan okunanlar silindi. Hafızaya hiçbir şey yazılmadı.",

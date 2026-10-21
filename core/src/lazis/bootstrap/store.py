@@ -174,6 +174,55 @@ def record_section(conn: Connection, import_id: str, idx: int, raw: str | None) 
         _recount(conn, import_id)
 
 
+def split_section(conn: Connection, import_id: str, idx: int) -> bool:
+    """A section the model could not answer in full (cut off at its output limit, or not
+    JSON) is read again as two halves: this one keeps the first half, a new one the second.
+    The heading line stays at the top of both (lines under a person's heading are about that
+    person). The attempt is counted and the split is listed in the warnings. False when the
+    section has fewer than two lines of text: then it has failed."""
+    row = conn.execute(
+        "SELECT heading, body FROM import_sections WHERE import_id = ? AND idx = ?",
+        (import_id, idx),
+    ).fetchone()
+    if row is None or row[1] is None:
+        return False
+    b = json.loads(str(row[1]))
+    pairs = list(zip(b["lines"], str(b["body"]).split("\n"), strict=False))
+    head = pairs[:1] if pairs and pairs[0][1].lstrip().startswith("#") else []
+    content = pairs[len(head) :]
+    if len(content) < 2:
+        return False
+    half = len(content) // 2
+    parts = [head + content[:half], head + content[half:]]
+
+    def body(part: list[tuple[int, str]]) -> str:
+        return json.dumps({"body": "\n".join(t for _, t in part), "lines": [n for n, _ in part]},
+                          ensure_ascii=False)  # fmt: skip
+
+    with _tx(conn):
+        conn.execute(
+            "UPDATE import_sections SET body = ?, first_line = ?, status = 'pending',"
+            " result_json = NULL, attempts = attempts + 1 WHERE import_id = ? AND idx = ?",
+            (body(parts[0]), parts[0][0][0], import_id, idx),
+        )
+        (top,) = conn.execute("SELECT MAX(idx) FROM import_sections WHERE import_id = ?",
+                              (import_id,)).fetchone()  # fmt: skip
+        conn.execute(
+            "INSERT INTO import_sections (import_id, idx, heading, first_line, body, status)"
+            " VALUES (?, ?, ?, ?, ?, 'pending')",
+            (import_id, int(top) + 1, row[0], parts[1][0][0], body(parts[1])),
+        )
+        warning = f"section_split: satır {content[0][0]}–{content[-1][0]}"
+        old = get_batch(conn, import_id).warnings
+        conn.execute(
+            "UPDATE import_batches SET sections_total = sections_total + 1, warnings_json = ?"
+            " WHERE id = ?",
+            (json.dumps([*old, warning][:200]), import_id),
+        )
+        _recount(conn, import_id)
+    return True
+
+
 def _recount(conn: Connection, import_id: str) -> None:
     done, failed = conn.execute(
         "SELECT SUM(status = 'done'), SUM(status = 'failed') FROM import_sections"
@@ -307,8 +356,8 @@ def save_proposals(
         conn.execute(
             "UPDATE import_batches SET status = 'ready', warnings_json = ?, updated_at = ?"
             " WHERE id = ?",
-            (json.dumps([*get_batch(conn, import_id).warnings, *proposals.warnings][:200]), now,
-             import_id),
+            (json.dumps(list(dict.fromkeys([*get_batch(conn, import_id).warnings,
+                                            *proposals.warnings]))[:200]), now, import_id),
         )  # fmt: skip
 
 

@@ -66,6 +66,7 @@ def finish_text(conn: Connection, import_id: str) -> None:
     b = store.get_batch(conn, import_id)
     results: list[extract.SectionResult] = []
     dropped: dict[str, int] = {}
+    corrected: dict[str, int] = {}
     for section, raw in store.section_results(conn, import_id):
         r = extract.validate(raw, section)
         if r is None:  # stored answers were valid when recorded; be safe anyway
@@ -73,8 +74,11 @@ def finish_text(conn: Connection, import_id: str) -> None:
         results.append(r)
         for k, v in r.dropped.items():
             dropped[k] = dropped.get(k, 0) + v
+        for k, v in r.corrected.items():
+            corrected[k] = corrected.get(k, 0) + v
     proposals = extract.assemble(results)
     proposals.warnings += [f"dropped: {k} × {v}" for k, v in sorted(dropped.items())]
+    proposals.warnings += [f"corrected: {k} × {v}" for k, v in sorted(corrected.items())]
     if b.sections_failed:
         proposals.warnings.append(f"sections_failed: {b.sections_failed}")
     _save(conn, import_id, proposals, b.content_hash)

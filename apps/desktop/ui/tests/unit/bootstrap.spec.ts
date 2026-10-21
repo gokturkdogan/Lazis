@@ -149,6 +149,7 @@ describe("personal knowledge import", () => {
     });
     await pickFile(wrapper, "profil.md", "# Hakkımda");
     expect(wrapper.get('[data-testid="bootstrap-progress"]').text()).toContain("1 / 4 bölüm okundu");
+    expect(wrapper.get('[data-testid="bootstrap-stage"]').text()).toBe("Bilgiler çıkarılıyor…");
     await vi.advanceTimersByTimeAsync(800);
     expect(bootstrapImport).toHaveBeenCalled();
     await wrapper.get('[data-testid="bootstrap-cancel"]').trigger("click");

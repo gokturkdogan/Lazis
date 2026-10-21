@@ -22,13 +22,16 @@ from lazis.bootstrap import extract, pipeline, store
 from lazis.conversation import learning
 from lazis.errors import LazisError, LlmCancelledError
 from lazis.observability.logging import get_logger, log_event
-from lazis.providers.llm.ports import ChatMessage, ChatRequest, TextDelta
+from lazis.providers.llm.ports import ChatMessage, ChatRequest, GenerationDone, TextDelta
 
 if TYPE_CHECKING:
     from lazis.conversation.engine import ConversationEngine
 
 _log = get_logger("lazis.bootstrap")
 SLOT_WAIT_S = 0.5
+# A profile section is denser than a chat turn: every line can be a fact (~60 output tokens
+# each). Learning's budget would cut a dense section off mid-JSON.
+IMPORT_MAX_TOKENS = 2048
 
 
 class BootstrapRunner:
@@ -115,7 +118,8 @@ class BootstrapRunner:
                 await q(lambda c: store.set_status(c, import_id, "failed", error="internal_error"))
 
     async def _one(self, import_id: str, model: str, section: object) -> str:
-        """'done' | 'failed' | 'busy' (the slot is taken: try again) | 'preempted'."""
+        """'done' | 'failed' | 'split' (read again in halves) | 'busy' (the slot is taken: try
+        again) | 'preempted'."""
         eng = self._engine
         q = eng._q  # pyright: ignore[reportPrivateUsage]
         from lazis.bootstrap.files import Section
@@ -137,8 +141,8 @@ class BootstrapRunner:
                 model=model,
                 messages=[ChatMessage("system", learning.STANDALONE_SYSTEM),
                           ChatMessage("user", extract.instruction(section))],
-                options=eng._options(eng._memory.extraction_max_tokens, temperature=0.0, seed=7,  # pyright: ignore[reportPrivateUsage]
-                                     response_format=learning.SCHEMA),
+                options=eng._options(max(eng._memory.extraction_max_tokens, IMPORT_MAX_TOKENS),  # pyright: ignore[reportPrivateUsage]
+                                     temperature=0.0, seed=7, response_format=learning.SCHEMA),
                 request_id=job.request_id,
             )  # fmt: skip
             self._current[import_id] = job.request_id
@@ -147,6 +151,8 @@ class BootstrapRunner:
             async for event in llm.stream(request):
                 if isinstance(event, TextDelta) and event.kind == "content":
                     raw += event.text
+                elif isinstance(event, GenerationDone) and event.metrics.done_reason == "length":
+                    result["cut"] = "1"  # stopped at the output limit: the answer is not whole
             result["raw"] = raw
             return True
 
@@ -168,7 +174,15 @@ class BootstrapRunner:
         if not ok and "error" not in result:
             return "preempted"  # a user turn took the slot: the section stays pending
         raw = result.get("raw")
-        valid = raw is not None and extract.validate(raw, section) is not None
+        whole = "cut" not in result
+        valid = whole and raw is not None and extract.validate(raw, section) is not None
+        # Never a partial answer counted as read: the section is read again in two halves.
+        if (
+            not valid
+            and "error" not in result
+            and await q(lambda c: store.split_section(c, import_id, section.idx))
+        ):
+            return "split"
         await q(lambda c: store.record_section(c, import_id, section.idx, raw if valid else None))
         return "done" if valid else "failed"
 
