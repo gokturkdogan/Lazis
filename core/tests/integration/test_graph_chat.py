@@ -286,7 +286,10 @@ def test_an_open_namesake_question_makes_answers_cautious(storage: StorageHandle
     a = storage.db.run_sync(lambda c: graph.ask(c, "Ahmet'in kardeşi kim?"))
     assert a is not None and a.status == "ambiguous"
     assert a.lines[0].startswith("Dikkat: «Ahmet» adında başka biri de olabilir")
-    assert "Cevap: Mehmet" in a.lines
+    assert "Cevap verme; önce hangisini kastettiğini sor" in a.lines[0]
+    assert "Ahmet (çocukluk arkadaşı)" in a.lines[0]
+    # Phase 7.2: the answer is withheld until the user says which Ahmet.
+    assert not any(x.startswith(("Cevap:", "Dayanak:")) for x in a.lines) and a.paths == ()
 
 
 def test_a_correction_follows_the_users_grammar_not_the_model(

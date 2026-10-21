@@ -680,7 +680,8 @@ def answer(conn: Connection, q: Query) -> Answer:
 
 def _with_namesake_caution(conn: Connection, q: Query, a: Answer) -> Answer:
     """A name with an open "which Ahmet?" question (another person by that name may exist):
-    the answer is about the stored one only — the model must say so and ask."""
+    the answer is withheld until the user says which one. (Phase 7.2: with the answer and a
+    caution side by side, the model once answered without asking.)"""
     from lazis.memory import service
 
     refs = [r for r in (q.start, q.other) if r is not None and not r.user and r.via is None]
@@ -688,9 +689,15 @@ def _with_namesake_caution(conn: Connection, q: Query, a: Answer) -> Answer:
     if not unsure:
         return a
     names = ", ".join(f"«{n}»" for n in unsure)
-    line = (f"Dikkat: {names} adında başka biri de olabilir (henüz netleşmedi); aşağıdaki cevap "
-            "kayıtlı olan kişi içindir. Hangisinin kastedildiğini sor.")  # fmt: skip
-    return replace(a, status="ambiguous", lines=(line, *a.lines))
+    stored = "; ".join(
+        service.entity_label(e) for n in unsure for e in repo.find_entities(conn, text.name_key(n))
+    )
+    line = (
+        f"Dikkat: {names} adında başka biri de olabilir (henüz netleşmedi). Cevap verme; önce "
+        f"hangisini kastettiğini sor: kayıtlı olan ({stored}) mı, yoksa başka biri mi?"
+    )
+    asked = [x for x in a.lines if x.startswith("Soru:")]
+    return replace(a, status="ambiguous", lines=(line, *asked), paths=(), relationship_ids=())
 
 
 def _rel_ids(paths: Sequence[Path]) -> tuple[str, ...]:
