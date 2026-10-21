@@ -148,8 +148,13 @@ class Verdict:
     note: str | None = None  # excluded: why · possible_duplicate: the similar value
 
 
+def temporal_words(words: str) -> bool:
+    """The text says something changed or since when ("artık", "taşındım", "2025'ten beri")."""
+    return bool(_TEMPORAL.search(" ".join(text.words(words))))
+
+
 def _temporal(f: ProposedFact) -> bool:
-    return bool(f.change or f.time or _TEMPORAL.search(" ".join(text.words(f.excerpt or ""))))
+    return bool(f.change or f.time or f.dated or temporal_words(f.excerpt or ""))
 
 
 def classify_fact(conn: Connection, f: ProposedFact, subject_id: str | None,

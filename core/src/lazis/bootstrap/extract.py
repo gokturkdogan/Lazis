@@ -21,7 +21,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 
-from lazis.bootstrap import files
+from lazis.bootstrap import analyze, files
 from lazis.bootstrap.proposals import (
     USER,
     Proposals,
@@ -78,8 +78,11 @@ def _located(value: str, quote: str) -> bool:
 
 
 def _right_after_name(name: str, value: str, quote: str) -> bool:
-    """ "Kız kardeşim Elif pilot": the value follows the name (a predicate nominal)."""
+    """ "Kız kardeşim Elif pilot": the value follows the name (a predicate nominal) — not a
+    number or an age ("Can 7 yaşında")."""
     n, v, q = text.fold(name).strip(), text.fold(value).strip(), text.fold(quote)
+    if re.search(r"\d", v) or re.search(r"\byas", v):
+        return False
     # The bare name ("Elif pilot", "Elif: pilot"), not a case form ("Elif'in iki çocuğu var").
     return bool(n and v and re.search(rf"\b{re.escape(n)}[,:]?\s+{re.escape(v)}\b", q))
 
@@ -89,6 +92,8 @@ _KEYWORDS = ((re.compile(r"\bdogum\s+gun"), "birthday"), (re.compile(r"\bmesle[k
 
 def _checked_predicate(c: Candidate) -> str:
     quote = c.quote or ""
+    if c.entity is not None and c.entity.kind != "project" and c.predicate.startswith("project_"):
+        return "note"  # "Mert — project_person: tasarımda yardım ediyor" is about Mert
     if c.entity is None or c.predicate not in ("family", "location"):
         return c.predicate
     for words, predicate in _KEYWORDS:  # "Doğum günü 3 Nisan.", "Mesleği mimar."
@@ -216,6 +221,7 @@ def assemble(results: list[SectionResult]) -> Proposals:
                 change=c.change, replaces=c.replaces, time=c.event_time, certain=c.certain,
                 sensitive=c.sensitivity_category, importance=c.importance, section=sec.heading,
                 excerpt=c.quote, line=files.line_of(sec, c.quote or ""),
+                dated=analyze.temporal_words(files.line_text(sec, c.quote or "")),
             ))  # fmt: skip
         for e in r.relations:
             c = e.candidate

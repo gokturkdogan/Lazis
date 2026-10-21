@@ -575,8 +575,10 @@ def _end_ref(
     context_words: list[str],
     known: Sequence[Known],
     grounding: Sequence[str],
+    prefer: str | None = None,
 ) -> tuple[EntityRef | None, str | None]:
-    """(ref, drop reason). An empty name or a self word means the user (ref None)."""
+    """(ref, drop reason). An empty name or a self word means the user (ref None).
+    ``prefer``: the relationship's type when this end is related to the user by it."""
     key = text.name_key(name)
     if not key or key in _SELF or not name[:1].isupper():
         return None, None
@@ -603,7 +605,7 @@ def _end_ref(
         # "kızı" in "Ahmet'in kızı Ela" is Ela's relation to Ahmet, not Ahmet's to the user.
         rel_words = None
     if rel_words is None:
-        rel_words = appositive(target.text, name)  # "çocukluk arkadaşım Ahmet'in …"
+        rel_words = appositive(target.text, name, prefer)  # "çocukluk arkadaşım Ahmet'in …"
     return EntityRef(name, cast(Any, kind), rel_words), None
 
 
@@ -696,14 +698,17 @@ def kind_hint(message: str, name: str) -> str | None:
     return None
 
 
-def appositive(message: str, name: str) -> str | None:
+def appositive(message: str, name: str, prefer: str | None = None) -> str | None:
     """The user's own relation words right before a name ("çocukluk arkadaşım Ahmet") as the
-    relation label ("çocukluk arkadaşı"), else None."""
+    relation label ("çocukluk arkadaşı"), else None. When the name comes with different
+    relation words ("İş arkadaşım Ahmet …, komşum Ahmet …" — two people), the ones of type
+    ``prefer`` (the relationship being read) are taken; without such a type, none is guessed."""
     key = text.name_key(name)
     if not key:
         return None
     words = text.words(message)
     first = key.split()[0]
+    found: list[str] = []
     for i, w in enumerate(words):
         if not w.startswith(first) or len(w) - len(first) > 5:
             continue
@@ -712,8 +717,12 @@ def appositive(message: str, name: str) -> str | None:
                 continue
             m = relations_vocab.match_at(words, i - n)
             if m is not None and m[1] == n and relations_vocab.first_person(m[2]):
-                return relations_vocab.TYPES[m[0]].label
-    return None
+                found.append(m[0])
+                break
+    if prefer is not None and prefer in found:
+        return relations_vocab.TYPES[prefer].label
+    kinds = set(found)
+    return relations_vocab.TYPES[found[0]].label if len(kinds) == 1 else None
 
 
 def someone_elses(message: str, name: str) -> bool:
@@ -1018,6 +1027,7 @@ def validate_relations(
             context_words=context_words,
             known=known,
             grounding=grounding,
+            prefer=t.key if src is None else None,
         )
         if why:
             drop(why)
@@ -1038,7 +1048,7 @@ def validate_relations(
         else:
             key = t.key
         if src is None:
-            said = appositive(target.text, tgt.name)
+            said = appositive(target.text, tgt.name, key)
             said_key = relations_vocab.lexicon(said) if said else None
             if (
                 said_key is not None

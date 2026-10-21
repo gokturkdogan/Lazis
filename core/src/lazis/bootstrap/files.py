@@ -230,3 +230,15 @@ def line_of(section: Section, excerpt: str) -> int | None:
         if extraction.quote_in(excerpt, line):
             return n
     return section.first_line if extraction.quote_in(excerpt, section.body) else None
+
+
+def line_text(section: Section, excerpt: str) -> str:
+    """The whole line a quoted excerpt is on (for words around the quote), or ""."""
+    if not excerpt:
+        return ""
+    from lazis.memory import extraction
+
+    for line in section.body.split("\n"):
+        if extraction.quote_in(excerpt, line):
+            return line
+    return ""

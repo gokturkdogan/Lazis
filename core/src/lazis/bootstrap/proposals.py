@@ -68,6 +68,7 @@ class ProposedFact:
     section: str = ""
     excerpt: str | None = None  # the user's own words this came from
     line: int | None = None
+    dated: bool = False  # the file line says when it changed ("2025'ten beri …"), past the quote
 
     @property
     def confidence(self) -> float:

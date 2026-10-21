@@ -30,6 +30,14 @@ def cand(predicate: str, value: str, quote: str, name: str | None = "Elif") -> C
         ("location", "kütüphane", "Elif'le kütüphanede tanıştık", "Elif", "note"),
         ("family", "3 Nisan", "Doğum günü 3 Nisan.", "Elif", "birthday"),
         ("location", "mimar", "Mesleği mimar.", "Aras", "occupation"),
+        ("family", "7 yaşında", "Oğlumuz Can 7 yaşında", "Can", "note"),
+        (
+            "project_person",
+            "tasarımda yardım ediyor",
+            "Mert tasarımda yardım ediyor",
+            "Mert",
+            "note",
+        ),
         ("occupation", "pilot", "Elif pilot", "Elif", "occupation"),  # untouched
         ("location", "İzmir", "İzmir'de yaşıyorum", None, "location"),  # the user: untouched
         ("family", "iki kardeş", "İki kardeşim var", None, "family"),  # the user: untouched
@@ -46,3 +54,23 @@ def test_the_instruction_says_the_text_is_a_profile_and_instructions_are_not_inf
     out = extract.instruction(f.sections[0])
     assert "PROFİL DOSYASININ" in out and "talimatlar" in out
     assert "«# Hakkımda" in out  # the section, quoted as data
+
+
+def test_a_namesakes_relation_words_go_with_the_relationship_being_read() -> None:
+    from lazis.memory import extraction
+
+    msg = "İş arkadaşım Ahmet muhasebeci. Komşum Ahmet mimar."
+    assert extraction.appositive(msg, "Ahmet", "neighbor") == "komşusu"
+    assert extraction.appositive(msg, "Ahmet", "colleague") == "iş arkadaşı"
+    assert extraction.appositive(msg, "Ahmet") is None  # two people: not guessed
+    assert extraction.appositive("Çocukluk arkadaşım Berk avukat.", "Berk") == "çocukluk arkadaşı"
+
+
+def test_time_words_on_the_line_mark_a_change_even_outside_the_quote() -> None:
+    from lazis.bootstrap import analyze
+
+    f = files.read("p.md", "# İş\n2025'ten beri Pusula Yazılım'da çalışıyorum.".encode())
+    sec = f.sections[0]
+    line = files.line_text(sec, "Pusula Yazılım'da çalışıyorum")
+    assert line.startswith("2025'ten beri") and analyze.temporal_words(line)
+    assert not analyze.temporal_words(files.line_text(sec, "yok"))
