@@ -247,10 +247,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--repeats", type=int, default=2)
+    ap.add_argument("--label", default="")
     args = ap.parse_args()
     report = asyncio.run(run(args.model, args.repeats))
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"perf_{re.sub(r'[:/]', '_', args.model)}.json"
+    path = OUT / f"perf_{re.sub(r'[:/]', '_', args.model)}{'_' + args.label if args.label else ''}.json"
     path.write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     print(json.dumps({"offline": report["offline"], **{k: v["summary"] for k, v in report["live"].items()}}))
     print(path)

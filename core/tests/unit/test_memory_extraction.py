@@ -259,12 +259,16 @@ def test_a_relation_to_the_user_written_backwards_is_read_from_the_user() -> Non
     )
     c = back[0].candidate
     assert c.source is None and c.target.name == "Ahmet" and c.type == "cousin"
-    # A type without an inverse cannot be turned around.
+    # A type without an inverse cannot be turned around; the user's own grammar ("Ahmet benim
+    # kuzenim", Phase 7.2) still says what Ahmet is to the user.
     knows, dropped = extraction.validate_relations(
         [relitem(source="Ahmet", type="acquaintance", target="", quote="Ahmet benim kuzenim")],
         [Target("m1", "MSGK", "Ahmet benim kuzenim, beni tanıyor.")],
     )
-    assert knows == [] and dropped == {"self": 1}
+    assert dropped == {"self": 1}
+    assert [(k.candidate.source, k.candidate.type, k.candidate.target.name) for k in knows] == [
+        (None, "cousin", "Ahmet")
+    ]
 
 
 def test_phase6_relationship_items_become_user_relationships() -> None:

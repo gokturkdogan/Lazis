@@ -826,6 +826,55 @@ def stated_group(message: str) -> list[tuple[str, str]]:
     return out
 
 
+_CONNECT = frozenset({"ve", "ile", "de", "da"})
+_MODIFIER_WORDS = frozenset({"eski", "en", "iyi", "yakin", "sevgili", "can"})
+_OWNER = frozenset({"benim", "bizim"})
+
+
+def stated_predicate(message: str) -> list[tuple[str, str, bool]]:
+    """ "Mehmet benim eski iş arkadaşım" / "Ahmet, Mehmet ve Ali benim iş arkadaşlarım": names
+    followed, at the end of a clause, by a first-person relation noun — (type, name, ended)
+    triples ("eski" = the relationship ended). Phase 7.2: the model missed the second name of a
+    pair, and once answered "Mehmet — ex_partner — Mehmet"."""
+    out: list[tuple[str, str, bool]] = []
+    for sentence in re.split(r"[;.!?:]", message):
+        segments = sentence.split(",")
+        for k, seg in enumerate(segments):
+            toks: list[tuple[str, str, bool]] = []  # (folded, raw, has a case ending)
+            for chunk in seg.split():
+                parts = _APOS.split(chunk, maxsplit=1)
+                for raw in _RAW.findall(parts[0]):
+                    toks.append((text.fold(raw), raw, len(parts) > 1))
+            words = [w for w, _, _ in toks]
+            found = next(((i, m) for i in range(len(words))
+                          if (m := relations_vocab.match_at(words, i)) is not None
+                          and i + m[1] == len(words) and relations_vocab.first_person(m[2])),
+                         None)  # fmt: skip
+            if found is None:
+                continue
+            i, m = found
+            j, ended = i, False
+            while j > 0 and words[j - 1] in _MODIFIER_WORDS:
+                ended = ended or words[j - 1] == "eski"
+                j -= 1
+            if j > 0 and words[j - 1] in _OWNER:
+                j -= 1
+            head = [(w, raw, cased) for w, raw, cased in toks[:j] if w not in _CONNECT]
+            # Earlier comma segments that are only names belong to the list ("Ahmet, Mehmet ve …").
+            for prev in reversed(segments[:k]):
+                ptoks = [(text.fold(r), r) for r in _RAW.findall(prev)]
+                if not ptoks or not all(r[:1].isupper() or w in _CONNECT for w, r in ptoks):
+                    break
+                head = [(w, r, False) for w, r in ptoks if w not in _CONNECT] + head
+            if not head or not all(raw[:1].isupper() and not cased for _, raw, cased in head):
+                continue  # only names (and "ve") before it
+            names = [raw for _, raw, _ in head]
+            if (len(names) > 1) != m[2].startswith(("ler", "lar")):
+                continue
+            out += [(m[0], name, ended) for name in names]
+    return out
+
+
 def _stated_type(triples: Sequence[tuple[str, str, str]], src: str, tgt: str) -> str | None:
     """The type the user's "X'in ⟨noun⟩ Y" gives this pair in this direction, if any."""
     for a, k, b in triples:
@@ -1015,6 +1064,7 @@ def validate_relations(
             )
         )
     out = _stated_corrections(out, targets)
+    out = _stated_predicates(out, targets, rels)
     for t in targets:
         mine = {
             (e.candidate.type, text.name_key(e.candidate.target.name))
@@ -1047,6 +1097,45 @@ def validate_relations(
                 target=EntityRef(project, "project"), quote=t.text[:MAX_STATEMENT])))  # fmt: skip
     out += _appositive_relations(out, by_tag)
     return out, dropped
+
+
+def _stated_predicates(
+    found: list[ExtractedRel], targets: Sequence[Target], raw: Sequence[dict[str, Any]]
+) -> list[ExtractedRel]:
+    """ "Ahmet ve Mehmet benim iş arkadaşlarım": the user's grammar gives each name its
+    relationship to the user — when the model's answer (``raw``, before validation dropped
+    anything) mentions one of the names; a list member mentioned lets the whole list in, as for
+    :func:`stated_group`. A reading that makes such a name related to itself is replaced."""
+    out: list[ExtractedRel] = list(found)
+    for t in targets:
+        stated = stated_predicate(t.text[:MAX_TARGET_CHARS])
+        if not stated:
+            continue
+        mentioned = {text.name_key(_str(r, k, 80)) for r in raw if _str(r, "message") == t.tag
+                     for k in ("source", "target")}  # fmt: skip
+        if not any(text.name_key(name) in mentioned for _, name, _ in stated):
+            continue
+        for key, name, ended in stated:
+            nk = text.name_key(name)
+            out = [e for e in out if not _self_relation(e, t.message_id, nk)]
+            if not any(_user_relation(e, t.message_id, nk, key) for e in out):
+                out.append(ExtractedRel(t.message_id, RelCandidate(
+                    type=key, target=EntityRef(name), quote=t.text[:MAX_STATEMENT],
+                    status="ended" if ended else "active")))  # fmt: skip
+    return out
+
+
+def _self_relation(e: ExtractedRel, message_id: str, name_key: str) -> bool:
+    c = e.candidate
+    if e.message_id != message_id or c.source is None:
+        return False
+    return text.name_key(c.source.name) == name_key == text.name_key(c.target.name)
+
+
+def _user_relation(e: ExtractedRel, message_id: str, name_key: str, type_key: str) -> bool:
+    c = e.candidate
+    return (e.message_id == message_id and c.source is None and c.type == type_key
+            and text.name_key(c.target.name) == name_key)  # fmt: skip
 
 
 def _stated_corrections(found: list[ExtractedRel], targets: Sequence[Target]) -> list[ExtractedRel]:

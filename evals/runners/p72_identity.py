@@ -20,7 +20,7 @@ import json
 import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +42,7 @@ class State:
     facts: list[dict[str, Any]]  # every memory: subject id/name/relation, predicate, value
     open_questions: int
     distinct: set[tuple[str, str]]
+    relations: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
 
     def named(self, name: str) -> list[dict[str, Any]]:
         return [p for p in self.people if p["name"] == name]
@@ -76,7 +77,12 @@ def snapshot(p: Profile) -> State:
         inbox = memory_repo.list_inbox(c, status="open", types=("ambiguous_entity",))
         distinct = {(a["id"], b["id"]) for a in people for b in people
                     if a["id"] < b["id"] and gs.are_distinct(c, a["id"], b["id"])}  # fmt: skip
-        return State(people, facts, len(inbox), distinct)
+        rels = []
+        for r in gs.list_relationships(c, limit=500):
+            a, b = names.get(r.source_id), names.get(r.target_id)
+            rels.append({"source": a.name if a else "user", "type": r.type,
+                         "target": b.name if b else "user", "status": r.status})  # fmt: skip
+        return State(people, facts, len(inbox), distinct, rels)
 
     return p.q(read)
 
@@ -197,7 +203,8 @@ CONVERSATIONS: list[Conv] = [
     Conv("c09", "command", [T("Not düş: su faturası her ayın 20'sinde geliyor.")],
          lambda s, t: {"saved": outcome(t, 0) == "saved", "written": bool(s.any_fact("20"))}),
     Conv("c10", "command", [T("Şunu bilmeni istiyorum, unutma: Selin'in kedisinin adı Duman.")],
-         lambda s, t: {"saved": outcome(t, 0) == "saved", "written": bool(s.any_fact("Duman"))}),
+         lambda s, t: {"saved": outcome(t, 0) == "saved", "written": bool(s.any_fact("Duman")) or any(
+             "Duman" in (r["source"], r["target"]) for r in s.relations)}),
     Conv("c11", "command", [T("Elif'in doğum günü 12 Mart."), T("Bunu unutma.")],
          lambda s, t: {"saved": outcome(t, 1) == "saved",
                        "on_elif": s.has_fact("birthday", "12 Mart") == [e["id"] for e in s.named("Elif")]}),
@@ -211,8 +218,11 @@ CONVERSATIONS: list[Conv] = [
          lambda s, t: {"no_request": t[0]["request"] is None, "nothing_written": s.facts == []}),
     Conv("c16", "command", [T("Not al: banka kartımın şifresi 4471.")],
          lambda s, t: {"secret_refused": outcome(t, 0) == "secret_not_stored", "nothing_written": s.facts == []}),
+    # The request fails (the command model's answer is corrupted on purpose): the reply must say
+    # so. Background learning may still learn the statement afterwards (by design, ADR-0015).
     Conv("c17", "command", [T("Lütfen şunu not al: Ece'nin doğum günü 1 Ekim.", broken=True)],
-         lambda s, t: {"failed": outcome(t, 0) == "failed", "nothing_written": s.has_fact("birthday", "1 Ekim") == []}),
+         lambda s, t: {"failed": outcome(t, 0) == "failed", "reply_says_not_saved": "kaydedeme" in
+                       (t[0]["reply"] or "").lower() or "kaydedileme" in (t[0]["reply"] or "").lower()}),
     Conv("c18", "command", [T("Lütfen şunu not al.")],
          lambda s, t: {"nothing_to_save": outcome(t, 0) == "nothing", "nothing_written": s.facts == []}),
     # ----- internal labels and natural replies -----------------------------------------------
@@ -273,9 +283,11 @@ async def run(model: str, only: set[str] | None) -> dict[str, Any]:
             print(f"      U: {x['user']}\n      L: {(x['reply'] or '')[:260]!r} [{x['outcome']}/{x['claim_state']}]",
                   flush=True)  # fmt: skip
         out.append({"id": conv.id, "category": conv.category, "checks": checks, "passed": ok,
+                    "learned_in_background_after_a_failed_request": conv.id == "c17" and bool(
+                        state.has_fact("birthday", "1 Ekim")),
                     "seconds": round(time.monotonic() - started, 1),
-                    "state": {"people": state.people, "facts": state.facts, "open_questions": state.open_questions,
-                              "distinct": sorted(state.distinct)},
+                    "state": {"people": state.people, "facts": state.facts, "relations": state.relations,
+                              "open_questions": state.open_questions, "distinct": sorted(state.distinct)},
                     "turns": turns})  # fmt: skip
     await llm.inner.aclose()
     cats: dict[str, dict[str, int]] = {}

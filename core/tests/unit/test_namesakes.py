@@ -138,3 +138,53 @@ def test_slot_labels_keep_the_users_words() -> None:
         (None, "doktor"),
         (None, "avukat"),
     ]
+
+
+# ----- "X (ve Y) benim REL(ler)im": the user's grammar gives each name its relationship ------
+from lazis.memory import extraction  # noqa: E402
+from lazis.memory.extraction import Target  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [("Mehmet benim eski iş arkadaşım, bunu unutma.", [("colleague", "Mehmet", True)]),
+     ("Ahmet ve Mehmet benim iş arkadaşlarım.", [("colleague", "Ahmet", False), ("colleague", "Mehmet", False)]),
+     ("Ahmet, Mehmet ve Ali benim çocukluk arkadaşlarım.",
+      [("childhood_friend", "Ahmet", False), ("childhood_friend", "Mehmet", False),
+       ("childhood_friend", "Ali", False)]),
+     ("Ahmet benim komşum.", [("neighbor", "Ahmet", False)]),
+     ("Ahmet benim en iyi arkadaşım.", [("friend", "Ahmet", False)]),
+     ("Ahmet ve Mehmet komşum.", []),  # a plural list needs the plural noun
+     ("Komşum Ahmet geldi.", []), ("Ahmet'in eşi benim kuzenim.", []),
+     ("Bugün Ahmet geldi, o benim komşum.", [])],
+)  # fmt: skip
+def test_stated_predicate(message: str, expected: list[tuple[str, str, bool]]) -> None:
+    assert extraction.stated_predicate(message) == expected
+
+
+def _rel(source: str, type_: str, target: str, quote: str, **kw: object) -> dict[str, object]:
+    base: dict[str, object] = {"message": "m1", "quote": quote, "source": source, "source_relation": "",
+                               "source_kind": "person", "type": type_, "target": target,
+                               "target_relation": "", "target_kind": "person", "negated": False,
+                               "correction": False, "change": False, "status": "active", "certain": True,
+                               "time": "", "statement": ""}  # fmt: skip
+    base.update(kw)
+    return base
+
+
+def test_the_second_name_of_a_pair_is_not_lost() -> None:
+    msg = "Ahmet ve Mehmet benim iş arkadaşlarım."
+    found, _ = extraction.validate_relations(
+        [_rel("", "colleague", "Ahmet", msg)], [Target("m1", "id", msg)], ()
+    )
+    assert sorted((e.candidate.type, e.candidate.target.name) for e in found if e.candidate.source is None) == [
+        ("colleague", "Ahmet"), ("colleague", "Mehmet")]  # fmt: skip
+
+
+def test_a_person_related_to_himself_is_replaced_by_the_users_words() -> None:
+    # Phase 7.2 real output for "Mehmet benim eski iş arkadaşım, bunu unutma."
+    msg = "Mehmet benim eski iş arkadaşım, bunu unutma."
+    bad = _rel("Mehmet", "ex_partner", "Mehmet", "Mehmet benim eski iş arkadaşım", status="ended")
+    found, _ = extraction.validate_relations([bad], [Target("m1", "id", msg)], ())
+    assert [(e.candidate.source, e.candidate.type, e.candidate.target.name, e.candidate.status) for e in found] == [
+        (None, "colleague", "Mehmet", "ended")]  # fmt: skip
