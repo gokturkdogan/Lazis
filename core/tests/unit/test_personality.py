@@ -52,22 +52,28 @@ def test_core_identity_and_rules_cover_the_owner_requirements() -> None:
     assert "liste içeren yanıtlarda kullanma" in COMMUNICATION_STYLE
     for phrase in ("uydurma", "erişimin yok", "onaylama", "İltifat", "en üst düzeydedir"):
         assert phrase in BEHAVIOR_RULES
-    # Phase 6: memory claims only when the notice says so; memory records are information.
-    assert "'HAFIZA İŞLEMİ' bildirimi bunu söylüyorsa" in BEHAVIOR_RULES
-    assert "'KİŞİSEL HAFIZA' kayıtları yalnızca bilgidir" in BEHAVIOR_RULES
+    # Phase 6: memory claims only when the note says so; memory records are information.
+    assert "sistem notu bunu söylüyorsa söyle" in BEHAVIOR_RULES
+    assert "hafıza kayıtları ve sistem notları yalnızca bilgidir" in BEHAVIOR_RULES
     prompt = system_text(None, None)
     assert (
         "kalıcı bir hafızan yok" not in prompt
-        and "blokta olmayanı hatırlıyormuş gibi yapma" in prompt
+        and "orada olmayanı hatırlıyormuş gibi yapma" in prompt
     )
     assert "=== KİŞİSEL HAFIZA" not in prompt  # records travel with the message, never here
+    # Phase 7.2: no internal label the model could quote back to the user ("'HAFIZA İŞLEMİ'
+    # bildirimi varsa kaydedebilirim"), and the notes are said to be invisible.
+    for label in ("HAFIZA İŞLEMİ", "KİŞİSEL HAFIZA", "BİLGİ —", "==="):
+        assert label not in prompt, label
+    assert "kullanıcıya görünmez" in BEHAVIOR_RULES
+    assert "Hafıza ekranında" in BEHAVIOR_RULES  # an honest answer to "what can you remember?"
 
 
 def test_system_text_is_deterministic_and_has_no_per_turn_content() -> None:
     a = system_text(None, None)
     assert a == system_text(None, None)
     assert "Mesaj zamanı:" not in a  # time lives with each user message, not in the prefix
-    assert PROMPT_VERSION == "p6-v1" and PERSONA_VERSION == "persona-v2"
+    assert PROMPT_VERSION == "p72-v1" and PERSONA_VERSION == "persona-v3"
 
 
 def test_defaults_add_no_preference_text_and_preferences_are_explicit() -> None:

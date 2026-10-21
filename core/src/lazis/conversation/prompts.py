@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any
 
 # p5-v1: persona v1 layers (lazis.personality, ADR-0013); the summary is a marked BİLGİ block.
-PROMPT_VERSION = "p6-v1"
+PROMPT_VERSION = "p72-v1"
 
 # Conversation rules: how to treat this conversation's own context (history, summary, time
 # notes, gaps). The persona's behavior rules (honesty, no tools, hierarchy) come before them.
@@ -28,10 +28,10 @@ CONVERSATION_RULES = (
     'esas al, "belirsiz" maddeleri kesin sunma.\n'
     "- Mesajların başındaki köşeli parantezli zamanı sistem ekler: tarih ve gün için onu "
     "kullan, yanıtta tekrarlama; yoksa tarihi tahmin etme.\n"
-    "- Sistem, kayıtlı kişisel hafızadan ilgili olanları mesajın başına 'KİŞİSEL HAFIZA' "
-    "bloğu olarak ekler: doğal kullan, blokta olmayanı hatırlıyormuş gibi yapma, şimdi "
-    "söylenenle çelişirse şimdi söyleneni esas al. İlişki sorularında bloktaki 'İlişki "
-    "sorusu' cevabına dayan; orada olmayan bir akrabalık ya da tanışıklık çıkarma.\n"
+    "- Sistem, kayıtlı kişisel hafızadan ilgili olanları mesajın başına ekler: doğal kullan, "
+    "orada olmayanı hatırlıyormuş gibi yapma, şimdi söylenenle çelişirse şimdi söyleneni esas "
+    "al. İlişki sorularında oradaki 'İlişki sorusu' cevabına dayan; orada olmayan bir "
+    "akrabalık ya da tanışıklık çıkarma.\n"
     "- Şifre, PIN, kart ya da kimlik numarasını yanıtında tekrar etme."
 )
 
