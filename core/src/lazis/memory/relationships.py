@@ -146,6 +146,8 @@ def _resolve_end(
     sync_source: tuple[str | None, str | None] = (None, None),
     evidence: str | None = None,
 ) -> _End:
+    if forced is None and ref is not None and ref.planned and ref.ref_id is not None:
+        forced = ref.ref_id  # the user's words decided it (stated namesakes)
     if forced is not None:
         if forced == "new":
             assert ref is not None
@@ -471,8 +473,9 @@ def apply_one(
     if se is None or te is None or not relations.kinds_ok(t, se.kind, te.kind):
         report.drop("kind_mismatch")
         return
+    planned = any(r is not None and r.planned for r in (c.source, c.target))
     if _maybe_a_namesake(
-        conn, c, a, b, forced=forced_source is not None or forced_target is not None
+        conn, c, a, b, forced=forced_source is not None or forced_target is not None or planned
     ):
         # "İş ortağımın adı da Ahmet" with a childhood friend Ahmet stored: the stored Ahmet
         # is known to the user differently — the same person or a namesake? Ask.

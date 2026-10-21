@@ -25,7 +25,7 @@ from lazis.conversation.context import AssembledPrompt, TokenEstimator
 from lazis.conversation.scheduler import BackgroundJob, CacheKey, InferenceScheduler
 from lazis.errors import LazisError, LlmCancelledError, LlmError, LlmInvalidResponseError
 from lazis.ids import utc_now_iso
-from lazis.memory import extraction, orchestrator
+from lazis.memory import extraction, namesakes, orchestrator
 from lazis.memory import repository as memory_repo
 from lazis.memory.extraction import Target
 from lazis.memory.models import ApplyReport, Job
@@ -208,10 +208,15 @@ class Learner:
                 checked.dropped["covered_by_relation"] = covered
 
             def write(c: Connection) -> tuple[dict[str, ApplyReport], dict[str, RelReport]]:
-                # Facts first: the entities they create are then found by the relationships.
-                facts_r = orchestrator.apply_extraction(c, facts, conversation_id=conversation_id)
+                # Namesakes the user stated ("iki Ahmet: biri komşum, diğeri iş arkadaşım") are
+                # planned from the user's words first; then facts (the entities they create are
+                # found by the relationships), then relationships.
+                f, r = facts, rel_accepted
+                for t in targets:
+                    f, r, _ = namesakes.plan(c, t.text, f, r, message_id=t.message_id)
+                facts_r = orchestrator.apply_extraction(c, f, conversation_id=conversation_id)
                 rels_r = orchestrator.apply_relation_extraction(
-                    c, rel_accepted, conversation_id=conversation_id
+                    c, r, conversation_id=conversation_id
                 )
                 return facts_r, rels_r
 

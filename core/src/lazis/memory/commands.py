@@ -24,27 +24,52 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Literal, cast
 
 from lazis.ids import utc_now_iso
-from lazis.memory import extraction, policy, registry, relations, resolver, service, text
+from lazis.memory import (
+    extraction,
+    namesakes,
+    policy,
+    registry,
+    relations,
+    resolver,
+    service,
+    text,
+)
 from lazis.memory import graphstore as gs
 from lazis.memory import relationships as rels
 from lazis.memory import repository as repo
 from lazis.memory.extraction import Target
-from lazis.memory.models import USER_ID, Entity, EntityRef, Memory
+from lazis.memory.models import USER_ID, ApplyReport, Entity, EntityRef, Memory
 from lazis.memory.service import Source
 from lazis.storage.driver import Connection
 from lazis.storage.repositories import write_audit
 from lazis.storage.unit_of_work import UnitOfWork
 
 Intent = Literal[
-    "remember", "forget", "correct", "recall", "confirm", "decline", "same", "different"
+    "remember",
+    "forget",
+    "correct",
+    "recall",
+    "confirm",
+    "decline",
+    "same",
+    "different",
+    "choose",
 ]
 
-NOTICE_START = "=== HAFIZA İŞLEMİ ==="
-NOTICE_END = "=== HAFIZA İŞLEMİ SONU ==="
+# The header says what the note is to the model only; a label the model can quote back
+# ("'HAFIZA İŞLEMİ' bildirimi varsa kaydedebilirim", Phase 7.1) is not in the persona any more.
+NOTICE_START = "=== SİSTEM NOTU (kullanıcıya görünmez) ==="
+NOTICE_END = "=== SİSTEM NOTU SONU ==="
 
 _REMEMBER = re.compile(
-    r"\b(unutma(?:yin|yasin|man)?\b|hatirla(?:sana|r misin|\b)|aklinda (?:tut|olsun)|"
-    r"kaydet|kayit et|not (?:al|et)\b|hafizana|bunu bil\b)"
+    r"\b(unutma(?:yin|yiniz|yasin|man)?\b|unutmani istemiyorum|unutmamani (?:istiyorum|rica)"
+    r"|hatirla(?:sana|yin|r misin|\b)|hatirlamani (?:istiyorum|rica)"
+    r"|aklinda (?:tut|olsun|bulunsun)|aklinin bir kosesinde|bir kenara (?:yaz|not)"
+    r"|kaydet(?!me(?:yin|yiniz|sin)?\b|ti|se[mk]\b|meli(?!sin))"
+    r"|kaydeder misin|kaydedebilir|kaydedin\b|kayit et"
+    r"|kayda (?:gecir|al)|kayit altina al|kaydini tut"
+    r"|not (?:al|et|dus)\b|not (?:al|ed)(?:ir misin|abilir|ebilir|in|iniz|sana|sene)\b"
+    r"|not etsene|hafizana|bunu bil\b)"
 )
 _FORGET = re.compile(
     r"\b(unut(?:\b|ur mu|abilir|mani|sana|un\b)|hafizandan|kaydini sil|kayitlarini sil|"
@@ -94,8 +119,9 @@ def contains_secret(message: str) -> bool:
 
 
 def detect(message: str, *, pending_confirmation: bool = False) -> Intent | None:
-    """Stage 1: does this message look like a memory request? (Liberal: stage 2 decides.)"""
-    folded = " ".join(text.words(message))
+    """Stage 1: does this message look like a memory request? (Liberal: stage 2 decides.)
+    Text the user quotes is not a request ("'Bunu not al' ifadesini İngilizceye çevir")."""
+    folded = " ".join(text.words(extraction.users_own_words(message)))
     if pending_confirmation:
         if _CONFIRM.search(folded):
             return "confirm"
@@ -168,6 +194,76 @@ boş), forget_value: unutulacak değer (biliniyorsa).
 Öğe alanları: message (her zaman "m1"), quote, entity, relation, predicate, value, statement \
 (tek cümle, üçüncü şahıs), change, replaces, certain, sensitive, importance.
 JSON'u tek satırda, girintisiz yaz."""
+
+
+# remember: the same instruction as background learning (measured on the Phase 6 gold set),
+# with the request stated. The command instruction above produced unusable items for plain
+# requests (Phase 7.2: "Burak'ın düğünü haziranda" → predicate "device", nothing saved).
+REMEMBER_NOTE = """\
+Bu bir AÇIK KAYIT İSTEĞİ olabilir: kullanıcı bir bilgiyi hafızaya kaydetmemi istiyor ("bunu \
+unutma", "not al", "kaydet", "aklında tut", "hatırla").
+- action="remember": kaydedilmesini istediği bilgiyi aşağıdaki kurallarla items ve relations \
+olarak çıkar. İstek kalıbı ("lütfen şunu not al", "bunu unutma") bilgi değildir; quote bilginin \
+kendisinden alınır. Kural 2 burada yalnızca istek kalıbı için geçerlidir.
+- action="none": mesaj aslında hafıza isteği değilse (metin ya da not hazırlatma, çeviri, bir \
+uygulama ya da düğme hakkında konuşma); items ve relations boş."""
+
+
+# "Ahmet'in doğum günü 5 Mayıs." → "Bunu unutma.": the request came after the message.
+REMEMBER_PREVIOUS_NOTE = """\
+Bu bir AÇIK KAYIT İSTEĞİDİR: kullanıcı aşağıdaki mesajını yazdıktan sonra "bunu unutma / not \
+al / kaydet" diyerek bu mesajdaki bilgiyi hafızaya kaydetmemi istedi. action="remember"; \
+mesajdaki kalıcı bilgiyi aşağıdaki kurallarla items ve relations olarak çıkar (kaydedilecek \
+bilgi yoksa items boş)."""
+
+
+def remember_instruction(message: str, ctx: Any, *, previous: bool = False) -> str:
+    """``ctx``: :class:`lazis.memory.orchestrator.ExtractionContext` for this message;
+    ``previous``: the message is the one before a bare "bunu unutma"."""
+    return extraction.build_instruction(
+        [Target("m1", "", message)],
+        known=ctx.known,
+        user_facts=ctx.user_facts,
+        forgotten=ctx.forgotten,
+        questions=ctx.questions,
+        request_note=REMEMBER_PREVIOUS_NOTE if previous else REMEMBER_NOTE,
+    )
+
+
+def remember_schema() -> dict[str, Any]:
+    base = extraction.schema()
+    props = {"action": {"type": "string", "enum": ["none", "remember"]}, **base["properties"]}
+    return {**base, "properties": props, "required": list(props)}
+
+
+def parse_remember(raw: str) -> Command | None:
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(data, dict) or cast(dict[str, Any], data).get("action") not in (
+        "none",
+        "remember",
+    ):
+        return None
+    items = extraction.parse(raw) or []
+    action = cast(dict[str, Any], data)["action"]
+    return Command(action=action, items=tuple(items),
+                   relations=tuple(extraction.parse_relations(raw)))  # fmt: skip
+
+
+_CUE_WORDS = frozenset(
+    {"bunu", "sunu", "bu", "su", "bilgiyi", "bunlari", "lutfen", "efendim", "lazis", "de",
+     "da", "ve", "tamam", "peki", "olur", "mu", "mi", "misin", "musun", "simdi", "hemen",
+     "ileride", "istiyorum", "istemiyorum", "rica", "ederim", "ediyorum", "sakin"}
+)  # fmt: skip
+
+
+def cue_only(message: str) -> bool:
+    """ "Bunu unutma." — a request whose content is the previous message."""
+    folded = " ".join(text.words(message))
+    rest = _REMEMBER.sub(" ", folded)
+    return len([w for w in rest.split() if w not in _CUE_WORDS]) == 0
 
 
 def instruction(message: str) -> str:
@@ -262,14 +358,14 @@ class Outcome:
     kind: Literal[
         "saved", "corrected", "forgotten", "confirm_needed", "ambiguous", "not_found",
         "refused", "nothing", "failed", "declined", "untrusted_model", "secret_not_stored",
-        "merged", "distinguished",
+        "merged", "distinguished", "cancelled",
     ]  # fmt: skip
     lines: list[str] = field(default_factory=list[str])
     counts: dict[str, int] = field(default_factory=dict[str, int])
 
     def notice(self) -> str:
         body = {
-            "saved": "Kaydedildi (veritabanına yazıldı):",
+            "saved": "Kaydedildi (hafızaya yazıldı):",
             "corrected": "Düzeltildi (eski bilgi geçmişte tutuluyor):",
             "forgotten": "Silindi (hafızadan, aramadan ve geçmiş sürümlerden kaldırıldı):",
             "confirm_needed": "Henüz silinmedi — kullanıcının onayı gerekiyor:",
@@ -278,7 +374,7 @@ class Outcome:
             "refused": "Kaydedilmedi:",
             "nothing": "Bu mesajda kaydedilecek ya da silinecek bir bilgi bulunamadı; hafıza "
             "değişmedi.",
-            "failed": "Hafıza işlemi teknik bir hata nedeniyle yapılamadı; hafıza değişmedi.",
+            "failed": "Kayıt ya da silme şu anda yapılamadı (teknik bir sorun); hafıza değişmedi.",
             "declined": "Silme iptal edildi; hiçbir şey silinmedi.",
             "untrusted_model": "Şu anki yedek model hafızaya yazamaz; hafıza değişmedi. "
             "Kullanıcı ana modele dönebilir ya da Hafıza ekranını kullanabilir.",
@@ -286,6 +382,8 @@ class Outcome:
             "kimlik numarası) hafızaya kaydedilmedi ve kaydedilmeyecek (güvenlik kuralı).",
             "merged": "Birleştirildi (iki kayıt artık tek kişi; eski hâli geçmişte tutuluyor):",
             "distinguished": "Kaydedildi: bunlar farklı kişiler; bir daha karıştırılmayacak:",
+            "cancelled": "Bekleyen kayıt kullanıcının isteğiyle iptal edildi; hiçbir şey "
+            "kaydedilmedi.",
         }[self.kind]
         rules = {
             "saved": "Yalnızca bu bildirimde kaydedildiği yazanlar için 'kaydettim' de.",
@@ -294,18 +392,21 @@ class Outcome:
             "mesajlar ve yedekler bu işlemle silinmez (onlar ayrı tutulur). Silinen bilgiyi "
             "tekrar etme.",
             "confirm_needed": "Silmeden önce kullanıcıdan açıkça onay iste (evet/hayır).",
-            "ambiguous": "Hangisini kastettiğini sor.",
+            "ambiguous": "Hangisini kastettiğini seçenekleri sayarak sor (ör. 'Hangi Ahmet'ten "
+            "bahsediyorsunuz efendim? Komşunuz olan mı, iş arkadaşınız olan mı?').",
             "not_found": "Kayıt bulamadığını söyle; unuttum deme.",
             "refused": "Neden kaydedilmediğini kısaca açıkla; kaydettim ya da not aldım deme.",
             "nothing": "Kaydettim, not aldım, not ettim ya da unuttum deme; neyi kaydetmemi "
             "istediğini sorabilirsin.",
-            "failed": "Kaydettim, not aldım ya da unuttum deme; işlemin yapılamadığını söyle.",
+            "failed": "Kaydettim, not aldım ya da unuttum deme; bunu şu anda yapamadığını kısaca "
+            "ve doğal bir dille söyle (ör. 'Bunu şu anda kaydedemedim efendim').",
             "declined": "Silmediğini söyle.",
             "untrusted_model": "Kaydettim, not aldım ya da unuttum deme.",
             "secret_not_stored": "Kaydettim ya da not aldım deme; gizli bilgiyi yanıtında tekrar "
             "etme. Gerekirse bunun için bir parola yöneticisi önerebilirsin.",
             "merged": "Birleştirdiğini kısaca söyle.",
             "distinguished": "Bunları ayrı kişiler olarak tuttuğunu kısaca söyle.",
+            "cancelled": "Kaydetmediğini kısaca söyle.",
         }[self.kind]
         lines = [NOTICE_START, body, *(f"- {_safe(x)}" for x in self.lines), rules, NOTICE_END]
         return "\n".join(lines)
@@ -340,10 +441,23 @@ def apply_items(
 
     known = extraction_context(conn, [target]).known
     checked = extraction.validate(cmd.items, [target])
+    if cmd.action == "remember" and not checked.accepted and cmd.items:
+        # An explicit request is not dropped for a wrong predicate: the user's words (the
+        # quote is still checked) are kept as a note about the same subject.
+        notes = extraction.validate([{**i, "predicate": "note"} for i in cmd.items], [target])
+        if notes.accepted:
+            notes.dropped.update({f"as_note_{k}": v for k, v in checked.dropped.items()})
+            checked = notes
     facts, from_items = extraction.relation_items(checked.accepted)
     found, rel_dropped = extraction.validate_relations(cmd.relations, [target], known)
     facts, _ = extraction.covered_by_relations(facts, [*from_items, *found])
     facts += extraction.facts_from_relations(facts, [*from_items, *found])
+    # Namesakes the user states ("iki Ahmet: biri komşum, diğeri iş arkadaşım"): planned from
+    # the user's words before anything is resolved (ADR-0018).
+    facts, rel_all, _ = namesakes.plan(
+        conn, message, facts, [*from_items, *found], message_id=message_id,
+        kind="user_request", actor="user",
+    )  # fmt: skip
     checked = replace(checked, accepted=facts)
     candidates = [
         replace(
@@ -363,7 +477,7 @@ def apply_items(
         replace(e.candidate, origin="requested",
                 correction=e.candidate.correction or (cmd.action == "correct"
                                                       and not e.candidate.negated))
-        for e in [*from_items, *found]
+        for e in rel_all
     ]  # fmt: skip
     rel_report = rels.apply_relations(
         conn,
@@ -379,7 +493,7 @@ def apply_items(
     inbox = report.inbox + rel_report.inbox
     if inbox:
         items = [repo.get_inbox(conn, i) for i in inbox]
-        labels = [i.summary for i in items if i is not None]
+        labels = [question_text(i) for i in items if i is not None]
         if not lines:
             return Outcome("ambiguous", labels, {"inbox": len(labels)})
     if lines:
@@ -393,6 +507,12 @@ def apply_items(
     if refused:
         return Outcome("refused", refused, {"refused": sum(reasons.values())})
     return Outcome("nothing")
+
+
+def question_text(item: Any) -> str:
+    """A "which Ahmet?" inbox item as the notice line: the question and its options."""
+    options = [str(o.get("label", "")) for o in item.payload.get("options", []) if o.get("label")]
+    return f"{item.summary} (seçenekler: {'; '.join(options)})" if options else item.summary
 
 
 def _relation_lines(conn: Connection, report: rels.RelReport) -> list[str]:
@@ -621,6 +741,171 @@ def decline(conn: Connection, item_id: str) -> Outcome:
             conn, item_id, status="dismissed", resolution="declined", now=utc_now_iso()
         )
     return Outcome("declined")
+
+
+# ----- "which Ahmet?" answered in chat (deterministic, no model; Phase 7.2) -------------------
+QUESTION_MAX_AGE_S = 30 * 60  # an older open question is left to the memory screen
+_ANSWER_FILLER = frozenset(
+    {"olan", "o", "ki", "benim", "bizim", "efendim", "evet", "tabii", "tabi", "yani", "hani",
+     "mi", "mu", "de", "da", "kastettim", "kastediyorum", "diyorum", "dedim", "tabiki", "elbette",
+     "bahsediyorum", "bahsettim", "olani", "olanı", "in", "un", "nin", "nun", "ile", "su", "bu"}
+)  # fmt: skip
+_CANCEL = re.compile(
+    r"^(?:vazgec|vazgectim|bosver|bos ver|iptal|kaydetme|hicbiri|hic biri|ikisi de degil|"
+    r"hicbirine|unut gitsin)\b"
+)
+_MAX_ANSWER_WORDS = 7
+
+
+def open_question(conn: Connection, conversation_id: str, *, now: str) -> Any | None:
+    """The latest open "which X?" question of this conversation, if it is recent."""
+    from datetime import datetime
+
+    best = None
+    for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
+        if item.conversation_id != conversation_id or not item.payload.get("options"):
+            continue
+        try:
+            age = (
+                datetime.fromisoformat(now) - datetime.fromisoformat(item.created_at)
+            ).total_seconds()
+        except ValueError:
+            continue
+        if age > QUESTION_MAX_AGE_S:
+            continue
+        if best is None or item.created_at > best.created_at:
+            best = item
+    return best
+
+
+def _descriptors(conn: Connection, entity_id: str) -> tuple[set[str], set[str]]:
+    """(relationship types to the user, folded words) that tell this namesake apart."""
+    ent = repo.get_entity(conn, entity_id)
+    if ent is None:
+        return set(), set()
+    types = {
+        r.type
+        for r in gs.relationships_between(conn, USER_ID, entity_id, statuses=("active", "planned"))
+        if r.source_id == USER_ID
+    }
+    words: set[str] = set()
+    for phrase in (ent.relation, ent.description):
+        if phrase:
+            words.update(text.words(phrase))
+            if (k := relations.lexicon(phrase)) is not None:
+                types.add(k)
+    for m in repo.memories_for_subject(conn, entity_id):
+        p = registry.get(m.predicate)
+        if p is not None and p.cardinality == "single" and m.sensitivity != "sensitive":
+            words.update(text.words(m.value))
+    for t in types:
+        if t in relations.TYPES:
+            words.update(text.words(relations.TYPES[t].label))
+    return types, words
+
+
+def choice_for(conn: Connection, item: Any, message: str) -> str | None:
+    """The option a short answer picks ("Komşum olan.", "öğretmen olan Mehmet"), "dismiss"
+    for "vazgeç", "again" when it fits several, None when the message is not an answer."""
+    words = text.words(message)
+    if not words or len(words) > _MAX_ANSWER_WORDS:
+        return None
+    folded = " ".join(words)
+    if _CANCEL.search(folded):
+        return "dismiss"
+    ent: dict[str, Any] = item.payload.get("candidate", {}).get("entity") or {}
+    name_words = set(text.words(str(ent.get("name", ""))))
+    content = [w for w in words if w not in _ANSWER_FILLER and w not in name_words]
+    if not content:
+        return None
+    said_type = relations.lexicon(" ".join(content))
+    fits: list[str] = []
+    for opt in item.payload.get("options", []):
+        oid = str(opt.get("id", ""))
+        types, descr = _descriptors(conn, oid)
+        stems = {text.stem_prefix(d) for d in descr}
+        covered = all(
+            any(text.stem_prefix(w) == s or w.startswith(s) or s.startswith(text.stem_prefix(w))
+                for s in stems)
+            for w in content
+        )  # fmt: skip
+        if (said_type is not None and said_type in types) or covered:
+            fits.append(oid)
+    if len(fits) == 1:
+        return fits[0]
+    return "again" if len(fits) > 1 else None
+
+
+def choose(conn: Connection, item: Any, choice: str) -> Outcome:
+    """Apply the answer to a "which X?" question (as the memory screen does)."""
+    if choice == "again":
+        return Outcome("ambiguous", [question_text(item)], {"inbox": 1})
+    if choice == "dismiss":
+        service.resolve_inbox(conn, item.id, "dismiss")
+        return Outcome("cancelled", [], {"cancelled": 1})
+    label = next((str(o.get("label")) for o in item.payload.get("options", [])
+                  if str(o.get("id")) == choice), "")  # fmt: skip
+    report = service.resolve_inbox(conn, item.id, choice)
+    saved = [m for m in (repo.get_memory(conn, i) for i in report.created + report.updated) if m]
+    lines = [m.content for m in saved]
+    if not lines:
+        statement = str(item.payload.get("candidate", {}).get("statement", ""))
+        lines = [f"{statement} ({label})"] if statement else [label]
+    return Outcome("saved", lines, {"saved": len(saved) or 1})
+
+
+_REDIRECT = re.compile(
+    r"^(?:hayir|yanlis|yok|degil)\b"
+    r"|\b(?:digeri|digerinin|oburu|oburunun|oteki|yanlis kisi|o degil)\b"
+)
+
+
+def redirect_choice(
+    conn: Connection, payload: dict[str, Any], chosen: str, message: str
+) -> str | None:
+    """Right after a "which Ahmet?" answer: "Hayır, iş arkadaşım olan." / "Diğeri." → the
+    option the user meant instead, or None."""
+    folded = " ".join(text.words(message))
+    if not _REDIRECT.search(folded):
+        return None
+    others = [str(o.get("id")) for o in payload.get("options", []) if str(o.get("id")) != chosen]
+    stripped = _REDIRECT.sub(" ", folded)
+    pick = choice_for(conn, _Item(payload), stripped) if stripped.strip() else None
+    if pick in others:
+        return pick
+    if pick is None and len(others) == 1 and re.search(r"\b(?:digeri|oburu|oteki)", folded):
+        return others[0]
+    return None
+
+
+@dataclass(frozen=True)
+class _Item:
+    payload: dict[str, Any]
+
+
+def redirect(conn: Connection, payload: dict[str, Any], wrong: str, right: str) -> Outcome:
+    """Move a fact saved for the wrong namesake to the one the user meant (one change set for
+    the removal, one for the new record; both in the history)."""
+    if payload.get("target") == "relationship" or "predicate" not in payload.get("candidate", {}):
+        return Outcome("nothing")
+    c = service.candidate_from_json(payload["candidate"])
+    key = text.fold(c.value).strip()
+    old = [m.id for m in repo.memories_for_subject(conn, wrong)
+           if m.predicate == c.predicate and text.fold(m.value).strip() == key]  # fmt: skip
+    if old:
+        service.forget_memories(conn, old)
+    report = ApplyReport()
+    now = utc_now_iso()
+    with UnitOfWork(conn, kind="user_request", actor="user", summary="kişi düzeltmesi") as uow:
+        service.apply_one(conn, uow, c, source=Source("confirmation", None, None), explicit=True,
+                          report=report, now=now, forced_subject=(right,))  # fmt: skip
+    labels = {str(o.get("id")): str(o.get("label")) for o in payload.get("options", [])}
+    return Outcome(
+        "corrected",
+        [f"{c.statement} → {labels.get(right, '')} (önce yanlışlıkla {labels.get(wrong, '')} "
+         "için kaydedilmişti; oradan kaldırıldı)"],
+        {"saved": len(report.created + report.updated), "forgotten": len(old)},
+    )  # fmt: skip
 
 
 # ----- identity: "aynı kişi" / "farklı kişiler" (deterministic, no model) -----------------------

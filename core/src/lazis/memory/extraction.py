@@ -161,9 +161,11 @@ def build_instruction(
     user_facts: Sequence[str] = (),
     forgotten: Sequence[str] = (),
     questions: Sequence[str] = (),
+    request_note: str = "",
 ) -> str:
     parts = [
         RULES,
+        *(["", request_note] if request_note else []),
         "",
         predicates_for_prompt(),
         "",
@@ -393,6 +395,10 @@ def validate(
             continue
         name = _str(item, "entity", 80)
         key = text.name_key(name)
+        # A subject that is a thing, not a name ("kira", "araba sigortası"): never one of the
+        # user's own profile facts — kept as the user's note (Phase 7.2: "kira — technology"
+        # and "araba sigortası — birthday: mart" were written as the user's).
+        thing = bool(name) and key not in _SELF and not name[0].isupper()
         if key in _SELF or (name and not name[0].isupper()):
             # Not a person or project name ("kızının okulu", "Kullanıcı"): about the user.
             name, key = "", ""
@@ -440,6 +446,13 @@ def validate(
             pred = registry.PREDICATES["relationship"]  # "Ahmet — family: arkadaş" is a relation
         if policy.contact_detected(value) and pred.key != "contact":
             pred = registry.PREDICATES["contact"]  # a phone number or e-mail address
+        if ref is None and pred.key not in _NOTE_EXEMPT and (
+            thing or (pred.cardinality == "single" and pred.kind == "profile"
+                      and not _first_person(users_own_words(target.text)))
+        ):  # fmt: skip
+            # The user's birthday, city or job needs the user in the message ("doğum günüm");
+            # "sigortası mart ayında bitiyor" is not the user's birthday.
+            pred = registry.PREDICATES["note"]
         if subject_kind not in pred.subjects:
             out.drop("subject_mismatch")
             continue
@@ -471,6 +484,25 @@ def validate(
                 )
             )
     return out
+
+
+_NOTE_EXEMPT = frozenset(
+    {"note", "family", "relationship", "contact", "health", "finance", "address"}
+)
+_FIRST_PERSON_ANY = re.compile(r"(?:im|um|yim|yum|iz|uz)$")
+# Nouns that only look like a first person ending ("doğum günü 5 Mayıs" is nobody's yet).
+_NOT_FIRST_PERSON = frozenset(
+    {"dogum", "durum", "konum", "yorum", "kurum", "bilim", "resim", "isim", "kisim", "egitim",
+     "iletisim", "yonetim", "teslim", "deniz", "yildiz", "kiz", "yuz", "sekiz", "dokuz", "otuz",
+     "kuz", "siz", "hiz", "tuz", "domuz", "boyuz"}
+)  # fmt: skip
+
+
+def _first_person(message: str) -> bool:
+    """Looser than :func:`mentions_user`: any first person word ("adım", "günüm")."""
+    words = [w for w in text.words(message) if w not in _NOT_FIRST_PERSON]
+    return any(w in _FIRST_PERSON_WORDS or (len(w) >= 3 and _FIRST_PERSON_ANY.search(w))
+               for w in words) or mentions_user(" ".join(words))  # fmt: skip
 
 
 def _grounded(phrase: str, texts: Sequence[str]) -> bool:

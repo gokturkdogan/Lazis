@@ -132,7 +132,7 @@ def test_remembering_a_relationship_says_what_was_written(
     llm, _ = run(storage, tmp_path, lambda r: cmd, msg)
     assert relationships(storage) == [("Ahmet", "sibling", "Mehmet", "active")]
     prompt = last_user(llm.chat_requests[0])
-    assert "Kaydedildi (veritabanına yazıldı):\n- Mehmet: Ahmet'in kardeşi" in prompt
+    assert "Kaydedildi (hafızaya yazıldı):\n- Mehmet: Ahmet'in kardeşi" in prompt
     assert "İlişki türleri (type):" in llm.command_requests[0].messages[-1].content
 
 

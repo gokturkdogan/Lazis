@@ -80,6 +80,7 @@ from lazis.memory import (
     extraction,
     graphstore,
     importer,
+    orchestrator,
     relationships,
     retrieval,
 )
@@ -288,6 +289,9 @@ class ConversationEngine:
         self.graph_backfill: dict[str, int] | None = None
         # Diagnostics only: numbers and states, never message content.
         self.prewarm_status: dict[str, Any] = {"state": "idle"}
+        # The last "which Ahmet?" answered in chat, per conversation (in memory only: a
+        # correction right after it moves the fact; after a restart it takes the normal path).
+        self._last_choice: dict[str, tuple[dict[str, Any], str, float]] = {}
         self.last_turn: dict[str, Any] | None = None
 
     # ----- lifecycle -------------------------------------------------------------------
@@ -1177,7 +1181,33 @@ class ConversationEngine:
         cue check (no model call)."""
         user, conv = handle.user, handle.conversation
         pending = await self._q(lambda c: commands.pending_confirmation(c, conv.id))
-        intent = commands.detect(user.content, pending_confirmation=pending is not None)
+        # An answer to an open "which Ahmet?" question ("Komşum olan.") completes the waiting
+        # record here, deterministically — the user does not repeat the whole sentence.
+        question, choice, moved = None, None, None
+        if pending is None:
+            now = utc_now_iso()
+            question = await self._q(lambda c: commands.open_question(c, conv.id, now=now))
+            if question is not None:
+                q = question
+                choice = await self._q(lambda c: commands.choice_for(c, q, user.content))
+            last = self._last_choice.get(conv.id)
+            if (
+                choice is None
+                and last is not None
+                and time.monotonic() - last[2] < (commands.QUESTION_MAX_AGE_S)
+            ):
+                # "Hayır, iş arkadaşım olan." right after an answer: the other namesake.
+                payload, chosen, _ = last
+                right = await self._q(
+                    lambda c: commands.redirect_choice(c, payload, chosen, user.content)
+                )
+                if right is not None:
+                    moved = (payload, chosen, right)
+        intent: commands.Intent | None
+        if choice is not None or moved is not None:
+            intent = "choose"
+        else:
+            intent = commands.detect(user.content, pending_confirmation=pending is not None)
         if commands.contains_secret(user.content) and intent in (None, "remember", "correct"):
             # Deterministic: a secret is never stored, and the reply must not claim otherwise
             # or repeat it (no model call needed to know that).
@@ -1193,7 +1223,18 @@ class ConversationEngine:
         await self._stage(handle, "memory")
         started = time.monotonic()
         outcome: commands.Outcome | None
-        if not learning.is_trusted(self._memory, model):
+        if intent == "choose" and moved is not None:
+            payload, wrong, right = moved
+            outcome = await self._q(lambda c: commands.redirect(c, payload, wrong, right))
+            if outcome.kind == "corrected":
+                self._last_choice[conv.id] = (payload, right, time.monotonic())
+        elif intent == "choose" and question is not None and choice is not None:
+            # The user's own decision (as in the memory screen): no model involved.
+            q, ch = question, choice
+            outcome = await self._q(lambda c: commands.choose(c, q, ch))
+            if outcome.kind == "saved":
+                self._last_choice[conv.id] = (dict(q.payload), ch, time.monotonic())
+        elif not learning.is_trusted(self._memory, model):
             outcome = commands.Outcome("untrusted_model")
         else:
             try:
@@ -1228,8 +1269,10 @@ class ConversationEngine:
             "declined",
             "merged",
             "distinguished",
-        ):
-            # Handled here: the background job must not process the same request again.
+            "cancelled",
+        ) or (outcome.kind == "ambiguous" and intent in ("remember", "choose")):
+            # Handled here: the background job must not process the same request again (an
+            # ambiguous one waits in the inbox already).
             await self._q(lambda c: commands.skip_job(c, user.id))
         log_event(
             _log,
@@ -1252,15 +1295,35 @@ class ConversationEngine:
         built: AssembledPrompt,
     ) -> commands.Outcome | None:
         user, conv = handle.user, handle.conversation
+        remember = handle.memory_intent == "remember"
+        # "Bunu unutma." alone: what to keep is the user's previous message.
+        content_id, content = user.id, user.content
+        if remember and commands.cue_only(user.content):
+            prev = [m for m in loaded.window if m.role == "user" and m.seq < user.seq][-1:]
+            if not prev:
+                return commands.Outcome("nothing")  # "Bunu unutma." with nothing before it
+            content_id, content = prev[0].id, prev[0].content
+        if remember:
+            target = extraction.Target("m1", content_id, content)
+            ctx = await self._q(
+                lambda c: orchestrator.extraction_context(c, [target], conversation_id=conv.id)
+            )
+            instruction = commands.remember_instruction(
+                content, ctx, previous=content_id != user.id
+            )
+            schema, max_tokens = commands.remember_schema(), self._memory.extraction_max_tokens
+        else:
+            instruction, schema, max_tokens = (
+                commands.instruction(user.content),
+                commands.schema(),
+                400,
+            )
         # On the cached prefix (everything before this message), plus one instruction.
         rid = f"{handle.request_id}-memory"
         request = ChatRequest(
             model=model,
-            messages=[
-                *built.messages[:-1],
-                ChatMessage("user", commands.instruction(user.content)),
-            ],
-            options=self._options(400, temperature=0.0, seed=7, response_format=commands.schema()),
+            messages=[*built.messages[:-1], ChatMessage("user", instruction)],
+            options=self._options(max_tokens, temperature=0.0, seed=7, response_format=schema),
             request_id=rid,
         )
         handle.active_request_id = rid
@@ -1276,7 +1339,7 @@ class ConversationEngine:
         self.scheduler.cache = CacheKey(
             model, self.num_ctx, conv.id, built.prefix_hash, max(prior) if prior else 0
         )
-        cmd = commands.parse(raw)
+        cmd = commands.parse_remember(raw) if remember else commands.parse(raw)
         if (
             cmd is None
             and handle.memory_intent == "correct"
@@ -1290,9 +1353,11 @@ class ConversationEngine:
         if cmd.action == "none":
             return None
         if cmd.action in ("remember", "correct"):
+            if content_id != user.id:
+                await self._q(lambda c: commands.skip_job(c, content_id))
             return await self._q(
                 lambda c: commands.apply_items(
-                    c, cmd, message_id=user.id, message=user.content, conversation_id=conv.id
+                    c, cmd, message_id=content_id, message=content, conversation_id=conv.id
                 )
             )
         recent = [m.id for m in loaded.window if m.role == "user" and m.seq < user.seq][-1:]

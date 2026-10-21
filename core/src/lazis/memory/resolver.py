@@ -60,6 +60,8 @@ def resolve(ref: EntityRef, candidates: Sequence[Entity]) -> Resolution:
     if not pool:
         return Resolution("new", reason="no_match")
     by_id = {e.id: e for e in pool}
+    if ref.planned and ref.ref_id is not None and ref.ref_id in by_id:
+        return Resolution("existing", ref.ref_id, reason="planned")
     if ref.ref_id is not None and ref.ref_id in by_id:
         picked = by_id[ref.ref_id]
         if relation_compatible(ref.relation, picked.relation):

@@ -110,6 +110,9 @@ class EntityRef:
     kind: EntityKind = "person"
     relation: str | None = None
     ref_id: str | None = None  # an id the extractor picked from the candidates it was shown
+    # ``ref_id`` decided by the user's own words (namesakes stated in the message, Phase 7.2):
+    # taken as it is, never re-resolved or asked.
+    planned: bool = False
 
 
 @dataclass(frozen=True)

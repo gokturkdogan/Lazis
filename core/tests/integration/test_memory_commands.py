@@ -109,7 +109,7 @@ def test_remember_is_written_before_the_reply_claims_it(
     reply_prompt = last_user(llm.chat_requests[0])
     assert reply_prompt.startswith(commands.NOTICE_START)
     assert (
-        "Kaydedildi (veritabanına yazıldı):\n- Kullanıcının yarın saat 10'da dişçi randevusu var."
+        "Kaydedildi (hafızaya yazıldı):\n- Kullanıcının yarın saat 10'da dişçi randevusu var."
         in reply_prompt
     )
     assert reply_prompt.endswith(msg)
@@ -216,7 +216,7 @@ def test_a_failed_request_is_reported_not_claimed(tmp_path: Path, storage: Stora
     )
     assert events[0][-1]["type"] == "done"  # the reply still comes
     notice = last_user(llm.chat_requests[0])
-    assert "teknik bir hata nedeniyle yapılamadı" in notice and saved(storage) == []
+    assert "şu anda yapılamadı (teknik bir sorun)" in notice and saved(storage) == []
 
 
 def test_what_do_you_know_needs_no_model_call(tmp_path: Path, storage: StorageHandle) -> None:
@@ -253,10 +253,18 @@ def test_a_named_topic_is_forgotten_with_its_history(
 
 def test_nothing_to_save_keeps_the_background_job(tmp_path: Path, storage: StorageHandle) -> None:
     cmd = answer("remember", items=[item("note", "x", "x", "metinde olmayan alıntı")])
-    llm, _ = run(storage, tmp_path, lambda r: cmd, "Bunu unutma lütfen.")
-    assert "kaydettim ya da not aldım deme" in last_user(llm.chat_requests[0])
+    llm, _ = run(storage, tmp_path, lambda r: cmd, "Bunu unutma: anahtarlar çekmecede.")
+    assert "kaydettim ya da not aldım deme" in last_user(llm.chat_requests[0])  # refused
     counts = storage.db.run_sync(lambda c: memory_repo.job_counts(c))
     assert "skipped" not in counts and sum(counts.values()) == 1  # still learned in the background
+
+
+def test_a_bare_request_with_nothing_before_it_asks_what_to_keep(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    llm, _ = run(storage, tmp_path, lambda r: answer("remember"), "Bunu unutma lütfen.")
+    assert llm.command_requests == []  # nothing to read: no model call
+    assert "neyi kaydetmemi istediğini sorabilirsin" in last_user(llm.chat_requests[0])
 
 
 def test_a_database_write_failure_is_reported_not_claimed(
@@ -273,7 +281,7 @@ def test_a_database_write_failure_is_reported_not_claimed(
     assert events[0][-1]["type"] == "done"
     notice = last_user(llm.chat_requests[0])
     assert (
-        "teknik bir hata nedeniyle yapılamadı" in notice
+        "şu anda yapılamadı (teknik bir sorun)" in notice
         and "Kaydettim, not aldım ya da unuttum deme" in notice
     )
 

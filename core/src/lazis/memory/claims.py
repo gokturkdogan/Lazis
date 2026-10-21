@@ -54,6 +54,7 @@ class ClaimState(StrEnum):
     SAVE_SUCCEEDED = "save_succeeded"
     SAVE_FAILED = "save_failed"
     SAVE_PENDING = "save_pending"
+    SAVE_CANCELLED = "save_cancelled"  # a waiting save the user called off ("vazgeç")
     DELETE_SUCCEEDED = "delete_succeeded"
     DELETE_FAILED = "delete_failed"
     DELETE_PENDING = "delete_pending"
@@ -61,7 +62,17 @@ class ClaimState(StrEnum):
     UPDATE_FAILED = "update_failed"
 
 
-_REQUESTS = ("remember", "correct", "forget", "confirm", "decline", "same", "different", "secret")
+_REQUESTS = (
+    "remember",
+    "correct",
+    "forget",
+    "confirm",
+    "decline",
+    "same",
+    "different",
+    "secret",
+    "choose",
+)
 
 
 def state_for(
@@ -77,6 +88,8 @@ def state_for(
             return ClaimState.UPDATE_SUCCEEDED
         if outcome == "forgotten":
             return ClaimState.DELETE_SUCCEEDED
+        if outcome == "cancelled":
+            return ClaimState.SAVE_CANCELLED
         deleting = intent in ("forget", "confirm", "decline")
         if outcome in ("confirm_needed", "ambiguous"):
             return ClaimState.DELETE_PENDING if deleting else ClaimState.SAVE_PENDING
@@ -101,6 +114,7 @@ _REPLACEMENT: dict[tuple[ClaimState, str], str] = {
     (ClaimState.SAVE_FAILED, "save"): "kaydedemedim",
     (ClaimState.SAVE_FAILED, "update"): "güncelleyemedim",
     (ClaimState.SAVE_PENDING, "save"): "henüz kaydetmedim",
+    (ClaimState.SAVE_CANCELLED, "save"): "kaydetmedim",
     (ClaimState.SAVE_PENDING, "update"): "henüz güncellemedim",
     (ClaimState.UPDATE_FAILED, "save"): "kaydedemedim",
     (ClaimState.UPDATE_FAILED, "update"): "güncelleyemedim",

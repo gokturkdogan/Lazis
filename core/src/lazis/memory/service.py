@@ -120,7 +120,12 @@ def _subject_for(
     key = text.name_key(ref.name)
     candidates = repo.find_entities(conn, key)
     res = resolver.resolve(ref, candidates)
-    if res.kind == "existing" and not ref.relation and _pending_namesake(conn, key):
+    if (
+        res.kind == "existing"
+        and not ref.relation
+        and not ref.planned
+        and _pending_namesake(conn, key)
+    ):
         # Another person with this name may exist (an open "which Ahmet?" question): without
         # a relation in this message, attaching to the stored one would be a guess.
         res = resolver.Resolution("ambiguous", options=tuple(e.id for e in candidates),
