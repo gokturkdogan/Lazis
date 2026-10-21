@@ -550,9 +550,11 @@ def test_work_on_a_named_project_comes_from_the_users_grammar() -> None:
 
 
 def test_a_subject_that_is_its_own_value_is_dropped() -> None:
-    t = Target("m1", "MSGT1", "Artık Kervan'da çalışmıyorum, Atlas Yazılım'a geçtim.")
+    # Never a person named after a company. Phase 7.2: when the user speaks in the first person
+    # ("Atlas Yazılım'a geçtim"), the workplace is the user's (see test_memory_requests).
+    t = Target("m1", "MSGT1", "Atlas Yazılım İstanbul'da bir şirket.")
     v = extraction.validate([item(entity="Atlas Yazılım", predicate="employer", value="Atlas Yazılım",
-                                  quote="Atlas Yazılım'a geçtim", statement="Kullanıcı Atlas Yazılım'a geçti.")], [t])  # fmt: skip
+                                  quote="Atlas Yazılım İstanbul'da", statement="Atlas Yazılım bir şirket.")], [t])  # fmt: skip
     assert v.accepted == [] and v.dropped == {"entity_is_value": 1}
 
 

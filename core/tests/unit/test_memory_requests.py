@@ -141,6 +141,24 @@ def test_things_are_not_the_users_facts(
     ]
 
 
+def test_a_workplace_named_as_its_own_subject_is_the_users() -> None:
+    # Phase 7.2 real output: entity "Atlas Yazılım", employer "Atlas Yazılım" (was dropped, so the
+    # job change never reached the graph).
+    msg = "Artık Kervan Lojistik'te çalışmıyorum, Atlas Yazılım'a geçtim."
+    out = extraction.validate([{**_item("Atlas Yazılım", "employer", "Atlas Yazılım", "Kullanıcı Atlas Yazılım'a geçti.",
+                                        "Atlas Yazılım'a geçtim"), "change": True}], [Target("m1", "id", msg)])  # fmt: skip
+    assert [(e.candidate.predicate, e.candidate.about, e.candidate.value) for e in out.accepted] == [
+        ("employer", "user", "Atlas Yazılım")]  # fmt: skip
+    _facts, rels = extraction.relation_items(out.accepted)
+    assert [(r.candidate.type, r.candidate.target.name, r.candidate.change) for r in rels] == [
+        ("works_at", "Atlas Yazılım", True)]  # fmt: skip
+    # Not the user: still nothing.
+    other = "Atlas Yazılım büyük bir şirket."
+    dropped = extraction.validate([_item("Atlas Yazılım", "employer", "Atlas Yazılım", "x", "Atlas Yazılım büyük")],
+                                  [Target("m1", "id", other)])  # fmt: skip
+    assert dropped.accepted == [] and dropped.dropped == {"entity_is_value": 1}
+
+
 def test_notices_carry_no_technical_wording() -> None:
     failed = commands.Outcome("failed").notice()
     assert (

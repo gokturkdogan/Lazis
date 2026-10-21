@@ -405,10 +405,15 @@ def validate(
         ref: EntityRef | None = None
         subject_kind = "user"
         if key and key == text.name_key(value):
-            # "Atlas Yazılım — çalıştığı yer: Atlas Yazılım": a subject that is its own value
-            # says nothing (and would create a person named after a company).
-            out.drop("entity_is_value")
-            continue
+            if pred.key in ("employer", "location") and _speaks_as_i(users_own_words(target.text)):
+                # "Atlas Yazılım'a geçtim" read as "Atlas Yazılım — çalıştığı yer: Atlas
+                # Yazılım": the user said it about themselves (Phase 7.2 regression runs).
+                name, key = "", ""
+            else:
+                # A subject that is its own value says nothing (and would create a person
+                # named after a company).
+                out.drop("entity_is_value")
+                continue
         if key:
             matches = _known_for(key, known)
             if (
@@ -496,6 +501,18 @@ _NOT_FIRST_PERSON = frozenset(
      "iletisim", "yonetim", "teslim", "deniz", "yildiz", "kiz", "yuz", "sekiz", "dokuz", "otuz",
      "kuz", "siz", "hiz", "tuz", "domuz", "boyuz"}
 )  # fmt: skip
+
+
+_FIRST_PERSON_VERB = re.compile(
+    r"(?:yorum|yoruz|[dt][iu][mk]|[ae]c[ae]gim|[ae]c[ae]giz|mi[s]im|yim|yum|iyim|uyum)$"
+)
+
+
+def _speaks_as_i(message: str) -> bool:
+    """A first person verb or pronoun ("geçtim", "çalışıyorum", "ben") — not a noun that only
+    ends like a possessive ("Yazılım")."""
+    return any(w in _FIRST_PERSON_WORDS or (len(w) >= 5 and _FIRST_PERSON_VERB.search(w))
+               for w in text.words(message))  # fmt: skip
 
 
 def _first_person(message: str) -> bool:
