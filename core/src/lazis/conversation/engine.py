@@ -74,7 +74,15 @@ from lazis.errors import (
 )
 from lazis.i18n import message_for
 from lazis.ids import new_ulid, utc_now_iso
-from lazis.memory import commands, extraction, graphstore, importer, relationships, retrieval
+from lazis.memory import (
+    claims,
+    commands,
+    extraction,
+    graphstore,
+    importer,
+    relationships,
+    retrieval,
+)
 from lazis.memory import maintenance as memory_maintenance
 from lazis.memory import repository as memory_repo
 from lazis.memory.models import Candidate
@@ -134,6 +142,12 @@ class TurnHandle:
     memory_intent: str | None = None
     memory_outcome: str | None = None
     memory_request_ms: float | None = None
+    memory_recalled: bool = False  # recall brought stored memory (references to it are true)
+    # Truthful memory claims (Phase 7.1): the state the reply is checked against, how many
+    # claims were reworded, and when the first checked text reached the user.
+    claim_state: str | None = None
+    claims_rewritten: int = 0
+    first_shown_at: float | None = None
 
     def check(self) -> None:
         if self.cancel_requested:
@@ -811,6 +825,12 @@ class ConversationEngine:
         loaded: Loaded | None = None
         sent_at: float | None = None
         first_at: float | None = None
+        guard: claims.ClaimGuard | None = None
+
+        def shown() -> str:
+            """What the user saw: never text the claim guard was still holding."""
+            return guard.released if guard is not None else ""
+
         try:
             await self._emit(
                 handle,
@@ -838,6 +858,8 @@ class ConversationEngine:
                 notice = await self._memory_request(handle, llm, model, loaded, built)
                 handle.check()
                 built = await self._with_memory(handle, loaded, built, notice)
+                guard = claims.ClaimGuard(self._claim_policy(handle, model))
+                handle.claim_state = guard.policy.state.value
                 handle.check()
                 if model not in {m.name for m in await llm.loaded_models()}:
                     await self._stage(handle, "loading_model", model=model)
@@ -887,21 +909,25 @@ class ConversationEngine:
                             handle.stage = "generating"
                             first_at = time.monotonic()
                         parts.append(event.text)
-                        await self._emit(handle, {"type": "delta", "text": event.text})
-                        size = sum(len(p) for p in parts)
+                        # Only text the claim guard released reaches the user, the stored
+                        # message and (later) the voice — and they are always the same text.
+                        await self._show(handle, guard.feed(event.text))
+                        size = len(guard.released)
                         now_m = time.monotonic()
                         if (
                             now_m - last_flush >= self._cfg.flush_interval_s
                             or size - flushed >= self._cfg.flush_chars
                         ):
-                            text = "".join(parts)
+                            text = guard.released
                             await self._q(
                                 lambda c, t=text: repository.update_partial(c, assistant.id, t)
                             )
                             flushed, last_flush = size, now_m
                     else:
                         metrics = event.metrics
-                text = "".join(parts)
+                await self._show(handle, guard.finish())
+                self._note_claims(handle, guard)
+                text = guard.released
                 if metrics is None:
                     raise LlmInvalidResponseError("stream ended without completion")
                 if not text.strip():
@@ -943,7 +969,7 @@ class ConversationEngine:
             self._schedule_check(conv.id, now=True)
         except LlmCancelledError:
             status: MessageStatus = "interrupted" if handle.shutdown else "cancelled"
-            final = await self._close_reply(handle, status, "".join(parts), None)
+            final = await self._close_reply(handle, status, shown(), None)
             if built is not None and parts:
                 self.scheduler.cache = CacheKey(
                     model, self.num_ctx, conv.id, built.prefix_hash, user.seq
@@ -959,10 +985,10 @@ class ConversationEngine:
             )
             log_event(_log, logging.INFO, f"turn.{status}", conversation_id=conv.id)
         except asyncio.CancelledError:
-            await self._close_reply(handle, "interrupted", "".join(parts), "interrupted")
+            await self._close_reply(handle, "interrupted", shown(), "interrupted")
             raise
         except LazisError as exc:
-            final = await self._close_reply(handle, "failed", "".join(parts), exc.code)
+            final = await self._close_reply(handle, "failed", shown(), exc.code)
             await self._emit(
                 handle,
                 {
@@ -977,7 +1003,7 @@ class ConversationEngine:
             self._learn.add(conv.id)
             self._schedule_check(conv.id)
         except Exception as exc:
-            final = await self._close_reply(handle, "failed", "".join(parts), "internal_error")
+            final = await self._close_reply(handle, "failed", shown(), "internal_error")
             await self._emit(
                 handle,
                 {
@@ -1036,7 +1062,47 @@ class ConversationEngine:
             "memory_request": handle.memory_intent,
             "memory_outcome": handle.memory_outcome,
             "memory_request_ms": handle.memory_request_ms,
+            # Phase 7.1: when checked text first reached the user, and claims reworded.
+            "first_shown_ms": ms(accepted, handle.first_shown_at),
+            "claim_state": handle.claim_state,
+            "claims_rewritten": handle.claims_rewritten,
         }
+
+    def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
+        """The memory state the reply is checked against — from the real outcome of this
+        turn's memory request, not from anything the model writes (Phase 7.1)."""
+        intent = handle.memory_intent
+        statement = commands.looks_like_statement(handle.user.content)
+        learning_on = self._memory.auto_extract and learning.is_trusted(self._memory, model)
+        state = claims.state_for(
+            intent, handle.memory_outcome, statement=statement, learning=learning_on
+        )
+        return claims.Policy(
+            state=state,
+            has_memory=handle.memory_recalled,
+            memory_turn=intent is not None and intent not in ("recall", "secret"),
+        )
+
+    async def _show(self, handle: TurnHandle, text: str) -> None:
+        if not text:
+            return
+        if handle.first_shown_at is None:
+            handle.first_shown_at = time.monotonic()
+        await self._emit(handle, {"type": "delta", "text": text})
+
+    def _note_claims(self, handle: TurnHandle, guard: claims.ClaimGuard) -> None:
+        handle.claims_rewritten = len(guard.rewrites)
+        if guard.rewrites:
+            # Kinds and the state only: never the words.
+            log_event(
+                _log,
+                logging.INFO,
+                "memory.claims_rewritten",
+                conversation_id=handle.conversation.id,
+                state=guard.policy.state.value,
+                count=len(guard.rewrites),
+                kinds=",".join(sorted({r.kind for r in guard.rewrites})),
+            )
 
     async def _with_memory(
         self, handle: TurnHandle, loaded: Loaded, built: AssembledPrompt, notice: str = ""
@@ -1079,6 +1145,7 @@ class ConversationEngine:
             log_event(_log, logging.WARNING, "memory.recall_failed", error=type(exc).__name__)
             found = retrieval.Recall()
         handle.memory_ms = round((time.monotonic() - started) * 1000, 1)
+        handle.memory_recalled = bool(found.items or found.relations or found.answer)
         if not notice and commands.looks_like_statement(user.content):
             notice = commands.PENDING_NOTICE
         note = "\n\n".join(x for x in (notice, retrieval.render(found)) if x)

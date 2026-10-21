@@ -825,12 +825,18 @@ export interface components {
         DiagLastTurnModel: {
             /** At */
             at: string;
+            /** Claim State */
+            claim_state?: string | null;
+            /** Claims Rewritten */
+            claims_rewritten?: number | null;
             /** Context Prep Ms */
             context_prep_ms: number | null;
             /** Decode Tps */
             decode_tps: number | null;
             /** Failed Stage */
             failed_stage?: string | null;
+            /** First Shown Ms */
+            first_shown_ms?: number | null;
             /** Memory Items */
             memory_items?: number | null;
             /** Memory Ms */
