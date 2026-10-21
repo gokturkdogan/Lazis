@@ -303,3 +303,16 @@ def test_a_correction_follows_the_users_grammar_not_the_model(
     )
     current = {r.type for r in between if r.status == "active"}
     assert current == {"sibling"}
+
+
+def test_a_correction_survives_an_unusable_model_answer(
+    tmp_path: Path, storage: StorageHandle, world: World
+) -> None:
+    llm, _ = run(
+        storage, tmp_path, lambda r: "{not json", "Mehmet aslında Ahmet'in kardeşi değil, kuzeni."
+    )
+    between = storage.db.run_sync(
+        lambda c: gs.relationships_between(c, world["ahmet"], world["mehmet"])
+    )
+    assert {(r.type, r.status) for r in between} == {("sibling", "retracted"), ("cousin", "active")}
+    assert "Düzeltildi" in last_user(llm.chat_requests[0])

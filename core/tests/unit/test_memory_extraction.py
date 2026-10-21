@@ -289,8 +289,10 @@ def test_a_relationship_with_the_user_needs_the_user_in_the_message() -> None:
     right = {**wrong, "source": "Ahmet", "target": "Mehmet", "negated": False}
     found, dropped = extraction.validate_relations([wrong, right], [target])
     assert dropped == {"user_not_in_message": 1}
-    assert [(f.candidate.source.name if f.candidate.source else None, f.candidate.type, f.candidate.target.name)
-            for f in found] == [("Ahmet", "cousin", "Mehmet")]  # fmt: skip
+    # The user's grammar ("Ahmet'in kardeşi değil, kuzeni") replaces the model's version of the pair.
+    assert [(f.candidate.source.name if f.candidate.source else None, f.candidate.type, f.candidate.target.name,
+             f.candidate.negated, f.candidate.correction) for f in found] == [
+        ("Ahmet", "sibling", "Mehmet", True, False), ("Ahmet", "cousin", "Mehmet", False, True)]  # fmt: skip
     assert extraction.mentions_user("Murat, Pusula projesinde benimle çalışıyor.")
     assert extraction.mentions_user("Annemin adı Gülsüm.")
     assert not extraction.mentions_user("Derya ile Kaan geçen ay boşandılar.")
@@ -388,7 +390,9 @@ def test_kind_hints_from_the_users_words() -> None:
         ],
         [job],
     )
-    assert wrong == [] and dropped == {"kind_mismatch": 1}
+    # The model's "colleague" with a project is dropped; the user's grammar states the work.
+    assert dropped == {"kind_mismatch": 1}
+    assert [(f.candidate.type, f.candidate.target.name) for f in wrong] == [("works_on", "Pusula")]
 
 
 def test_a_relation_noun_before_a_name_belongs_to_someone_else() -> None:
@@ -528,3 +532,14 @@ def test_a_relative_noun_is_not_a_name_and_places_become_profile_facts() -> None
     )
     facts = extraction.facts_from_relations([], [lives])
     assert [(f.candidate.predicate, f.candidate.value) for f in facts] == [("location", "İstanbul")]
+
+
+def test_work_on_a_named_project_comes_from_the_users_grammar() -> None:
+    t = Target("m1", "MSGW9", "Murat, Pusula projesinde benimle çalışıyor.")
+    found, _ = extraction.validate_relations(
+        [relitem(source="", type="colleague", target="Murat", quote="benimle çalışıyor")], [t]
+    )
+    got = {(f.candidate.source.name if f.candidate.source else None, f.candidate.type, f.candidate.target.name)
+           for f in found}  # fmt: skip
+    assert got == {(None, "colleague", "Murat"), ("Murat", "works_on", "Pusula")}
+    assert extraction.stated_project_work("Murat Pusula projesinde mi çalışıyor?") == []

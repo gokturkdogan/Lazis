@@ -35,7 +35,7 @@ from lazis.providers.llm.ollama import OllamaProvider
 OUT = Path(__file__).resolve().parents[1] / "reports" / "phase7"
 DONT_KNOW = ("bilmiyorum", "bilgim yok", "söylemediniz", "kayıtlı değil", "kayıtlı bir", "hatırlamıyorum",
              "bahsetmediniz", "paylaşmadınız", "bulamıyorum", "bulamadım", "bulunmuyor", "kayıt yok",
-             "bilgi yok", "bilmiyor", "emin değilim", "hafızamda yok")  # fmt: skip
+             "bilgi yok", "bilmiyor", "emin değilim", "hafızamda yok", "sahip değilim")  # fmt: skip
 
 
 def graph_rows(p: Profile) -> list[dict[str, Any]]:

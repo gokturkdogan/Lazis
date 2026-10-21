@@ -729,6 +729,28 @@ def stated_correction(message: str) -> list[tuple[str | None, str, str, str]]:
     return out
 
 
+def stated_project_work(message: str) -> list[tuple[str | None, str]]:
+    """ "Murat, Pusula projesinde (benimle) çalışıyor": (person, project) — the project noun
+    after the name and the verb make the relationship unambiguous."""
+    toks: list[tuple[str, str, str]] = []
+    for chunk in message.split():
+        parts = _APOS.split(chunk, maxsplit=1)
+        for raw in _RAW.findall(parts[0]):
+            toks.append((text.fold(raw), "", raw))
+    words = [w for w, _, _ in toks]
+    if "?" in message or not any(w.startswith("calis") for w in words):
+        return []  # a question is not a statement
+    out: list[tuple[str | None, str]] = []
+    for i in range(1, len(toks)):
+        if not (words[i].startswith("proje") and re.search(r"n?d[ae]$", words[i])):
+            continue
+        project = toks[i - 1][2]
+        person = next((toks[k][2] for k in range(i - 2, -1, -1) if toks[k][2][:1].isupper()), None)
+        if person and project[:1].isupper() and person != project:
+            out.append((None if text.fold(person) in _FIRST_PERSON_WORDS else person, project))
+    return out
+
+
 def _stated_type(triples: Sequence[tuple[str, str, str]], src: str, tgt: str) -> str | None:
     """The type the user's "X'in ⟨noun⟩ Y" gives this pair in this direction, if any."""
     for a, k, b in triples:
@@ -917,8 +939,54 @@ def validate_relations(
                 ),
             )
         )
+    out = _stated_corrections(out, targets)
+    for t in targets:
+        for person, project in stated_project_work(t.text[:MAX_TARGET_CHARS]):
+            mark = (text.name_key(person) if person else "", text.name_key(project))
+
+            def same(e: ExtractedRel, mark: tuple[str, str] = mark) -> bool:
+                c = e.candidate
+                return (
+                    text.name_key(c.source.name) if c.source else "",
+                    text.name_key(c.target.name),
+                ) == mark
+
+            if any(e.message_id == t.message_id and same(e) for e in out):
+                continue
+            out.append(ExtractedRel(t.message_id, RelCandidate(
+                type="works_on", source=EntityRef(person) if person else None,
+                target=EntityRef(project, "project"), quote=t.text[:MAX_STATEMENT])))  # fmt: skip
     out += _appositive_relations(out, by_tag)
     return out, dropped
+
+
+def _stated_corrections(found: list[ExtractedRel], targets: Sequence[Target]) -> list[ExtractedRel]:
+    """ "X aslında Y'nin A'sı değil, B'si": the user's grammar says exactly what changes; it
+    replaces whatever the model proposed for that pair (both in chat requests and in
+    background learning)."""
+    out = list(found)
+    for t in targets:
+        stated = stated_correction(t.text[:MAX_TARGET_CHARS])
+        if not stated:
+            continue
+        pairs = {
+            frozenset((text.name_key(o) if o else "", text.name_key(x))) for o, _, _, x in stated
+        }
+
+        def pair(e: ExtractedRel) -> frozenset[str]:
+            c = e.candidate
+            return frozenset(
+                (text.name_key(c.source.name) if c.source else "", text.name_key(c.target.name))
+            )
+
+        out = [e for e in out if e.message_id != t.message_id or pair(e) not in pairs]
+        for owner, old, new, who in stated:
+            src = EntityRef(owner) if owner else None
+            for key, neg in ((old, True), (new, False)):
+                out.append(ExtractedRel(t.message_id, RelCandidate(
+                    type=key, source=src, target=EntityRef(who), quote=t.text[:MAX_STATEMENT],
+                    negated=neg, correction=not neg)))  # fmt: skip
+    return out
 
 
 def _appositive_relations(

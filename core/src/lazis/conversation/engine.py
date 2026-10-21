@@ -1210,6 +1210,14 @@ class ConversationEngine:
             model, self.num_ctx, conv.id, built.prefix_hash, max(prior) if prior else 0
         )
         cmd = commands.parse(raw)
+        if (
+            cmd is None
+            and handle.memory_intent == "correct"
+            and extraction.stated_correction(user.content)
+        ):
+            # "X aslında Y'nin A'sı değil, B'si": the user's grammar is enough to correct the
+            # relationship even when the model's answer is unusable.
+            cmd = commands.Command(action="correct")
         if cmd is None:
             raise LlmInvalidResponseError("memory request was not valid JSON")
         if cmd.action == "none":

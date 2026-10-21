@@ -29,7 +29,7 @@ from lazis.memory import graphstore as gs
 from lazis.memory import relationships as rels
 from lazis.memory import repository as repo
 from lazis.memory.extraction import Target
-from lazis.memory.models import USER_ID, Entity, EntityRef, Memory, RelCandidate
+from lazis.memory.models import USER_ID, Entity, EntityRef, Memory
 from lazis.memory.service import Source
 from lazis.storage.driver import Connection
 from lazis.storage.repositories import write_audit
@@ -338,24 +338,6 @@ def apply_items(
     checked = extraction.validate(cmd.items, [target])
     facts, from_items = extraction.relation_items(checked.accepted)
     found, rel_dropped = extraction.validate_relations(cmd.relations, [target], known)
-    stated = extraction.stated_correction(message)
-    if stated:
-        # "X aslında Y'nin A'sı değil, B'si": the user's grammar says exactly what changes;
-        # it replaces whatever the model proposed for the same pair.
-        pairs = {(text.name_key(o) if o else "", text.name_key(x)) for o, _, _, x in stated}
-        found = [
-            f for f in found
-            if (text.name_key(f.candidate.source.name) if f.candidate.source else "",
-                text.name_key(f.candidate.target.name)) not in pairs
-            and (text.name_key(f.candidate.target.name),
-                 text.name_key(f.candidate.source.name) if f.candidate.source else "") not in pairs
-        ]  # fmt: skip
-        for owner, old, new, who in stated:
-            src = EntityRef(owner) if owner else None
-            for key, neg in ((old, True), (new, False)):
-                found.append(extraction.ExtractedRel(message_id, RelCandidate(
-                    type=key, source=src, target=EntityRef(who), quote=message[:160],
-                    negated=neg, correction=not neg)))  # fmt: skip
     facts, _ = extraction.covered_by_relations(facts, [*from_items, *found])
     facts += extraction.facts_from_relations(facts, [*from_items, *found])
     checked = replace(checked, accepted=facts)
