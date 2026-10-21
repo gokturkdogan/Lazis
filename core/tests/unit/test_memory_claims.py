@@ -90,6 +90,18 @@ REWORDED = [
     ("Hafızama yazdım efendim.", "Anladım efendim."),
     ("Bunu notlarıma ekledim.", "Bunu anladım."),
     ("Bunu kayda geçirdim.", "Bunu anladım."),
+    # Phase 7.1 real-model finding: possessive and record-noun forms.
+    ("Notunuzu aldım; düğün haziranda olacak.", "Anladım; düğün haziranda olacak."),
+    ("Notlarınızı aldım, teşekkürler.", "Anladım, teşekkürler."),
+    ("Toplantının notunu aldım efendim.", "Toplantının bilgisini anladım efendim."),
+    ("Ahmet'in doğum gününün kaydını aldım.", "Ahmet'in doğum gününün bilgisini anladım."),
+    ("Bu notu aldım.", "Bu bilgiyi anladım."),
+    ("Ahmet için bir kayıt oluşturdum.", "Ahmet için bunu anladım."),
+    ("Bunu kayda aldım.", "Bunu anladım."),
+    ("Kahve tercihinizi bilgilerime ekledim efendim.", "Kahve tercihinizi anladım efendim."),
+    ("Bunu listeme ekledim.", "Bunu anladım."),
+    ("Toplantıyı ajandama yazdım.", "Toplantıyı anladım."),
+    ("Anladım ve notunu aldım.", "Anladım."),
 ]
 
 
@@ -152,6 +164,13 @@ UNTOUCHED = [
     "Kaydedebileceğim bir bilgi göremedim.",
     "Bunu kaydetmeyeceğim, çünkü bir şifre içeriyor.",
     "Bu bilgiyi hafızama almadım.",
+    "Notunuzu alabilirim.",
+    "Not defterinizi aldınız mı?",
+    "Toplantı notlarını aldınız mı?",
+    "Not aldım gibi bir şey söylemem gerekmez.",
+    "Kaydettim diye düşünmeyin, henüz bir şey yazılmadı.",
+    "Listeme bakınca bugün üç işiniz var gibi görünüyor.",
+    "Bir kayıt oluşturmak isterseniz söylemeniz yeterli.",
 ]
 
 
@@ -188,6 +207,14 @@ def test_references_need_a_recalled_record(reply: str, without_memory: str) -> N
 
 # ----- 4. explicit requests: the real outcome decides ------------------------------------------
 OUTCOMES = [
+    (  # the real-model case: an explicit save the command step found nothing to store in
+        SAVE_FAILED,
+        "Anlaşıldı efendim. Notunuzu aldım; Burak'ın düğünü haziranda olacak.",
+        "Anlaşıldı efendim. Kaydedemedim; Burak'ın düğünü haziranda olacak.",
+    ),
+    (SAVE_FAILED, "Ahmet'in kaydını aldım.", "Ahmet'in bilgisini kaydedemedim."),
+    (SAVE_PENDING, "Toplantının notunu aldım.", "Toplantının bilgisini henüz kaydetmedim."),
+    (SAVED, "Notunuzu aldım efendim.", "Notunuzu aldım efendim."),
     (
         SAVED,
         "Kaydettim efendim. Ahmet’in kardeşi Mehmet.",
@@ -298,7 +325,9 @@ def test_without_learning_a_statement_is_no_memory_action() -> None:
 
 # ----- 6. streaming: no claim in any intermediate output, same final text --------------------
 FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim", "hatirlayacagim",
-             "kaydedildi", "aklimda tut", "ogrendim", "kaydediyorum", "eklendi")  # fmt: skip
+             "kaydedildi", "aklimda tut", "ogrendim", "kaydediyorum", "eklendi", "notunuzu aldim",
+             "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
+             "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim")  # fmt: skip
 
 
 def stream(text: str, chunks: list[int], policy: Policy) -> tuple[str, list[str]]:

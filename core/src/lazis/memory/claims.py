@@ -164,10 +164,19 @@ def fold(text: str) -> str:
 # Memory context words: they make an ordinary verb a memory act ("hafızama ekledim").
 _CONTEXT = (
     r"(?:hafiza(?:m|mi|ma|mda|mdan|mdaki|miza|mizda|mizdaki)|akli(?:m|ma|mda)"
-    r"|notlarim(?:a|da)?|kayitlarim(?:a|da)?)"
+    r"|notlarim(?:a|da)?|kayitlarim(?:a|da)?|bilgilerime|listeme|ajandama|defterime|takvimime)"
 )
 _CONTEXT_RE = re.compile(r"\b" + _CONTEXT + r"\b")
-_SAVE_RE = re.compile(r"\b(?:kayded|kaydet|kayit alti[a-z]* al|kayda gecir|not (?:al|ed|et))")
+_SAVE_RE = re.compile(
+    r"\b(?:kayded|kaydet|kayit alti[a-z]* al|kayda gecir|kayda al|(?:bir )?kayit (?:olustur|ac)"
+    r"|kayd(?:ini|inizi|larini|larinizi) (?:al|tut|olustur)"
+    r"|not(?:u|unu|unuzu|lari|larini|larinizi)? (?:al|ed|et|tut))"
+)
+# A save claim with a note/record noun as its object keeps the sentence's grammar when it is
+# reworded: "Ahmet'in kaydını aldım" → "Ahmet'in bilgisini anladım" (not "Ahmet'in anladım").
+_NOUN_OBJECT = re.compile(r"(?:bir )?(?:not|kayd|kayit)(u|unu|ini|lari|larini)? ")
+_NOUN_SUBSTITUTE = {"u": "bilgiyi", "unu": "bilgisini", "ini": "bilgisini", "lari": "bilgileri",
+                    "larini": "bilgilerini", None: ""}  # fmt: skip
 _CTX_VERB = r"(?:ekle|al|yaz|tut|kayded|kaydet|isle|sakla)"
 _DELETE_RE = re.compile(r"\b(?:sil|kaldir|cikar)")
 _UPDATE_RE = re.compile(r"\b(?:guncell|duzelt|degistir|birlestir)")
@@ -243,6 +252,10 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
     quotes = _quoted(sentence)
     found: list[_Claim] = []
 
+    def mentioned(end: int) -> bool:
+        """The phrase is talked about, not said: "not aldım gibi", "kaydettim diye"."""
+        return re.match(r"\s+(?:gibi|diye|demek|deme|dememe)\b", f[end:]) is not None
+
     def quoted(i: int) -> bool:
         return any(a <= i < b for a, b in quotes)
 
@@ -250,7 +263,7 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
         if quoted(start) or any(c.verb_start == start for c in found):
             return
         end = _word_end(f, stem_end)
-        if re.match(r"\s+m[iu]\b", f[end : end + 4]):  # "kaydettim mi?" is a question
+        if re.match(r"\s+m[iu]\b", f[end : end + 4]) or mentioned(end):  # "kaydettim mi?"
             return
         verdict = _verdict(f[stem_end:end] + f[end : end + 1])
         if verdict == "not":
@@ -278,9 +291,9 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             # "hafızamdaki bilgiye göre", "hafızamda … var": a reference to stored records.
             found.append(_Claim(m.start(), m.end(), m.start(), "existing"))
     for m in _COMMIT_RE.finditer(f):
-        if quoted(m.start()):
-            continue
         end = _word_end(f, m.end())
+        if quoted(m.start()) or mentioned(end):
+            continue
         rest = f[m.end() : end]
         ctx = _context_before(f, m.start())
         if m.group(0) == "unut":
@@ -296,7 +309,11 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             found.append(_Claim(ctx if ctx is not None else m.start(), end, m.start(), "save"))
     for m in _OGREN_RE.finditer(f):
         end = _word_end(f, m.end())
-        if not quoted(m.start()) and re.fullmatch(r"(?:d|t)(?:im|ik)", f[m.end() : end]):
+        if (
+            not quoted(m.start())
+            and not mentioned(end)
+            and re.fullmatch(r"(?:d|t)(?:im|ik)", f[m.end() : end])
+        ):
             found.append(_Claim(m.start(), end, m.start(), "save"))
     if policy.memory_turn or _CONTEXT_RE.search(f) or re.search(r"\bkay(?:it|d)", f):
         for rx, kind in ((_DELETE_RE, "delete"), (_UPDATE_RE, "update")):
@@ -342,6 +359,19 @@ def rewrite_sentence(
                     rewrites.append(Rewrite(c.kind, policy.state.value, out[c.start : c.end], ""))
                     out = dropped
                     continue
+            noun = _NOUN_OBJECT.match(fold(out[c.verb_start : c.end]))
+            if (
+                noun is not None
+                and c.kind == "save"
+                and (noun.group(1) or noun.group(0).startswith("bir "))
+            ):
+                start = c.verb_start
+                substitute = _NOUN_SUBSTITUTE[noun.group(1)]
+                if noun.group(0).startswith("bir "):  # "bir kayıt oluşturdum" → "bunu anladım"
+                    substitute = "bunu"
+                if _object_before(out, start):  # "bunu" is already there
+                    substitute = ""
+                replacement = f"{substitute} {replacement}".strip()
         if _at_sentence_start(out, start):
             replacement = replacement[:1].upper() + replacement[1:]
         rewrites.append(Rewrite(c.kind, policy.state.value, out[start : c.end], replacement))
@@ -350,6 +380,12 @@ def rewrite_sentence(
 
 
 _OBJECT = re.compile(r"\b(?:bunu|bu bilgiyi|bunlari|onu)\s+$")
+
+
+def _object_before(out: str, i: int) -> bool:
+    """An object already stands before the claim ("bunu notunu aldım" is not reworded with
+    a second one)."""
+    return _OBJECT.search(fold(out[:i])) is not None
 
 
 def _drop(out: str, c: _Claim, frozen: int) -> str | None:
@@ -400,7 +436,8 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # Words that may begin a claim or a reference (folded prefixes). The last word of what has
 # arrived is always held too: it may be incomplete ("Kay" + "dettim") or the connector of a
 # claim that follows ("ve" + "not aldım").
-_RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren")
+_RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
+          "bilgilerime", "listeme", "ajandama", "defterime", "takvimime")  # fmt: skip
 _RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")
 _SENTENCE_END = re.compile(r"[.!?\n]+(?=\s|$)|[:;](?=\s)")
 MAX_HOLD = 240  # characters held without a sentence end before deciding at a word boundary
