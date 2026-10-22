@@ -332,6 +332,52 @@ Decision record: [ADR-0018](adr/0018-namesakes-and-explicit-requests.md). Report
 * **Internal labels.** The persona and conversation rules name no internal label; notes are headed "SİSTEM NOTU (kullanıcıya görünmez)" and said to be invisible; the persona gives the honest answer about what LAZIS remembers. No output filter.
 * **Unchanged.** Extraction policy and prompt for background learning, the queue and its timing, the graph's storage and queries, recall, the schema (no migration), the Phase 7.1 claim guard.
 
+
+## Part P8 — As built (Phase 8): personal knowledge bootstrap
+
+Decision record: [ADR-0019](adr/0019-personal-knowledge-bootstrap.md). Report: [PHASE_8_REPORT.md](PHASE_8_REPORT.md).
+
+**Pipeline** (`core/src/lazis/bootstrap/`):
+
+| Module | Does |
+|---|---|
+| `files.py` | name → format (`.md`/`.markdown`, `.txt`, `.json`); ≤ 1 MB, ≤ 200,000 characters; UTF-8 (± BOM) or UTF-16 with BOM; NUL/binary refused; control characters dropped; secret lines redacted; Markdown sections by heading path, text by paragraph (≤ 1,400 characters), every line keeping its file line; base name only |
+| `profile.py` | JSON schema 1.0 (`profile`, `people`, `relationships`, `projects`, `preferences`, `habits`, `goals`, `events`, `facts`; all optional; Turkish/English key names; the Phase 6 `user` shape) → proposals; unknown parts become warnings, a name shared by two people is never guessed |
+| `extract.py` | one model call per section with the learning instruction and an import note; learning's validation (quote in the section, names in the section, relation words the user's); predicate check against the quote; people assembled across the file from the user's words (`namesakes.stated`, "hem … hem", relation-compatible joins only) |
+| `analyze.py` | dry run: each proposed person matched (new / existing suggestion / ambiguous) and each item classified (`new`, `exact_duplicate`, `possible_duplicate`, `conflict`, `temporal_update`, `ambiguous_entity`, `insufficient_evidence`, `excluded`); import-only directive check |
+| `store.py` | the draft: batches, sections, people, items, decisions, re-classification when a person is decided, summary, save states |
+| `apply.py` | final check, then one `UnitOfWork` (kind `import`): people, distinctions, facts, relationships, `rejected` suppressions, item results, counts |
+| `undo.py` | plan from the apply change set's history and evidence; one `UnitOfWork` (kind `rollback`) |
+| `pipeline.py` | JSON start, text finish, discard, earlier rejections of the same file |
+| `conversation/bootstrap_runner.py` | the model side: background jobs (kind `import`), preemption, cancel, split on truncation |
+
+**Database** (migration `0006_bootstrap`, additive; no existing table changed):
+
+* `import_batches` — one import: `status` (`analyzing` → `ready` → `applied` → `undone`; or `failed`, `cancelled`, `discarded`), file name, format, content hash, size, section counters, model, model calls, error code, warnings, `counts_json` (what the write did; `undo` inside it after an undo), `effects_json` (distinctions and suppressions it added), apply/undo change set ids.
+* `import_sections` — the redacted text of each section and the model's answer while analysing; set to NULL when the import is applied, cancelled or discarded.
+* `import_people` — proposed people: name, kind, relation, description, match, options (stored namesakes and file namesakes), suggestion, decision (`pending`/`create`/`link`/`unresolved`/`reject`), link target, the entity written.
+* `import_items` — proposed facts and relationships: payload, refs to proposed people, source section / excerpt / line, method (`json`/`gemma`), confidence, classification, stored values compared with, note, decision (`pending`/`approve`/`reject`/`hold`), resolution (`keep_old`/`update`/`keep_both`), edited value, result, written ids.
+* Written records carry evidence `source_type = 'import'`, `source_ref = <item id>`; the change set's `source_ref` is the import id.
+
+**API** (`/api/v1/memory/bootstrap`, schemas in `api/bootstrap_schemas.py`):
+
+| Route | |
+|---|---|
+| `POST /analyze` | `{file_name, content_base64}` → batch; JSON is `ready` at once, Markdown/text `analyzing` (the only route with a larger body: 1.45 MB) |
+| `GET /` | earlier imports (not discarded) |
+| `GET /{id}` | batch (+ progress), people, items (with `blocked` and `save_state`), summary |
+| `POST /{id}/cancel` · `POST /{id}/retry` | stop and delete the draft · read failed (or interrupted) sections again |
+| `POST /{id}/decisions` | `{people: [{id, decision, link_id}], items: [{id, decision, resolution, edited_value}]}` → preview |
+| `POST /{id}/apply` | one transaction → batch with counts and the change set id |
+| `GET /{id}/undo-plan` · `POST /{id}/undo` | the plan · `{restore: [ids]}` → batch, plan carried out, rollback change set (null when already undone) |
+| `DELETE /{id}` | discard a draft that was not written |
+
+Refusals have their own codes (`import_<reason>`, e.g. `import_needs_resolution`, `import_memory_changed`, `import_profile_invalid_json` with `details.line`/`column`); the error body gained an optional `details` object. The Phase 6 `/memory/import/*` routes still work; the UI no longer uses them.
+
+**Recall (condition E).** `retrieval.recall` leaves out the facts and relationships of people the message does not tell apart (namesakes without relation words that settle one, or a name with an open "which one?" question), in the current message and the previous one; the namesake list stays, so the reply asks.
+
+**Unchanged.** Background learning, its prompt and policy, the claim guard (Phase 7.1), namesake planning in chat (Phase 7.2), the graph's storage and queries.
+
 ---
 
 # Phase 0 design (long-term plan)

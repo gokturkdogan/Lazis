@@ -260,3 +260,23 @@ Decisions: [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-le
   - Every knowledge write goes through `memory.service` (one change set, policy first).
   - Never put memory text in logs, error messages or the system prompt.
   - Never backfill old conversations without the owner's approval.
+
+## 17. Personal knowledge import (Phase 8)
+
+Decision: [ADR-0019](adr/0019-personal-knowledge-bootstrap.md); as built (modules, tables, API): [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P8.
+
+- **Where:**
+  - `core/src/lazis/bootstrap/` (files, profile, extract, analyze, store, apply, undo, pipeline);
+  - `core/src/lazis/conversation/bootstrap_runner.py` (model calls, background jobs);
+  - `core/src/lazis/api/bootstrap.py` (API);
+  - `apps/desktop/ui/src/components/memory/MemoryBootstrap.vue`, `BootstrapPreview.vue` (Hafıza → Kişisel Bilgi Aktarımı).
+- **Limits:** `files.MAX_FILE_BYTES` (1 MB), `MAX_TEXT_CHARS` (200,000), `SECTION_CHARS` (1,400), `profile.MAX_ITEMS` (2,000), `bootstrap_runner.IMPORT_MAX_TOKENS` (2,048).
+- **Changing the import note or the predicate check:** rerun the real-model scenarios and compare with the last report: `uv run --project core python evals/runners/p8_bootstrap.py --model gemma4:12b-it-qat` (`--only b01,n02`). Safety checks must stay at 0 failures.
+- **Ambiguous people in chat (condition E):** `evals/runners/p8_context.py`.
+- **Performance:** `evals/runners/p8_perf.py --sizes 20,100,500 --formats json,markdown`.
+- **Rules:**
+  - Nothing in a file can approve or write: decisions come only from `POST /decisions`.
+  - Never default a decision to approve, in the API or the UI.
+  - Every write goes through `apply.apply` (one change set); never delete imported records by import id — use `undo`.
+  - Never log file content; the draft's section text is deleted when the import ends.
+
