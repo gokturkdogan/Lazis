@@ -164,6 +164,13 @@ class BootstrapRunner:
             ok = await job.task
         except LlmCancelledError:
             ok = False
+        except asyncio.CancelledError:
+            me = asyncio.current_task()
+            if me is not None and me.cancelling():
+                raise  # this import's own task is being stopped (cancel, app closing)
+            # The scheduler stopped the job's task itself (a user turn; the model had not
+            # answered the stop request in time): the section stays pending, the import goes on.
+            ok = False
         except LazisError:
             ok = False
             result["error"] = "llm"

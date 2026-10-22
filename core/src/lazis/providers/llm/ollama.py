@@ -15,11 +15,13 @@ Security properties (SECURITY_MODEL §5.3, PHASE_2_REPORT §H):
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import re
 import time
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncGenerator, AsyncIterator, Mapping
+from contextlib import AbstractAsyncContextManager
 from typing import Any, cast
 
 import httpx
@@ -303,8 +305,9 @@ class OllamaProvider:
                     stream_timeout = httpx.Timeout(
                         connect=self._connect_timeout, read=None, write=10.0, pool=5.0
                     )
-                    async with self._client.stream(
-                        "POST", "/api/chat", json=body, timeout=stream_timeout
+                    async with _until_cancelled(
+                        self._client.stream("POST", "/api/chat", json=body, timeout=stream_timeout),
+                        cancel,
                     ) as response:
                         if response.status_code >= 400:
                             raise _classify(
@@ -424,6 +427,39 @@ def _parse_chunk(line: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise LlmInvalidResponseError("stream line is not an object")
     return cast("dict[str, Any]", data)
+
+
+@contextlib.asynccontextmanager
+async def _until_cancelled(
+    cm: AbstractAsyncContextManager[httpx.Response], cancel: asyncio.Event
+) -> AsyncGenerator[httpx.Response]:
+    """Open the streaming response unless the request is cancelled first. Ollama sends its
+    headers only when the first token is ready, so a long prompt would otherwise keep a
+    cancelled request (a background job a user turn preempts) running until then; dropping
+    the connection stops Ollama."""
+    enter = asyncio.ensure_future(cm.__aenter__())
+    stop = asyncio.ensure_future(cancel.wait())
+    try:
+        done, _ = await asyncio.wait({enter, stop}, return_when=asyncio.FIRST_COMPLETED)
+    except BaseException:
+        enter.cancel()
+        raise
+    finally:
+        stop.cancel()
+    if enter not in done:
+        enter.cancel()
+        with contextlib.suppress(BaseException):
+            await enter
+        raise LlmCancelledError("cancelled")
+    response = enter.result()
+    exc: BaseException | None = None
+    try:
+        yield response
+    except BaseException as e:
+        exc = e
+        raise
+    finally:
+        await cm.__aexit__(type(exc) if exc else None, exc, exc.__traceback__ if exc else None)
 
 
 async def _next_line(

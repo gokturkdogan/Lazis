@@ -357,3 +357,48 @@ def test_a_single_cut_off_line_fails(tmp_path: Path, storage: StorageHandle) -> 
 
     b = asyncio.run(go())
     assert b.status == "failed" and b.sections_failed == 1 and b.model_calls == 1
+
+
+class Stubborn(ScriptedLLM):
+    """A model that does not stop when asked while it reads the prompt (Ollama sends nothing
+    before its first token): the scheduler has to stop the job's task itself."""
+
+    def __init__(self, hold: asyncio.Event, **kw: Any) -> None:
+        super().__init__(**kw)
+        self.hold = hold
+        self.held = 0
+
+    def cancel(self, request_id: str) -> bool:
+        return False
+
+    async def stream(self, request: ChatRequest) -> Any:
+        if "PROFİL DOSYASININ" in request.messages[-1].content and not self.hold.is_set():
+            self.held += 1
+            await self.hold.wait()  # deaf to the stop request
+        async for ev in super().stream(request):
+            yield ev
+
+
+def test_an_import_whose_job_task_is_cancelled_by_a_turn_carries_on(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    hold = asyncio.Event()
+    llm = Stubborn(hold, memory=scripted())
+    engine = make_engine(storage, llm, tmp_path)  # type: ignore[arg-type]
+
+    async def go() -> store.Batch:
+        await engine.ensure_started()
+        iid = await begin(engine, storage)
+        for _ in range(200):
+            if llm.held:
+                break
+            await asyncio.sleep(0.01)
+        events, _ = await run_turn(engine, "Merhaba, bugün hava nasıl?")
+        assert any(e.get("type") == "done" for e in events)
+        hold.set()
+        b = await until(storage, iid)
+        await engine.close()
+        return b
+
+    b = asyncio.run(go())
+    assert b.status == "ready" and b.sections_done == 3 and b.sections_failed == 0

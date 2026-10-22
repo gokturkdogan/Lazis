@@ -36,6 +36,7 @@ class FakeOllama:
         self.tokens_sent = 0
         self.mode = "normal"  # normal | die
         self.first_delay = 0.0
+        self.header_delay = 0.0  # Ollama sends headers only when the first token is ready
         app = self.app
 
         @app.get("/api/version")
@@ -57,6 +58,12 @@ class FakeOllama:
         @app.post("/api/chat")
         async def chat(request: Request) -> Any:  # pyright: ignore[reportUnusedFunction]
             body = await request.json()
+            if self.header_delay:
+                try:
+                    await asyncio.sleep(self.header_delay)  # still reading the prompt
+                except asyncio.CancelledError:
+                    self.disconnected.set()
+                    raise
             if body["model"] != MODEL:
                 return JSONResponse(
                     {"error": f"model '{body['model']}' not found"}, status_code=404
@@ -130,6 +137,33 @@ def test_cancel_closes_the_stream_and_the_runtime_stops(fake: tuple[FakeOllama, 
     sent_at_cancel = server.tokens_sent
     time.sleep(0.3)
     assert server.tokens_sent - sent_at_cancel <= 1  # no further work
+
+
+def test_cancel_stops_a_request_still_reading_its_prompt(fake: tuple[FakeOllama, str]) -> None:
+    """A background job preempted by a user turn while the model is still reading a long
+    prompt: the request stops now, not when the first token would arrive."""
+    server, url = fake
+    server.header_delay = 5.0
+
+    async def run() -> float:
+        provider = OllamaProvider(url)
+
+        async def cancel_soon() -> None:
+            await asyncio.sleep(0.3)
+            provider.cancel("r-1")
+
+        started = time.monotonic()
+        task = asyncio.ensure_future(cancel_soon())
+        with pytest.raises(LlmCancelledError):
+            async for _ in provider.stream(_req()):
+                pass
+        await task
+        await provider.aclose()
+        return time.monotonic() - started
+
+    took = asyncio.run(run())
+    assert took < 2.0, f"cancel waited for the prompt ({took:.1f} s)"
+    assert server.tokens_sent == 0
 
 
 def test_runtime_dying_mid_answer_is_an_error(fake: tuple[FakeOllama, str]) -> None:

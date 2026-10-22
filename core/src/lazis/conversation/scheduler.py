@@ -54,6 +54,10 @@ class BackgroundJob:
             raise LlmCancelledError("background job preempted")
 
 
+# How long a user turn lets a preempted background job stop by itself before stopping it.
+PREEMPT_GRACE_S = 2.0
+
+
 class InferenceScheduler:
     def __init__(self, cancel: Callable[[str], bool]) -> None:
         self._cancel = cancel
@@ -118,6 +122,7 @@ class InferenceScheduler:
                         await asyncio.shield(job.task)
                 else:
                     self._preempt(job)
+                    await self._stop_within(job, PREEMPT_GRACE_S)
             await self._lock.acquire()
         finally:
             self._foreground_waiting -= 1
@@ -156,6 +161,21 @@ class InferenceScheduler:
         self._background = job
         job.task = asyncio.get_running_loop().create_task(runner(), name=f"lazis-{kind}")
         return job
+
+    @staticmethod
+    async def _stop_within(job: BackgroundJob, seconds: float) -> None:
+        """Give a preempted job ``seconds`` to stop by itself, then stop its task: a user
+        turn never waits on a background request the runtime does not let go of."""
+        if job.task is None or job.task.done():
+            return
+        try:
+            await asyncio.wait_for(asyncio.shield(job.task), timeout=seconds)
+        except asyncio.CancelledError:
+            me = asyncio.current_task()
+            if me is not None and me.cancelling():
+                raise
+        except (TimeoutError, Exception):
+            job.task.cancel()
 
     def _preempt(self, job: BackgroundJob) -> None:
         job.cancelled = True
