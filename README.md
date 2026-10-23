@@ -1,6 +1,6 @@
 # LAZIS
 
-A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs.
+A privacy-first, local-first, Turkish-speaking personal AI companion for Apple Silicon Macs. 
 
 **Current phase:** Phase 8 (personal knowledge bootstrap: import a Markdown, text or JSON profile, preview everything, approve item by item, write once, undo safely; [ADR-0019](docs/adr/0019-personal-knowledge-bootstrap.md)) implemented and verified with the real model — **awaiting the owner's acceptance test and approval**. Phase 9 has not started. Model decision: [ADR-0001](docs/adr/0001-primary-model.md) (Accepted).
 
