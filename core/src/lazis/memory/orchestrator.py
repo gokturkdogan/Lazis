@@ -23,6 +23,7 @@ from lazis.storage.driver import Connection
 
 MAX_KNOWN = 8
 MAX_FACTS_PER_ENTITY = 6
+MAX_SIMILAR_FACTS = 6
 MAX_USER_FACTS = 12
 
 
@@ -104,13 +105,23 @@ def extraction_context(
         )
         for e in entities
     )
+    mine = [m for m in repo.memories_for_subject(conn, None) if m.sensitivity != "sensitive"]
     user_facts = tuple(
         _fact(m.predicate, m.value)
-        for m in repo.memories_for_subject(conn, None)
-        if (p := registry.get(m.predicate)) is not None
-        and p.cardinality == "single"
-        and m.sensitivity != "sensitive"
+        for m in mine
+        if (p := registry.get(m.predicate)) is not None and p.cardinality == "single"
     )[:MAX_USER_FACTS]
+    # Preferences and habits the message seems to say again (a shared word stem): the model
+    # can then write the stored value, so the same thing said in other words is evidence for
+    # it, not a second record (Phase 9).
+    stems = {w[:5] for t in targets for w in text.words(t.text) if len(w) >= 4}
+    again = [
+        _fact(m.predicate, m.value) for m in mine
+        if (p := registry.get(m.predicate)) is not None and p.cardinality == "multi"
+        and p.kind in ("preference", "habit", "fact")
+        and stems & {w[:5] for w in text.words(m.value) if len(w) >= 4}
+    ][:MAX_SIMILAR_FACTS]  # fmt: skip
+    user_facts = (*user_facts, *again)
     names = {e.id: e.name for e in entities}
     forgotten = tuple(
         f"{'Kullanıcı' if sid is None else names.get(sid, '?')} — "

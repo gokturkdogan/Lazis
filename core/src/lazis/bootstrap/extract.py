@@ -159,6 +159,9 @@ def _drop_past(facts: list[Extracted], dropped: dict[str, int]) -> list[Extracte
 def validate(raw: str, section: files.Section) -> SectionResult | None:
     """The model's answer for one section, validated like learning; None if not valid JSON."""
     items = extraction.parse(raw)
+    if items is None and (fixed := extraction.salvage(raw)) is not None:
+        raw = fixed  # complete objects before a break; validated like any answer
+        items = extraction.parse(raw)
     if items is None:
         return None
     target = Target("m1", f"section-{section.idx}", section.body)

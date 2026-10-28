@@ -77,6 +77,7 @@ from lazis.ids import new_ulid, utc_now_iso
 from lazis.memory import (
     claims,
     commands,
+    corrections,
     extraction,
     graphstore,
     importer,
@@ -1211,6 +1212,29 @@ class ConversationEngine:
                 )
                 if right is not None:
                     moved = (payload, chosen, right)
+        fix = None if (choice or moved or pending) else corrections.parse(user.content)
+        if fix is not None:
+            # "Hayır, Ahmet değil Mehmet demek istedim": deterministic, before the reply.
+            now = utc_now_iso()
+            fixed = await self._q(lambda c: corrections.apply(c, conv.id, user.id, fix, now))
+            if fixed.kind == "pending":
+                for mid in fixed.message_ids:  # applied when those messages are learned from
+                    self.learner.pending_fixes[mid] = fix
+                await self._q(lambda c: commands.skip_job(c, user.id))
+                handle.memory_intent = "correct"
+                handle.memory_outcome = "correction_pending"
+                return ""
+            if fixed.kind in ("corrected", "ambiguous"):
+                handle.memory_intent = "correct"
+                outcome_fix = commands.Outcome(
+                    "corrected" if fixed.kind == "corrected" else "ambiguous",
+                    fixed.lines if fixed.kind == "corrected" else list(fixed.options),
+                )
+                handle.memory_outcome = outcome_fix.kind
+                await self._q(lambda c: commands.skip_job(c, user.id))
+                log_event(_log, logging.INFO, "memory.request", conversation_id=conv.id,
+                          intent="correct", outcome=outcome_fix.kind)  # fmt: skip
+                return outcome_fix.notice()
         intent: commands.Intent | None
         if choice is not None or moved is not None:
             intent = "choose"

@@ -134,6 +134,9 @@ class Candidate:
     durable: bool = True
     keywords: tuple[str, ...] = ()
     origin: Origin = "stated"
+    # "past": the user said it was true before ("eskiden öğretmendim") — written as history,
+    # never as today's value (Phase 9, ``memory.temporal``).
+    tense: Literal["past", "current", "future"] | None = None
 
 
 @dataclass
@@ -146,6 +149,7 @@ class ApplyReport:
     inbox: list[str] = field(default_factory=list[str])
     entities_created: list[str] = field(default_factory=list[str])
     dropped: dict[str, int] = field(default_factory=dict[str, int])
+    history: list[str] = field(default_factory=list[str])  # of ``created``: past values
 
     def drop(self, reason: str) -> None:
         self.dropped[reason] = self.dropped.get(reason, 0) + 1

@@ -446,9 +446,13 @@ def list_memories(
     query: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    created_since: str | None = None,
 ) -> list[Memory]:
     sql = f"SELECT {_MEMORY_COLS} FROM memories WHERE 1 = 1"  # noqa: S608
     args: list[Any] = []
+    if created_since:
+        sql += " AND created_at >= ?"
+        args.append(created_since)
     if status:
         sql += " AND status = ?"
         args.append(status)
@@ -466,7 +470,7 @@ def list_memories(
             return []
         sql += " AND rowid IN (SELECT rowid FROM memory_fts WHERE memory_fts MATCH ?)"
         args.append(match)
-    sql += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+    sql += f" ORDER BY {'created_at' if created_since else 'updated_at'} DESC LIMIT ? OFFSET ?"
     args += [limit, offset]
     return [_memory(r) for r in conn.execute(sql, args).fetchall()]
 
@@ -586,12 +590,34 @@ def add_evidence(
     source_ref: str | None,
     quote: str | None,
     now: str,
-) -> None:
+) -> bool:
+    """One piece of evidence per source: the same message (or import item) read again — a
+    retried job, a re-import — is not a second confirmation. False when it was known."""
+    if (
+        source_ref is not None
+        and conn.execute(
+            "SELECT 1 FROM memory_evidence WHERE memory_id = ? AND source_type = ?"
+            " AND source_ref = ?",
+            (memory_id, source_type, source_ref),
+        ).fetchone()
+    ):
+        return False
     conn.execute(
         "INSERT INTO memory_evidence (id, memory_id, source_type, source_ref, quote, created_at)"
         " VALUES (?, ?, ?, ?, ?, ?)",
         (new_ulid(), memory_id, source_type, source_ref, quote, now),
     )
+    return True
+
+
+def independent_sources(conn: Connection, memory_id: str) -> int:
+    """How many different messages / imports / edits back a memory."""
+    row = conn.execute(
+        "SELECT COUNT(DISTINCT source_type || ':' || COALESCE(source_ref, id)) FROM"
+        " memory_evidence WHERE memory_id = ?",
+        (memory_id,),
+    ).fetchone()
+    return int(row[0]) if row else 0
 
 
 def evidence_for(conn: Connection, memory_id: str) -> list[Evidence]:

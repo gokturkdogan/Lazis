@@ -25,7 +25,7 @@ from lazis.conversation.context import AssembledPrompt, TokenEstimator
 from lazis.conversation.scheduler import BackgroundJob, CacheKey, InferenceScheduler
 from lazis.errors import LazisError, LlmCancelledError, LlmError, LlmInvalidResponseError
 from lazis.ids import utc_now_iso
-from lazis.memory import extraction, namesakes, orchestrator
+from lazis.memory import corrections, extraction, lists, namesakes, orchestrator, refine
 from lazis.memory import repository as memory_repo
 from lazis.memory.extraction import Target
 from lazis.memory.models import ApplyReport, Job
@@ -50,6 +50,8 @@ STANDALONE_SYSTEM = (
 )
 
 Query = Callable[[Callable[[Connection], Any]], Awaitable[Any]]
+# At most this many focused re-reads of lists per learning job (each is one model call).
+MAX_LIST_READS = 2
 
 
 @dataclass(frozen=True)
@@ -110,6 +112,9 @@ class Learner:
         self._options = options
         # Diagnostics only: counts, codes and durations, never content.
         self.status: dict[str, Any] = {"state": "idle"}
+        # "Hayır, Ahmet değil Mehmet" said before that message was learned from: message id →
+        # the correction, applied when it is (in memory only; lost on restart).
+        self.pending_fixes: dict[str, corrections.Fix] = {}
 
     def target_key(self, model: str, conversation_id: str, prompt: Prompt) -> CacheKey:
         return CacheKey(model, self._num_ctx, conversation_id, prompt.built.prefix_hash,
@@ -177,20 +182,33 @@ class Learner:
                 job.check()
                 await llm.load(model, num_ctx=self._num_ctx, keep_alive=self._keep_alive)
             job.check()
-            request = ChatRequest(
-                model=model,
-                messages=messages,
-                options=self._options(
-                    self.cfg.extraction_max_tokens, temperature=0.0, seed=7, response_format=SCHEMA
-                ),
-                request_id=job.request_id,
-            )
-            async for event in llm.stream(request):
-                if isinstance(event, TextDelta):
-                    if event.kind == "content":
-                        text += event.text
-                else:
-                    metrics = event.metrics
+
+            async def generate(msgs: list[ChatMessage]) -> tuple[str, GenerationMetrics | None]:
+                job.check()
+                request = ChatRequest(
+                    model=model,
+                    messages=msgs,
+                    options=self._options(
+                        self.cfg.extraction_max_tokens, temperature=0.0, seed=7,
+                        response_format=SCHEMA,
+                    ),
+                    request_id=job.request_id,
+                )  # fmt: skip
+                out, done = "", None
+                async for event in llm.stream(request):
+                    if isinstance(event, TextDelta):
+                        if event.kind == "content":
+                            out += event.text
+                    else:
+                        done = event.metrics
+                return out, done
+
+            text, metrics = await generate(messages)
+            salvaged = False
+            if extraction.parse(text) is None and (fixed := extraction.salvage(text)) is not None:
+                # Broke off near its end: the complete objects are kept (validated as usual)
+                # rather than losing the whole message after three failed attempts.
+                text, salvaged = fixed, True
             items = extraction.parse(text)
             if items is None:
                 raise LlmInvalidResponseError("extraction was not valid JSON")
@@ -206,12 +224,58 @@ class Learner:
             facts += extraction.facts_from_relations(facts, rel_accepted)
             if covered:  # counted with the facts' rejections
                 checked.dropped["covered_by_relation"] = covered
+            # A list the model read only part of ("Mehmet ve Ali" → only Mehmet): one more,
+            # focused read about the missing members; only answers about them are kept.
+            texts = {t.message_id: t.text for t in targets}
+            list_counts: dict[str, int] = {}
+            for gap in lists.gaps(texts, facts, rel_accepted)[:MAX_LIST_READS]:
+                list_counts["gaps"] = list_counts.get("gaps", 0) + 1
+                target = next(t for t in targets if t.message_id == gap.message_id)
+                note = extraction.build_instruction(
+                    [Target("m1", target.message_id, target.text)], known=ctx.known,
+                    user_facts=ctx.user_facts, forgotten=ctx.forgotten,
+                    request_note=lists.completion_note(gap),
+                )  # fmt: skip
+                again = [*messages[:-1], ChatMessage("user", note)]
+                raw2, _ = await generate(again)
+                raw2 = raw2 if extraction.parse(raw2) is not None else (
+                    extraction.salvage(raw2) or raw2)  # fmt: skip
+                more = extraction.parse(raw2) or []
+                ok2 = extraction.validate(more, [Target("m1", target.message_id, target.text)],
+                                          ctx.known, context=prompt.context,
+                                          unsettled=ctx.unsettled)  # fmt: skip
+                f2, from2 = extraction.relation_items(ok2.accepted)
+                r2, _ = extraction.validate_relations(
+                    extraction.parse_relations(raw2),
+                    [Target("m1", target.message_id, target.text)], ctx.known,
+                    context=prompt.context,
+                )  # fmt: skip
+                f2, r2 = lists.keep_only_missing(gap, f2, [*from2, *r2])
+                if f2 or r2:
+                    list_counts["completed"] = list_counts.get("completed", 0) + 1
+                # A relationship already says it: "Ali — aile: Ahmet'in kardeşi" is dropped.
+                f2, _ = extraction.covered_by_relations(f2, [*rel_accepted, *r2])
+                facts += f2
+                rel_accepted += r2
+            # "Üç kardeşi var: Mehmet ve Ali": the count stays in the user's words.
+            notes = lists.count_notes(texts, rel_accepted)
+            if notes:
+                list_counts["count_mismatch"] = len(notes)
+                facts += notes
+            # When it is true, whose it is (Phase 9): from the user's own words.
+            refined = {f"list_{k}": v for k, v in list_counts.items()}
+            if salvaged:
+                refined["json_salvaged"] = 1
+            facts, rel_accepted = refine.refine(facts, rel_accepted, texts, refined)
 
             def write(c: Connection) -> tuple[dict[str, ApplyReport], dict[str, RelReport]]:
                 # Namesakes the user stated ("iki Ahmet: biri komşum, diğeri iş arkadaşım") are
                 # planned from the user's words first; then facts (the entities they create are
                 # found by the relationships), then relationships.
                 f, r = facts, rel_accepted
+                for t in targets:
+                    if (fx := self.pending_fixes.pop(t.message_id, None)) is not None:
+                        f, r = corrections.rename_refs(f, r, t.message_id, fx)
                 for t in targets:
                     f, r, _ = namesakes.plan(c, t.text, f, r, message_id=t.message_id)
                 facts_r = orchestrator.apply_extraction(c, f, conversation_id=conversation_id)
@@ -278,6 +342,7 @@ class Learner:
             "relations_proposed": len(rel_found) + len(from_items) + sum(rel_dropped.values()),
             "relations_rejected": rel_dropped,
             "relations_not_applied": rel_not_applied,  # policy, identity, kinds (after validation)
+            "refined": refined,  # time, change, someone else's relatives (Phase 9)
             **rel_totals,
             "on_prefix": on_prefix,
             "prompt_tokens": None if metrics is None else metrics.prompt_tokens,

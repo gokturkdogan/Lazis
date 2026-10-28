@@ -42,6 +42,10 @@ class MemoryRecordModel(_Schema):
     recall_count: int
     created_at: str
     updated_at: str
+    # Phase 9: how much it matters (computed, never a reason to write) and how many different
+    # messages / imports / edits back it.
+    tier: Literal["critical_personal", "high", "medium", "low", "ephemeral"] = "medium"
+    sources: int = 0
 
 
 class MemoryEvidenceModel(_Schema):
@@ -323,3 +327,23 @@ class GraphPathModel(_Schema):
 
 class GraphPathsResponse(_Schema):
     paths: list[GraphPathModel]
+
+
+# ----- quality checks (Phase 9) ---------------------------------------------------------------
+class QualityFindingModel(_Schema):
+    id: str
+    kind: Literal["conflict", "duplicate", "stale", "ambiguous_person", "no_evidence", "uncertain"]
+    priority: int
+    subject: str
+    title: str
+    memory_ids: list[str]
+    entity_ids: list[str]
+    values: list[str]
+
+
+class QualityResponse(_Schema):
+    findings: list[QualityFindingModel]
+
+
+class QualityDismissRequest(_Schema):
+    kind: Literal["conflict", "duplicate", "stale", "ambiguous_person", "no_evidence", "uncertain"]

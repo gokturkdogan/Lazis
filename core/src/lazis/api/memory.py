@@ -10,9 +10,11 @@ first. Responses never include raw inbox payloads or evidence beyond the stored 
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, TypeVar, cast
 
 from fastapi import APIRouter, Query
+from fastapi import Path as Path_
 
 from lazis.api.bootstrap import register_bootstrap_routes
 from lazis.api.graph import register_graph_routes
@@ -43,10 +45,14 @@ from lazis.api.memory_schemas import (
     MemorySubjectModel,
     PredicateListResponse,
     PredicateModel,
+    QualityDismissRequest,
+    QualityFindingModel,
+    QualityResponse,
 )
 from lazis.conversation import ConversationEngine
 from lazis.errors import LazisError, MemoryNotFoundError, MemoryRequestError, StorageError
-from lazis.memory import importer, registry, service
+from lazis.ids import utc_now_iso
+from lazis.memory import importance, importer, quality, registry, service
 from lazis.memory import repository as repo
 from lazis.memory.models import ApplyReport, Entity, EntityRef, InboxItem, Memory
 from lazis.memory.service import NotFound
@@ -95,7 +101,13 @@ def record_model(conn: Connection, m: Memory) -> MemoryRecordModel:
         recall_count=m.recall_count,
         created_at=m.created_at,
         updated_at=m.updated_at,
-    )
+        tier=importance.tier(
+            predicate=m.predicate, importance=m.importance, origin=m.origin,
+            sensitivity=m.sensitivity, about_user=m.subject_id is None,
+            sources=(n := repo.independent_sources(conn, m.id)),
+        ),
+        sources=n,
+    )  # fmt: skip
 
 
 def entity_model(conn: Connection, e: Entity) -> MemoryEntityModel:
@@ -214,6 +226,30 @@ def build_memory_router(
             raise StorageError(f"database error ({exc.__class__.__name__})") from None
 
     register_graph_routes(router, q)
+
+    # ----- quality checks (Phase 9): suggestions only ---------------------------------------
+    @router.get("/quality", response_model=QualityResponse)
+    async def quality_findings(  # pyright: ignore[reportUnusedFunction]
+        limit: Annotated[int, Query(ge=1, le=200)] = 30,
+    ) -> QualityResponse:
+        def read(c: Connection) -> QualityResponse:
+            return QualityResponse(findings=[
+                QualityFindingModel(id=f.id, kind=f.kind, priority=f.priority, subject=f.subject,
+                                    title=f.title, memory_ids=list(f.memory_ids),
+                                    entity_ids=list(f.entity_ids), values=list(f.values))
+                for f in quality.scan(c, limit=limit)
+            ])  # fmt: skip
+
+        return await q(read)
+
+    @router.post("/quality/{finding_id}/dismiss", response_model=QualityResponse)
+    async def quality_dismiss(  # pyright: ignore[reportUnusedFunction]
+        finding_id: Annotated[str, Path_(pattern=r"^[0-9a-f]{32}$")], body: QualityDismissRequest
+    ) -> QualityResponse:
+        now = utc_now_iso()
+        await q(lambda c: quality.dismiss(c, finding_id, body.kind, now))
+        return await quality_findings(30)
+
     register_bootstrap_routes(router, q, get_engine)
 
     # ----- overview and vocabulary -----------------------------------------------------
@@ -259,7 +295,12 @@ def build_memory_router(
         status: Annotated[str, Query(pattern=r"^(active|superseded|all)$")] = "active",
         limit: Annotated[int, Query(ge=1, le=200)] = 50,
         offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
+        new_days: Annotated[int | None, Query(ge=1, le=90)] = None,
     ) -> MemoryListResponse:
+        since = None
+        if new_days is not None:  # "Yeni öğrenilenler": learned in the last days, newest first
+            since = (datetime.now(UTC) - timedelta(days=new_days)).isoformat()[:23] + "Z"
+
         def read(c: Connection) -> MemoryListResponse:
             rows = repo.list_memories(
                 c,
@@ -270,6 +311,7 @@ def build_memory_router(
                 query=q_,
                 limit=limit + 1,
                 offset=offset,
+                created_since=since,
             )
             return MemoryListResponse(
                 records=[record_model(c, m) for m in rows[:limit]], has_more=len(rows) > limit

@@ -64,6 +64,7 @@ def candidate_from_json(data: dict[str, Any]) -> Candidate:
         durable=bool(data.get("durable", True)),
         keywords=tuple(data.get("keywords", ())),
         origin=data.get("origin", "stated"),
+        tense=data.get("tense"),
     )
 
 
@@ -244,6 +245,11 @@ def apply_one(
         )
         report.inbox.append(iid)
         return
+    if c.tense == "past" and force is None:
+        _apply_past(conn, uow, c, subject_id, source=source, report=report, now=now,
+                    confidence=decision.confidence, sensitivity=decision.sensitivity,
+                    category=decision.category)  # fmt: skip
+        return
     current = repo.consolidation_candidates(
         conn, subject_id, c.predicate, value=c.value, replaces=c.replaces
     )
@@ -254,10 +260,13 @@ def apply_one(
         plan = consolidation.Plan("supersede", tuple(m.id for m in current))
     if plan.action == "duplicate":
         target = plan.target_ids[0]
-        repo.add_evidence(
+        if not repo.add_evidence(
             conn, target, source_type=source.type, source_ref=source.ref, quote=c.quote, now=now
-        )
-        repo.touch(conn, target, now, confidence=decision.confidence)
+        ):
+            report.drop("same_source")  # this message (or item) was read before
+            return
+        repo.touch(conn, target, now, confidence=repeated_confidence(
+            decision.confidence, repo.independent_sources(conn, target)))  # fmt: skip
         report.updated.append(target)
         _settle_ambiguity(conn, subject_id, c, now)
         return
@@ -319,6 +328,77 @@ def apply_one(
     uow.record("memories", m.id, "create", None)
     report.created.append(m.id)
     _settle_ambiguity(conn, subject_id, c, now)
+
+
+# Saying the same thing again (in another message) makes it a little more certain — never
+# certain: repetition does not make a wrong fact true, and never settles a conflict or
+# outweighs a correction (those go through their own paths).
+REPEAT_STEP = 0.03
+REPEAT_CAP = 0.95
+
+
+def repeated_confidence(base: float, sources: int) -> float:
+    return round(min(REPEAT_CAP, base + REPEAT_STEP * max(0, sources - 1)), 3) if base < 1 else base
+
+
+def _apply_past(
+    conn: Connection,
+    uow: UnitOfWork,
+    c: Candidate,
+    subject_id: str | None,
+    *,
+    source: Source,
+    report: ApplyReport,
+    now: str,
+    confidence: float,
+    sensitivity: str,
+    category: str | None,
+) -> None:
+    """A value the user says was true before ("Eskiden öğretmendim"): kept as history.
+
+    * the same value is already history → its evidence only;
+    * it is today's value → it ends now (the user said it is no longer true);
+    * otherwise → a history record (no end date is invented), today's value untouched.
+    """
+    pred = registry.get(c.predicate)
+    assert pred is not None
+    same = [
+        m for m in repo.memories_for_subject(conn, subject_id, predicate=c.predicate,
+                                             statuses=("active", "superseded"))
+        if consolidation.same_value(c, m)
+    ]  # fmt: skip
+    old = next((m for m in same if m.status == "superseded"), None)
+    if old is not None:
+        _evidence(conn, old.id, source, c.quote, now)
+        report.updated.append(old.id)
+        return
+    current = next((m for m in same if m.status == "active"), None)
+    if current is not None:
+        before = uow.snapshot("memories", current.id)
+        repo.set_status(conn, current, "superseded", now, valid_to=now)
+        repo.set_conflict(conn, current.id, "none", now)
+        uow.record("memories", current.id, "update", before)
+        _evidence(conn, current.id, source, c.quote, now)
+        report.superseded.append(current.id)
+        return
+    m = repo.insert_memory(
+        conn, kind=pred.kind, subject_id=subject_id, predicate=c.predicate,
+        value=c.value.strip(), content=c.statement.strip(), keywords=" ".join(c.keywords),
+        status="superseded", origin=c.origin, confidence=confidence,
+        importance=max(0.0, min(1.0, c.importance)), sensitivity=sensitivity,
+        sensitivity_category=category, event_time=c.event_time, valid_from=None,
+        supersedes_id=None, change_set_id=uow.change_set_id, now=now,
+    )  # fmt: skip
+    _evidence(conn, m.id, source, c.quote, now)
+    uow.record("memories", m.id, "create", None)
+    report.created.append(m.id)
+    report.history.append(m.id)
+
+
+def _evidence(conn: Connection, memory_id: str, source: Source, quote: str | None,
+              now: str) -> None:  # fmt: skip
+    repo.add_evidence(conn, memory_id, source_type=source.type, source_ref=source.ref,
+                      quote=quote, now=now)  # fmt: skip
 
 
 def _settle_ambiguity(conn: Connection, subject_id: str | None, c: Candidate, now: str) -> None:

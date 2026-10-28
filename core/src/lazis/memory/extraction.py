@@ -113,10 +113,17 @@ correction=true. "Artık", "ayrıldı", "taşındı" → change=true. Geçmişte
 ifadesi, yoksa boş. source_relation / target_relation: o kişinin kullanıcıya göre ilişkisi, \
 yalnızca mesajda yazıyorsa.
 13. JSON'u tek satırda, girintisiz yaz.
+14. Listedeki HER ad ve değer ayrı öğe ya da ayrı ilişkidir; birini yazıp diğerlerini atlama. \
+"Eskiden X, artık Y" iki öğedir: X eski değer (change=false), Y yeni değer (change=true).
+15. Kullanıcı yukarıda kayıtlı bir bilgiyi başka sözlerle yeniden söylüyorsa yeni bir değer \
+yazma: value olarak kayıtlı değeri birebir aynı yaz (kanıt olarak eklenir).
 
 Örnekler (adlar örnektir; quote her zaman incelenen mesajdan birebir alınır):
 «Bir gün Japonya'ya taşınsam nasıl olurdu?» → {"items": [], "relations": []} (varsayım)
 «Annem doktor olmamı isterdi.» → {"items": [], "relations": []} (kalıcı bilgi değil)
+«Oya'nın iki oğlu var: Umut ve Tarık.» → relations: Oya child Umut; Oya child Tarık (iki ilişki)
+«Eskiden eczacıydım, artık fotoğrafçıyım.» → iki öğe: occupation "eczacı" (change=false); \
+occupation "fotoğrafçı" (change=true)
 «Gitar ve keman çalarım, Rust da öğreniyorum.» → üç öğe: skill "gitar"; skill "keman"; \
 technology "Rust" (her değer ayrı öğe)
 «Okuldan iki arkadaşım var, Sena ile Barış.» → relations: "" friend Sena; "" friend Barış
@@ -322,9 +329,69 @@ def users_own_words(message: str) -> str:
     return _QUOTED.sub(" … ", message)
 
 
+# A run-on token the model sometimes appends to a sentence ("…Zeynep.causal_link_id_1"):
+# never part of what the user said, never stored.
+_ARTIFACT = re.compile(r"\.?[A-Za-z]+(?:_[A-Za-z0-9]+){2,}\S*")
+
+
 def _str(item: dict[str, Any], key: str, limit: int = MAX_VALUE) -> str:
     v = item.get(key)
-    return v.strip()[:limit] if isinstance(v, str) else ""
+    if not isinstance(v, str):
+        return ""
+    if key == "statement":
+        v = _ARTIFACT.sub("", v).strip()
+        v = v if v.endswith((".", "!", "?")) or not v else v + "."
+    return v.strip()[:limit]
+
+
+def salvage(raw: str) -> str | None:
+    """A JSON answer that broke off or went wrong near its end (an unterminated string, a
+    missing bracket): the complete objects before the break, with the arrays closed. Nothing
+    is invented — an incomplete object is dropped, and what is kept is validated as usual."""
+    if not raw.strip().startswith("{"):
+        return None
+    ends = [i for i, ch in enumerate(raw) if ch == "}"]
+    for pos in reversed(ends[-80:]):
+        head = raw[: pos + 1]
+        closers = _closers(head)
+        if closers is None:
+            continue
+        try:
+            data = json.loads(head + closers)
+        except ValueError:
+            continue
+        if isinstance(data, dict) and isinstance(cast(dict[str, Any], data).get("items", []), list):
+            d = cast(dict[str, Any], data)
+            d.setdefault("items", [])
+            d.setdefault("relations", [])
+            return json.dumps(d, ensure_ascii=False)
+    return None
+
+
+def _closers(head: str) -> str | None:
+    """The brackets that close ``head`` (None if it ends inside a string)."""
+    stack: list[str] = []
+    in_str = esc = False
+    for ch in head:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append("}" if ch == "{" else "]")
+        elif ch in "}]":
+            if not stack:
+                return None
+            stack.pop()
+    if in_str:
+        return None
+    return "".join(reversed(stack))
 
 
 def _known_for(name_key: str, known: Sequence[Known]) -> list[Known]:

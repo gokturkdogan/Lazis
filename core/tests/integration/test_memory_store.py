@@ -29,9 +29,11 @@ def run[T](storage: StorageHandle, fn: Callable[[driver.Connection], T]) -> T:
     return storage.db.run_sync(fn)
 
 
-def apply(storage: StorageHandle, *cands: Candidate, explicit: bool = False) -> ApplyReport:
+def apply(storage: StorageHandle, *cands: Candidate, explicit: bool = False,
+          source: Source = SRC) -> ApplyReport:  # fmt: skip
     return run(
-        storage, lambda c: service.apply_candidates(c, list(cands), source=SRC, explicit=explicit)
+        storage,
+        lambda c: service.apply_candidates(c, list(cands), source=source, explicit=explicit),
     )
 
 
@@ -76,10 +78,16 @@ def test_save_dedupe_and_search(storage: StorageHandle) -> None:
     )  # fmt: skip
     first = apply(storage, mac)
     assert len(first.created) == 1
+    later = Source("message", "msg-synthetic-2", None)  # said again in another message
     again = apply(
-        storage, cand("computer", "macbook pro m4 pro 24 gb", "MacBook Pro M4 Pro, 24 GB.")
-    )
+        storage, cand("computer", "macbook pro m4 pro 24 gb", "MacBook Pro M4 Pro, 24 GB."),
+        source=later,
+    )  # fmt: skip
     assert again.created == [] and again.updated == first.created  # evidence, not a copy
+    # The same message read again (a retried job) is not a second confirmation.
+    same = apply(storage, cand("computer", "macbook pro m4 pro 24 gb", "MacBook Pro."),
+                 source=later)  # fmt: skip
+    assert same.updated == [] and same.dropped == {"same_source": 1}
     mid = first.created[0]
     assert len(run(storage, lambda c: repo.evidence_for(c, mid))) == 2
     # Inflected questions find it ("bilgisayarım", "RAM'im").

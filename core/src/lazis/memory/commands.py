@@ -28,6 +28,7 @@ from lazis.memory import (
     extraction,
     namesakes,
     policy,
+    refine,
     registry,
     relations,
     resolver,
@@ -452,10 +453,12 @@ def apply_items(
     found, rel_dropped = extraction.validate_relations(cmd.relations, [target], known)
     facts, _ = extraction.covered_by_relations(facts, [*from_items, *found])
     facts += extraction.facts_from_relations(facts, [*from_items, *found])
+    rels_in = [*from_items, *found]
+    facts, rels_in = refine.refine(facts, rels_in, {message_id: message}, {})
     # Namesakes the user states ("iki Ahmet: biri komşum, diğeri iş arkadaşım"): planned from
     # the user's words before anything is resolved (ADR-0018).
     facts, rel_all, _ = namesakes.plan(
-        conn, message, facts, [*from_items, *found], message_id=message_id,
+        conn, message, facts, rels_in, message_id=message_id,
         kind="user_request", actor="user",
     )  # fmt: skip
     checked = replace(checked, accepted=facts)
