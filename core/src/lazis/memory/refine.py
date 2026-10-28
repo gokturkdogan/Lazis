@@ -42,6 +42,9 @@ _LASTING = re.compile(
     r"yillardir|cok severim|bayilirim|nefret ederim)\b"
 )
 _PASSING_PREDICATES = frozenset({"note", "likes", "dislikes", "interest", "habit"})
+# Values a "not" right after them denies today ("Kervan'da çalışmıyorum", "öğretmen değilim").
+_DENIABLE = frozenset({"employer", "location", "occupation"})
+_STILL = frozenset({"artik", "hala", "halen", "simdi"})
 _COUNTS = frozenset({"iki", "uc", "dort", "bes", "alti", "yedi", "bir", "cok", "birkac", "kac"})
 
 
@@ -71,6 +74,13 @@ def refine(
         if c.change and not temporal.change_marked(msg):
             c = replace(c, change=False)
             count("change_not_said")
+        if c.predicate in _DENIABLE and said_with_not(clause, c.value):
+            # "Artık Kervan Lojistik'te çalışmıyorum" given as employer Kervan (seen with Gemma):
+            # history when it ended, nothing when it was only denied — never today's value.
+            count("said_with_not")
+            if not _PRESENT.search(" ".join(text.words(clause))):
+                continue
+            c = replace(c, tense="past", change=False, replaces=None)
         if c.predicate in _PASSING_PREDICATES and _passing(clause, c.quote):
             count("ephemeral")  # a passing state: not kept
             continue
@@ -104,6 +114,17 @@ def refine(
         tense = temporal.tense(clause)
         if tense == "current" and temporal.left(clause, rc.target.name):
             tense = "past"
+        if (
+            not rc.negated
+            and rc.status == "active"
+            and not _between_people(rc.type)
+            and said_with_not(clause, rc.target.name)
+        ):
+            # The same, as a workplace or a place (also what an employer fact becomes): ended
+            # with "artık", denied without it — as if the model had said "not" itself.
+            ended = bool(_PRESENT.search(" ".join(text.words(clause))))
+            rc = replace(rc, negated=True, status="ended" if ended else rc.status, change=ended)
+            count("said_with_not")
         if not rc.negated:
             if tense == "past" and rc.status == "active" and not relationship_over(clause, rc.type):
                 # "Kız kardeşim Elif eskiden İzmir'de yaşıyordu": the past is about where
@@ -152,11 +173,7 @@ def relationship_over(clause: str, key: str) -> bool:
     the user says what they were together ("Eskiden Burak'la arkadaştık"). A workplace, a
     place or a project is the verb itself ("Kervan'da çalışıyordum")."""
     t = relations_vocab.TYPES.get(key)
-    if (
-        t is None
-        or t.source_kinds != relations_vocab.PEOPLE
-        or t.target_kinds != relations_vocab.PEOPLE
-    ):
+    if t is None or not _between_people(key):
         return True
     words = text.words(clause)
     stems = [w.split()[-1] for w in t.words] or [text.words(t.label)[-1][:4]]
@@ -167,6 +184,26 @@ def relationship_over(clause: str, key: str) -> bool:
         ):
             return True
     return any(_WE_WERE.search(w) for w in words)
+
+
+def _between_people(key: str) -> bool:
+    t = relations_vocab.TYPES.get(key)
+    people = relations_vocab.PEOPLE
+    return t is not None and t.source_kinds == people and t.target_kinds == people
+
+
+def said_with_not(clause: str, value: str) -> bool:
+    """The first word after ``value`` denies it: "Artık Kervan Lojistik'te çalışmıyorum",
+    "İstanbul'da artık yaşamıyorum", "öğretmen değilim". Not "Kervan'da değil, Atlas'ta
+    çalışıyorum" for Atlas, nor "Kervan'da çalışıyorum ama mutlu değilim"."""
+    words, key = text.words(clause), " ".join(text.words(value))
+    n = len(key.split())
+    for i in range(len(words) - n + 1):
+        if n and text.mentions_name(words[i : i + n], key):
+            # A suffix after an apostrophe ("te", "da") is a word of its own here.
+            after = [w for w in words[i + n :] if len(w) > 3 and w not in _STILL]
+            return bool(after) and bool(_NEGATED.search(after[0]))
+    return False
 
 
 def _passing(clause: str, quote: str | None) -> bool:

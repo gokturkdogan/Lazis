@@ -168,3 +168,24 @@ def test_a_past_clause_ends_a_relationship_between_people_only_when_it_says_so(
     clause: str, key: str, over: bool
 ) -> None:
     assert refine.relationship_over(clause, key) is over
+
+
+@pytest.mark.parametrize(
+    ("clause", "value", "denied"),
+    [
+        ("Artık Kervan Lojistik'te çalışmıyorum", "Kervan Lojistik", True),
+        ("İstanbul'da artık yaşamıyorum", "İstanbul", True),
+        ("Artık öğretmen değilim", "öğretmen", True),
+        ("Artık öğretmenlik yapmıyorum", "öğretmen", True),
+        ("Kervan'da değil Atlas'ta çalışıyorum", "Kervan", True),
+        ("Kervan'da değil Atlas'ta çalışıyorum", "Atlas", False),
+        ("Kervan Lojistik'te çalışıyorum ama mutlu değilim", "Kervan Lojistik", False),
+        ("Atlas Yazılım'a geçtim", "Atlas Yazılım", False),
+        ("Bursa'da yaşıyorum", "Bursa", False),
+        ("Ankara'yı hiç sevmiyorum", "İzmir", False),
+    ],
+)
+def test_a_value_is_denied_only_by_the_word_right_after_it(
+    clause: str, value: str, denied: bool
+) -> None:
+    assert refine.said_with_not(clause, value) is denied

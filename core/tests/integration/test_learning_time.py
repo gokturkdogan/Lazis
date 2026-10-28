@@ -178,6 +178,41 @@ def test_ending_one_workplace_never_ends_the_new_one(tmp_path: Path, storage: St
     assert len(kervan) == 1  # ended once, not a second ended copy
 
 
+# Seen with Gemma in the Phase 7 sessions (Phase 9, third round): next to the ended Kervan, the
+# negated clause also came back as an employer fact — which made Kervan current again and
+# ended Atlas.
+_NOT_KERVAN = "Artık Kervan Lojistik'te çalışmıyorum"
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        ([item(_NOT_KERVAN, "employer", "Kervan Lojistik", change=True),
+          item("Atlas Yazılım'a geçtim", "employer", "Atlas Yazılım", change=True)],
+         [_neg("Kervan Lojistik'te çalışmıyorum", "Kervan Lojistik")]),
+        ([item(_NOT_KERVAN, "employer", "Kervan Lojistik", change=True)],
+         [_neg("Kervan Lojistik'te çalışmıyorum", "Kervan Lojistik"),
+          rel("Atlas Yazılım'a geçtim", "", "works_at", "Atlas Yazılım", change=True)]),
+        ([item(_NOT_KERVAN, "employer", "Kervan Lojistik"),
+          item("Atlas Yazılım'a geçtim", "employer", "Atlas Yazılım", change=True)], []),
+        ([item("Atlas Yazılım'a geçtim", "employer", "Atlas Yazılım", change=True),
+          item(_NOT_KERVAN, "employer", "Kervan Lojistik", change=True)], []),
+    ],
+    ids=["fact-and-ended", "fact-and-ended-atlas-as-relationship", "facts-only", "atlas-first"],
+)  # fmt: skip
+def test_a_workplace_said_with_not_is_never_current(
+    tmp_path: Path, storage: StorageHandle, answer: tuple[list[dict[str, object]], ...]
+) -> None:
+    first, then = "Kervan Lojistik'te çalışıyorum.", f"{_NOT_KERVAN}, Atlas Yazılım'a geçtim."
+    answers = {first: ([item(first.rstrip("."), "employer", "Kervan Lojistik")], []),
+               then: answer}  # fmt: skip
+    s = converse(tmp_path, storage, [first, then], Brain(answers=answers))  # type: ignore[arg-type]
+    assert s.values("user", "employer") == {"Atlas Yazılım"}
+    assert s.rel("user", "works_at", "Atlas Yazılım", "active")
+    assert not s.rel("user", "works_at", "Kervan Lojistik", "active")
+    assert not s.rel("user", "works_at", "Atlas Yazılım", "ended")
+
+
 @pytest.mark.parametrize(
     ("first", "then", "old", "new"),
     [
