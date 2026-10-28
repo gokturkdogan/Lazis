@@ -109,7 +109,7 @@ def scan(conn: Connection, *, now: datetime | None = None, limit: int = 50) -> l
                 for b in ms[i + 1 :]:
                     if a.id in seen or b.id in seen:
                         continue
-                    if text.similarity(a.value, b.value) >= DUPLICATE_SIMILARITY:
+                    if _near(a.value, b.value):
                         seen |= {a.id, b.id}
                         same = f"{who} — {label}: iki kayıt neredeyse aynı şeyi söylüyor."
                         add("duplicate", [a, b], same)
@@ -128,6 +128,16 @@ def scan(conn: Connection, *, now: datetime | None = None, limit: int = 50) -> l
     out += _namesakes(conn, dismissed)
     out.sort(key=lambda f: (f.priority, f.kind, f.subject))
     return out[:limit]
+
+
+def _near(a: str, b: str) -> bool:
+    """Nearly the same value: similar words, or one inside the other ("filtre kahve" /
+    "filtre kahveler")."""
+    ka, kb = text.name_key(a), text.name_key(b)
+    shorter, longer = sorted((ka, kb), key=len)
+    return text.similarity(a, b) >= DUPLICATE_SIMILARITY or (
+        len(shorter) >= 4 and shorter in longer
+    )
 
 
 def _last_confirmed(conn: Connection, m: Memory) -> datetime | None:

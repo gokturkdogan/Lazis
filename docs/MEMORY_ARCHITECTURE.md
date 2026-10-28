@@ -378,6 +378,50 @@ Refusals have their own codes (`import_<reason>`, e.g. `import_needs_resolution`
 
 **Unchanged.** Background learning, its prompt and policy, the claim guard (Phase 7.1), namesake planning in chat (Phase 7.2), the graph's storage and queries.
 
+
+## Part P9 — As built (Phase 9): advanced automatic learning
+
+Decision record: [ADR-0020](adr/0020-advanced-learning.md). Report: [PHASE_9_REPORT.md](PHASE_9_REPORT.md).
+
+**Pipeline** (background learning; explicit requests share steps 3–5):
+
+```
+1 extraction (one model call, on the conversation's cached prefix)
+2 JSON salvage if the answer broke near its end            extraction.salvage
+3 validation (unchanged: quote, names, relation words)     extraction.validate*
+4 list completeness: one focused re-read per partly read list (≤ 2 per job)   lists
+5 refinement: tense, change words, time phrase, someone else's relatives,
+  passing states; pending corrections ("X değil Y") applied   refine, temporal, corrections
+6 namesake planning (Phase 7.2), then the write              namesakes, orchestrator, service
+```
+
+| Module | Does |
+|---|---|
+| `memory/temporal.py` | clauses (not split inside lists), tense of a clause (past / current / future), change words, the user's time phrase (never a date) |
+| `memory/refine.py` | past → history (`Candidate.tense = "past"`), future → plan, relationship status from the words, change flag only with change words, `event_time` from the user's words, `parent_sibling` / someone else's relatives, passing states dropped |
+| `memory/lists.py` | lists and stated counts in the user's words; gaps; the focused re-read instruction; keep only the missing members; count notes |
+| `memory/corrections.py` | "Hayır, X değil Y": subject move / rename, value correction, ask when Y is several people or still being placed, wait for an unlearned message |
+| `memory/importance.py` | five tiers, computed |
+| `memory/quality.py` | prioritised suggestions: conflict, duplicate, stale, ambiguous person, no evidence, uncertain; dismiss |
+| `service.apply_one` | `tense == "past"`: history record or end the current same value; duplicates: same source → no new evidence, other sources → confidence +0.03 per source (≤ 0.95) |
+| `repository.add_evidence` | one piece of evidence per (memory, source type, source ref) |
+| `orchestrator.extraction_context` | also shows stored preferences / habits that share a word stem with the message |
+
+**Database:** migration `0007_quality` (additive): `memory_quality_dismissed (fingerprint PRIMARY KEY, kind, created_at)` — a content-free fingerprint of a hidden suggestion. No other table changed; history values are ordinary `superseded` rows with `valid_from` NULL.
+
+**API** (`/api/v1/memory`):
+
+| Route | |
+|---|---|
+| `GET /quality?limit=` | prioritised suggestions: `id`, `kind`, `priority`, `subject`, `title`, `memory_ids`, `entity_ids`, `values` |
+| `POST /quality/{id}/dismiss` | `{kind}` → hide it (returns the remaining list) |
+| `GET /records?new_days=N` | learned in the last N days (1–90), newest first |
+| record model | new fields `tier` and `sources` (independent sources) |
+
+**Chat:** "Hayır, X değil Y (demek istedim)" is a deterministic memory request (outcome `corrected` / `ambiguous`; the reply is told what really happened). "Hayır, vazgeç" calls off a waiting "which one?".
+
+**Unchanged:** the policy (secrets, instructions, sensitive → approval), the claim guard (Phase 7.1), namesake planning and "which one?" (Phase 7.2), the graph's storage and queries, recall (besides tiers in the record model), the import (Phase 8; it now also salvages broken answers).
+
 ---
 
 # Phase 0 design (long-term plan)

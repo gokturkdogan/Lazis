@@ -128,18 +128,32 @@ async def _settle(engine: Any) -> None:
 
 
 def converse(tmp_path: Path, storage: StorageHandle, turns: Sequence[str], brain: Brain,
-             *, between: Callable[[int], None] | None = None) -> State:  # fmt: skip
-    """Each turn, then learning to the end (one job per turn)."""
-    llm = ScriptedLLM(memory=brain)
+             *, between: Callable[[int], None] | None = None, learn_between: bool = True,
+             replies: list[str] | None = None) -> State:  # fmt: skip
+    """Each turn, then learning to the end (one job per turn). ``learn_between=False``: every
+    turn comes before the earlier ones were learned from (learning is held, then released).
+    ``replies`` collects each turn's memory outcome (what the reply was told)."""
+    gate = None if learn_between else asyncio.Event()
+    llm = ScriptedLLM(memory=brain, memory_gate=gate)
     engine = make_engine(storage, llm, tmp_path)
 
     async def go() -> None:
         cid = None
         for i, t in enumerate(turns):
             _, cid = await run_turn(engine, t, cid)
-            await _settle(engine)
+            if replies is not None:
+                replies.append(str((engine.last_turn or {}).get("memory_outcome") or ""))
+            if learn_between:
+                await _settle(engine)
+            else:
+                await asyncio.sleep(0.05)
             if between is not None:
                 between(i)
+        if gate is not None:
+            gate.set()
+            for _ in range(5):
+                await _settle(engine)
+                await asyncio.sleep(0.05)
         await engine.close()
 
     asyncio.run(go())

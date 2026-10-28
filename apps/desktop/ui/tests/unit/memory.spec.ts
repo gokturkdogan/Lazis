@@ -186,3 +186,56 @@ describe("diagnostics", () => {
     wrapper.unmount();
   });
 });
+
+describe("memory quality and badges (Phase 9)", () => {
+  it("shows suggestions most important first and hides one on request", async () => {
+    const findings = [
+      { id: "a".repeat(32), kind: "conflict" as const, priority: 10, subject: "Mehmet (kuzeni)",
+        title: "Mehmet (kuzeni) — yaşadığı yer (şehir): birden fazla güncel değer var. Hangisi güncel?",
+        memory_ids: ["M1", "M2"], entity_ids: [], values: ["Ankara", "İzmir"] },
+      { id: "b".repeat(32), kind: "uncertain" as const, priority: 24, subject: "Elif",
+        title: "Elif: emin olunmadan kaydedilmiş bir bilgi var. Doğru mu?",
+        memory_ids: ["M3"], entity_ids: [], values: ["galiba Bursa"] },
+    ];
+    const dismissQuality = vi.fn().mockResolvedValue([findings[1]]);
+    const { wrapper } = await mountMemory({ memoryQuality: vi.fn().mockResolvedValue(findings), dismissQuality });
+    await wrapper.get('[data-testid="memory-tab-inbox"]').trigger("click");
+    await flushPromises();
+    const rows = wrapper.findAll('[data-testid="quality-finding"]');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.text()).toContain("çelişki");
+    expect(rows[0]!.text()).toContain("Hangisi güncel?");
+    expect(rows[0]!.text()).toContain("Ankara · İzmir");
+    expect(wrapper.text()).toContain("LAZIS bunları kendisi değiştirmez");
+    await rows[0]!.get('[data-testid="quality-hide"]').trigger("click");
+    await flushPromises();
+    expect(dismissQuality).toHaveBeenCalledWith("a".repeat(32), "conflict");
+    expect(wrapper.findAll('[data-testid="quality-finding"]')).toHaveLength(1);
+  });
+
+  it("marks important records, their sources and past values", async () => {
+    const memoryRecords = vi.fn().mockResolvedValue({
+      records: [
+        record("M1", "Kullanıcı yazılım geliştiricisi.", { tier: "high", sources: 3 }),
+        record("M2", "Kullanıcı öğretmendi.", { status: "superseded", valid_from: null }),
+        record("M3", "Kullanıcı satranç oynar.", { tier: "medium", sources: 1 }),
+      ],
+      has_more: false,
+    });
+    const { wrapper } = await mountMemory({ memoryRecords });
+    const rows = wrapper.findAll('[data-testid="memory-record"]');
+    expect(rows[0]!.get('[data-testid="memory-tier"]').text()).toBe("önemli");
+    expect(rows[0]!.get('[data-testid="memory-sources"]').text()).toBe("3 kaynak");
+    expect(rows[1]!.get('[data-testid="memory-past"]').text()).toBe("geçmişte");
+    expect(rows[2]!.find('[data-testid="memory-tier"]').exists()).toBe(false);
+    expect(rows[2]!.find('[data-testid="memory-sources"]').exists()).toBe(false);
+  });
+
+  it("lists what was learned in the last seven days", async () => {
+    const memoryRecords = vi.fn().mockResolvedValue({ records: [], has_more: false });
+    const { wrapper } = await mountMemory({ memoryRecords });
+    await wrapper.get('[data-testid="memory-filter"]').setValue("new");
+    await flushPromises();
+    expect(memoryRecords).toHaveBeenLastCalledWith(expect.objectContaining({ new_days: 7 }));
+  });
+});

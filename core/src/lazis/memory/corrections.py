@@ -38,7 +38,7 @@ _FIX = re.compile(
     rf"(?P<tail>\s+(?i:demek istedim|olacak(?:tı)?|dedim|kastettim|diyecektim))?"
 )
 MAX_AGE_S = 30 * 60
-LOOKBACK = 2  # user messages before the correction
+LOOKBACK = 1  # the user message just before the correction
 
 
 @dataclass(frozen=True)
@@ -122,18 +122,25 @@ def apply(conn: Connection, conversation_id: str, message_id: str, fix: Fix, now
     subjects = {m.subject_id for m in mems if m.subject_id} | {
         e for r in rels for e in (r.source_id, r.target_id)
     }
-    wrong_people = [
+    named = [
         e for e in (repo.get_entity(conn, s) for s in subjects if s)
         if e is not None and not e.is_user and text.name_key(e.name) == fix.wrong_key
     ]  # fmt: skip
+    wrong_people = [e for e in named if e.kind == "person"]
     if wrong_people:
         return _move(conn, ids, wrong_people[0], fix, mems, rels, now)
     wrong_values = [
         m for m in mems
         if m.status == "active" and fix.wrong_key and fix.wrong_key in text.name_key(m.value)
     ]  # fmt: skip
-    if wrong_values:
-        return _revalue(conn, ids, wrong_values, fix, now)
+    if wrong_values or named:
+        # A value ("Ankara değil İzmir"); a workplace or a place is a value and an entity at
+        # once ("Kervan'da çalışıyorum" → employer Kervan, works_at Kervan): both corrected.
+        result = _revalue(conn, ids, wrong_values, fix, now)
+        for e in named:
+            moved = _move(conn, ids, e, fix, mems, rels, now)
+            result.lines += moved.lines if moved.kind == "corrected" else []
+        return result
     waiting = _pending(conn, ids)
     if waiting:
         return Result("pending", [], tuple(waiting))
@@ -151,7 +158,12 @@ def _move(conn: Connection, ids: Sequence[str], wrong: object, fix: Fix,
     candidates = [e for e in repo.list_entities(conn, limit=10_000)
                   if text.name_key(e.name) == fix.right_key and not e.is_user
                   and e.id != wrong.id]  # fmt: skip
-    if len(candidates) > 1:
+    # Another person of that name is waiting to be placed ("Hangi Mehmet?"): not a guess.
+    pending_names = {
+        text.name_key(str(i.payload.get("candidate", {}).get("entity", {}).get("name", "")))
+        for i in repo.list_inbox(conn, status="open", types=("ambiguous_entity",))
+    }
+    if len(candidates) > 1 or (candidates and fix.right_key in pending_names):
         return Result("ambiguous", [], tuple(ids),
                       tuple(f"{e.name} ({e.relation})" if e.relation else e.name
                             for e in candidates))  # fmt: skip

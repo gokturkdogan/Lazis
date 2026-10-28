@@ -280,3 +280,17 @@ Decision: [ADR-0019](adr/0019-personal-knowledge-bootstrap.md); as built (module
   - Every write goes through `apply.apply` (one change set); never delete imported records by import id — use `undo`.
   - Never log file content; the draft's section text is deleted when the import ends.
 
+## 18. Advanced learning (Phase 9)
+
+Decision: [ADR-0020](adr/0020-advanced-learning.md); as built (modules, table, API): [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P9.
+
+- **Where:** `core/src/lazis/memory/{temporal,refine,lists,corrections,importance,quality}.py`; wired in `conversation/learning.py` (background) and `memory/commands.py` (explicit requests); corrections in `ConversationEngine._memory_request`.
+- **Limits:** `learning.MAX_LIST_READS` (2 focused re-reads per job), `service.REPEAT_STEP` / `REPEAT_CAP` (0.03 / 0.95), `quality.STALE_AFTER_DAYS` (365), `corrections.LOOKBACK` (1 message), `corrections.MAX_AGE_S` (30 min), `orchestrator.MAX_SIMILAR_FACTS` (6).
+- **Changing the extraction instruction:** examples must use names and values absent from the gold sets (`evals/datasets`), then rerun `p6_extraction.py` and `p7_relations.py`.
+- **Real model:** `uv run --project core python evals/runners/p9_learning.py --model gemma4:12b-it-qat` (`--only l01,t03`); `evals/runners/p9_perf.py` for chat latency while learning.
+- **Rules:**
+  - The refinement step never adds a fact or a relationship: it decides when and whose, or drops.
+  - A tense is read from the user's words; never invent a date.
+  - Repetition raises confidence a little and never settles a conflict.
+  - Quality checks only suggest.
+

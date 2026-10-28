@@ -813,9 +813,10 @@ _ANSWER_FILLER = frozenset(
      "mi", "mu", "de", "da", "kastettim", "kastediyorum", "diyorum", "dedim", "tabiki", "elbette",
      "bahsediyorum", "bahsettim", "olani", "olanı", "in", "un", "nin", "nun", "ile", "su", "bu"}
 )  # fmt: skip
+# "Vazgeç", also after a "no" or "well" ("Hayır, vazgeç", "Tamam, boşver"; Phase 9).
 _CANCEL = re.compile(
-    r"^(?:vazgec|vazgectim|bosver|bos ver|iptal|kaydetme|hicbiri|hic biri|ikisi de degil|"
-    r"hicbirine|unut gitsin)\b"
+    r"^(?:(?:hayir|yok|tamam|peki|neyse|aslinda)\s+)?(?:vazgec|vazgectim|bosver|bos ver|iptal|"
+    r"kaydetme|hicbiri|hic biri|ikisi de degil|hicbirine|unut gitsin)\b"
 )
 _MAX_ANSWER_WORDS = 7
 
