@@ -148,3 +148,90 @@ def test_the_time_named_is_kept_as_written_never_a_date(
     (f,) = [f for f in s.facts if f["predicate"] == predicate]
     assert f["status"] == "active"
     assert (f["event_time"] or "").casefold() == (when or "").casefold()
+
+
+# The two answers Gemma gave in the Phase 9 evaluation, as given (seen: Atlas ended by "Kervan'da
+# çalışmıyorum"; Kervan left current by "Kervan'dan ayrıldım").
+def _neg(quote: str, target: str) -> dict[str, object]:
+    return {**rel(quote, "", "works_at", target, status="ended", change=True), "negated": True}
+
+
+@pytest.mark.parametrize("first_as", ["fact", "relationship"])
+def test_ending_one_workplace_never_ends_the_new_one(tmp_path: Path, storage: StorageHandle,
+                                                     first_as: str) -> None:  # fmt: skip
+    first, then = (
+        "Kervan Lojistik'te çalışıyorum.",
+        ("Artık Kervan Lojistik'te çalışmıyorum, Atlas Yazılım'a geçtim."),
+    )
+    earlier = (([item(first, "employer", "Kervan Lojistik")], []) if first_as == "fact" else
+               ([], [rel(first, "", "works_at", "Kervan Lojistik")]))  # fmt: skip
+    new = item("Atlas Yazılım'a geçtim", "employer", "Atlas Yazılım", change=True)
+    new["replaces"] = "Kervan Lojistik"
+    answers = {first: earlier,
+               then: ([new], [_neg("Kervan Lojistik'te çalışmıyorum", "Kervan Lojistik")])}  # fmt: skip
+    s = converse(tmp_path, storage, [first, then], Brain(answers=answers))
+    assert s.values("user", "employer") == {"Atlas Yazılım"}
+    assert s.rel("user", "works_at", "Atlas Yazılım", "active")
+    assert not s.rel("user", "works_at", "Kervan Lojistik", "active")
+    assert s.rel("user", "works_at", "Kervan Lojistik", "ended")
+    kervan = [r for r in s.relationships if r["target"] == "Kervan Lojistik"]
+    assert len(kervan) == 1  # ended once, not a second ended copy
+
+
+@pytest.mark.parametrize(
+    ("first", "then", "old", "new"),
+    [
+        ("Kervan'da çalışıyorum.", "Kervan'dan ayrıldım, artık Atlas'tayım.", "Kervan", "Atlas"),
+        ("Pusula'da çalışıyorum.", "Pusula'dan istifa ettim, şimdi Martı'dayım.", "Pusula",
+         "Martı"),
+        ("Ankara'da yaşıyorum.", "Ankara'dan ayrıldım; artık İzmir'deyim.", "Ankara", "İzmir"),
+    ],
+)  # fmt: skip
+def test_the_place_left_becomes_history(tmp_path: Path, storage: StorageHandle, first: str,
+                                        then: str, old: str, new: str) -> None:  # fmt: skip
+    pred, type_ = ("location", "lives_in") if old == "Ankara" else ("employer", "works_at")
+    stale = item(then.rstrip("."), pred, old, change=True)  # the model kept the old one
+    answers = {first: ([item(first.rstrip("."), pred, old)], []),
+               then: ([stale], [rel(then.rstrip("."), "", type_, new, change=True)])}  # fmt: skip
+    s = converse(tmp_path, storage, [first, then], Brain(answers=answers))
+    assert s.values("user", pred) == {new}
+    assert old in s.values("user", pred, "superseded")
+    assert s.rel("user", type_, new, "active")
+
+
+@pytest.mark.parametrize(
+    ("sentence", "quote", "who", "predicate", "value"),
+    [
+        # Phase 6 gold E5: "bugün" is when Ahmet called; joining the club lasts.
+        ("Ahmet bugün aradı, satranç kulübüne yazılmış.", "satranç kulübüne yazılmış", "Ahmet",
+         "interest", "satranç kulübü"),
+        ("Bugün Elif'le konuştum, yogaya başlamış.", "yogaya başlamış", "Elif", "interest",
+         "yoga"),
+    ],
+)  # fmt: skip
+def test_today_about_something_else_does_not_make_a_fact_passing(
+    tmp_path: Path, storage: StorageHandle, sentence: str, quote: str, who: str, predicate: str,
+    value: str,
+) -> None:  # fmt: skip
+    answers = {sentence: ([item(quote, predicate, value, entity=who)], [])}
+    s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
+    assert s.values(who, predicate) == {value}
+
+
+@pytest.mark.parametrize(
+    ("sentence", "when"),
+    [("Seneye emekli olacağım.", "Seneye"), ("Gelecek yıl maraton koşacağım.", "Gelecek yıl")],
+)
+def test_a_dated_intention_is_a_plan_with_the_users_time(tmp_path: Path, storage: StorageHandle,
+                                                         sentence: str, when: str) -> None:  # fmt: skip
+    answers = {sentence: ([item(sentence.rstrip("."), "goal", "emekli olmak")], [])}
+    s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
+    (f,) = s.facts
+    assert f["predicate"] == "plan" and f["event_time"] == when
+
+
+def test_an_undated_wish_stays_a_goal(tmp_path: Path, storage: StorageHandle) -> None:
+    sentence = "Bir gün kendi şirketimi kuracağım."
+    answers = {sentence: ([item(sentence.rstrip("."), "goal", "kendi şirketini kurmak")], [])}
+    s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
+    assert s.values("user", "goal") == {"kendi şirketini kurmak"}

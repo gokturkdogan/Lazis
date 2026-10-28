@@ -251,7 +251,13 @@ def assemble(results: list[SectionResult]) -> Proposals:
         st = namesakes.stated(sec.body)
         for e in r.facts:
             c = e.candidate
-            subject = USER if c.entity is None else _key_for(people, c.entity, e, "entity", sec, st)
+            ref = c.entity
+            if ref is not None and not ref.relation:
+                # Validation read relation words in the whole section, where two namesakes'
+                # words cancel out; the quote's own line says whose fact it is.
+                said = extraction.appositive(files.line_text(sec, c.quote or ""), ref.name)
+                ref = replace(ref, relation=said) if said else ref
+            subject = USER if ref is None else _key_for(people, ref, e, "entity", sec, st)
             p = out.person(subject) if subject != USER else None
             out.facts.append(ProposedFact(
                 subject=subject, predicate=c.predicate, value=c.value, statement=c.statement,

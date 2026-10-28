@@ -66,6 +66,24 @@ def test_a_namesakes_relation_words_go_with_the_relationship_being_read() -> Non
     assert extraction.appositive("Çocukluk arkadaşım Berk avukat.", "Berk") == "çocukluk arkadaşı"
 
 
+@pytest.mark.parametrize("order", [("Komşum", "İş arkadaşım"), ("İş arkadaşım", "Komşum")])
+def test_a_namesakes_fact_goes_with_its_own_lines_relation_words(order: tuple[str, str]) -> None:
+    from lazis.memory.extraction import Extracted
+
+    a, b = order
+    body = f"{a} Ahmet mimar.\n{b} Ahmet muhasebeci."
+    sec = files.read("p.md", f"# İnsanlar\n{body}".encode()).sections[0]
+    facts = [
+        Extracted("m1", cand("occupation", v, f"{w} Ahmet {v}", "Ahmet"))
+        for w, v in ((a, "mimar"), (b, "muhasebeci"))
+    ]  # the model gave no relation words
+    out = extract.assemble([extract.SectionResult(sec, facts)])
+    assert len(out.people) == 2  # never one Ahmet with both jobs
+    assert {(p.relation, f.value) for f in out.facts for p in out.people if p.key == f.subject} == {
+        ("komşusu" if a == "Komşum" else "iş arkadaşı", "mimar"),
+        ("iş arkadaşı" if a == "Komşum" else "komşusu", "muhasebeci")}  # fmt: skip
+
+
 def test_time_words_on_the_line_mark_a_change_even_outside_the_quote() -> None:
     from lazis.bootstrap import analyze
 

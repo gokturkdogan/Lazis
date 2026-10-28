@@ -21,7 +21,7 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 
-from lazis.memory import registry, temporal, text
+from lazis.memory import extraction, registry, temporal, text
 from lazis.memory import relations as relations_vocab
 from lazis.memory.extraction import Extracted, ExtractedRel
 
@@ -66,16 +66,22 @@ def refine(
         msg = messages.get(e.message_id, "")
         clause = temporal.clause_of(msg, c.quote, c.value)
         tense = temporal.tense(clause)
+        if tense == "current" and temporal.left(clause, c.value):
+            tense = "past"  # "Kervan'dan ayrıldım": Kervan is history
         if c.change and not temporal.change_marked(msg):
             c = replace(c, change=False)
             count("change_not_said")
-        words = " ".join(text.words(clause))
-        if c.predicate in _PASSING_PREDICATES and _NOW.search(words) and not _LASTING.search(words):
+        if c.predicate in _PASSING_PREDICATES and _passing(clause, c.quote):
             count("ephemeral")  # a passing state: not kept
             continue
         if c.event_time is None and (when := temporal.time_phrase(clause)):
             c = replace(c, event_time=when)
-        if c.predicate not in _TIMELESS:
+        if c.predicate == "goal" and tense == "future" and c.event_time:
+            # "Seneye emekli olacağım": a dated intention is a plan, with the user's own time.
+            plan = (c.quote or c.value).strip()[:120]
+            c = replace(c, predicate="plan", value=plan, change=False, replaces=None)
+            count("future_as_plan")
+        elif c.predicate not in _TIMELESS:
             if tense == "future":
                 plan = (c.quote or c.value).strip()[:120]
                 c = replace(c, predicate="plan", value=plan, change=False, replaces=None)
@@ -96,6 +102,8 @@ def refine(
         if rc.time_text is None and (when := temporal.time_phrase(clause)):
             rc = replace(rc, time_text=when)
         tense = temporal.tense(clause)
+        if tense == "current" and temporal.left(clause, rc.target.name):
+            tense = "past"
         if not rc.negated:
             if tense == "past" and rc.status == "active":
                 rc = replace(rc, status="ended")
@@ -120,7 +128,24 @@ def refine(
                 rc = replace(rc, type=kind)
                 count("parent_sibling")
         out_r.append(replace(r, candidate=rc))
+    # A workplace or city that became history leaves room for the current one the same message
+    # said as a relationship ("Kervan'dan ayrıldım, artık Atlas'tayım").
+    current = [f for f in out_f if f.candidate.tense != "past"]
+    out_f += extraction.facts_from_relations(current, out_r)
     return out_f, out_r
+
+
+def _passing(clause: str, quote: str | None) -> bool:
+    """ "Bugün çok yorgunum": "bugün" is about what was quoted. In "Ahmet bugün aradı, satranç
+    kulübüne yazılmış" it is about the call — the quoted fact lasts."""
+    words = " ".join(text.words(clause))
+    if not _NOW.search(words) or _LASTING.search(words):
+        return False
+    q = text.words(quote or "")
+    if not q or _NOW.search(" ".join(q)):
+        return True
+    rest = [w for w in text.words(_NOW.sub(" ", words)) if w not in set(q)]
+    return len(rest) <= 1  # the quote is the whole clause but the time word
 
 
 def _negated_current(clause: str) -> bool:

@@ -295,7 +295,10 @@ def check(conv: Conv, st: dict[str, Any]) -> tuple[dict[str, bool], dict[str, An
         checks["one_record"] = len(n) == 1
     if conv.distinct:
         same = [p for p in st["people"] if p["name"] == conv.distinct]
-        checks["kept_apart"] = len(same) == 2
+        # Two people, or the question "which one?" (ADR-0018: a stored namesake known by other
+        # relation words is asked about, never merged); never one person with both.
+        asked = any(i["type"] == "ambiguous_entity" for i in st["inbox"])
+        checks["kept_apart"] = len(same) == 2 or (len(same) == 1 and asked)
     detail = {
         "expected_facts": len(conv.facts), "found_facts": sum(found),
         "missing_facts": [conv.facts[i] for i, ok in enumerate(found) if not ok],

@@ -72,7 +72,7 @@ _TIME_PHRASE = re.compile(
     r"(?:gecen|bu|gelecek|onumuzdeki) (?:yil|sene|ay|hafta|yaz|kis|bahar|sonbahar)|"
     r"(?:\d+|bir|iki|uc|dort|bes|alti|yedi|sekiz|dokuz|on|birkac) (?:yil|sene|ay|hafta|gun) "
     r"(?:once|sonra|onceye kadar)|"
-    r"(?:dun|bugun|evvelki gun)|"
+    r"(?:dun|bugun|evvelki gun|yarin|seneye|haftaya|gelecek ay)|"
     r"(?:ocak|subat|mart|nisan|mayis|haziran|temmuz|agustos|eylul|ekim|kasim|aralik)"
     r"(?:['’][a-zçğıöşü]+)?(?: \d{4})?|"
     r"cocukken|ogrenciyken)"
@@ -130,6 +130,25 @@ def tense(clause: str) -> Tense:
         # is a change that happened then and is true now.
         return "current" if _CHANGE_VERB.search(joined) else "past"
     return "current"
+
+
+# Leaving something ("Kervan'dan ayrıldım", "işi bıraktım", "istifa ettim"): what was left is
+# in the past — unless the clause also arrives somewhere ("Ankara'dan ayrılıp İzmir'e taşındım").
+_LEFT = re.compile(r"\b(?:ayrild(?:im|ik)|birakt(?:im|ik)|istifa ett(?:im|ik)|cikt(?:im|ik))\b")
+_LEAVING = re.compile(r"\b(?:ayril|birak|istifa|cik)")
+_ARRIVED = re.compile(
+    r"\b(?:tasin\w*|gec(?:tim|tik)|basla\w*|katil\w*|gir(?:dim|dik)|artik|simdi)\b"
+)
+
+
+def left(clause: str, anchor: str | None) -> bool:
+    """The clause says the user left ``anchor`` (a workplace, a city, a habit's object) — and
+    ``anchor`` is not the leaving itself ("sigarayı bıraktım" as a value stays current)."""
+    joined = " ".join(text.words(clause))
+    if not _LEFT.search(joined) or _ARRIVED.search(joined):
+        return False
+    a = " ".join(text.words(anchor or ""))
+    return bool(a) and not _LEAVING.search(a) and text.mentions_name(text.words(clause), a)
 
 
 def tense_of(message: str, quote: str | None, anchor: str | None = None) -> Tense:

@@ -130,3 +130,20 @@ def test_a_comma_inside_a_list_does_not_end_a_clause() -> None:
         "Eskiden öğretmendim",
         "artık yazılım geliştiricisiyim",
     ]
+
+
+@pytest.mark.parametrize(
+    ("clause", "anchor", "want"),
+    [
+        ("Kervan'dan ayrıldım", "Kervan", True),
+        ("Pusula'dan istifa ettim", "Pusula", True),
+        ("Ankara'dan ayrıldık", "Ankara", True),
+        ("Kervan'dan ayrıldım", "Atlas", False),  # not in the clause
+        ("Ankara'dan ayrılıp İzmir'e taşındım", "İzmir", False),  # arrived somewhere
+        ("Kervan'dan ayrıldım, artık Atlas'tayım", "Atlas", False),
+        ("Sigarayı bıraktım", "sigarayı bıraktı", False),  # the value is the leaving itself
+        ("Kervan'da çalışıyorum", "Kervan", False),
+    ],
+)
+def test_what_the_user_left_is_in_the_past(clause: str, anchor: str, want: bool) -> None:
+    assert temporal.left(clause, anchor) is want
