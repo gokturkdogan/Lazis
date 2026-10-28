@@ -229,6 +229,8 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     bootstrapUndoPlan: vi.fn(),
     bootstrapUndo: vi.fn(),
     bootstrapDiscard: vi.fn(),
+    memoryQuality: vi.fn().mockResolvedValue([]),
+    dismissQuality: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

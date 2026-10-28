@@ -3821,6 +3821,11 @@
             ],
             "title": "Sensitivity Category"
           },
+          "sources": {
+            "default": 0,
+            "title": "Sources",
+            "type": "integer"
+          },
           "status": {
             "enum": [
               "active",
@@ -3850,6 +3855,18 @@
               }
             ],
             "title": "Supersedes Id"
+          },
+          "tier": {
+            "default": "medium",
+            "enum": [
+              "critical_personal",
+              "high",
+              "medium",
+              "low",
+              "ephemeral"
+            ],
+            "title": "Tier",
+            "type": "string"
           },
           "updated_at": {
             "title": "Updated At",
@@ -4427,6 +4444,111 @@
           "os_network_sandbox"
         ],
         "title": "PrivacyStatus",
+        "type": "object"
+      },
+      "QualityDismissRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "conflict",
+              "duplicate",
+              "stale",
+              "ambiguous_person",
+              "no_evidence",
+              "uncertain"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "QualityDismissRequest",
+        "type": "object"
+      },
+      "QualityFindingModel": {
+        "additionalProperties": false,
+        "properties": {
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "conflict",
+              "duplicate",
+              "stale",
+              "ambiguous_person",
+              "no_evidence",
+              "uncertain"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "memory_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Memory Ids",
+            "type": "array"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "priority",
+          "subject",
+          "title",
+          "memory_ids",
+          "entity_ids",
+          "values"
+        ],
+        "title": "QualityFindingModel",
+        "type": "object"
+      },
+      "QualityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/QualityFindingModel"
+            },
+            "title": "Findings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "findings"
+        ],
+        "title": "QualityResponse",
         "type": "object"
       },
       "RelationshipCreateRequest": {
@@ -6562,6 +6684,98 @@
         "summary": "Predicates"
       }
     },
+    "/api/v1/memory/quality": {
+      "get": {
+        "operationId": "quality_findings_api_v1_memory_quality_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Quality Findings"
+      }
+    },
+    "/api/v1/memory/quality/{finding_id}/dismiss": {
+      "post": {
+        "operationId": "quality_dismiss_api_v1_memory_quality__finding_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{32}$",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualityDismissRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Quality Dismiss"
+      }
+    },
     "/api/v1/memory/records": {
       "get": {
         "operationId": "list_records_api_v1_memory_records_get",
@@ -6660,6 +6874,24 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "new_days",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 90,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "New Days"
             }
           }
         ],

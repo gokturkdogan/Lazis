@@ -14,7 +14,7 @@ function record(id: string, content: string, extra: Partial<MemoryRecord> = {}):
     value: content, content, status: "active", origin: "stated", confidence: 0.85, importance: 0.6,
     sensitivity: "normal", sensitivity_category: null, conflict_state: "none", event_time: null,
     valid_from: "2026-10-20T08:00:00Z", valid_to: null, supersedes_id: null, recall_count: 0,
-    created_at: "2026-10-20T08:00:00Z", updated_at: "2026-10-20T08:00:00Z", ...extra,
+    created_at: "2026-10-20T08:00:00Z", updated_at: "2026-10-20T08:00:00Z", tier: "medium", sources: 1, ...extra,
   };
 }
 

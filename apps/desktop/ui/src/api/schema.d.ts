@@ -572,6 +572,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memory/quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quality Findings */
+        get: operations["quality_findings_api_v1_memory_quality_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memory/quality/{finding_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quality Dismiss */
+        post: operations["quality_dismiss_api_v1_memory_quality__finding_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memory/records": {
         parameters: {
             query?: never;
@@ -1933,6 +1967,11 @@ export interface components {
             /** Sensitivity Category */
             sensitivity_category: string | null;
             /**
+             * Sources
+             * @default 0
+             */
+            sources: number;
+            /**
              * Status
              * @enum {string}
              */
@@ -1940,6 +1979,12 @@ export interface components {
             subject: components["schemas"]["MemorySubjectModel"] | null;
             /** Supersedes Id */
             supersedes_id: string | null;
+            /**
+             * Tier
+             * @default medium
+             * @enum {string}
+             */
+            tier: "critical_personal" | "high" | "medium" | "low" | "ephemeral";
             /** Updated At */
             updated_at: string;
             /** Valid From */
@@ -2117,6 +2162,41 @@ export interface components {
             research_mode: "offline_only" | "ask_per_session" | "auto_public" | "custom";
             /** Voice Enabled */
             voice_enabled: boolean;
+        };
+        /** QualityDismissRequest */
+        QualityDismissRequest: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "conflict" | "duplicate" | "stale" | "ambiguous_person" | "no_evidence" | "uncertain";
+        };
+        /** QualityFindingModel */
+        QualityFindingModel: {
+            /** Entity Ids */
+            entity_ids: string[];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "conflict" | "duplicate" | "stale" | "ambiguous_person" | "no_evidence" | "uncertain";
+            /** Memory Ids */
+            memory_ids: string[];
+            /** Priority */
+            priority: number;
+            /** Subject */
+            subject: string;
+            /** Title */
+            title: string;
+            /** Values */
+            values: string[];
+        };
+        /** QualityResponse */
+        QualityResponse: {
+            /** Findings */
+            findings: components["schemas"]["QualityFindingModel"][];
         };
         /** RelationshipCreateRequest */
         RelationshipCreateRequest: {
@@ -3503,6 +3583,72 @@ export interface operations {
             };
         };
     };
+    quality_findings_api_v1_memory_quality_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quality_dismiss_api_v1_memory_quality__finding_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QualityDismissRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_records_api_v1_memory_records_get: {
         parameters: {
             query?: {
@@ -3513,6 +3659,7 @@ export interface operations {
                 status?: string;
                 limit?: number;
                 offset?: number;
+                new_days?: number | null;
             };
             header?: never;
             path?: never;

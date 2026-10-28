@@ -3,7 +3,7 @@
  * deleting everything about someone. */
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import type { MemoryInboxItem } from "@/api/client";
+import type { MemoryInboxItem, QualityFinding } from "@/api/client";
 import { ApiError } from "@/api/client";
 import { errorKey } from "@/i18n";
 import { currentApiClient } from "@/stores/connection";
@@ -15,6 +15,8 @@ const items = ref<MemoryInboxItem[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const busy = ref<string | null>(null);
+// Phase 9: suggestions from the quality checks, most important first; hidden on request.
+const findings = ref<QualityFinding[]>([]);
 
 function client() {
   const c = currentApiClient();
@@ -26,6 +28,11 @@ async function load() {
   loading.value = true;
   try {
     items.value = await client().memoryInbox();
+    try {
+      findings.value = await client().memoryQuality();
+    } catch {
+      findings.value = [];
+    }
   } catch (e) {
     error.value = t(errorKey(e instanceof ApiError ? e.code : null));
   } finally {
@@ -34,6 +41,17 @@ async function load() {
 }
 
 onMounted(load);
+
+async function hide(f: QualityFinding) {
+  busy.value = f.id;
+  try {
+    findings.value = await client().dismissQuality(f.id, f.kind);
+  } catch (e) {
+    error.value = t(errorKey(e instanceof ApiError ? e.code : null));
+  } finally {
+    busy.value = null;
+  }
+}
 
 async function decide(item: MemoryInboxItem, choice: string) {
   busy.value = item.id;
@@ -54,7 +72,7 @@ async function decide(item: MemoryInboxItem, choice: string) {
   <section class="panel mem-panel" data-testid="memory-inbox">
     <p v-if="error" class="mem-error" role="alert">{{ error }}</p>
     <p v-if="loading" class="muted mem-small">{{ t("memory.loading") }}</p>
-    <p v-else-if="items.length === 0" class="muted mem-small" data-testid="inbox-empty">{{ t("memory.inbox.empty") }}</p>
+    <p v-else-if="items.length === 0 && findings.length === 0" class="muted mem-small" data-testid="inbox-empty">{{ t("memory.inbox.empty") }}</p>
     <ul class="mem-list">
       <li v-for="item in items" :key="item.id" class="mem-item" data-testid="inbox-item">
         <div class="mem-meta">
@@ -102,5 +120,22 @@ async function decide(item: MemoryInboxItem, choice: string) {
         </div>
       </li>
     </ul>
+    <template v-if="findings.length">
+      <h3 class="mem-heading">{{ t("memory.quality.title") }}</h3>
+      <p class="muted mem-small">{{ t("memory.quality.note") }}</p>
+      <ul class="mem-list">
+        <li v-for="f in findings" :key="f.id" class="mem-item" data-testid="quality-finding">
+          <div class="mem-meta">
+            <span class="mem-badge" :class="{ warn: f.kind === 'conflict' || f.kind === 'ambiguous_person' }">{{ t(`memory.quality.kind.${f.kind}`) }}</span>
+            <span>{{ f.subject }}</span>
+          </div>
+          <span class="mem-text">{{ f.title }}</span>
+          <span v-if="f.values.length" class="mem-small muted">{{ f.values.join(" · ") }}</span>
+          <div class="mem-actions">
+            <button type="button" class="mem-link" :disabled="busy === f.id" data-testid="quality-hide" @click="hide(f)">{{ t("memory.quality.hide") }}</button>
+          </div>
+        </li>
+      </ul>
+    </template>
   </section>
 </template>

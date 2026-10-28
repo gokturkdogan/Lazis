@@ -50,6 +50,7 @@ export type BootstrapDecisions = Schemas["BootstrapDecisionsRequest"];
 export type BootstrapUndoPlan = Schemas["BootstrapUndoPlanResponse"];
 export type BootstrapUndoResult = Schemas["BootstrapUndoResponse"];
 export type BootstrapApplyResult = Schemas["BootstrapApplyResponse"];
+export type QualityFinding = Schemas["QualityFindingModel"];
 
 export interface MemoryQuery {
   q?: string | undefined;
@@ -59,6 +60,8 @@ export interface MemoryQuery {
   status?: "active" | "superseded" | "all";
   limit?: number;
   offset?: number;
+  /** Learned in the last N days (newest first). */
+  new_days?: number | undefined;
 }
 type ErrorResponse = Schemas["ErrorResponse"];
 
@@ -198,6 +201,9 @@ export interface ApiClient {
   bootstrapUndoPlan(importId: string): Promise<BootstrapUndoPlan>;
   bootstrapUndo(importId: string, restore: string[]): Promise<BootstrapUndoResult>;
   bootstrapDiscard(importId: string): Promise<BootstrapBatch>;
+  // ----- memory quality (Phase 9): suggestions only, nothing changes by itself -----
+  memoryQuality(): Promise<QualityFinding[]>;
+  dismissQuality(id: string, kind: QualityFinding["kind"]): Promise<QualityFinding[]>;
   prepare(model: string): Promise<PrepareResponse>;
   activity(): Promise<ActivityResponse>;
   /** Model, runtime, last-turn timings and pre-warm state; never message content. */
@@ -444,5 +450,8 @@ export function createApiClient(
       send<BootstrapUndoResult>("POST", `/memory/bootstrap/${enc(importId)}/undo`, { restore }, 60_000),
     bootstrapDiscard: (importId) =>
       send<BootstrapBatch>("DELETE", `/memory/bootstrap/${enc(importId)}`),
+    memoryQuality: async () => (await get<{ findings: QualityFinding[] }>("/memory/quality")).findings,
+    dismissQuality: async (id, kind) =>
+      (await post<{ findings: QualityFinding[] }>(`/memory/quality/${enc(id)}/dismiss`, { kind })).findings,
   };
 }

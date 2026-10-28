@@ -13,7 +13,7 @@ const { t } = useI18n();
 
 const PAGE = 50;
 const query = ref("");
-const filter = ref<"all" | "me">("all");
+const filter = ref<"all" | "me" | "new">("all");
 const showHistory = ref(false);
 const records = ref<MemoryRecord[]>([]);
 const hasMore = ref(false);
@@ -51,6 +51,7 @@ async function load(append = false) {
     const page = await client().memoryRecords({
       q: query.value.trim() || undefined,
       user_only: filter.value === "me" || undefined,
+      new_days: filter.value === "new" ? 7 : undefined,
       status: showHistory.value ? "all" : "active",
       limit: PAGE,
       offset: append ? records.value.length : 0,
@@ -166,6 +167,7 @@ async function submitAdd() {
       <select v-model="filter" class="mem-select" data-testid="memory-filter" @change="load()">
         <option value="all">{{ t("memory.filterAll") }}</option>
         <option value="me">{{ t("memory.filterMe") }}</option>
+        <option value="new">{{ t("memory.filterNew") }}</option>
       </select>
       <button type="submit" class="btn mem-btn-small">{{ t("memory.searchButton") }}</button>
       <button type="button" class="btn mem-btn-small" data-testid="memory-add-toggle" @click="openAdd">{{ t("memory.add.title") }}</button>
@@ -229,6 +231,9 @@ async function submitAdd() {
           <span v-if="r.conflict_state === 'pending'" class="mem-badge warn">{{ t("memory.badge.pending") }}</span>
           <span v-if="r.sensitivity === 'sensitive'" class="mem-badge danger">{{ t("memory.badge.sensitive") }}</span>
           <span v-if="r.confidence < 0.6" class="mem-badge">{{ t("memory.badge.uncertain") }}</span>
+          <span v-if="r.status !== 'active' && !r.valid_from" class="mem-badge" data-testid="memory-past">{{ t("memory.badge.past") }}</span>
+          <span v-if="r.tier === 'critical_personal' || r.tier === 'high'" class="mem-badge" data-testid="memory-tier">{{ t(`memory.tier.${r.tier}`) }}</span>
+          <span v-if="r.sources > 1" class="mem-badge" data-testid="memory-sources">{{ t("memory.badge.sources", { n: r.sources }) }}</span>
         </div>
         <div v-if="editing !== r.id" class="mem-actions">
           <button type="button" class="mem-link" data-testid="memory-source" @click="toggleDetail(r)">
