@@ -9,7 +9,10 @@ after every message the user pauses long enough for background learning to start
 a short chat turn (which preempts the learning) — its first-token time is "chat while
 learning". Also measured: chat when nothing runs, how long a message waits until it is learned
 from (queue latency), model calls (chat, extraction, list re-reads), what was written, the
-backend's peak RSS and the model runner's footprint. Writes evals/reports/phase9/perf_<model>.json.
+backend's peak RSS and the model runner's footprint. Conversation settings are the app's own
+(compaction after 5 s idle): the session evaluations' profile postpones compaction for an hour,
+and learning waits behind a compaction a long conversation needs. Writes
+evals/reports/phase9/perf_<model>.json after every size.
 """
 
 from __future__ import annotations
@@ -29,7 +32,9 @@ from typing import Any
 from common import footprint_mb, manifest, runner_pids
 from p6_sessions import Profile, Recorder
 
+from lazis.config.model import ConversationSection, Settings
 from lazis.conversation import TurnRequest
+from lazis.conversation.prompts import SUMMARY_SCHEMA
 from lazis.memory import repository as repo
 from lazis.providers.llm.ollama import OllamaProvider
 from lazis.providers.llm.ports import ChatRequest
@@ -54,10 +59,15 @@ def message(i: int) -> str:
             f"{HOBBIES[(i + 3) % len(HOBBIES)]} ile ilgileniyor.")  # fmt: skip
 
 
+class PerfProfile(Profile):
+    def settings(self) -> Settings:
+        return super().settings().model_copy(update={"conversation": ConversationSection()})
+
+
 class Counter(Recorder):
     def __init__(self, inner: OllamaProvider) -> None:
         super().__init__(inner)
-        self.calls = {"chat": 0, "extraction": 0, "list_reread": 0, "other": 0}
+        self.calls = {"chat": 0, "extraction": 0, "list_reread": 0, "compaction": 0, "other": 0}
 
     async def stream(self, request: ChatRequest) -> Any:
         fmt = request.options.response_format
@@ -66,6 +76,8 @@ class Counter(Recorder):
             self.calls["chat"] += 1
         elif isinstance(fmt, dict) and "items" in fmt.get("properties", {}):
             self.calls["list_reread" if "EKSİK LİSTE" in content else "extraction"] += 1
+        elif fmt is SUMMARY_SCHEMA:
+            self.calls["compaction"] += 1
         else:
             self.calls["other"] += 1
         async for ev in self.inner.stream(request):
@@ -108,7 +120,7 @@ def queue_latency(p: Profile) -> list[float]:
 
 async def one(model: str, size: int, pause_s: float) -> dict[str, Any]:
     llm = Counter(OllamaProvider(first_token_timeout=600, idle_timeout=120, max_duration=1800))
-    p = Profile(model, llm)
+    p = PerfProfile(model, llm)
     await p.start()
     await p.clean_session()
     runner_peak = 0.0
@@ -152,13 +164,14 @@ async def one(model: str, size: int, pause_s: float) -> dict[str, Any]:
         await llm.inner.aclose()
 
 
-async def run(model: str, sizes: list[int], pause_s: float) -> dict[str, Any]:
-    rows = []
+async def run(model: str, sizes: list[int], pause_s: float, path: Path) -> None:
+    report: dict[str, Any] = {"model": model, "manifest": manifest(model), "rows": []}
     for n in sizes:
         row = await one(model, n, pause_s)
         print(json.dumps(row, ensure_ascii=False), flush=True)
-        rows.append(row)
-    return {"model": model, "manifest": manifest(model), "rows": rows}
+        report["rows"].append(row)
+        text = json.dumps(report, ensure_ascii=False, indent=1) + "\n"
+        await asyncio.to_thread(path.write_text, text)
 
 
 def main() -> None:
@@ -168,11 +181,10 @@ def main() -> None:
     ap.add_argument("--pause", type=float, default=9.0)
     ap.add_argument("--label", default="")
     args = ap.parse_args()
-    report = asyncio.run(run(args.model, [int(x) for x in args.sizes.split(",")], args.pause))
     OUT.mkdir(parents=True, exist_ok=True)
     name = re.sub(r"[:/]", "_", args.model)
     path = OUT / f"perf_{name}{'_' + args.label if args.label else ''}.json"
-    path.write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
+    asyncio.run(run(args.model, [int(x) for x in args.sizes.split(",")], args.pause, path))
     print(path)
 
 

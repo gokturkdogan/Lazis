@@ -46,9 +46,11 @@ _PAST_CONTINUOUS = re.compile(r"(?:iyor|uyor|yor)du(?:m|k|n|nuz|niz|lar)?$|m[iu]
 _PAST_STATE_VERB = re.compile(
     r"^(?:yasad|oturd|calist|okud|kald|bulund|gorev yapt|ogretmenlik yapt)[iu](?:m|k|n|nuz|niz)?$"
 )
-# A change that happened (its result is true now): "taşındı", "geçtim", "başlattım".
+# A change that happened (its result is true now): "taşındı", "geçtim", "başlattım". Leaving
+# ("ayrıldım", "bıraktım") is not one: what was left is history ("Eskiden sigara içerdim,
+# bıraktım").
 _CHANGE_VERB = re.compile(
-    r"\b(tasin\w*|gec(?:tim|ti|tik)|basla\w*|ayril\w*|birak\w*|degis\w*|emekli ol\w*|"
+    r"\b(tasin\w*|gec(?:tim|ti|tik)|basla\w*|degis\w*|emekli ol\w*|"
     r"evlen\w*|bosan\w*|mezun ol\w*|kur(?:dum|du|duk)|actim|acti)\b"
 )
 

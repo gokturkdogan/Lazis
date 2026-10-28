@@ -542,9 +542,8 @@ def apply_one(
         report.updated.append(r.id)
         return
 
-    if status == "ended":
-        # "Artık Kervan'da çalışmıyorum" ends Kervan and says nothing about anyone else: no
-        # rival is closed (Atlas, learned from the same message, stays current).
+    if status == "ended" and not same:
+        # Already ended (by the same message's employer fact): evidence, not a second copy.
         old = [r for r in gs.relationships_between(conn, a, b, statuses=("ended",))
                if _equivalent(r, a, c.type, b)]  # fmt: skip
         if old:
@@ -556,13 +555,12 @@ def apply_one(
     # What the new statement replaces.
     group_rivals = [r for r in between if r not in same and _same_group(r.type, c.type)]
     single_rivals: list[Relationship] = []
-    if t.single or t.category in ("organization", "place"):
+    if (t.single or t.category in ("organization", "place")) and status != "ended":
+        # An ended one ("Kervan'da artık çalışmıyorum") says nothing about other targets.
         single_rivals = [
             r for r in gs.edges_from(conn, a, CURRENT) if r.type == c.type and r.target_id != b
         ]
-    if status == "ended":
-        pass
-    elif c.correction or force == "replace":
+    if c.correction or force == "replace":
         _close(conn, uow, [*same, *group_rivals, *single_rivals], "superseded", report, now)
     elif c.change:
         _close(conn, uow, [*group_rivals, *single_rivals], "ended", report, now)
@@ -585,8 +583,7 @@ def apply_one(
             return
 
     rivals = [*same, *group_rivals, *single_rivals]
-    replaced = bool(rivals) and status != "ended" and (c.correction or force == "replace")
-    replaced_id = rivals[0].id if replaced else None
+    replaced_id = rivals[0].id if (rivals and (c.correction or force == "replace")) else None
     rel = gs.insert_relationship(
         conn,
         source_id=a,

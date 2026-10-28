@@ -235,3 +235,21 @@ def test_an_undated_wish_stays_a_goal(tmp_path: Path, storage: StorageHandle) ->
     answers = {sentence: ([item(sentence.rstrip("."), "goal", "kendi şirketini kurmak")], [])}
     s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
     assert s.values("user", "goal") == {"kendi şirketini kurmak"}
+
+
+def test_a_divorce_ends_the_marriage(tmp_path: Path, storage: StorageHandle) -> None:
+    """Phase 7 gold T2, Gemma's answer as given: ex_spouse "ended" with change."""
+    first, then = "Derya ile Kaan evli.", "Derya ile Kaan geçen ay boşandılar."
+    ex = {**rel(then, "Derya", "ex_spouse", "Kaan", status="ended", change=True),
+          "time": "geçen ay"}  # fmt: skip
+    answers = {first: ([], [rel(first, "Derya", "spouse", "Kaan")]), then: ([], [ex])}
+    s = converse(tmp_path, storage, [first, then], Brain(answers=answers))
+    assert not s.rel("Derya", "spouse", "Kaan", "active")
+
+
+def test_a_past_habit_given_up_is_history(tmp_path: Path, storage: StorageHandle) -> None:
+    sentence = "Eskiden sigara içerdim, bıraktım."
+    answers = {sentence: ([item(sentence.rstrip("."), "habit", "sigara içmek")], [])}
+    s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
+    assert s.values("user", "habit") == set()
+    assert s.values("user", "habit", "superseded") == {"sigara içmek"}

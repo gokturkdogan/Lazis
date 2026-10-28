@@ -415,6 +415,25 @@ def test_no_longer_means_ended_not_untrue(storage: StorageHandle) -> None:
     assert current(storage) == [("Kullanıcı", "works_at", "Kervan", "ended")]
 
 
+def test_ending_one_workplace_leaves_the_new_one_current(storage: StorageHandle) -> None:
+    """Phase 9 evaluation: the employer fact already ended Kervan and made Atlas current; the
+    model's "Kervan'da çalışmıyorum" then ended Atlas and wrote a second ended Kervan."""
+    rel(storage, "works_at", P("Kervan", kind="organization"), quote="Kervan'da çalışıyorum")
+    rel(storage, "works_at", P("Atlas", kind="organization"), quote="Atlas'a geçtim", change=True)
+    rel(storage, "works_at", P("Kervan", kind="organization"), quote="Kervan'da çalışmıyorum",
+        negated=True, change=True, status="ended")  # fmt: skip
+    assert sorted(current(storage)) == [("Kullanıcı", "works_at", "Atlas", "active"),
+                                        ("Kullanıcı", "works_at", "Kervan", "ended")]  # fmt: skip
+
+
+def test_a_correction_that_ends_a_relationship_ends_it(storage: StorageHandle) -> None:
+    """Phase 7 gold C3, Gemma's answer: "aslında arkadaş değiliz" as friend negated + correction."""
+    rel(storage, "friend", P("Burak"), quote="Arkadaşım Burak")
+    rel(storage, "friend", P("Burak"), quote="Burak'la aslında arkadaş değiliz",
+        negated=True, correction=True, change=True)  # fmt: skip
+    assert ("Kullanıcı", "friend", "Burak", "active") not in current(storage)
+
+
 def test_a_new_person_from_a_sensitive_relationship_gets_no_label(storage: StorageHandle) -> None:
     r = rel(storage, "partner", P("Ece", "sevgilisi"), quote="Sevgilim Ece ile yemeğe çıkacağız")
     assert r.inbox and current(storage) == []
