@@ -253,3 +253,21 @@ def test_a_past_habit_given_up_is_history(tmp_path: Path, storage: StorageHandle
     s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
     assert s.values("user", "habit") == set()
     assert s.values("user", "habit", "superseded") == {"sigara içmek"}
+
+
+@pytest.mark.parametrize(
+    ("sentence", "type_", "who", "status"),
+    [
+        # Seen with Gemma (all three rounds): the sister became "ended".
+        ("Kız kardeşim Elif eskiden İzmir'de yaşıyordu, artık Muğla'da.", "sibling", "Elif", "active"),
+        ("Kardeşim Elif eskiden öğretmendi.", "sibling", "Elif", "active"),
+        ("Eskiden komşum Ahmet Ankara'da yaşıyordu.", "neighbor", "Ahmet", "active"),
+        ("Geçen yıl Can'la aynı ekipte çalışıyorduk.", "colleague", "Can", "ended"),
+    ],
+)  # fmt: skip
+def test_the_past_about_a_person_does_not_end_who_they_are(
+    tmp_path: Path, storage: StorageHandle, sentence: str, type_: str, who: str, status: str,
+) -> None:  # fmt: skip
+    answers = {sentence: ([], [rel(sentence.rstrip("."), "", type_, who)])}
+    s = converse(tmp_path, storage, [sentence], Brain(answers=answers))
+    assert s.rel("user", type_, who, status)

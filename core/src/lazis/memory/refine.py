@@ -105,7 +105,11 @@ def refine(
         if tense == "current" and temporal.left(clause, rc.target.name):
             tense = "past"
         if not rc.negated:
-            if tense == "past" and rc.status == "active":
+            if tense == "past" and rc.status == "active" and not relationship_over(clause, rc.type):
+                # "Kız kardeşim Elif eskiden İzmir'de yaşıyordu": the past is about where
+                # Elif lived, not about being a sister (seen with Gemma).
+                count("past_about_the_person")
+            elif tense == "past" and rc.status == "active":
                 rc = replace(rc, status="ended")
                 count("past_relation_ended")
             elif tense == "future" and rc.status == "active":
@@ -133,6 +137,36 @@ def refine(
     current = [f for f in out_f if f.candidate.tense != "past"]
     out_f += extraction.facts_from_relations(current, out_r)
     return out_f, out_r
+
+
+# A first-person past verb ("arkadaştık", "birlikte çalışıyorduk", "evliydik"): the user's
+# side of it is what was.
+_WE_WERE = re.compile(r"(?:d|t)[iu][mk]$")
+_ROLE_WAS = re.compile(r"(?:y?d|t)[iu](?:m|k|n|niz|nuz)?$")
+
+
+def relationship_over(clause: str, key: str) -> bool:
+    """Whether a past clause says the relationship itself is over. Between people the
+    relation word is often only who someone is ("Kardeşim Elif eskiden öğretmendi"): it is
+    over when the relation word is in the past ("Ahmet eskiden komşumdu", "eski komşum") or
+    the user says what they were together ("Eskiden Burak'la arkadaştık"). A workplace, a
+    place or a project is the verb itself ("Kervan'da çalışıyordum")."""
+    t = relations_vocab.TYPES.get(key)
+    if (
+        t is None
+        or t.source_kinds != relations_vocab.PEOPLE
+        or t.target_kinds != relations_vocab.PEOPLE
+    ):
+        return True
+    words = text.words(clause)
+    stems = [w.split()[-1] for w in t.words] or [text.words(t.label)[-1][:4]]
+    for i, w in enumerate(words):
+        role = next((st for st in stems if w.startswith(st)), None)
+        if role is not None and (
+            _ROLE_WAS.search(w[len(role) :]) or (i and words[i - 1] == "eski")
+        ):
+            return True
+    return any(_WE_WERE.search(w) for w in words)
 
 
 def _passing(clause: str, quote: str | None) -> bool:

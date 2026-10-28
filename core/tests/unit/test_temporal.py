@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from lazis.memory import temporal
+from lazis.memory import refine, temporal
 
 # (sentence, quote (None = the whole sentence), anchor, expected tense)
 TENSES: list[tuple[str, str | None, str | None, str]] = [
@@ -147,3 +147,24 @@ def test_a_comma_inside_a_list_does_not_end_a_clause() -> None:
 )
 def test_what_the_user_left_is_in_the_past(clause: str, anchor: str, want: bool) -> None:
     assert temporal.left(clause, anchor) is want
+
+
+@pytest.mark.parametrize(
+    ("clause", "key", "over"),
+    [
+        ("Kız kardeşim Elif eskiden İzmir'de yaşıyordu", "sibling", False),
+        ("Kardeşim Elif eskiden öğretmendi", "sibling", False),
+        ("Eskiden komşum Ahmet Ankara'da yaşıyordu", "neighbor", False),
+        ("Arkadaşım Burak geçen yıl Bursa'daydı", "friend", False),
+        ("Ahmet eskiden komşumdu", "neighbor", True),
+        ("Eski komşum Ahmet Ankara'da yaşıyordu", "neighbor", True),
+        ("Eskiden Burak'la arkadaştık", "friend", True),
+        ("Geçen yıl Can'la aynı ekipte çalışıyorduk", "colleague", True),
+        ("Eskiden Kervan'da çalışıyordum", "works_at", True),  # a workplace is the verb itself
+        ("Önceden Bursa'da yaşıyordum", "lives_in", True),
+    ],
+)  # fmt: skip
+def test_a_past_clause_ends_a_relationship_between_people_only_when_it_says_so(
+    clause: str, key: str, over: bool
+) -> None:
+    assert refine.relationship_over(clause, key) is over
