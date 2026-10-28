@@ -361,6 +361,39 @@ def locative(name: str) -> str:
     return f"{name}'{'t' if hard else 'd'}{vowel}"
 
 
+_FOUR = {"a": "ı", "ı": "ı", "o": "u", "u": "u", "e": "i", "i": "i", "ö": "ü", "ü": "ü"}
+
+
+def reinflect(name: str, suffix: str) -> str:
+    """The case suffix another name had, made to fit ``name``: ("Eskişehir", "da") → "de",
+    ("Atlas", "dan") → "tan", ("Ankara", "ın") → "nın", ("İzmir", "ya") → "a". Vowel harmony,
+    d/t after a hard consonant and the buffer letter after a vowel; "ki" never changes."""
+    s = text.casefold(suffix)
+    if not s or not s.isalpha():
+        return suffix
+    body = s[1:] if s[0] in "ny" and len(s) > 1 and s[1] in _VOWELS else s
+    genitive = s[0] == "n" and body != s
+    tail = "ki" if body.endswith("ki") else ""
+    body = body[: len(body) - len(tail)]
+    ends_vowel = text.casefold(name)[-1:] in _VOWELS
+    hard = text.casefold(name)[-1:] in _HARD
+    out, last = "", _last_vowel(name)
+    for i, ch in enumerate(body):
+        if ch in "ae":
+            ch = "a" if last in _BACK else "e"
+        elif ch in "ıiuü":
+            ch = _FOUR[last]
+        elif i == 0 and ch in "dt":
+            ch = "t" if hard else "d"
+        if ch in _VOWELS:
+            last = ch
+        out += ch
+    if ends_vowel and out[:1] in _VOWELS:
+        genitive = genitive or (len(out) == 2 and out[1] == "n")
+        out = ("n" if genitive else "y") + out
+    return out + tail
+
+
 def describe(source_name: str, key: str, target_name: str, *, forward: bool = True) -> str:
     """One Turkish line for a reading: "Mehmet: Ahmet'in kardeşi" (forward) or, read from the
     target, "Ahmet: Mehmet'in kardeşi"."""

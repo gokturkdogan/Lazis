@@ -146,6 +146,21 @@ def test_a_value_is_corrected(tmp_path: Path, storage: StorageHandle, predicate:
     assert replies[-1] == "corrected"
 
 
+@pytest.mark.parametrize(
+    ("wrong", "right", "said", "now"),
+    [("Bursa", "Eskişehir", "Ece Bursa'da yaşıyor", "Ece Eskişehir'de yaşıyor."),
+     ("Kervan", "Atlas", "Kervan'dan geliyorum", "Atlas'tan geliyorum."),
+     ("İzmir", "Ankara", "İzmir'e taşındım", "Ankara'ya taşındım."),
+     ("Ahmet", "Ayşe", "Ahmet'in evi", "Ayşe'nin evi.")],
+)  # fmt: skip
+def test_a_corrected_name_takes_its_own_suffix(tmp_path: Path, storage: StorageHandle,
+                                               wrong: str, right: str, said: str, now: str) -> None:  # fmt: skip
+    # Seen with Gemma: "Hayır, Bursa değil Eskişehir" stored "Ece Eskişehir'da yaşıyor".
+    brain = Brain(answers={f"{said}.": ([item(said, "note", said, statement=f"{said}.")], [])})
+    s = converse(tmp_path, storage, [f"{said}.", f"Hayır, {wrong} değil {right}."], brain)
+    assert {f["content"] for f in s.facts if f["status"] == "active"} == {now}
+
+
 def test_a_correction_never_reaches_older_messages(tmp_path: Path, storage: StorageHandle) -> None:
     old = "Ahmet'in doğum günü 3 Mart."
     filler = ["Bugün hava güzel.", "Akşam ne yesem?"]

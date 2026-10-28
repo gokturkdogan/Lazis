@@ -21,8 +21,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from lazis.memory import graphstore as gs
+from lazis.memory import relations, text
 from lazis.memory import repository as repo
-from lazis.memory import text
 from lazis.memory.extraction import Extracted, ExtractedRel
 from lazis.memory.models import EntityRef
 from lazis.storage.driver import Connection
@@ -235,15 +235,21 @@ def _revalue(conn: Connection, ids: Sequence[str], wrong: Sequence[object], fix:
 
 
 def _swap(s: str, fix: Fix) -> str:
-    pattern = re.compile(re.escape(fix.wrong), re.IGNORECASE)
-    out, n = pattern.subn(fix.right, s)
+    # The suffix after the apostrophe was the wrong name's: it is made to fit the right one
+    # ("Bursa'da" → "Eskişehir'de", not "Eskişehir'da").
+    def suffixed(mark: str | None, suffix: str | None) -> str:
+        return fix.right + (f"{mark}{relations.reinflect(fix.right, suffix or '')}" if mark else "")
+
+    pattern = re.compile(re.escape(fix.wrong) + r"(?:(['’])(\w+))?", re.IGNORECASE)
+    out, n = pattern.subn(lambda m: suffixed(m.group(1), m.group(2)), s)
     if n:
         return out
     # The folded form differs ("Ankara'da" in the sentence, "ankara" in the key): word level.
     words = s.split()
     for i, w in enumerate(words):
         if text.name_key(w) == fix.wrong_key:
-            words[i] = fix.right + w[len(re.split(r"['’]", w)[0]) :]
+            m = re.fullmatch(r"[^'’]*(?:(['’])(\w+))?(.*)", w)
+            words[i] = suffixed(m[1], m[2]) + m[3] if m else fix.right
     return " ".join(words)
 
 
