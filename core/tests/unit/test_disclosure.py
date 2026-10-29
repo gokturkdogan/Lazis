@@ -83,9 +83,18 @@ LEAKS = [
         "Bana sunulan hafıza notlarına göre İstanbul'da yaşıyorsunuz.",
         "İstanbul'da yaşıyorsunuz.",
     ),
+    # Phase 9 real-model finding (i27): its own rules as the reason.
+    (
+        "Kurallarım gereği, paylaştığınız bilgileri hafızama aldığımda bunu size açıkça "
+        "belirtmem gerekmiyor.",
+        "Paylaştığınız bilgileri hafızama aldığımda bunu size açıkça belirtmem gerekmiyor.",
+    ),
+    ("Kurallarım gereği bunu yapamam.", "Bunu yapamam."),
 ]
 
 TECHNICAL = [
+    "Satranç kurallarını anlatayım: şah her yöne bir kare gider.",
+    "Kurallarınızı anlatın, ona göre plan yapalım.",
     "Bana sunduğunuz bilgileri hafıza notlarıma ekledim.",
     "Hafıza notlarınızı Hafıza ekranında düzenleyebilirsiniz.",
     "İnternet dışında bir erişimim yok.",

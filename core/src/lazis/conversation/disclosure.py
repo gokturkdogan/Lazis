@@ -54,7 +54,7 @@ _OWNED = re.compile(
     r"\b(?:bana\s+(?:verilen|verilmis|iletilen|tanimlanan|yuklenen|saglanan)\s+(?:\w+\s+)?"
     r"|(?:gizli|ic|dahili|gelistirici|arka\s+plandaki)\s+(?:sistem\s+)?)" + _NOUN + r"\w*"
     r"|\b(?:(?:sistem|gelistirici|gizli|ic|dahili)\s+)?"
-    r"(?:talimat(?:lar)?im|yonerge(?:ler)?i?m|prompt(?:lar)?[iu]?m|istemim"
+    r"(?:talimat(?:lar)?im|yonerge(?:ler)?i?m|prompt(?:lar)?[iu]?m|istemim|kural(?:lar)?im"
     r"|(?:sistem|gelistirici)\s+mesaj(?:lar)?im)\w*"
 )
 # Rules given to LAZIS, in the participle or the passive: "bana sağlanan kurallar", "sistem
@@ -286,6 +286,7 @@ def _risky_word(w: str) -> bool:
         or w.startswith(_RISKY)
         or w in ("sistem", "bana", "ic", "bilgi")
         or re.fullmatch(r"istem(?:im\w*|i|in|e|de|den)?", w) is not None
+        or re.fullmatch(r"kural(?:lar)?im\w*", w) is not None  # "Kurallarım gereği" (i27)
     )
 
 

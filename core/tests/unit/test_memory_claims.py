@@ -106,6 +106,13 @@ REWORDED = [
     ),
     ("Bunu kayıtlarınıza ekledim.", "Bunu anladım."),
     ("Bunu profilinize kaydettim.", "Bunu anladım."),
+    # Phase 9 real-model finding (s08): what the user told, as the value or the object.
+    (
+        "Anlaşıldı efendim, tercihinizi sütlü kahve olarak güncelledim.",
+        "Anlaşıldı efendim, tercihinizi sütlü kahve olarak anladım.",
+    ),
+    ("Adresinizi İzmir olarak düzelttim.", "Adresinizi İzmir olarak anladım."),
+    ("Mesleğinizi değiştirdim.", "Mesleğinizi anladım."),
     ("Bunu listeme ekledim.", "Bunu anladım."),
     ("Toplantıyı ajandama yazdım.", "Toplantıyı anladım."),
     ("Anladım ve notunu aldım.", "Anladım."),
@@ -153,6 +160,7 @@ def test_claims_after_a_statement_are_reworded(reply: str, expected: str) -> Non
 
 # ----- 2. not claims: untouched --------------------------------------------------------------
 UNTOUCHED = [
+    "Tercihinizi güncellememi isterseniz söyleyin.",
     "İsterseniz bunu bilgilerinize ekleyebilirim.",
     "Bilgileriniz güvende, cihazınızda şifreli tutuluyor.",
     "Anladım efendim.",

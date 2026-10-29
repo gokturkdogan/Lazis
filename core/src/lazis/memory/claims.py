@@ -262,6 +262,10 @@ _INFO_OBJECT = re.compile(
 )
 # Information as an object anywhere in the sentence ("Bilgilerinizi az önce düzelttim"); the
 # bare "bilgi" ("bilgi vermek") is not one.
+_TOLD_OBJECT = re.compile(
+    r"\bolarak\s+(?:sil|kaldir|cikar|guncell|duzelt|degistir)"
+    r"|\b(?:tercih|adres|sehr|konum|mesle|is\s?yer|telefon|numara|yas|dogum)\w*n[iu]z[iu]\b"
+)
 _INFO_NOUN = re.compile(r"\bbilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)\b")
 # Adopting a value as what is true from now on: an update ("esas alıyorum") or a save ("güncel
 # tutacağım"). Taking something into account is one only beyond this conversation ("bundan
@@ -485,6 +489,9 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
     memory_words = (
         policy.memory_turn
         or policy.memory_talk
+        # After the user told something, a value or a fact of theirs as the object is what they
+        # told: "tercihinizi sütlü kahve olarak güncelledim" (Phase 9 real-model finding, s08).
+        or (policy.state is not ClaimState.NO_MEMORY_ACTION and _TOLD_OBJECT.search(f))
         or _CONTEXT_RE.search(f)
         or re.search(r"\bkay(?:it|d)", f)
         or _INFO_OBJECT.search(f)
