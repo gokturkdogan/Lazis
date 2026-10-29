@@ -28,8 +28,16 @@ What counts (folded text, one sentence at a time):
   bilgiye göre", "kaydedilmiş") — allowed when this turn's recall really brought stored
   memory; otherwise they point to the conversation instead ("konuştuğumuz bilgiye göre").
 
-Delete and update verbs ("sildim", "güncelledim") are memory acts only next to a memory word
-or during an explicit memory request — "gereksiz cümleyi sildim" in an editing task is not.
+Delete and update verbs ("sildim", "güncelledim") are memory acts only next to a memory word,
+with information as their object, or during an explicit memory request — "gereksiz cümleyi
+sildim" in an editing task is not.
+
+A memory act need not be the main verb (Phase 9 real-model finding, "Kervan bilgisini
+düzelterek bunu esas alıyorum"): a converb ("düzelterek", "kaldırıp", "kaydedince") claims
+what the sentence's main verb claims, and adopting a value ("esas alıyorum", "güncel
+tutacağım", "bundan sonra dikkate alacağım") claims an update or a save. After the rewrite
+the sentence is checked again; a claim that is still there takes the whole rest of the
+sentence with it (fail closed).
 
 An unauthorized claim is reworded in place:
 
@@ -127,6 +135,16 @@ _REPLACEMENT: dict[tuple[ClaimState, str], str] = {
     (ClaimState.UPDATE_SUCCEEDED, "delete"): "silmedim",
 }
 ACK = "anladım"
+# What the check after the rewording puts in place of a claim that is still there: fixed words,
+# not the table above (it is what failed).
+_FAIL_CLOSED: dict[ClaimState, str] = {
+    ClaimState.SAVE_FAILED: "kaydedemedim",
+    ClaimState.UPDATE_FAILED: "güncelleyemedim",
+    ClaimState.DELETE_FAILED: "silmedim",
+    ClaimState.SAVE_PENDING: "henüz kaydetmedim",
+    ClaimState.DELETE_PENDING: "henüz silmedim",
+    ClaimState.SAVE_CANCELLED: "kaydetmedim",
+}
 # The same in the passive voice ("Bilgi kaydedildi." → "Bilgi anlaşıldı.").
 _PASSIVE: dict[str, str] = {
     ACK: "anlaşıldı",
@@ -207,6 +225,17 @@ _INFO_OBJECT = re.compile(
     r"\bbilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)?\s+"
     r"(?:sil|kaldir|cikar|guncell|duzelt|degistir|birlestir)"
 )
+# Information as an object anywhere in the sentence ("Bilgilerinizi az önce düzelttim"); the
+# bare "bilgi" ("bilgi vermek") is not one.
+_INFO_NOUN = re.compile(r"\bbilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)\b")
+# Adopting a value as what is true from now on: an update ("esas alıyorum") or a save ("güncel
+# tutacağım"). Taking something into account is one only beyond this conversation ("bundan
+# sonra dikkate alacağım"; "bu konuşmada dikkate alacağım" is true).
+_ADOPT_RE = re.compile(
+    r"\b(?:(esas|temel|baz|referans) al|guncel tut|kalici olarak (?:tut|sakl|kullan|kayded|kaydet))"
+)
+_HEED_RE = re.compile(r"\b(?:dikkate al|goz onunde (?:bulundur|tut))")
+_LASTING = re.compile(r"\b(?:bundan (?:boyle|sonra|itibaren)|artik|ileride|kalici|her zaman)\b")
 _COMMIT_RE = re.compile(r"\b(?:unut|hatirla)")
 _OGREN_RE = re.compile(r"\bogren")
 
@@ -215,6 +244,16 @@ _NEGATED = re.compile(
     rf"(?:{_V}?m[ea]|(?:il|in|l|n)m[ea])"
 )  # kaydetme(di), kaydedeme, kaydedilmedi
 _ABILITY = re.compile(rf"{_V}?y?[ea]bil")  # kaydedebilirim
+# Converbs, also passive: "düzelterek", "kaldırıp", "güncelleyip", "kaydedince", "sildikten",
+# "silinerek". They claim what the main verb claims.
+_CONVERB = re.compile(
+    r"(?:[ae]?(?:il|in|l|n))?(?:[ae]?y?[ae]r[ae]k|[ae]?y?[iu]p|[ae]?y?[iu]nc[ae]|[ae]?[dt][iu]kt[ae]n)\b"
+)
+# The main verb: a first-person act, finished, ongoing or committed ("alıyorum", "kullanacağım",
+# "tamamladım") — not negated ("kullanmadım", "kaydedemedim").
+_MAIN_DONE = re.compile(r"(?:[dt][iu][mk]|yor(?:um|uz)|y?[ae]c[ae]g(?:im|iz)|m[ae]kt[ae]y[iu]m)$")
+_MAIN_NOT = re.compile(r"m[ae]d[iu]|m[ae]y[ae]c[ae]g|m[iu]yor|m[ae]kt[ae]n|y?[ae]bil")
+_FILLER = frozenset({"efendim", "simdilik", "artik", "de", "da", "hemen", "zaten", "boylece"})
 # First-person participles and passive forms speak of an existing record ("kaydettiğim(iz)",
 # "kaydedilmiş", "kaydedilen"); "Ahmet not etmiş" (someone else, evidential) does not.
 _EXISTING = re.compile(
@@ -252,7 +291,7 @@ def _word_end(f: str, i: int) -> int:
     return i
 
 
-def _verdict(rest: str) -> Literal["done", "passive", "existing", "not"]:
+def _verdict(rest: str) -> Literal["done", "passive", "existing", "converb", "not"]:
     """What a verb's ending says (``rest``: folded text from the stem's end to the word end,
     plus one character)."""
     if _NEGATED.match(rest) or _ABILITY.match(rest):
@@ -263,7 +302,24 @@ def _verdict(rest: str) -> Literal["done", "passive", "existing", "not"]:
         return "passive"
     if _DONE.match(rest):
         return "done"
+    if _CONVERB.match(rest):
+        return "converb"
     return "not"  # offers, conditions, other persons, unrelated words
+
+
+def _main_verb_end(f: str, end: int) -> int | None:
+    """Where the main verb after a converb ends, if it is a first-person act (the sentence's
+    last word but fillers: Turkish puts the verb last). None for a question or a negation."""
+    clause = re.match(r"[^.!?\n;:]*", f[end:])
+    words = list(re.finditer(r"[a-z0-9']+", clause.group(0) if clause else ""))
+    while words and words[-1].group(0) in _FILLER:
+        words.pop()
+    if not words:
+        return None
+    w = words[-1].group(0)
+    if _MAIN_DONE.search(w) and not _MAIN_NOT.search(w):
+        return end + words[-1].end()
+    return None
 
 
 def _quoted(text: str) -> list[tuple[int, int]]:
@@ -307,6 +363,11 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             # "not etmiş oldum", "kaydetmiş oldum": the perfect tense, a completed act
             # (Phase 7.2 real-model finding).
             verdict, end = "done", end + perfect.end()
+        if verdict == "converb":
+            main = _main_verb_end(f, end)
+            if main is None:
+                return  # "düzelterek tekrar sorayım mı?", "silmeden önce"
+            verdict, end = "done", main
         if verdict == "not":
             return
         if verdict == "existing":
@@ -377,14 +438,29 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             and re.fullmatch(r"(?:d|t)(?:im|ik)", f[m.end() : end])
         ):
             found.append(_Claim(m.start(), end, m.start(), "save"))
-    if (
+    memory_words = (
         policy.memory_turn
         or _CONTEXT_RE.search(f)
         or re.search(r"\bkay(?:it|d)", f)
         or _INFO_OBJECT.search(f)
-    ):
+        or _INFO_NOUN.search(f)
+    )
+    if memory_words:
         for rx, kind in ((_DELETE_RE, "delete"), (_UPDATE_RE, "update")):
             for m in rx.finditer(f):
+                verb(m.start(), m.end(), kind, _context_before(f, m.start()))
+    if memory_words or policy.state is not ClaimState.NO_MEMORY_ACTION:
+        # After the user told something, adopting a value is about what they told.
+        for m in _ADOPT_RE.finditer(f):
+            kind = "update" if m.group(1) else "save"
+            verb(m.start(), m.end(), kind, _context_before(f, m.start()))
+    lasting = _LASTING.search(f) or _CONTEXT_RE.search(f) or _INFO_NOUN.search(f)
+    if lasting:
+        # "Bundan sonra Atlas'ı esas alacağım", "… dikkate alacağım": a commitment that needs
+        # a memory.
+        for rx in (_ADOPT_RE, _HEED_RE):
+            for m in rx.finditer(f):
+                kind = "update" if rx is _ADOPT_RE and m.group(1) else "save"
                 verb(m.start(), m.end(), kind, _context_before(f, m.start()))
     found.sort(key=lambda c: (c.start, -c.end))
     merged: list[_Claim] = []
@@ -460,10 +536,29 @@ def rewrite_sentence(
             replacement = replacement[:1].upper() + replacement[1:]
         rewrites.append(Rewrite(c.kind, policy.state.value, out[start : c.end], replacement))
         out = out[:start] + replacement + out[c.end :]
-    return out, list(reversed(rewrites))
+    rewrites.reverse()
+    left = [
+        c
+        for c in find_claims(out, policy)
+        if c.start >= frozen and c.kind != "existing" and not policy.allows(c.kind)
+    ]
+    if left:
+        # Fail closed: a claim the rewording did not remove takes the rest of the sentence.
+        c = left[0]
+        replacement = _FAIL_CLOSED.get(policy.state, ACK)
+        if _at_sentence_start(out, c.start):
+            replacement = replacement[:1].upper() + replacement[1:]
+        tail = re.search(r"[.!?\n:;\s]*$", out)
+        end = tail.start() if tail else len(out)
+        rewrites.append(Rewrite(c.kind, policy.state.value, out[c.start : end], replacement))
+        out = out[: c.start] + replacement + out[end:]
+    return out, rewrites
 
 
-_OBJECT = re.compile(r"\b(?:bunu|bu bilgiyi|bunlari|onu)\s+$")
+_OBJECT = re.compile(
+    r"\b(?:bunu|bu bilgiyi|bunlari|onu"
+    r"|(?:[a-z0-9']+ )?bilgi(?:yi|leri|sini|lerini|nizi|lerinizi))\s+$"
+)
 
 
 def _object_before(out: str, i: int) -> bool:
@@ -522,7 +617,10 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # claim that follows ("ve" + "not aldım").
 _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
           "bilgilerim", "listem", "ajandam", "defterim", "takvimim")  # fmt: skip
-_RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")
+# Act verbs are held in every turn: whether "düzelterek" is a claim depends on the words after
+# it ("… bilgisini … esas alıyorum"), and shown text is never taken back.
+_RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir", "esas",
+              "temel", "baz", "referans", "dikkate", "kalici")  # fmt: skip
 # Information as an object ("Bilgiyi güncelledim"): whole words, so "bilgisayar" flows on.
 _RISKY_INFO = re.compile(r"bilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)?")
 _SENTENCE_END = re.compile(r"[.!?\n]+(?=\s|$)|[:;](?=\s)")
@@ -547,28 +645,16 @@ class ClaimGuard:
         return self._release(final=True)
 
     def _risky_at(self, f: str) -> int | None:
-        acts = self.policy.memory_turn or _CONTEXT_RE.search(fold(self.released[-200:]))
         for m in re.finditer(r"[a-z0-9']+", f):
-            w = m.group(0)
-            if (
-                w.startswith(_RISKY)
-                or _RISKY_INFO.fullmatch(w)
-                or (acts and w.startswith(_RISKY_ACT))
-            ):
+            if _risky_word(m.group(0)):
                 return m.start()
         return None
 
     def _last_risky(self, f: str, end: int) -> int:
         """The start of the last risky word in ``f[:end]`` after the first word (0 if none)."""
-        acts = self.policy.memory_turn or _CONTEXT_RE.search(fold(self.released[-200:]))
         last = 0
         for m in re.finditer(r"[a-z0-9']+", f[:end]):
-            w = m.group(0)
-            if m.start() > 0 and (
-                w.startswith(_RISKY)
-                or _RISKY_INFO.fullmatch(w)
-                or (acts and w.startswith(_RISKY_ACT))
-            ):
+            if m.start() > 0 and _risky_word(m.group(0)):
                 last = m.start()
         return last
 
@@ -609,6 +695,11 @@ class ClaimGuard:
             self.released += piece
             out += piece
         return out
+
+
+def _risky_word(w: str) -> bool:
+    w = w.strip("'")
+    return w.startswith(_RISKY) or w.startswith(_RISKY_ACT) or bool(_RISKY_INFO.fullmatch(w))
 
 
 def _before_last_word(f: str) -> int:
