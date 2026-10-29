@@ -130,7 +130,8 @@ CONVERSATIONS: list[Conv] = [
     C("t11", "time", ["Eskiden sigara içerdim, bıraktım."],
       never_current=[(U, "habit", "sigara")]),
     C("t12", "time", ["Kız kardeşim Elif eskiden İzmir'de yaşıyordu, artık Muğla'da."],
-      facts=[("Elif", "", "location", "Muğla", "active")], never_current=[("Elif", "location", "İzmir")]),
+      facts=[("Elif", "", "location", "Muğla", "active")], never_current=[("Elif", "location", "İzmir")],
+      never_rel=[(U, "sibling", "Elif", "ended")]),  # the past is about where she lived
     C("t13", "time", ["Yakında yeni bir işe başlayacağım, Martı'da."],
       never_current=[(U, "employer", "Martı")]),
     C("t14", "time", ["LAZIS projesini geçen ay başlattım."], facts=[]),

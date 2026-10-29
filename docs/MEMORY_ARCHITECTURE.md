@@ -398,7 +398,7 @@ Decision record: [ADR-0020](adr/0020-advanced-learning.md). Report: [PHASE_9_REP
 | Module | Does |
 |---|---|
 | `memory/temporal.py` | clauses (not split inside lists), tense of a clause (past / current / future), change words, the user's time phrase (never a date) |
-| `memory/refine.py` | past → history (`Candidate.tense = "past"`), future → plan, relationship status from the words, change flag only with change words, `event_time` from the user's words, `parent_sibling` / someone else's relatives, passing states dropped |
+| `memory/refine.py` | past → history (`Candidate.tense = "past"`), future → plan, relationship status from the words (between people only when the relation itself is in the past: `relationship_over`), a workplace / place / occupation followed by "not" never current (`said_with_not`), change flag only with change words, `event_time` from the user's words, `parent_sibling` / someone else's relatives, passing states dropped |
 | `memory/lists.py` | lists and stated counts in the user's words; gaps; the focused re-read instruction; keep only the missing members; count notes |
 | `memory/corrections.py` | "Hayır, X değil Y": subject move / rename, value correction, ask when Y is several people or still being placed, wait for an unlearned message |
 | `memory/importance.py` | five tiers, computed |

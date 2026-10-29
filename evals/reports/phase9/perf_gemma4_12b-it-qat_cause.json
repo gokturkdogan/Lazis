@@ -1,0 +1,106 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "manifest": {
+  "captured_at": "2026-10-29T01:02:39+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.1,
+   "active_gb": 3.52,
+   "wired_gb": 11.16,
+   "compressed_gb": 5.07,
+   "swap_used_mb": 6652.81,
+   "swapouts": 109128434,
+   "memory_free_percent": 30
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "rows": [
+  {
+   "size": 500,
+   "messages": 100,
+   "pause_s": 9.0,
+   "idle_ttft_s": 0.62,
+   "learning_ttft_s_median": 8.02,
+   "learning_ttft_s_p90": 50.54,
+   "learning_ttft_s_max": 61.76,
+   "learning_ttft_by_cause": {
+    "sent_during_compaction": {
+     "turns": 64,
+     "median_s": 17.83,
+     "max_s": 61.76
+    },
+    "sent_during_memory": {
+     "turns": 36,
+     "median_s": 2.46,
+     "max_s": 3.39
+    }
+   },
+   "queue_latency_s_median": 3436.0,
+   "queue_latency_s_max": 3966.1,
+   "drain_after_last_s": 2834.5,
+   "total_s": 6573.2,
+   "model_calls": {
+    "chat": 200,
+    "extraction": 103,
+    "list_reread": 32,
+    "compaction": 70,
+    "other": 104
+   },
+   "memories_written": {
+    "active": 400
+   },
+   "relationships_written": 62,
+   "jobs": {
+    "done": 204
+   },
+   "last_learning": {},
+   "process_rss_peak_mb": 66.0,
+   "model_runner_footprint_peak_mb": 13562.3
+  }
+ ]
+}

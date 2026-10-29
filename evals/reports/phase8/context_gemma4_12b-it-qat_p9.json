@@ -1,0 +1,214 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "manifest": {
+  "captured_at": "2026-10-28T19:38:54+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; finishing charge; 0:02 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 0.1,
+   "active_gb": 4.17,
+   "wired_gb": 11.95,
+   "compressed_gb": 2.98,
+   "swap_used_mb": 7529.19,
+   "swapouts": 103764904,
+   "memory_free_percent": 35
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "import_counts": {
+  "analyzed": 10,
+  "approved": 10,
+  "written": 10,
+  "updated": 0,
+  "evidence_added": 0,
+  "kept_old": 0,
+  "held": 0,
+  "rejected": 0,
+  "pending": 0,
+  "blocked": 0,
+  "failed": 0,
+  "excluded": 0,
+  "people_created": 4,
+  "people_linked": 0
+ },
+ "summary": {
+  "questions": 8,
+  "passed": 8,
+  "leaked_other_person": 0,
+  "did_not_ask": 0
+ },
+ "turns": [
+  {
+   "id": "e01",
+   "question": "Ahmet'in kardeşi kim?",
+   "reply": "Hafızamda kayıtlı iki farklı Ahmet bulunuyor; iş arkadaşınız olan Ahmet'ten mi yoksa komşunuz olan Ahmet'ten mi bahsettiğinizi öğrenebilir miyim?",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e02",
+   "question": "Ahmet ne iş yapıyor?",
+   "reply": "Hangi Ahmet'ten bahsettiğinizi不belirtirseniz yardımcı olabilirim; hafızamda hem komşunuz hem de iş arkadaşınız olan iki farklı Ahmet kayıtlı.",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e03",
+   "question": "Ahmet hakkında ne biliyorsun?",
+   "reply": "Hafızamda \"Ahmet\" adında iki farklı kişi kayıtlı bulunuyor; birisi komşunuz, diğeri ise iş arkadaşınız. Hangisi hakkında bilgi istediğinizi belirtebilir misiniz efendim?",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e04",
+   "question": "Komşum Ahmet'in kardeşi kim?",
+   "reply": "Komşunuz Ahmet'in kardeşi Elif'tir.",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e05",
+   "question": "İş arkadaşım Ahmet ne iş yapıyor?",
+   "reply": "İş arkadaşınız Ahmet muhasebeci olarak çalışmaktadır.",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e06",
+   "question": "Komşum Ahmet'in mesleği ne?",
+   "reply": "Komşunuz Ahmet bir mimardır.",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e07",
+   "question": "Ahmet'e doğum günü için ne alsam?",
+   "reply": "Hangi Ahmet'ten bahsettiğinizi belirtebilir misiniz efendim? Komşunuz mu yoksa iş arkadaşınız mı?",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  },
+  {
+   "id": "e08",
+   "question": "Elif ne iş yapıyor?",
+   "reply": "Elif bir pilot olarak çalışmaktadır.",
+   "checks": {
+    "has_expected": true,
+    "no_other_persons_details": true,
+    "asks_which_one": true,
+    "no_shown_claim": true,
+    "shown_equals_stored": true,
+    "no_internal_label": true
+   },
+   "passed": true,
+   "claim_state": "no_memory_action",
+   "raw_unbacked": false
+  }
+ ]
+}

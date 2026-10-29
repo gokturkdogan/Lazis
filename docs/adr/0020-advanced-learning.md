@@ -30,6 +30,10 @@ Both learning and explicit requests pass validated items through it. It never ad
 - **Tense** of the clause the quote is in (clauses end at a full stop or at a comma / "ama" turning to another time — not inside a list; a quote that spans clauses is read in the clause with its value or person): *past* ("eskiden", "önceden", "geçen yıl … -yordum", "-mıştım", "yaşadım/çalıştım/okudum") → **history**; *future* ("-acağım", "gelecek yıl", "seneye", "yakında") → a **plan**; *current* otherwise, including a change that happened ("taşındım", "geçen ay başlattım").
 - History is written as a superseded record that never replaces today's value (the same value already current ends now; the same value already history only gets evidence). No end date is invented.
 - Relationships: past → `ended`, future → `planned`; a model's `ended` for "artık X'teyim" (present, not negated) → `active`.
+- **What the user left** ("Kervan'dan ayrıldım", "istifa ettim", "bıraktım") is history, not a change: the clause's "current" becomes past for that value or target, and leaving verbs are not change words. An ended workplace or place ends only itself — never the other workplace the same message names ("Artık Kervan'da çalışmıyorum, Atlas'a geçtim") — while a correction or change that ends a relationship between the same two people still ends it (a divorce, "aslında arkadaş değiliz").
+- **Between people, a past clause is not a past relationship**: "Kız kardeşim Elif eskiden İzmir'de yaşıyordu" is about where Elif lived, not about being a sister. A relationship between two people ends only when the relation word itself is in the past ("Ahmet eskiden komşumdu", "eski komşum") or the user says what they were together ("Burak'la arkadaştık", "birlikte çalışıyorduk") — `refine.relationship_over`. A workplace, place or project is the verb itself ("Kervan'da çalışıyordum") and ends with the clause.
+- **A value said with "not" is never today's**: an employer, location or occupation followed directly by a negated word ("Artık Kervan Lojistik'te çalışmıyorum", "öğretmen değilim") is history with "artık" and dropped without it, even when the model proposes it as a fact; a workplace or place relationship said that way is read as negated (ended with "artık"). Not applied between people ("Kardeşim Elif sigara içmiyor") — `refine.said_with_not`. Seen with Gemma: the fact had made Kervan current again and ended Atlas.
+- **Intentions**: a goal with a future tense and a named time ("Seneye emekli olacağım") is a plan with the user's time phrase; an undated wish stays a goal.
 - **Change**: the model's "it changed" counts only when the words say so ("artık", "taşındı", "… beri", "aslında" …). Otherwise a different single value is a conflict (the inbox asks).
 - **Time named**: the user's phrase ("2024'te", "geçen ay", "Üç yıl önce") is kept as written, never turned into a date.
 - **Someone else's relatives**: "annemin/babamın kardeşleri" → `parent_sibling`; any other "-(ı)mın X'i" ("arkadaşımın kardeşi") is not the user's relationship → dropped.
@@ -64,7 +68,8 @@ Five tiers (`critical_personal`, `high`, `medium`, `low`, `ephemeral`) from pred
 - X a value, or a workplace or place → the value (and that entity) is corrected;
 - Y could be several people, or another Y is still waiting for "which one?" → the user is asked;
 - the message was not learned from yet → the correction waits for it (in memory; lost on restart);
-- one change set; history keeps what it was.
+- one change set; history keeps what it was;
+- a corrected name takes its own suffix ("Bursa'da" → "Eskişehir'de").
 
 "Hayır, vazgeç" now calls off a waiting "which one?" like "Vazgeç".
 
@@ -77,4 +82,5 @@ A read-only scan, in priority order (tier, then kind): two current values of one
 - One more model call per learning job only when a list was partly read (measured in the report).
 - History values appear in the memory screen as "geçmişte"; recall already treated superseded values as history.
 - The extraction instruction changed (rules 14–15, two examples with names absent from the gold sets); the Phase 6/7 gold sets were re-run.
+- In a long conversation, learning waits behind the compaction the conversation needs (both are background jobs; compaction starts after 5 s idle). Queue latency includes it (PHASE_9_REPORT §12).
 - Not handled: a correction waiting for an unlearned message does not survive a restart; tense is read from words, not grammar, and can miss unusual forms (reported, with the cases, in PHASE_9_REPORT §17).

@@ -11,7 +11,9 @@ learning". Also measured: chat when nothing runs, how long a message waits until
 from (queue latency), model calls (chat, extraction, list re-reads), what was written, the
 backend's peak RSS and the model runner's footprint. Conversation settings are the app's own
 (compaction after 5 s idle): the session evaluations' profile postpones compaction for an hour,
-and learning waits behind a compaction a long conversation needs. Writes
+and learning waits behind a compaction a long conversation needs. Each chat-while-learning turn
+records what it waited behind (the background job running when it was sent, or a compaction
+of its own when the context was over the hard limit). Writes
 evals/reports/phase9/perf_<model>.json after every size.
 """
 
@@ -84,15 +86,35 @@ class Counter(Recorder):
             yield ev
 
 
-async def turn(p: Profile, text: str) -> float | None:
+async def turn(p: Profile, text: str, seen: list[dict[str, Any]] | None = None) -> float | None:
+    """First-token time. ``seen`` gets what the turn waited behind: the background job running
+    when it was sent, and whether the turn itself had to compact (context over the hard limit)."""
     assert p.engine is not None
+    bg = p.engine.scheduler.background
     t0 = time.monotonic()
-    first = None
+    first, compacted = None, False
     h = await p.engine.begin_turn(TurnRequest(p.session_id, f"perf-{secrets.token_hex(6)}", text, p.model))
     async for e in p.engine.events(h):
+        if e["type"] == "status" and e.get("stage") == "compacting":
+            compacted = True
         if e["type"] == "delta" and first is None:
             first = time.monotonic() - t0
-    return None if first is None else round(first, 2)
+    ttft = None if first is None else round(first, 2)
+    if seen is not None:
+        seen.append({"ttft": ttft, "behind": bg.kind if bg is not None else None, "compacted": compacted})
+    return ttft
+
+
+def breakdown(seen: list[dict[str, Any]]) -> dict[str, Any]:
+    """Chat-while-learning first-token times by what the turn waited behind."""
+    groups: dict[str, list[float]] = {}
+    for x in seen:
+        if x["ttft"] is None:
+            continue
+        key = "compacted_in_turn" if x["compacted"] else f"sent_during_{x['behind'] or 'nothing'}"
+        groups.setdefault(key, []).append(x["ttft"])
+    return {k: {"turns": len(v), "median_s": round(statistics.median(v), 2), "max_s": max(v)}
+            for k, v in sorted(groups.items())}  # fmt: skip
 
 
 async def drain(p: Profile, limit_s: float = 3600) -> float:
@@ -130,11 +152,12 @@ async def one(model: str, size: int, pause_s: float) -> dict[str, Any]:
         await drain(p)
         llm.calls = dict.fromkeys(llm.calls, 0)
         during: list[float | None] = []
+        seen: list[dict[str, Any]] = []
         t0 = time.monotonic()
         for i in range(max(1, size // 5)):
             await turn(p, message(i))
             await asyncio.sleep(pause_s)  # learning starts in the pause …
-            during.append(await turn(p, SMALL_TALK[i % len(SMALL_TALK)]))  # … and is preempted
+            during.append(await turn(p, SMALL_TALK[i % len(SMALL_TALK)], seen))  # … and is preempted
             for pid in runner_pids():
                 runner_peak = max(runner_peak, footprint_mb(pid) or 0.0)
         drain_s = await drain(p)
@@ -150,6 +173,7 @@ async def one(model: str, size: int, pause_s: float) -> dict[str, Any]:
             "learning_ttft_s_median": round(statistics.median(dur), 2) if dur else None,
             "learning_ttft_s_p90": round(sorted(dur)[int(0.9 * (len(dur) - 1))], 2) if dur else None,
             "learning_ttft_s_max": max(dur) if dur else None,
+            "learning_ttft_by_cause": breakdown(seen),
             "queue_latency_s_median": round(statistics.median(lat), 1) if lat else None,
             "queue_latency_s_max": round(max(lat), 1) if lat else None,
             "drain_after_last_s": drain_s, "total_s": total_s, "model_calls": dict(llm.calls),
