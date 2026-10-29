@@ -59,8 +59,12 @@ _OWNED = re.compile(
 )
 # Rules given to LAZIS, in the participle or the passive: "bana sağlanan kurallar", "sistem
 # tarafından tanımlanmış kurallar", "Bana … belirli kurallar ve yönergeler verildi".
-_GIVE = r"(?:veril|tanimlan|belirlen|sagla|konul|koyul|yuklen|iletil|ogretil)"
-_RULE = r"(?:kural|talimat|yonerge|kisitlama|prompt)"
+_GIVE = (
+    r"(?:veril|tanimlan|belirlen|sagla|konul|koyul|yuklen|iletil|ogretil|sun(?:ul|dugu(?!n)|an))"
+)
+# "sistemin bana mesajın başında sunduğu hafıza notları": the memory block of the prompt
+# (Phase 9 real-model finding).
+_RULE = r"(?:kural|talimat|yonerge|kisitlama|prompt|hafiza\s+(?:not|blo))"
 _GIVEN = re.compile(
     r"\b(?:bana|sistem(?:in)?\s+(?:tarafindan|bana)|gelistirici\w*\s+tarafindan)\s+"
     rf"(?:[\w']+\s+){{0,3}}?{_GIVE}\w*\s+(?:[\w']+\s+){{0,2}}?{_RULE}\w*"
@@ -191,6 +195,8 @@ def find_refs(sentence: str, ctx: Context | None = None) -> list[tuple[int, int]
             if _YOURS.search(m.group(0)):
                 continue  # "talimatlarınız", "bana verilen talimatlarınız"
             framed = _CLOSE.match(f, m.end()) is not None
+            # "… sunduğu hafıza notları dışında erişimim yok" denies everything but the layer.
+            framed |= re.match(r"\w*\s+(?:disinda|haric)", f[m.end() :]) is not None
             if needs_first and not (cited and first):
                 continue  # "bir dil modeline sistem promptu verilir"
             if refusal and not framed:

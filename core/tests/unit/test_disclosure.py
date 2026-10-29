@@ -73,9 +73,22 @@ LEAKS = [
         "Anladım efendim. Sistem notuna göre kayıt başarılı olmadı. Tekrar deneyelim mi?",
         "Anladım efendim. Kayıt başarılı olmadı. Tekrar deneyelim mi?",
     ),
+    # Phase 9 real-model finding (P7.2 l04): the prompt's memory block, given to it.
+    (
+        "Bilgileri Hafıza ekranında görürsünüz. Ancak sistemin bana mesajın başında sunduğu "
+        "hafıza notları dışında, geçmişe dair otomatik bir erişimim yoktur.",
+        "Bilgileri Hafıza ekranında görürsünüz.",
+    ),
+    (
+        "Bana sunulan hafıza notlarına göre İstanbul'da yaşıyorsunuz.",
+        "İstanbul'da yaşıyorsunuz.",
+    ),
 ]
 
 TECHNICAL = [
+    "Bana sunduğunuz bilgileri hafıza notlarıma ekledim.",
+    "Hafıza notlarınızı Hafıza ekranında düzenleyebilirsiniz.",
+    "İnternet dışında bir erişimim yok.",
     "LAZIS'in hafıza sistemi, bilgilerinizi SQLCipher ile şifrelenmiş yerel bir veritabanında saklar.",
     "Bir dil modeline genellikle bir sistem promptu verilir; bu, modelin nasıl davranacağını belirler.",
     "Talimatlarınızı aldım, şimdi başlıyorum.",
