@@ -326,6 +326,9 @@ class _Claim:
     # A storage word further back in the sentence ("Not defterime X'i ekledim"): its span, so
     # "anladım" can drop it and keep what stands between.
     ctx_span: tuple[int, int] | None = None
+    # A converb's claim runs to its main verb ("düzelterek … not ettim"): where the converb
+    # itself ends.
+    converb_end: int | None = None
 
 
 def _word_end(f: str, i: int) -> int:
@@ -406,10 +409,12 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             # "not etmiş oldum", "kaydetmiş oldum": the perfect tense, a completed act
             # (Phase 7.2 real-model finding).
             verdict, end = "done", end + perfect.end()
+        converb_end = None
         if verdict == "converb":
             main = _main_verb_end(f, end)
             if main is None:
                 return  # "düzelterek tekrar sorayım mı?", "silmeden önce"
+            converb_end = end
             verdict, end = "done", main
         if verdict == "not":
             return
@@ -427,7 +432,13 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             kind = "existing"
         found.append(
             _Claim(
-                ctx if ctx is not None else start, end, start, kind, verdict == "passive", ctx_span
+                ctx if ctx is not None else start,
+                end,
+                start,
+                kind,
+                verdict == "passive",
+                ctx_span,
+                converb_end,
             )
         )
 
@@ -535,12 +546,26 @@ def rewrite_sentence(
 ) -> tuple[str, list[Rewrite]]:
     """The sentence with every unauthorized claim reworded. Characters before ``frozen`` were
     already shown and are never changed."""
-    claims = [
-        c for c in find_claims(sentence, policy) if c.start >= frozen and not policy.allows(c.kind)
-    ]
+    claims = [c for c in find_claims(sentence, policy) if c.start >= frozen]
     out = sentence
     rewrites: list[Rewrite] = []
     for c in reversed(claims):
+        if policy.allows(c.kind):
+            if c.converb_end is not None:
+                # The converb's act happened, the main verb's may not have: "Kaydı silip
+                # yenisini kaydettim" after a delete → "… yenisini kaydetmedim". Only a negative
+                # fits after a converb; "Kaydı silip hafızamı güncelledim" tells the same act.
+                tail, more = rewrite_sentence(out[c.converb_end : c.end], policy)
+                if more and all(re.search(r"m[ae]d[iu]", fold(r.replacement)) for r in more):
+                    out = out[: c.converb_end] + tail + out[c.end :]
+                    rewrites.extend(more)
+            continue
+        negated = _negated_converb(out, c, policy)
+        if negated is not None:
+            word = out[c.verb_start : c.converb_end]
+            rewrites.append(Rewrite(c.kind, policy.state.value, word, negated[1]))
+            out = negated[0]
+            continue
         if c.kind == "existing":
             replacement = _existing_replacement(fold(out[c.start : c.end]))
             if replacement is None:
@@ -638,6 +663,38 @@ def _drop(out: str, c: _Claim, frozen: int) -> str | None:
     if before is None or before.start() < frozen:
         return None
     return out[: before.start()] + out[c.end :]
+
+
+_CONVERB_SUFFIX = re.compile(r"(?:y?[ae]r[ae]k|y?[iu]p|y?[iu]nc[ae]|[dt][iu]kt[ae]n)$")
+
+
+def _negated_converb(out: str, c: _Claim, policy: Policy) -> tuple[str, str] | None:
+    """A converb whose main verb is an act that did happen: after a save, "önceki bilgiyi
+    düzelterek İzmir'de yaşadığınızı not ettim" claims only the correction too much, and its
+    negative says what was done — "önceki bilgiyi düzeltmeden … not ettim" (Phase 9 real-model
+    finding, c15: rewording the whole span left "önceki bilgiyi kaydettim"). The sentence and the
+    negative converb, or None."""
+    if c.converb_end is None:
+        return None
+    word = out[c.verb_start : c.converb_end]
+    suffix = _CONVERB_SUFFIX.search(fold(word))
+    if suffix is None:
+        return None
+    stem = word[: suffix.start()]
+    if fold(stem).endswith("ed"):  # "kaydedip" → "kaydetmeden"
+        stem = stem[:-1] + "t"
+    vowels = [ch for ch in stem.lower() if ch in "aeıioöuü"]
+    if not vowels:
+        return None
+    negative = stem + ("meden" if vowels[-1] in "eiöü" else "madan")
+    candidate = out[: c.verb_start] + negative + out[c.converb_end :]
+    end = c.end + len(negative) - len(word)
+    inside = [x for x in find_claims(candidate, policy) if c.verb_start <= x.start < end]
+    if any(x.kind == "existing" or not policy.allows(x.kind) for x in inside):
+        return None
+    if not any(x.end == end for x in inside):
+        return None  # the main verb is no memory act of its own ("… esas alıyorum")
+    return candidate, negative
 
 
 def _existing_replacement(f: str) -> str | None:

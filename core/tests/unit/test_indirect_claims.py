@@ -79,6 +79,34 @@ INDIRECT = [
         "Ahmet bilgilerini henüz silmedim.",
     ),
     (_p(ClaimState.DELETE_FAILED), "Bilgiyi silip kaldırdım.", "Bilgiyi silmedim."),
+    # The main verb's act happened, the converb's did not: its negative (Phase 9 real-model
+    # finding, c15: "önceki bilgiyi kaydettim" was shown after a note was saved).
+    (
+        _p(ClaimState.SAVE_SUCCEEDED),
+        "Anladım efendim, önceki bilgiyi düzelterek İzmir'de yaşadığınızı not ettim.",
+        "Anladım efendim, önceki bilgiyi düzeltmeden İzmir'de yaşadığınızı not ettim.",
+    ),
+    (
+        _p(ClaimState.SAVE_SUCCEEDED),
+        "Eski kaydı kaldırıp yenisini kaydettim.",
+        "Eski kaydı kaldırmadan yenisini kaydettim.",
+    ),
+    (
+        _p(ClaimState.DELETE_SUCCEEDED),
+        "Yenisini kaydedip eskisini sildim.",
+        "Yenisini kaydetmeden eskisini sildim.",
+    ),
+    # The converb's act happened, the main verb's did not.
+    (
+        _p(ClaimState.DELETE_SUCCEEDED),
+        "Kaydı silip yenisini kaydettim.",
+        "Kaydı silip yenisini kaydetmedim.",
+    ),
+    (
+        _p(ClaimState.DELETE_SUCCEEDED),
+        "Eski kaydı kaldırıp yerine yenisini hafızama ekledim.",
+        "Eski kaydı kaldırıp yerine yenisini hafızama kaydetmedim.",
+    ),
 ]
 
 
@@ -93,6 +121,7 @@ DONE = [
     (_p(ClaimState.UPDATE_SUCCEEDED), "Kervan bilgisini düzelterek Atlas'ı esas aldım."),
     (_p(ClaimState.SAVE_SUCCEEDED), "Bilgiyi kaydederek hafızama ekledim."),
     (_p(ClaimState.DELETE_SUCCEEDED), "Bilgiyi silerek hafızamdan çıkardım."),
+    (_p(ClaimState.DELETE_SUCCEEDED), "Kaydı silip hafızamı güncelledim."),
 ]
 
 
@@ -154,7 +183,8 @@ def test_streamed_indirect_claims_never_appear(policy: Policy, reply: str, expec
             assert unauthorized(shown, policy) == [], (sizes, shown)
             # Nothing of the claim's words was shown before the decision.
             assert "esas al" not in fold(shown) or "esas al" in fold(expected)
-            assert "duzelterek" not in fold(shown) and "kaldirip" not in fold(shown)
+            for word in ("duzelterek", "kaldirip"):  # unless the converb's act happened
+                assert word not in fold(shown) or word in fold(expected)
 
 
 def test_the_briefs_chunking_of_the_kervan_reply() -> None:
