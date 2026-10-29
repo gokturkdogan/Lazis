@@ -235,7 +235,10 @@ _CONTEXT = (
     r"|notlarim(?:a|da|in)?|kayitlarim(?:a|da|in)?|bilgilerime|listeme|ajandama|defterime|takvimime"
     r"|hafizamin|aklimin|bilgilerim(?:in)?|listemin"
     # The user's records as the place ("bilgilerinize ekledim", Phase 9 real-model finding).
-    r"|bilgilerinize|kayitlariniza|notlariniza|profilinize)"
+    r"|bilgilerinize|kayitlariniza|notlariniza|profilinize"
+    # Its system, database or memory as the place ("sistemime ekledim", Phase 9 real-model
+    # finding, c11, the targeted run of the final code), the user's system too.
+    r"|sistemim(?:e|de|ize|izde)|veritabanim(?:a|da)|bellegim(?:e|de)|sisteminize)"
 )
 _CONTEXT_RE = re.compile(r"\b" + _CONTEXT + r"\b")
 _SAVE_RE = re.compile(
@@ -732,7 +735,7 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # claim that follows ("ve" + "not aldım").
 _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
           "bilgilerim", "listem", "ajandam", "defterim", "takvimim", "bilgileriniz",
-          "profiliniz")  # fmt: skip
+          "profiliniz", "sistemim", "sisteminiz", "veritabanim", "bellegim")  # fmt: skip
 # Act verbs are held in every turn: whether "düzelterek" is a claim depends on the words after
 # it ("… bilgisini … esas alıyorum"), and shown text is never taken back.
 _RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")

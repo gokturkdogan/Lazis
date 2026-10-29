@@ -107,6 +107,14 @@ REWORDED = [
     ("Bunu kayıtlarınıza ekledim.", "Bunu anladım."),
     ("Bunu profilinize kaydettim.", "Bunu anladım."),
     ("Kayıt aldım efendim.", "Anladım efendim."),
+    # Phase 9 real-model finding (c11, the final code's targeted run): its system as the place.
+    (
+        "Bilgiyi not aldım. İstanbul'da yaşadığınızı sistemime ekledim.",
+        "Bilgiyi anladım. İstanbul'da yaşadığınızı anladım.",
+    ),
+    ("Bunu veritabanıma kaydettim efendim.", "Bunu anladım efendim."),
+    ("Doğum gününü belleğime yazdım.", "Doğum gününü anladım."),
+    ("Bu bilgiyi sisteminize ekledim.", "Bu bilgiyi anladım."),
     # Phase 9 real-model finding (s08): what the user told, as the value or the object.
     (
         "Anlaşıldı efendim, tercihinizi sütlü kahve olarak güncelledim.",
@@ -163,6 +171,10 @@ def test_claims_after_a_statement_are_reworded(reply: str, expected: str) -> Non
 UNTOUCHED = [
     "Tercihinizi güncellememi isterseniz söyleyin.",
     "İsterseniz bunu bilgilerinize ekleyebilirim.",
+    "İsterseniz bunu sistemime ekleyebilirim.",
+    "Sistemimde internet erişimi yok.",
+    "Bu bilgiler yerel sisteminizde tutulur.",
+    "Veritabanımda şifreleme için SQLCipher kullanılır.",
     "Bilgileriniz güvende, cihazınızda şifreli tutuluyor.",
     "Anladım efendim.",
     "Anladım efendim, Ahmet'in kardeşi Mehmet.",
@@ -424,7 +436,8 @@ FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim",
              "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
              "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim", "bilgilerinize ekledim",
              "defterime", "hafizama bu", "listeme yarinki", "notumu aldim", "notlarimi aldim", "arasina ekledim",
-             "kosesine yazdim", "etmis oldum", "kaydetmis oldum", "kayit aldim")  # fmt: skip
+             "kosesine yazdim", "etmis oldum", "kaydetmis oldum", "kayit aldim", "sistemime ekledim",
+             "veritabanima kaydettim", "bellegime yazdim", "sisteminize ekledim")  # fmt: skip
 
 
 def stream(text: str, chunks: list[int], policy: Policy) -> tuple[str, list[str]]:
