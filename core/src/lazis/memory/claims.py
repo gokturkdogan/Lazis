@@ -201,6 +201,12 @@ _ADJACENT = ("", "bu", "bunu", "bu bilgiyi", "onu")
 _POSTPOSITION = re.compile(r"\s+(?:bir\s+)?(?:arasina|icine|kosesine|listesine|ustune)\b")
 _DELETE_RE = re.compile(r"\b(?:sil|kaldir|cikar)")
 _UPDATE_RE = re.compile(r"\b(?:guncell|duzelt|degistir|birlestir)")
+# "Bilgiyi güncelledim", "iş yeri bilginizi sildim": information as the object makes these
+# verbs memory acts too (Phase 9 real-model finding: "Bilgiyi güncelledim" after a conflict).
+_INFO_OBJECT = re.compile(
+    r"\bbilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)?\s+"
+    r"(?:sil|kaldir|cikar|guncell|duzelt|degistir|birlestir)"
+)
 _COMMIT_RE = re.compile(r"\b(?:unut|hatirla)")
 _OGREN_RE = re.compile(r"\bogren")
 
@@ -215,8 +221,8 @@ _EXISTING = re.compile(
     rf"(?:{_V}?(?:t|d)[iu]g(?:im|imiz|um|umuz)|(?:il|in|l|n)mis|(?:il|in|l|n)en\b)"
 )
 _PASSIVE_DONE = re.compile(
-    r"(?:il|in|l|n)d[iu](?:r)?\b|(?:il|in|l|n)mistir\b"
-)  # kaydedildi, eklendi
+    r"[ae]?(?:il|in|l|n)d[iu](?:r)?\b|[ae]?(?:il|in|l|n)mistir\b"
+)  # kaydedildi, eklendi, güncellendi
 _DONE = re.compile(
     rf"{_V}?(?:t|d)(?:im|um|ik|uk)\b"  # kaydettim, aldım, sildik, güncelledim
     rf"|{_V}?yor(?:um|uz)\b"  # kaydediyorum, güncelliyorum
@@ -371,7 +377,12 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             and re.fullmatch(r"(?:d|t)(?:im|ik)", f[m.end() : end])
         ):
             found.append(_Claim(m.start(), end, m.start(), "save"))
-    if policy.memory_turn or _CONTEXT_RE.search(f) or re.search(r"\bkay(?:it|d)", f):
+    if (
+        policy.memory_turn
+        or _CONTEXT_RE.search(f)
+        or re.search(r"\bkay(?:it|d)", f)
+        or _INFO_OBJECT.search(f)
+    ):
         for rx, kind in ((_DELETE_RE, "delete"), (_UPDATE_RE, "update")):
             for m in rx.finditer(f):
                 verb(m.start(), m.end(), kind, _context_before(f, m.start()))
@@ -512,6 +523,8 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
           "bilgilerim", "listem", "ajandam", "defterim", "takvimim")  # fmt: skip
 _RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")
+# Information as an object ("Bilgiyi güncelledim"): whole words, so "bilgisayar" flows on.
+_RISKY_INFO = re.compile(r"bilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)?")
 _SENTENCE_END = re.compile(r"[.!?\n]+(?=\s|$)|[:;](?=\s)")
 MAX_HOLD = 240  # characters held without a sentence end before deciding at a word boundary
 
@@ -537,7 +550,11 @@ class ClaimGuard:
         acts = self.policy.memory_turn or _CONTEXT_RE.search(fold(self.released[-200:]))
         for m in re.finditer(r"[a-z0-9']+", f):
             w = m.group(0)
-            if w.startswith(_RISKY) or (acts and w.startswith(_RISKY_ACT)):
+            if (
+                w.startswith(_RISKY)
+                or _RISKY_INFO.fullmatch(w)
+                or (acts and w.startswith(_RISKY_ACT))
+            ):
                 return m.start()
         return None
 
@@ -547,7 +564,11 @@ class ClaimGuard:
         last = 0
         for m in re.finditer(r"[a-z0-9']+", f[:end]):
             w = m.group(0)
-            if m.start() > 0 and (w.startswith(_RISKY) or (acts and w.startswith(_RISKY_ACT))):
+            if m.start() > 0 and (
+                w.startswith(_RISKY)
+                or _RISKY_INFO.fullmatch(w)
+                or (acts and w.startswith(_RISKY_ACT))
+            ):
                 last = m.start()
         return last
 

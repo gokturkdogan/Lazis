@@ -124,6 +124,16 @@ REWORDED = [
         "Anlaşıldı, listeme yarınki toplantıyı da ekledim.",
         "Anlaşıldı, yarınki toplantıyı da anladım.",
     ),
+    # Information as the object (Phase 9 real-model finding: said after a conflict was asked).
+    (
+        "Bilgiyi güncelledim efendim. Artık Pusula'da çalıştığınızı anladım.",
+        "Bilgiyi anladım efendim. Artık Pusula'da çalıştığınızı anladım.",
+    ),
+    ("Bilgilerinizi güncelledim.", "Bilgilerinizi anladım."),
+    ("İş yeri bilginizi güncelledim efendim.", "İş yeri bilginizi anladım efendim."),
+    ("Bu bilgiyi sildim.", "Bu bilgiyi anladım."),
+    ("Bilgi güncellendi.", "Bilgi anlaşıldı."),
+    ("Kayıt güncellendi.", "Kayıt anlaşıldı."),
 ]
 
 
@@ -195,6 +205,10 @@ UNTOUCHED = [
     "Bir kayıt oluşturmak isterseniz söylemeniz yeterli.",
     "Ajandama bakarsanız toplantıyı eklediğinizi görürsünüz.",
     "Listeme göre yarın üç işiniz var.",
+    "Bilgisayarınızı güncelledim.",
+    "Paragraf güncellendi.",
+    "Ahmet raporu güncelledi.",
+    "Bu konuda bilgi vermek isterim.",
 ]
 
 
