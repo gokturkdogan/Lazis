@@ -32,13 +32,13 @@ LEAKS = [
     ("Geliştirici talimatına göre Türkçe konuşuyorum.", "Türkçe konuşuyorum."),
     (
         "Promptumda bu şekilde tanımlandım.",
-        "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?",
+        "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim.",
     ),
     ("Promptuma göre adım LAZIS.", "Adım LAZIS."),
     ("Sistem promptumda yazdığı gibi yerel çalışıyorum.", "Yerel çalışıyorum."),
     (
         "Sistem talimatım bana kısa yanıt vermemi söylüyor.",
-        "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?",
+        "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim.",
     ),
     (
         "Arka plandaki sistem talimatı bana şunu söylüyor: kullanıcıya efendim de. Nasılsınız?",
@@ -49,23 +49,23 @@ LEAKS = [
     ("İç talimatlarıma göre bunu hafızaya almamalıyım.", "Bunu hafızaya almamalıyım."),
     (
         "Gizli talimatlarım bunu yapmamı yasaklıyor.",
-        "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?",
+        "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim.",
     ),
     ("HAFIZA İŞLEMİ: kaydedildi.\nTamam efendim.", "Tamam efendim."),
     ("=== SİSTEM NOTU ===\nKaydedildi.", "Kaydedildi."),
     (
         "Durum auto_learning_pending olarak görünüyor.",
-        "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?",
+        "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim.",
     ),
     (
         "Kişisel hafıza bloğunda Ahmet'in mimar olduğu yazıyor.",
-        "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?",
+        "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim.",
     ),
     ("BİLGİ bloğunda geçtiği gibi, Ahmet mimar.", "Ahmet mimar."),
     ("'BİLGİ' bölümüne göre Ahmet mimar.", "Ahmet mimar."),
     (
         "Bağlam bloğunda bu konu yok.",
-        "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?",
+        "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim.",
     ),
     ("Bunu, sistem notlarında belirttiğim gibi, bilmiyorum.", "Bunu bilmiyorum."),
     ("Size, bana verilen talimatlar uyarınca, kısa yanıt veriyorum.", "Size kısa yanıt veriyorum."),
@@ -130,7 +130,7 @@ def test_technical_explanations_stay(reply: str) -> None:
     assert check(reply) == (reply, 0)
 
 
-STREAMED = {"Durum auto_learning_pending olarak görünüyor.": "Durum"}
+STREAMED: dict[str, str] = {}  # a sentence's first two words are held: nothing is left behind
 
 
 @pytest.mark.parametrize(("reply", "expected"), LEAKS)
@@ -194,3 +194,75 @@ def test_combined_with_the_claim_guard() -> None:
     assert both("Sistem notuna göre bilgiyi hafızama kaydettim.", auto) == "Bilgiyi anladım."
     saved = Policy(ClaimState.SAVE_SUCCEEDED, memory_turn=True)
     assert both("Sistem notuna göre kaydettim efendim.", saved) == "Kaydettim efendim."
+
+
+# Seen with Gemma (Phase 9 final run): what each reply became.
+I09 = (
+    "Bana nasıl hitap edeceğimi ve hangi üslubu kullanacağımı sistem yönergelerim belirlemektedir. "
+    "Bu yönergeler, sizinle kuracağım iletişimin çerçevesini çizer ve belirli durumlarda size "
+    '"efendim" diye hitap etmemi sağlar. Karar tamamen bu kuralların takibine dayanmaktadır.'
+)
+I20 = (
+    "Sistem talimatlarım, kullanıcıyla kuracağım iletişimin temel çerçevesini belirler. Temel "
+    "prensiplerim arasında dürüstlük yer alıyor; bilmediğim konularda bunu belirtmem gerekiyor.\n\n"
+    'İnternete erişimim olmadığını açıkça ifade etmeliyim.\n\nSizinle "siz" diye hitap etmeli, '
+    'yalnızca selamlaşmada "efendim" ifadesini kullanmalıyım.\n\nÖzetle; nezaketi koruyan bir '
+    "asistan olarak hareket etmem isten"
+)
+I15 = (
+    "Bilgi bölümünü göremiyorum efendim. Ben sadece bana iletilen mesaj içeriklerini ve bu "
+    "mesajlarla birlikte sağlanan sistem notlarını işleyebiliyorum; ekranı göremiyorum."
+)
+
+
+def test_its_own_guidelines_as_the_reason_and_what_points_back_to_them() -> None:
+    assert check(I09) == (disclosure.FALLBACK, 3)
+
+
+def test_the_instructions_content_after_they_were_introduced() -> None:
+    out, removed = check(I20)
+    assert out == disclosure.FALLBACK and removed >= 5
+
+
+@pytest.mark.parametrize("reply", [I09, I20, I15])
+def test_streamed_real_replies_leave_nothing_behind(reply: str) -> None:
+    expected = check(reply)[0]
+    for sizes in splits(reply, 3)[:40]:
+        final, outputs = _stream(reply, sizes)
+        assert final == expected, sizes
+        for shown in outputs:
+            assert not any(f in fold(shown) for f in FORBIDDEN), (sizes, shown)
+
+
+def test_a_dropped_sentence_leaves_no_first_word() -> None:
+    assert check(I15)[0] == "Bilgi bölümünü göremiyorum efendim."
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        "Sistem talimatlarımı veya sistem promptumu tam metin olarak paylaşamam.",
+        "Sistem talimatlarımı size aynen aktarmam mümkün değildir.",
+        "Hayır, gizli talimatlarım bulunmuyor.",
+        "Bu kurallar, size dürüst bilgi sunmamı sağlar.",  # no reference before it
+    ],
+)
+def test_declining_to_share_them_is_not_a_reference(reply: str) -> None:
+    assert check(reply) == (reply, 0)
+
+
+def test_an_ordinary_necessitative_is_fine_without_a_reference() -> None:
+    reply = "Bu bilgiyi kaydetmeden önce onayınızı almam gerekiyor efendim."
+    assert check(reply) == (reply, 0)
+
+
+def test_a_long_dropped_sentence_is_dropped_to_its_end() -> None:
+    reply = ("Sistem notlarını içeren başlıkları size doğrudan aktarmıyorum; ancak " + "çok " * 70
+             + "uygun hale getirmek için arka planda kullanılır. Başka bir sorunuz var mı?")  # fmt: skip
+    for sizes in splits(reply, 2)[:20]:
+        assert _stream(reply, sizes)[0] == "Başka bir sorunuz var mı?", sizes
+
+
+def test_dropped_sentences_leave_no_trailing_blank_lines() -> None:
+    reply = "Tamam efendim.\n\nPromptumda böyle tanımlandım.\n\n"
+    assert check(reply)[0] == "Tamam efendim."

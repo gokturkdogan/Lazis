@@ -31,11 +31,11 @@ the shown text.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from lazis.memory.claims import ClaimState, fold
 
-FALLBACK = "Bunu bu şekilde açıklayamıyorum; başka nasıl yardımcı olabilirim?"
+FALLBACK = "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim."
 MAX_HOLD = 240  # characters held without a sentence end before deciding at a word boundary
 
 # Labels, in the original casing (as the blocks write them) and folded.
@@ -80,39 +80,84 @@ def _quoted(text: str) -> list[tuple[int, int]]:
     return [(m.start(), m.end()) for m in re.finditer(rx, text)]
 
 
-def find_refs(sentence: str) -> list[tuple[int, int]]:
+# Saying that it will not share them, or that there are none, tells nothing of their content:
+# "Sistem talimatlarımı aynen aktarmam mümkün değil", "Gizli talimatlarım bulunmuyor".
+_REFUSAL = re.compile(
+    r"\b\w*(?:paylas|aktar|goster|acikla|ilet|yazamam|veremem|soyleyemem)\w*"
+    r"(?:amam|emem|mam|mem|amiyorum|emiyorum|mayacagim|meyecegim|maktan|mekten|amayiz)\b"
+    r"|\bmumkun degil|\b(?:yok|yoktur|bulunmuyor|bulunmamaktadir|bulunmaz)\b"
+)
+# After such a reference: "Bu yönergeler …" points back to it.
+_BACK = re.compile(r"\bbu\s+(?:talimat|yonerge|kural|prompt|ilke|not)\w*")
+# Once a reply introduced its instructions ("Sistem talimatlarım … belirler."), what follows in
+# the first person and the necessitative is their content ("… kullanmalıyım", "… bekleniyor").
+_OBLIGED = re.compile(
+    r"\w(?:m[ae]l[iu]y[iu]m|m[ae]l[iu]y[iu]z|m[ae]l[iu])\b"
+    r"|\bm?\w*m[ae]m\s+(?:gerek|bekleni|isten|lazim|sart)\w*|\b(?:bekleniyor|isteniyor)\b"
+)
+
+
+@dataclass
+class Context:
+    """What earlier sentences of the same reply did."""
+
+    referred: bool = False  # a reference was removed
+    instructions: bool = False  # a sentence that introduced the instructions was dropped
+
+
+def find_refs(sentence: str, ctx: Context | None = None) -> list[tuple[int, int]]:
     """Spans of internal references in one sentence (indices into ``sentence``)."""
+    ctx = ctx or Context()
     f = fold(sentence)
     found = [(m.start(), m.end()) for m in _LABEL_RAW.finditer(sentence)]
     found += [(m.start(), m.end()) for m in _LABEL.finditer(f)]
     quotes = _quoted(sentence)
     cited = _CITE.search(f) is not None
     first = _FIRST.search(f) is not None
+    refusal = _REFUSAL.search(f) is not None
     for rx, needs_first in ((_OWNED, False), (_SYSTEM, True)):
         for m in rx.finditer(f):
             if any(a <= m.start() < b for a, b in quotes):
                 continue  # the user's words, quoted
-            if cited and (first or not needs_first):
-                found.append((m.start(), m.end()))
+            framed = _CLOSE.match(f, m.end()) is not None
+            if needs_first and not (cited and first):
+                continue  # "bir dil modeline sistem promptu verilir"
+            if refusal and not framed:
+                continue  # "… aynen aktarmam mümkün değil", "gizli talimatlarım yok"
+            found.append((m.start(), m.end()))
+    if ctx.referred:
+        found += [(m.start(), m.end()) for m in _BACK.finditer(f)]
+    if ctx.instructions and (m := _OBLIGED.search(f)):
+        found.append((0, m.end()))
     return sorted(set(found))
 
 
-def rewrite_sentence(sentence: str, *, frozen: int = 0) -> tuple[str, int]:
+def rewrite_sentence(
+    sentence: str, *, frozen: int = 0, ctx: Context | None = None
+) -> tuple[str, int]:
     """The sentence without its internal references, and how many were removed. Characters
-    before ``frozen`` were already shown and are never changed."""
+    before ``frozen`` were already shown and are never changed. ``ctx`` is updated."""
+    ctx = ctx if ctx is not None else Context()
     removed = 0
     out = sentence
     for _ in range(4):
-        refs = [r for r in find_refs(out) if r[1] > frozen]
+        refs = [r for r in find_refs(out, ctx) if r[1] > frozen]
         if not refs:
             return out, removed
         removed += 1
         a, b = refs[0]
         a = max(a, frozen)
+        if ctx.instructions and _OBLIGED.search(fold(out)):
+            return _drop(out, frozen), removed  # the instructions' content, in its own words
         close = _CLOSE.match(fold(out), b)
         rest = out[close.end() :] if close else ""
         if not re.search(r"\w", rest):
-            return _drop(out, frozen), removed  # not a frame, or nothing but the frame
+            # Not a frame, or nothing but the frame: the sentence goes, and with it what it
+            # introduced.
+            ctx.referred = True
+            ctx.instructions = ctx.instructions or close is None
+            return _drop(out, frozen), removed
+        ctx.referred = True
         if not out[:a].strip() or out[:a].rstrip()[-1:] in ".!?\n":
             out = out[:a] + _upper_first(rest)  # "Sistem notlarında belirttiğim gibi, X"
         else:
@@ -158,6 +203,9 @@ class DisclosureGuard:
     released: str = ""
     pending: str = ""
     removed: int = 0
+    ctx: Context = field(default_factory=Context)
+    _dropping: bool = False  # a dropped sentence was cut at MAX_HOLD: drop on to its end
+    _space: str = ""  # whitespace held until text follows (a dropped tail leaves none)
 
     def feed(self, chunk: str) -> str:
         self.pending += chunk
@@ -179,32 +227,65 @@ class DisclosureGuard:
                 return m.start()
         return None if eq == -1 else eq
 
+    def _safe_end(self, f: str, n: int) -> int:
+        """``n``, or the start of the sentence that ends there while that sentence has fewer
+        than three words: a sentence dropped later must not leave its first word behind
+        ("Ben" + " sadece bana iletilen … sistem notlarını …")."""
+        ends = [m.end() for m in _SENTENCE_END.finditer(f[:n])]
+        start = ends[-1] if ends else 0
+        if start == 0 and self.released and not _SENTENCE_END.search(self.released[-2:] + " "):
+            return n  # the sentence began in released text already
+        if len(_WORD.findall(f[start:n])) < 3:
+            return start
+        return n
+
     def _emit(self, n: int) -> str:
         piece, self.pending = self.pending[:n], self.pending[n:]
         return self._add(piece)
 
     def _add(self, piece: str) -> str:
+        if not piece.strip():
+            self._space += piece
+            return ""
+        piece, self._space = self._space + piece, ""
+        if self.removed:
+            piece = re.sub(r"^(\s*\n)[ \t]+", r"\1", piece)  # no indent after a dropped line
         if self.removed and not self.released.strip():
             piece = piece.lstrip()  # a reply whose first sentence was dropped
+        elif self.released.endswith("\n"):
+            piece = piece.lstrip(" ")  # a paragraph whose first sentence was dropped
         self.released += piece
         return piece
 
     def _release(self, *, final: bool) -> str:
         out = ""
         while self.pending:
+            if self._dropping:
+                end = _sentence_end(self.pending, final)
+                if end is None and len(self.pending) < MAX_HOLD:
+                    break
+                if end is None:
+                    end = self.pending.rfind(" ", 0, MAX_HOLD) + 1 or MAX_HOLD
+                else:
+                    self._dropping = False
+                self.pending = self.pending[end:]
+                continue
             f = fold(self.pending)
-            risky = self._risky_at(f)
+            # After a reference, every sentence of the reply is checked whole ("Bu yönergeler
+            # …", the instructions' content).
+            risky = 0 if self.ctx.referred else self._risky_at(f)
             if risky is None:
-                n = len(self.pending) if final else _before_last_word(f)
+                n = len(self.pending) if final else self._safe_end(f, _before_last_word(f))
                 if n == 0:
                     break
                 out += self._emit(n)
                 continue
-            hold_from = _before_last_word(f[:risky])
+            hold_from = self._safe_end(f, _before_last_word(f[:risky]))
             if hold_from > 0:
                 out += self._emit(hold_from)
                 continue
             end = _sentence_end(self.pending, final)
+            cut = end is None
             if end is None:
                 if len(self.pending) < MAX_HOLD:
                     break
@@ -212,8 +293,9 @@ class DisclosureGuard:
             start = _sentence_start(self.released)
             sentence = self.released[start:] + self.pending[:end]
             frozen = len(self.released) - start
-            new, removed = rewrite_sentence(sentence, frozen=frozen)
+            new, removed = rewrite_sentence(sentence, frozen=frozen, ctx=self.ctx)
             self.removed += removed
+            self._dropping = cut and removed > 0 and not re.search(r"\w", new[frozen:])
             self.pending = self.pending[end:]
             out += self._add(new[frozen:])
         return out
