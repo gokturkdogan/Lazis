@@ -246,3 +246,12 @@ def test_while_explaining_a_finished_act_is_still_a_claim() -> None:
     assert not explaining("Az önce kaydettin mi?")
     policy = Policy(ClaimState.NO_MEMORY_ACTION, explaining=True)
     assert check("Bunu hafızama kaydettim.", policy)[0] == "Bunu anladım."
+
+
+def test_a_claim_with_its_own_object_is_reworded_not_dropped() -> None:
+    """Seen with Gemma (run 2, f05): "Anlaşıldı efendim, artık İzmir'de olduğunuzu not ettim."
+    was shown as "…, artık İzmir'de olduğunuzu." — the claim dropped, its object left behind."""
+    policy = Policy(ClaimState.AUTO_LEARNING_PENDING)
+    out, _ = check("Anlaşıldı efendim, artık İzmir'de olduğunuzu not ettim.", policy)
+    assert out == "Anlaşıldı efendim, artık İzmir'de olduğunuzu anladım."
+    assert check("Anladım, not aldım.", policy)[0] == "Anladım."

@@ -16,10 +16,13 @@ from lazis.memory import claims
 @dataclass
 class ReplyGuard:
     policy: claims.Policy
-    disclosure: disclosure.DisclosureGuard = field(default_factory=disclosure.DisclosureGuard)
+    asks_instructions: bool = False  # :func:`disclosure.asks_instructions` of the user's message
+    disclosure: disclosure.DisclosureGuard = field(init=False)
     claims: claims.ClaimGuard = field(init=False)
 
     def __post_init__(self) -> None:
+        ctx = disclosure.Context(asks=self.asks_instructions)
+        self.disclosure = disclosure.DisclosureGuard(ctx=ctx)
         self.claims = claims.ClaimGuard(self.policy)
 
     @property
@@ -42,7 +45,7 @@ class ReplyGuard:
         return self.claims.feed(self.disclosure.finish()) + self.claims.finish()
 
 
-def check(text: str, policy: claims.Policy) -> str:
+def check(text: str, policy: claims.Policy, *, asks_instructions: bool = False) -> str:
     """The whole reply at once (the same result as streaming it)."""
-    guard = ReplyGuard(policy)
+    guard = ReplyGuard(policy, asks_instructions)
     return guard.feed(text) + guard.finish()

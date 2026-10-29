@@ -619,7 +619,9 @@ def _drop(out: str, c: _Claim, frozen: int) -> str | None:
     after = re.match(r"\s+ve\b\s*", out[c.end :])
     if after is not None:  # "…, bunu kaydettim ve X" → "…, X"
         return out[:first] + out[c.end + after.end() :]
-    before = re.search(r"(?:\s*,\s*|\s+ve\s+|\s+)$", out[:first])
+    # Only a claim that is its own clause: "…, İzmir'de olduğunuzu not ettim" would leave its
+    # object behind ("…, İzmir'de olduğunuzu.") and is reworded instead.
+    before = re.search(r"(?:\s*,\s*|\s+ve\s+)$", out[:first])
     if before is None or before.start() < frozen:
         return None
     return out[: before.start()] + out[c.end :]

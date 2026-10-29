@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Any
 
 from lazis.config.model import Settings
-from lazis.conversation import compaction, learning, repository
+from lazis.conversation import compaction, disclosure, learning, repository
 from lazis.conversation.context import (
     ASSISTANT_TEMPLATE_TOKENS,
     AssembledPrompt,
@@ -873,7 +873,10 @@ class ConversationEngine:
                 notice = await self._memory_request(handle, llm, model, loaded, built)
                 handle.check()
                 built = await self._with_memory(handle, loaded, built, notice)
-                guard = ReplyGuard(self._claim_policy(handle, model))
+                guard = ReplyGuard(
+                    self._claim_policy(handle, model),
+                    disclosure.asks_instructions(handle.user.content),
+                )
                 handle.claim_state = guard.policy.state.value
                 handle.check()
                 if model not in {m.name for m in await llm.loaded_models()}:
