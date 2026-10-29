@@ -1098,6 +1098,8 @@ class ConversationEngine:
             state=state,
             has_memory=handle.memory_recalled,
             memory_turn=intent is not None and intent not in ("recall", "secret"),
+            memory_talk=claims.memory_talk(handle.user.content),
+            explaining=claims.explaining(handle.user.content),
         )
 
     async def _show(self, handle: TurnHandle, text: str) -> None:
@@ -1306,16 +1308,25 @@ class ConversationEngine:
             handle.memory_outcome = "none"
             return ""
         handle.memory_outcome = outcome.kind
-        if outcome.kind in (
-            "saved",
-            "corrected",
-            "forgotten",
-            "confirm_needed",
-            "declined",
-            "merged",
-            "distinguished",
-            "cancelled",
-        ) or (outcome.kind == "ambiguous" and intent in ("remember", "choose")):
+        if (
+            outcome.kind
+            in (
+                "saved",
+                "corrected",
+                "forgotten",
+                "confirm_needed",
+                "declined",
+                "merged",
+                "distinguished",
+                "cancelled",
+            )
+            or (outcome.kind == "ambiguous" and intent in ("remember", "choose"))
+            or (
+                # "Telefon bilgimi unut" with nothing found teaches nothing either (Phase 9: the
+                # learning job read it as a note "bilinmiyor").
+                outcome.kind == "not_found" and intent == "forget"
+            )
+        ):
             # Handled here: the background job must not process the same request again (an
             # ambiguous one waits in the inbox already).
             await self._q(lambda c: commands.skip_job(c, user.id))

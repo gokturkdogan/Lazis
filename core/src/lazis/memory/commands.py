@@ -500,9 +500,11 @@ def apply_items(
         if not lines:
             return Outcome("ambiguous", labels, {"inbox": len(labels)})
     if lines:
+        # Corrected only when something that was there really changed (Phase 9: a "correct"
+        # answer that only wrote a new note was reported as a correction).
         kind: Literal["saved", "corrected"] = (
             "corrected"
-            if cmd.action == "correct" or rel_report.retracted or rel_report.superseded
+            if report.superseded or rel_report.retracted or rel_report.superseded
             else "saved"
         )
         return Outcome(kind, lines, {"saved": len(saved), **rel_report.counts()})

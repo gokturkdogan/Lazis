@@ -185,3 +185,64 @@ def test_a_claim_the_rewording_leaves_takes_the_rest_of_the_sentence(
     out, rewrites = rewrite_sentence("Peki, bunu hafızama kaydettim efendim.", failed)
     assert out == "Peki, bunu kaydedemedim."
     assert unauthorized(out, failed) == [] and len(rewrites) == 2
+
+
+def test_a_user_who_speaks_of_their_information_makes_act_verbs_memory_acts() -> None:
+    """Seen with Gemma: "Bilgimi güncelle: artık İzmir'de yaşıyorum" was not recognised as a
+    request; "Yaşadığınız yeri İzmir olarak güncelledim" was shown before learning ran."""
+    from lazis.memory.claims import memory_talk
+
+    assert memory_talk("Bilgimi güncelle: artık İzmir'de yaşıyorum.")
+    assert memory_talk("Benim hakkımda bildiklerini güncelle: 35 yaşındayım.")
+    assert not memory_talk("Şu paragrafı düzeltir misin?")
+    talk = Policy(ClaimState.AUTO_LEARNING_PENDING, memory_talk=True)
+    out, _ = check("Anlaşıldı efendim. Yaşadığınız yeri İzmir olarak güncelledim.", talk)
+    assert out == "Anlaşıldı efendim. Yaşadığınız yeri İzmir olarak anladım."
+    assert check("Paragrafı güncelledim.", AUTO) == ("Paragrafı güncelledim.", [])
+
+
+def test_a_save_is_not_an_update() -> None:
+    """A request that only wrote a new record: "güncelledim" is not true."""
+    saved = _p(ClaimState.SAVE_SUCCEEDED)
+    assert check("Bilginizi İzmir olarak güncelledim efendim.", saved)[0] == (
+        "Bilginizi İzmir olarak kaydettim efendim."
+    )
+
+
+def test_when_it_saves_is_not_a_record() -> None:
+    reply = "Hafızama bir bilgiyi kaydettiğimde bunu Hafıza ekranında görürsünüz."
+    assert check(reply, NONE) == (reply, [])
+
+
+# Seen with Gemma: explanations of how the memory works were reworded into nonsense
+# ("Hafızamdaki bir bilgiyi sildirmek için" → "Konuşmamızdaki …").
+EXPLANATIONS = [
+    ("Bir bilgiyi nasıl sildirebilirim?",
+     "Hafızamdaki bir bilgiyi sildirmek için ilgili bilgiyi bana belirterek silmemi isteyebilirsiniz. "
+     "Belirttiğiniz bilgiyi hafızamdan kaldırdığımda, bu bilgi bir sonraki etkileşimlerimizde dikkate "
+     "alınmayacaktır."),
+    ("Hafızandaki bir bilgi yanlışsa ne yapmalıyım?",
+     "Hafızamdaki bir bilgi yanlışsa, lütfen doğrusunu bana iletiniz. Verdiğiniz yeni bilgiyi esas "
+     "alarak hafızamı güncelleyeceğim."),
+    ("Bana Hafıza ekranını anlatır mısın?",
+     "Hafızamda yer alan bilgiler, size daha uygun yanıtlar verebilmemi sağlar."),
+    ("HAFIZA İŞLEMİ ne demek?",
+     "Hafıza işlemi, sistem tarafından kaydedilen bilgilerin yönetilmesi sürecidir."),
+]  # fmt: skip
+
+
+@pytest.mark.parametrize(("question", "reply"), EXPLANATIONS)
+def test_an_explanation_of_the_memory_is_untouched(question: str, reply: str) -> None:
+    from lazis.memory.claims import explaining
+
+    assert explaining(question)
+    policy = Policy(ClaimState.NO_MEMORY_ACTION, explaining=True)
+    assert check(reply, policy) == (reply, [])
+
+
+def test_while_explaining_a_finished_act_is_still_a_claim() -> None:
+    from lazis.memory.claims import explaining
+
+    assert not explaining("Az önce kaydettin mi?")
+    policy = Policy(ClaimState.NO_MEMORY_ACTION, explaining=True)
+    assert check("Bunu hafızama kaydettim.", policy)[0] == "Bunu anladım."

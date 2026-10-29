@@ -123,3 +123,59 @@ def test_logs_carry_counts_only(
                        for r in caplog.records)  # fmt: skip
     assert "reply.internal_refs_removed" in logged
     assert "notlar" not in logged and "belirttiğim" not in logged
+
+
+def test_a_correction_that_changed_nothing_is_not_told_as_one(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """Seen with Gemma: "Önceki bilgiyi sil, yenisini kullan: … İzmir'de yaşıyorum" answered as a
+    correction that only wrote a new note; Ankara stayed. Saved, not corrected — and the reply's
+    "güncelledim" is not true."""
+    from tests.integration.test_memory_commands import item
+
+    msg = "Önceki bilgiyi düzelt: İzmir'de yaşıyorum."
+    cmd = answer(
+        "correct",
+        items=[item("note", "İzmir", "Kullanıcı İzmir'de yaşıyor.", "İzmir'de yaşıyorum")],
+    )
+    events, last, stored = asyncio.run(
+        _turn(
+            storage,
+            tmp_path,
+            msg,
+            "Bilginizi İzmir olarak güncelledim efendim.",
+            command=lambda r: cmd,
+        )
+    )
+    assert last["memory_outcome"] == "saved" and last["claim_state"] == "save_succeeded"
+    assert stored == shown_prefixes(events)[-1] == "Bilginizi İzmir olarak kaydettim efendim."
+
+
+def test_an_unrecognised_memory_request_still_cannot_claim(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """Seen with Gemma: "Bilgimi güncelle: artık İzmir'de yaşıyorum" was not recognised as a
+    request, and "Yaşadığınız yeri İzmir olarak güncelledim" was shown (learning had not run)."""
+    reply = "Anlaşıldı efendim. Yaşadığınız yeri İzmir olarak güncelledim."
+    events, last, stored = asyncio.run(
+        _turn(storage, tmp_path, "Bilgimi güncelle: artık İzmir'de yaşıyorum.", reply)
+    )
+    assert last["claim_state"] == "auto_learning_pending"
+    assert (
+        stored
+        == shown_prefixes(events)[-1]
+        == "Anlaşıldı efendim. Yaşadığınız yeri İzmir olarak anladım."
+    )
+    _no_early_text(shown_prefixes(events), "guncelledim")
+
+
+def test_a_forget_request_that_found_nothing_is_not_learned_from(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """Seen with Gemma: "Telefon bilgimi unut." found nothing, and learning then stored a note."""
+    cmd = answer("forget", forget_scope="predicate", forget_predicate="phone")
+    asyncio.run(_turn(storage, tmp_path, "Telefon bilgimi unut.", "Bulamadım efendim.",
+                      command=lambda r: cmd))  # fmt: skip
+    jobs = storage.db.run_sync(memory_repo.job_counts)
+    assert not jobs.get("queued") and not jobs.get("running")
+    assert storage.db.run_sync(lambda c: memory_repo.list_memories(c)) == []

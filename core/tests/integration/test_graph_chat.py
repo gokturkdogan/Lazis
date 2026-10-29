@@ -159,7 +159,9 @@ def test_correcting_a_relationship_keeps_the_old_one_as_history(
     ])  # fmt: skip
     llm, _ = run(storage, tmp_path, lambda r: cmd, msg)
     assert ("Kullanıcı", "colleague", "Zeynep", "active") in relationships(storage)
-    assert "Düzeltildi" in last_user(llm.chat_requests[0])
+    # Zeynep was never stored as the user's childhood friend: nothing that was there changed,
+    # so the reply is told it was saved, not corrected (Phase 9 final corrections).
+    assert "Kaydedildi" in last_user(llm.chat_requests[0])
 
 
 def test_forgetting_a_relationship(tmp_path: Path, storage: StorageHandle, world: World) -> None:

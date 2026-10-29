@@ -83,6 +83,30 @@ _REQUESTS = (
 )
 
 
+_MEMORY_TALK = re.compile(
+    r"\b(?:bilgi(?:m|mi|ler|lerim|lerimi|yi|leri|sini|ni)\b|hafiza|kayd|kayit|not al|not et|unut"
+    r"|hatirla|aklinda|bildikler)"
+)
+
+
+_HOW = re.compile(
+    r"\b(?:nasil|neden|nicin|nedir|ne demek|ne yap(?:mali|ar|iyor)\w*|anlatir mi|aciklar mi"
+    r"|ne zaman|hangi durumda)"
+)
+_DID_YOU = re.compile(r"\w(?:[dt][iu]n|[dt][iu]nuz)\s+m[iu]\b")  # "kaydettin mi?"
+
+
+def explaining(message: str) -> bool:
+    """Whether the user asks in general how something works — not whether it was done."""
+    f = fold(message)
+    return _HOW.search(f) is not None and _DID_YOU.search(f) is None
+
+
+def memory_talk(message: str) -> bool:
+    """Whether the user's message speaks of the memory or of their information."""
+    return _MEMORY_TALK.search(fold(message)) is not None
+
+
 def state_for(
     intent: str | None, outcome: str | None, *, statement: bool, learning: bool
 ) -> ClaimState:
@@ -113,7 +137,8 @@ def state_for(
 
 Kind = Literal["save", "delete", "update", "existing"]
 _ALLOWED: dict[ClaimState, frozenset[str]] = {
-    ClaimState.SAVE_SUCCEEDED: frozenset({"save", "update"}),
+    # A save changed nothing that was there: "güncelledim" is not true (Phase 9).
+    ClaimState.SAVE_SUCCEEDED: frozenset({"save"}),
     ClaimState.UPDATE_SUCCEEDED: frozenset({"save", "update"}),
     ClaimState.DELETE_SUCCEEDED: frozenset({"delete"}),
 }
@@ -132,6 +157,7 @@ _REPLACEMENT: dict[tuple[ClaimState, str], str] = {
     (ClaimState.DELETE_PENDING, "save"): "henüz kaydetmedim",
     (ClaimState.DELETE_SUCCEEDED, "save"): "kaydetmedim",
     (ClaimState.SAVE_SUCCEEDED, "delete"): "silmedim",
+    (ClaimState.SAVE_SUCCEEDED, "update"): "kaydettim",
     (ClaimState.UPDATE_SUCCEEDED, "delete"): "silmedim",
 }
 ACK = "anladım"
@@ -163,6 +189,13 @@ class Policy:
     state: ClaimState
     has_memory: bool = False  # this turn's recall brought stored memory
     memory_turn: bool = False  # an explicit memory request this turn
+    # The user's message speaks of the memory or of their information ("Bilgimi güncelle: …")
+    # even when no request was recognised: the reply's act verbs are about the memory then.
+    memory_talk: bool = False
+    # The user asks how the memory works ("Bir bilgiyi nasıl sildirebilirim?"): "hafızamdaki
+    # bilgiler" is the store in general and "güncelleyeceğim" a hypothetical (Phase 9: these
+    # explanations were reworded into nonsense). A finished act ("kaydettim") is still a claim.
+    explaining: bool = False
 
     def allows(self, kind: str) -> bool:
         if kind == "existing":
@@ -370,6 +403,14 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             verdict, end = "done", main
         if verdict == "not":
             return
+        if verdict == "existing" and re.search(
+            r"[dt][iu]g(?:im|imiz|um|umuz)(?:d[ae]|ten|tan)$", f[start:end]
+        ):
+            return  # "kaydettiğimde": when, not a record that exists
+        if policy.explaining and (
+            verdict == "existing" or re.search(r"(?:c[ae]g(?:im|iz)|yor(?:um|uz))$", f[start:end])
+        ):
+            return  # how it works, not what happened
         if verdict == "existing":
             if _NOTHING_STORED.search(f[end:]):
                 return  # "kaydettiğimiz bir bilgi yok": saying nothing is stored is true
@@ -412,7 +453,8 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             and not _NOTHING_STORED.search(f[m.end() :])
         ):
             # "hafızamdaki bilgiye göre", "hafızamda … var": a reference to stored records.
-            found.append(_Claim(m.start(), m.end(), m.start(), "existing"))
+            if not policy.explaining:
+                found.append(_Claim(m.start(), m.end(), m.start(), "existing"))
     for m in _COMMIT_RE.finditer(f):
         end = _word_end(f, m.end())
         if quoted(m.start()) or mentioned(end):
@@ -440,6 +482,7 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
             found.append(_Claim(m.start(), end, m.start(), "save"))
     memory_words = (
         policy.memory_turn
+        or policy.memory_talk
         or _CONTEXT_RE.search(f)
         or re.search(r"\bkay(?:it|d)", f)
         or _INFO_OBJECT.search(f)
