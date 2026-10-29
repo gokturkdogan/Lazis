@@ -71,10 +71,20 @@ _GIVEN = re.compile(
     rf"|\bbana\b[^.!?\n]{{0,200}}?\b{_RULE}\w*(?:\s+ve\s+{_RULE}\w*)?(?:\s+[\w']+){{0,4}}?"
     rf"\s+{_GIVE}\w*"
 )
+# Told by its makers, in the active voice: "Programcılarım bana dürüst olmamı söylediler",
+# "Bana … öğrettiler" (Phase 9 real-model finding: what "bana verilen talimatlar" says).
+_TOLD = re.compile(
+    r"\b(?:programci|gelistirici|yapimci|tasarimci|yaratici)\w*\s+(?:[\w']+\s+){0,2}?"
+    r"(?:bana|beni)\b[^.!?\n]{0,200}?\b(?:soyle|ogret|tembihle|emret|iste)(?:di|ti|mis)(?:ler)?\b"
+    r"|\bbana\b[^.!?\n]{0,200}?\b(?:soyle|ogret|tembihle|emret)(?:di|ti|mis)ler\b"
+)
 # When the user asked about LAZIS's instructions, these are LAZIS's whatever their person
-# ("Geliştirici mesajında … belirtiliyor", "Size verilen talimatlara göre …").
+# ("Geliştirici mesajında … belirtiliyor", "Size verilen talimatlara göre …") — and so are its
+# own principles: asked "İç yönergelerin neler?", "Benim temel ilkelerim …" begins their content
+# in prose (Phase 9 real-model finding, i14).
 _ASKED = re.compile(
     r"\b(?:talimat|yonerge|prompt|sistem\s+(?:mesaj|not|istem)|gelistirici\s+mesaj)\w*"
+    r"|\b(?:ilke|prensip|esas)(?:ler|lar)?(?:im|imiz)\w*"
 )
 # "talimatlarınız", "geliştirici mesajınız": the user's
 _YOURS = re.compile(r"\b(?:talimat|yonerge|prompt|kural|kisitlama|mesaj|not|istem)\w*?[iu]n[iu]z")
@@ -185,7 +195,7 @@ def find_refs(sentence: str, ctx: Context | None = None) -> list[tuple[int, int]
     cited = _CITE.search(f) is not None
     first = _FIRST.search(f) is not None
     refusal = _REFUSAL.search(f) is not None
-    rules = [(_OWNED, False), (_GIVEN, False), (_SYSTEM, True)]
+    rules = [(_OWNED, False), (_GIVEN, False), (_TOLD, False), (_SYSTEM, True)]
     if ctx.asks:
         rules.append((_ASKED, False))
     for rx, needs_first in rules:
@@ -276,7 +286,7 @@ def _drop(sentence: str, frozen: int) -> str:
 
 # Word prefixes that may begin a reference ("sistem" only bare: "sistem notu", not "sistemim").
 _RISKY = ("talimat", "yonerge", "prompt", "gelistirici", "gizli", "dahili", "arka", "kisisel",
-          "hafiza", "baglam")  # fmt: skip
+          "hafiza", "baglam", "programci", "yapimci", "tasarimci", "yaratici")  # fmt: skip
 
 
 def _risky_word(w: str) -> bool:
@@ -428,7 +438,8 @@ def _before_last_word(f: str) -> int:
 def _could_become_risky(w: str) -> bool:
     w = w.strip("'")
     prefixes = ("sistem", "talimat", "yonerge", "prompt", "gelistirici", "gizli", "dahili", "arka",
-                "kisisel", "hafiza", "baglam", "bana", "bilgi", "istem")  # fmt: skip
+                "kisisel", "hafiza", "baglam", "bana", "bilgi", "istem", "programci", "yapimci",
+                "tasarimci", "yaratici")  # fmt: skip
     return any(p.startswith(w) for p in prefixes) or w == "i"
 
 

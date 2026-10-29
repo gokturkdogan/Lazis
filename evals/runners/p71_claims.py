@@ -44,7 +44,7 @@ OUT = Path(__file__).resolve().parents[1] / "reports" / "phase7_1"
 # Independent of lazis.memory.claims on purpose: what a reader would call a memory claim.
 SAVE = re.compile(
     r"\b(not (aldim|ettim|ediyorum|aliyorum|edildi|alindi)|kaydettim|kaydediyorum|kaydedildi"
-    r"|kaydettik|kayda gecirdim|kayit altina aldim|hafizama (ekledim|aldim|yazdim|kaydettim|isledim)"
+    r"|kaydettik|kayda gecirdim|kayit altina aldim|kayit aldim|hafizama (ekledim|aldim|yazdim|kaydettim|isledim)"
     r"|aklimda tutacagim|aklima (yazdim|kaydettim|not ettim)|unutmayacagim|asla unutmam"
     r"|hatirlayacagim|artik hatirlarim|ogrendim"
     r"|not(?:u|um|umu|unu|unuzu|lari|larimi|larini|larinizi) (?:aldim|ettim|tuttum)"

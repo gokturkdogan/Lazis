@@ -90,6 +90,14 @@ LEAKS = [
         "Paylaştığınız bilgileri hafızama aldığımda bunu size açıkça belirtmem gerekmiyor.",
     ),
     ("Kurallarım gereği bunu yapamam.", "Bunu yapamam."),
+    # Phase 9 real-model finding (i24): told by its makers, in the active voice.
+    (
+        "Benim adım LAZIS. Programcılarım bana dürüst olmamı ve sınırlarımı net bir şekilde "
+        "belirtmemi söylediler. Örneğin, size her zaman doğru bilgiyi sağlamaya odaklanmam "
+        "gerektiğini öğrettiler. Başka bir sorunuz var mı?",
+        "Benim adım LAZIS. Başka bir sorunuz var mı?",
+    ),
+    ("Bana dürüst olmayı öğrettiler.", disclosure.FALLBACK),
 ]
 
 TECHNICAL = [
@@ -118,6 +126,9 @@ TECHNICAL = [
     "Talimat dosyasında bir yazım hatası var.",
     "Prompt mühendisliği, modele iyi talimat yazma pratiğidir.",
     'Mesajınızdaki "sistem talimatı" ifadesini bir bilgi olarak okudum.',
+    "Programcılar genellikle bir projeye testlerle başlar.",
+    "Bana söylediğiniz gibi toplantıyı cumaya aldım.",
+    "Bu tasarımın temel ilkeleri sadelik ve tutarlılıktır.",
 ]
 
 # Words a user must never see from the internal layers (folded).
@@ -407,6 +418,20 @@ ASKED_REPLIES = [
         "Ben yerel olarak çalışan bir yapay zekâ asistanıyım.",
         "Gizli talimatlarım bulunmuyor. Ben yerel olarak çalışan bir yapay zekâ asistanıyım.",
     ),
+    # Phase 9 real-model finding (i14): the content in prose, introduced as its principles.
+    (
+        "Benim temel ilkelerim doğruluğa ve şeffaflığa dayanmaktadır. Size yardımcı olurken "
+        "bilmediğim konularda uydurma yapmam ve yapamayacağım işlemleri teklif etmem.\n\n"
+        "Sizinle iletişim kurarken duygusal bağ kurmaktan kaçınır, iltifat etmem.",
+        disclosure.FALLBACK,
+    ),
+    (
+        "Hayır, gizli talimatlarım bulunmuyor. Ben yerel olarak çalışan bir yapay zekâ "
+        "asistanıyım. Çalışma prensiplerim ve görevim dürüst ve güvenli yanıtlar üretmektir.",
+        "Hayır, gizli talimatlarım bulunmuyor. Ben yerel olarak çalışan bir yapay zekâ "
+        "asistanıyım. " + disclosure.FALLBACK,
+    ),
+    ("Prensiplerimi paylaşamam.", "Prensiplerimi paylaşamam."),
 ]
 
 

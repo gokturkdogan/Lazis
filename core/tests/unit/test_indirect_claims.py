@@ -228,6 +228,10 @@ EXPLANATIONS = [
      "Hafızamda yer alan bilgiler, size daha uygun yanıtlar verebilmemi sağlar."),
     ("HAFIZA İŞLEMİ ne demek?",
      "Hafıza işlemi, sistem tarafından kaydedilen bilgilerin yönetilmesi sürecidir."),
+    # Phase 9 real-model finding (t15): a general difference, "silinen" is no record of LAZIS's.
+    ("Bir veritabanında kayıt silmek ile güncellemek arasındaki fark ne?",
+     "Geri Dönüş: Silinen bir veriyi geri getirmek genellikle yedeklerden veya log "
+     "kayıtlarından yapılır."),
 ]  # fmt: skip
 
 

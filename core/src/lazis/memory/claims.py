@@ -91,7 +91,10 @@ _MEMORY_TALK = re.compile(
 
 _HOW = re.compile(
     r"\b(?:nasil|neden|nicin|nedir|ne demek|ne yap(?:mali|ar|iyor)\w*|anlatir mi|aciklar mi"
-    r"|ne zaman|hangi durumda)"
+    r"|ne zaman|hangi durumda"
+    # "Kayıt silmek ile güncellemek arasındaki fark ne?" (Phase 9: "Silinen bir veri" in the
+    # answer was taken for a record of LAZIS's).
+    r"|fark(?:i|lari)? (?:ne|nedir)\b|arasindaki fark)"
 )
 _DID_YOU = re.compile(r"\w(?:[dt][iu]n|[dt][iu]nuz)\s+m[iu]\b")  # "kaydettin mi?"
 
@@ -236,7 +239,8 @@ _CONTEXT = (
 )
 _CONTEXT_RE = re.compile(r"\b" + _CONTEXT + r"\b")
 _SAVE_RE = re.compile(
-    r"\b(?:kayded|kaydet|kayit alti[a-z]* al|kayda gecir|kayda al|(?:bir )?kayit (?:olustur|ac)"
+    # "Kayıt aldım" (Phase 9 real-model finding: shown while a save waited for "hangi Ahmet?").
+    r"\b(?:kayded|kaydet|kayit alti[a-z]* al|kayda gecir|kayda al|(?:bir )?kayit (?:olustur|ac|al)"
     r"|kayd(?:i|im|imi|ini|inizi|larini|larinizi) (?:al|tut|olustur)"
     r"|kayitlar(?:i|im|imi|ini|inizi) (?:al|tut|olustur)"
     # Every possessive and accusative form ("notumu aldım", Phase 7.2 real-model finding).

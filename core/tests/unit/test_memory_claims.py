@@ -106,6 +106,7 @@ REWORDED = [
     ),
     ("Bunu kayıtlarınıza ekledim.", "Bunu anladım."),
     ("Bunu profilinize kaydettim.", "Bunu anladım."),
+    ("Kayıt aldım efendim.", "Anladım efendim."),
     # Phase 9 real-model finding (s08): what the user told, as the value or the object.
     (
         "Anlaşıldı efendim, tercihinizi sütlü kahve olarak güncelledim.",
@@ -226,6 +227,9 @@ UNTOUCHED = [
     "Paragraf güncellendi.",
     "Ahmet raporu güncelledi.",
     "Bu konuda bilgi vermek isterim.",
+    "Kayıt altında tutulan veriler şifrelenir.",
+    "Formdaki kayıt alanını doldurun.",
+    "Kayıt alamadım, bağlantı koptu.",
 ]
 
 
@@ -317,6 +321,12 @@ OUTCOMES = [
         "Bu bilgiyi şu anda hafızama kaydedemedim efendim.",
     ),
     (SAVE_PENDING, "Kaydettim efendim.", "Henüz kaydetmedim efendim."),
+    # Phase 9 real-model finding: while "hangi Ahmet?" waited for an answer.
+    (
+        SAVE_PENDING,
+        "Kayıt aldım efendim. Ancak hangi Ahmet'e ait olduğunu belirtir misiniz?",
+        "Henüz kaydetmedim efendim. Ancak hangi Ahmet'e ait olduğunu belirtir misiniz?",
+    ),
     (
         SAVE_PENDING,
         "Kaydetme işlemi henüz tamamlanmadı efendim.",
@@ -414,7 +424,7 @@ FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim",
              "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
              "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim", "bilgilerinize ekledim",
              "defterime", "hafizama bu", "listeme yarinki", "notumu aldim", "notlarimi aldim", "arasina ekledim",
-             "kosesine yazdim", "etmis oldum", "kaydetmis oldum")  # fmt: skip
+             "kosesine yazdim", "etmis oldum", "kaydetmis oldum", "kayit aldim")  # fmt: skip
 
 
 def stream(text: str, chunks: list[int], policy: Policy) -> tuple[str, list[str]]:
