@@ -1,6 +1,7 @@
 # ADR-0017: Truthful memory claims — a deterministic streaming guard keyed on the real outcome (Phase 7.1)
 
 - **Status:** Implemented in Phase 7.1 (2026-10-21); awaiting the owner's acceptance test and approval with [PHASE_7_1_REPORT.md](../PHASE_7_1_REPORT.md).
+- **Extended by:** [ADR-0020 §8](0020-advanced-learning.md) (Phase 9: converbs, adopting a value, act verbs held in every turn, a second check after the rewording).
 - **Related:** [ADR-0015](0015-learning-recall-and-model-trust.md) (requests in chat, the notices), [ADR-0016](0016-entity-relationship-graph.md), [MEMORY_ARCHITECTURE.md](../MEMORY_ARCHITECTURE.md) Part P7.1, [PHASE_7_REPORT.md §M-2](../PHASE_7_REPORT.md).
 
 ## Context

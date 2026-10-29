@@ -329,7 +329,7 @@ Decision record: [ADR-0018](adr/0018-namesakes-and-explicit-requests.md). Report
 * **"Which Ahmet?" in chat.** An ambiguous request's notice lists the options. A short answer within 30 minutes in the same conversation ("Komşum olan.", "Mühendis olan Mehmet.") resolves the waiting inbox item through `service.resolve_inbox` before the reply; "vazgeç" dismisses it; "Hayır, iş arkadaşım olan." right after an answer moves the fact (in-memory, last answer only). Older questions stay in the memory screen; nothing is guessed after a restart.
 * **Explicit remember.** The request stage uses the learning instruction plus an explicit-request note and an `action` field (`commands.remember_instruction`). "Bunu unutma." alone keeps the previous user message. Wider cue lexicon; quoted text is not a request. Validation: a non-name subject is the user's note, never one of the user's profile facts; a single-valued user profile fact needs a first-person word; a valid quote under a wrong predicate is kept as a note; something already recorded is reported as kept.
 * **User's grammar.** "Ahmet ve Mehmet benim iş arkadaşlarım" gives both names the relationship (`extraction.stated_predicate`); a self-valued workplace in a first-person message is the user's. With an open "which Ahmet?" question, relationship answers about Ahmet are withheld until the user says which one (`graph._with_namesake_caution`).
-* **Internal labels.** The persona and conversation rules name no internal label; notes are headed "SİSTEM NOTU (kullanıcıya görünmez)" and said to be invisible; the persona gives the honest answer about what LAZIS remembers. No output filter.
+* **Internal labels.** The persona and conversation rules name no internal label; notes are headed "SİSTEM NOTU (kullanıcıya görünmez)" and said to be invisible; the persona gives the honest answer about what LAZIS remembers. No output filter (Phase 9 added one: Part P9, `conversation/disclosure.py`).
 * **Unchanged.** Extraction policy and prompt for background learning, the queue and its timing, the graph's storage and queries, recall, the schema (no migration), the Phase 7.1 claim guard.
 
 
@@ -420,7 +420,16 @@ Decision record: [ADR-0020](adr/0020-advanced-learning.md). Report: [PHASE_9_REP
 
 **Chat:** "Hayır, X değil Y (demek istedim)" is a deterministic memory request (outcome `corrected` / `ambiguous`; the reply is told what really happened). "Hayır, vazgeç" calls off a waiting "which one?".
 
-**Unchanged:** the policy (secrets, instructions, sensitive → approval), the claim guard (Phase 7.1), namesake planning and "which one?" (Phase 7.2), the graph's storage and queries, recall (besides tiers in the record model), the import (Phase 8; it now also salvages broken answers).
+**Unchanged:** the policy (secrets, instructions, sensitive → approval), namesake planning and "which one?" (Phase 7.2), the graph's storage and queries, recall (besides tiers in the record model), the import (Phase 8; it now also salvages broken answers).
+
+**Reply output guards (Phase 9 final corrections, ADR-0020 §8):**
+
+| Module | Does |
+|---|---|
+| `conversation/reply_guard.py` | one stream: model text → disclosure guard → claim guard → UI, stored message, voice; shown = stored |
+| `conversation/disclosure.py` | removes internal labels and LAZIS's own instructions cited as a source or given to it ("bana sağlanan kurallar", "sistemin sunduğu hafıza notları", "programcılarım bana … söylediler"); a citation frame alone, otherwise the sentence; a reply of nothing else → one neutral sentence. `asks_instructions(message)`: when the user asks about the instructions, sentences are held whole, its own principles ("ilkelerim") count as its instructions, enumerations and everything after an introduced instruction are dropped, the reply ends with the neutral sentence; refusals and denials stay |
+| `memory/claims.py` | as Phase 7.1, plus: "kayıt aldım", the user's records and its system as the place ("bilgilerinize ekledim", "sistemime ekledim"), after a statement what the user told as the value or object ("tercihinizi … olarak güncelledim"), converbs claim what the main verb claims (when one of the two acts happened, only the other is negated: "düzeltmeden … not ettim", "silip … kaydetmedim"), adopting a value ("esas alıyorum", "güncel tutacağım") is an update or a save, act verbs held in every turn, a second check after the rewording (fail closed); `Policy.memory_talk` (the user speaks of the memory), `Policy.explaining` (a general how/why question); a plain save does not allow "güncelledim" |
+| `memory/commands.py` | an explicit request is `corrected` only when something stored was superseded or retracted |
 
 ---
 
