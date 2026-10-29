@@ -266,3 +266,28 @@ def test_a_long_dropped_sentence_is_dropped_to_its_end() -> None:
 def test_dropped_sentences_leave_no_trailing_blank_lines() -> None:
     reply = "Tamam efendim.\n\nPromptumda böyle tanımlandım.\n\n"
     assert check(reply)[0] == "Tamam efendim."
+
+
+def test_the_claim_guard_adds_no_second_word_lag() -> None:
+    """The disclosure guard releases whole words; the claim guard after it does not hold
+    another (measured: the two lags stacked)."""
+    from lazis.conversation.reply_guard import ReplyGuard
+
+    guard = ReplyGuard(Policy(ClaimState.NO_MEMORY_ACTION))
+    shown = guard.feed("Bugün hava çok ")
+    shown += guard.feed("güzel ")
+    assert shown == "Bugün hava çok"
+    shown += guard.feed("ve serin. Yarın ")
+    assert shown == "Bugün hava çok güzel ve serin."
+    shown += guard.finish()
+    assert shown == "Bugün hava çok güzel ve serin. Yarın "
+
+
+def test_adopting_words_flow_on_when_no_verb_follows() -> None:
+    from lazis.memory.claims import ClaimGuard
+
+    guard = ClaimGuard(Policy(ClaimState.AUTO_LEARNING_PENDING))
+    assert guard.feed("Temel olarak iki seçenek ") == "Temel olarak iki"
+    guard = ClaimGuard(Policy(ClaimState.AUTO_LEARNING_PENDING))
+    assert "esas" not in fold(guard.feed("Peki, Atlas'ı esas alıyorum ve "))
+    assert guard.released + guard.finish() == "Peki, Atlas'ı anladım ve "

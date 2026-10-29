@@ -181,8 +181,9 @@ def _drop(sentence: str, frozen: int) -> str:
     return sentence[:frozen] + (breaks.group(0) if breaks else "")
 
 
-_RISKY = ("sistem", "talimat", "yonerge", "prompt", "gelistirici", "gizli", "dahili", "arka",
-          "kisisel", "hafiza", "baglam")  # fmt: skip
+# Word prefixes that may begin a reference ("sistem" only bare: "sistem notu", not "sistemim").
+_RISKY = ("talimat", "yonerge", "prompt", "gelistirici", "gizli", "dahili", "arka", "kisisel",
+          "hafiza", "baglam")  # fmt: skip
 
 
 def _risky_word(w: str) -> bool:
@@ -190,7 +191,7 @@ def _risky_word(w: str) -> bool:
     return (
         "_" in w
         or w.startswith(_RISKY)
-        or w in ("bana", "benim", "ic", "bilgi")
+        or w in ("sistem", "bana", "ic", "bilgi")
         or re.fullmatch(r"istem(?:im\w*|i|in|e|de|den)?", w) is not None
     )
 
@@ -324,7 +325,7 @@ def _before_last_word(f: str) -> int:
 def _could_become_risky(w: str) -> bool:
     w = w.strip("'")
     prefixes = ("sistem", "talimat", "yonerge", "prompt", "gelistirici", "gizli", "dahili", "arka",
-                "kisisel", "hafiza", "baglam", "bana", "benim", "bilgi", "istem")  # fmt: skip
+                "kisisel", "hafiza", "baglam", "bana", "bilgi", "istem")  # fmt: skip
     return any(p.startswith(w) for p in prefixes) or w == "i"
 
 

@@ -662,8 +662,11 @@ _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla",
           "bilgilerim", "listem", "ajandam", "defterim", "takvimim")  # fmt: skip
 # Act verbs are held in every turn: whether "düzelterek" is a claim depends on the words after
 # it ("… bilgisini … esas alıyorum"), and shown text is never taken back.
-_RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir", "esas",
-              "temel", "baz", "referans", "dikkate", "kalici")  # fmt: skip
+_RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")
+# Adopting words are risky only before their verb ("esas al…", "güncel tut…"): "temel olarak",
+# "güncel bilgiler" flow on. The next word may not have arrived yet: then it is held.
+_RISKY_ADOPT = {"esas": "al", "temel": "al", "baz": "al", "referans": "al", "dikkate": "al",
+                "guncel": "tut", "kalici": "olarak"}  # fmt: skip
 # Information as an object ("Bilgiyi güncelledim"): whole words, so "bilgisayar" flows on.
 _RISKY_INFO = re.compile(r"bilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)?")
 _SENTENCE_END = re.compile(r"[.!?\n]+(?=\s|$)|[:;](?=\s)")
@@ -680,24 +683,29 @@ class ClaimGuard:
     pending: str = ""  # received, not shown yet
     rewrites: list[Rewrite] = field(default_factory=list[Rewrite])
 
-    def feed(self, chunk: str) -> str:
+    def feed(self, chunk: str, *, whole_words: bool = False) -> str:
+        """``whole_words``: the chunk ends where a word ends (text another guard released), so
+        its last word is complete and need not be held — only a risky one is."""
         self.pending += chunk
-        return self._release(final=False)
+        return self._release(final=False, whole=whole_words)
 
     def finish(self) -> str:
         return self._release(final=True)
 
     def _risky_at(self, f: str) -> int | None:
-        for m in re.finditer(r"[a-z0-9']+", f):
-            if _risky_word(m.group(0)):
+        words = list(re.finditer(r"[a-z0-9']+", f))
+        for i, m in enumerate(words):
+            if _risky_word(m.group(0), words[i + 1].group(0) if i + 1 < len(words) else None):
                 return m.start()
         return None
 
     def _last_risky(self, f: str, end: int) -> int:
         """The start of the last risky word in ``f[:end]`` after the first word (0 if none)."""
         last = 0
-        for m in re.finditer(r"[a-z0-9']+", f[:end]):
-            if m.start() > 0 and _risky_word(m.group(0)):
+        words = list(re.finditer(r"[a-z0-9']+", f[:end]))
+        for i, m in enumerate(words):
+            nxt = words[i + 1].group(0) if i + 1 < len(words) else None
+            if m.start() > 0 and _risky_word(m.group(0), nxt):
                 last = m.start()
         return last
 
@@ -706,13 +714,13 @@ class ClaimGuard:
         self.released += piece
         return piece
 
-    def _release(self, *, final: bool) -> str:
+    def _release(self, *, final: bool, whole: bool = False) -> str:
         out = ""
         while self.pending:
             f = fold(self.pending)
             risky = self._risky_at(f)
             if risky is None:
-                n = len(self.pending) if final else _before_last_word(f)
+                n = len(self.pending) if final or whole else _before_last_word(f)
                 if n == 0:
                     break
                 out += self._emit(n)
@@ -721,7 +729,7 @@ class ClaimGuard:
             if hold_from > 0:  # release up to the word before the risky one
                 out += self._emit(hold_from)
                 continue
-            end = _sentence_end(self.pending, final)
+            end = _sentence_end(self.pending, final, at_chunk_end=whole)
             if end is None:
                 if len(self.pending) < MAX_HOLD:
                     break
@@ -740,8 +748,10 @@ class ClaimGuard:
         return out
 
 
-def _risky_word(w: str) -> bool:
+def _risky_word(w: str, nxt: str | None = None) -> bool:
     w = w.strip("'")
+    if w in _RISKY_ADOPT:
+        return nxt is None or nxt.startswith(_RISKY_ADOPT[w])
     return w.startswith(_RISKY) or w.startswith(_RISKY_ACT) or bool(_RISKY_INFO.fullmatch(w))
 
 
@@ -753,15 +763,19 @@ def _before_last_word(f: str) -> int:
     if not words:
         return 0
     keep = words[-1]
-    if len(words) > 1 and any(r.startswith(keep.group(0)) for r in _RISKY + _RISKY_ACT):
+    if len(words) > 1 and any(
+        r.startswith(keep.group(0)) for r in (*_RISKY, *_RISKY_ACT, *_RISKY_ADOPT)
+    ):
         keep = words[-2]
     m = re.search(r"\s*$", f[: keep.start()])
     return m.start() if m is not None else keep.start()
 
 
-def _sentence_end(text: str, final: bool) -> int | None:
+def _sentence_end(text: str, final: bool, *, at_chunk_end: bool = False) -> int | None:
+    """``at_chunk_end``: a period at the very end is final (the text another guard released
+    ends a sentence only where whitespace followed it)."""
     for m in _SENTENCE_END.finditer(text):
-        if m.end() < len(text) or final:
+        if m.end() < len(text) or final or at_chunk_end:
             return m.end()
         # A period at the very end of what arrived may still continue ("3." + "5").
     return len(text) if final else None

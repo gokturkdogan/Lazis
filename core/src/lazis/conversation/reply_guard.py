@@ -35,7 +35,8 @@ class ReplyGuard:
         return self.disclosure.removed
 
     def feed(self, chunk: str) -> str:
-        return self.claims.feed(self.disclosure.feed(chunk))
+        # The disclosure guard releases whole words: the claim guard need not hold another.
+        return self.claims.feed(self.disclosure.feed(chunk), whole_words=True)
 
     def finish(self) -> str:
         return self.claims.feed(self.disclosure.finish()) + self.claims.finish()
