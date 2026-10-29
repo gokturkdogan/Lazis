@@ -99,6 +99,13 @@ REWORDED = [
     ("Ahmet için bir kayıt oluşturdum.", "Ahmet için bunu anladım."),
     ("Bunu kayda aldım.", "Bunu anladım."),
     ("Kahve tercihinizi bilgilerime ekledim efendim.", "Kahve tercihinizi anladım efendim."),
+    # Phase 9 real-model finding: the user's records as the place.
+    (
+        "Not aldım efendim. İstanbul'da yaşadığınızı bilgilerinize ekledim.",
+        "Anladım efendim. İstanbul'da yaşadığınızı anladım.",
+    ),
+    ("Bunu kayıtlarınıza ekledim.", "Bunu anladım."),
+    ("Bunu profilinize kaydettim.", "Bunu anladım."),
     ("Bunu listeme ekledim.", "Bunu anladım."),
     ("Toplantıyı ajandama yazdım.", "Toplantıyı anladım."),
     ("Anladım ve notunu aldım.", "Anladım."),
@@ -146,6 +153,8 @@ def test_claims_after_a_statement_are_reworded(reply: str, expected: str) -> Non
 
 # ----- 2. not claims: untouched --------------------------------------------------------------
 UNTOUCHED = [
+    "İsterseniz bunu bilgilerinize ekleyebilirim.",
+    "Bilgileriniz güvende, cihazınızda şifreli tutuluyor.",
     "Anladım efendim.",
     "Anladım efendim, Ahmet'in kardeşi Mehmet.",
     "Bahsettiğiniz kişiyi anlıyorum.",
@@ -395,7 +404,7 @@ def test_without_learning_a_statement_is_no_memory_action() -> None:
 FORBIDDEN = ("not aldim", "not ettim", "kaydettim", "hafizama", "unutmayacagim", "hatirlayacagim",
              "kaydedildi", "aklimda tut", "ogrendim", "kaydediyorum", "eklendi", "notunuzu aldim",
              "notlarinizi aldim", "notunu aldim", "kaydini aldim", "kayit olusturdum", "kayda aldim",
-             "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim",
+             "bilgilerime ekledim", "listeme ekledim", "ajandama yazdim", "bilgilerinize ekledim",
              "defterime", "hafizama bu", "listeme yarinki", "notumu aldim", "notlarimi aldim", "arasina ekledim",
              "kosesine yazdim", "etmis oldum", "kaydetmis oldum")  # fmt: skip
 

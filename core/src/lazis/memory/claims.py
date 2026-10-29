@@ -230,7 +230,9 @@ def fold(text: str) -> str:
 _CONTEXT = (
     r"(?:hafiza(?:m|mi|ma|mda|mdan|mdaki|miza|mizda|mizdaki)|akli(?:m|ma|mda)"
     r"|notlarim(?:a|da|in)?|kayitlarim(?:a|da|in)?|bilgilerime|listeme|ajandama|defterime|takvimime"
-    r"|hafizamin|aklimin|bilgilerim(?:in)?|listemin)"
+    r"|hafizamin|aklimin|bilgilerim(?:in)?|listemin"
+    # The user's records as the place ("bilgilerinize ekledim", Phase 9 real-model finding).
+    r"|bilgilerinize|kayitlariniza|notlariniza|profilinize)"
 )
 _CONTEXT_RE = re.compile(r"\b" + _CONTEXT + r"\b")
 _SAVE_RE = re.compile(
@@ -661,7 +663,8 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # arrived is always held too: it may be incomplete ("Kay" + "dettim") or the connector of a
 # claim that follows ("ve" + "not aldım").
 _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
-          "bilgilerim", "listem", "ajandam", "defterim", "takvimim")  # fmt: skip
+          "bilgilerim", "listem", "ajandam", "defterim", "takvimim", "bilgileriniz",
+          "profiliniz")  # fmt: skip
 # Act verbs are held in every turn: whether "düzelterek" is a claim depends on the words after
 # it ("… bilgisini … esas alıyorum"), and shown text is never taken back.
 _RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")
