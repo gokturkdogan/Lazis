@@ -1325,6 +1325,8 @@ export interface components {
             failed_stage?: string | null;
             /** First Shown Ms */
             first_shown_ms?: number | null;
+            /** Internal Refs Removed */
+            internal_refs_removed?: number | null;
             /** Memory Items */
             memory_items?: number | null;
             /** Memory Ms */

@@ -378,6 +378,7 @@ class DiagLastTurnModel(_Schema):
     first_shown_ms: float | None = None  # accepted → first text the claim guard released
     claim_state: str | None = None  # Phase 7.1: the memory state the reply was checked against
     claims_rewritten: int | None = None
+    internal_refs_removed: int | None = None  # Phase 9: internal-layer references removed
 
 
 class DiagPrewarmModel(_Schema):

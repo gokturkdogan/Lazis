@@ -54,6 +54,7 @@ from lazis.conversation.prompts import (
     SUMMARY_SCHEMA,
     time_note,
 )
+from lazis.conversation.reply_guard import ReplyGuard
 from lazis.conversation.scheduler import BackgroundJob, CacheKey, InferenceScheduler
 from lazis.errors import (
     ContextBuildError,
@@ -149,6 +150,7 @@ class TurnHandle:
     # claims were reworded, and when the first checked text reached the user.
     claim_state: str | None = None
     claims_rewritten: int = 0
+    internal_refs_removed: int = 0  # Phase 9: references to internal layers removed
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -838,10 +840,10 @@ class ConversationEngine:
         loaded: Loaded | None = None
         sent_at: float | None = None
         first_at: float | None = None
-        guard: claims.ClaimGuard | None = None
+        guard: ReplyGuard | None = None
 
         def shown() -> str:
-            """What the user saw: never text the claim guard was still holding."""
+            """What the user saw: never text the output guards were still holding."""
             return guard.released if guard is not None else ""
 
         try:
@@ -871,7 +873,7 @@ class ConversationEngine:
                 notice = await self._memory_request(handle, llm, model, loaded, built)
                 handle.check()
                 built = await self._with_memory(handle, loaded, built, notice)
-                guard = claims.ClaimGuard(self._claim_policy(handle, model))
+                guard = ReplyGuard(self._claim_policy(handle, model))
                 handle.claim_state = guard.policy.state.value
                 handle.check()
                 if model not in {m.name for m in await llm.loaded_models()}:
@@ -922,8 +924,9 @@ class ConversationEngine:
                             handle.stage = "generating"
                             first_at = time.monotonic()
                         parts.append(event.text)
-                        # Only text the claim guard released reaches the user, the stored
-                        # message and (later) the voice — and they are always the same text.
+                        # Only text the output guards released (internal layers, memory
+                        # claims) reaches the user, the stored message and (later) the voice —
+                        # and they are always the same text.
                         await self._show(handle, guard.feed(event.text))
                         size = len(guard.released)
                         now_m = time.monotonic()
@@ -1079,6 +1082,7 @@ class ConversationEngine:
             "first_shown_ms": ms(accepted, handle.first_shown_at),
             "claim_state": handle.claim_state,
             "claims_rewritten": handle.claims_rewritten,
+            "internal_refs_removed": handle.internal_refs_removed,
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1103,8 +1107,17 @@ class ConversationEngine:
             handle.first_shown_at = time.monotonic()
         await self._emit(handle, {"type": "delta", "text": text})
 
-    def _note_claims(self, handle: TurnHandle, guard: claims.ClaimGuard) -> None:
+    def _note_claims(self, handle: TurnHandle, guard: ReplyGuard) -> None:
         handle.claims_rewritten = len(guard.rewrites)
+        handle.internal_refs_removed = guard.internal_removed
+        if guard.internal_removed:
+            log_event(
+                _log,
+                logging.INFO,
+                "reply.internal_refs_removed",
+                conversation_id=handle.conversation.id,
+                count=guard.internal_removed,
+            )
         if guard.rewrites:
             # Kinds and the state only: never the words.
             log_event(

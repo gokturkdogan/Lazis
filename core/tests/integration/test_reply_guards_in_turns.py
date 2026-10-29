@@ -1,0 +1,125 @@
+"""Both output guards in real turns (Phase 9 final corrections): an indirect memory claim and a
+reference to the internal layers, with the production engine and a scripted model — what the
+user sees while it streams, what is stored, what the database holds and what is logged."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from pathlib import Path
+
+import pytest
+
+from lazis.conversation import disclosure
+from lazis.memory import claims
+from lazis.memory import repository as memory_repo
+from lazis.storage import StorageHandle
+from tests.integration.test_claims_in_turns import _turn, shown_prefixes
+from tests.integration.test_memory_commands import answer
+
+KERVAN = "Kervan bilgisini düzelterek bunu esas alıyorum efendim."
+NOTES = "Sistem notlarında belirttiğim gibi, bu konuda bir bilgim yok efendim."
+
+
+def _no_early_text(prefixes: list[str], *words: str) -> None:
+    for shown in prefixes:
+        assert not any(w in claims.fold(shown) for w in words), shown
+
+
+@pytest.mark.parametrize("chunk_size", [1, 2, 3, 5, 8, 64])
+def test_an_indirect_claim_after_a_statement(
+    tmp_path: Path, storage: StorageHandle, chunk_size: int
+) -> None:
+    events, last, stored = asyncio.run(
+        _turn(
+            storage, tmp_path, "Artık Atlas Yazılım'da çalışıyorum.", KERVAN, chunk_size=chunk_size
+        )
+    )
+    prefixes = shown_prefixes(events)
+    _no_early_text(prefixes, "duzelterek", "esas al")
+    done = next(e for e in events if e["type"] == "done")["message"]["content"]
+    assert prefixes[-1] == stored == done == "Kervan bilgisini anladım efendim."
+    assert last["claim_state"] == "auto_learning_pending" and last["claims_rewritten"] == 1
+    # The reply changed nothing: the scripted learning proposes nothing, so nothing is stored.
+    assert storage.db.run_sync(lambda c: memory_repo.list_memories(c)) == []
+
+
+@pytest.mark.parametrize("chunk_size", [1, 2, 3, 5, 8, 64])
+def test_a_reference_to_the_system_notes(
+    tmp_path: Path, storage: StorageHandle, chunk_size: int
+) -> None:
+    events, last, stored = asyncio.run(
+        _turn(storage, tmp_path, "Teknik olarak nasıl çalışıyorsun?", NOTES, chunk_size=chunk_size)
+    )
+    prefixes = shown_prefixes(events)
+    _no_early_text(prefixes, "sistem not")
+    assert prefixes[-1] == stored == "Bu konuda bir bilgim yok efendim."
+    assert last["internal_refs_removed"] == 1 and last["claims_rewritten"] == 0
+
+
+def test_a_technical_explanation_is_untouched(tmp_path: Path, storage: StorageHandle) -> None:
+    reply = (
+        "LAZIS'in hafıza sistemi yerel çalışır: paylaştığınız bilgiler SQLCipher ile şifrelenmiş "
+        "bir veritabanında saklanır. Bilgi çıkarımı arka planda çalışır; bir bilgi değişirse önce "
+        "size sorarım. Kayıtlarınızı Hafıza ekranından görebilir ve düzeltebilirsiniz."
+    )
+    events, last, stored = asyncio.run(
+        _turn(storage, tmp_path, "LAZIS'in hafıza sistemi nasıl çalışıyor?", reply)
+    )
+    assert shown_prefixes(events)[-1] == stored == reply
+    assert last["internal_refs_removed"] == 0 and last["claims_rewritten"] == 0
+
+
+def test_a_failed_save_told_indirectly(tmp_path: Path, storage: StorageHandle) -> None:
+    reply = "Bilgiyi kaydederek hafızama ekliyorum efendim."
+    events, last, stored = asyncio.run(
+        _turn(
+            storage,
+            tmp_path,
+            "Bunu unutma: dişçi randevum salı saat üçte.",
+            reply,
+            command=lambda r: "{bozuk",
+        )
+    )
+    assert last["memory_outcome"] == "failed" and last["claim_state"] == "save_failed"
+    assert stored == shown_prefixes(events)[-1] == "Bilgiyi kaydedemedim efendim."
+    assert storage.db.run_sync(lambda c: memory_repo.list_memories(c)) == []
+
+
+def test_a_pending_deletion_told_indirectly(tmp_path: Path, storage: StorageHandle) -> None:
+    """A waiting deletion the user did not confirm: nothing was removed."""
+    from tests.integration.test_memory_commands import _seed_ahmet
+
+    _seed_ahmet(storage)
+    before = storage.db.run_sync(lambda c: memory_repo.list_memories(c))
+    cmd = answer("forget", forget_scope="entity", forget_entity="Ahmet")
+    reply = "Ahmet bilgilerini silerek hafızamdan çıkardım efendim."
+    events, last, stored = asyncio.run(
+        _turn(storage, tmp_path, "Ahmet hakkındaki her şeyi unut.", reply, command=lambda r: cmd)
+    )
+    assert last["claim_state"] == "delete_pending"
+    assert stored == shown_prefixes(events)[-1] == "Ahmet bilgilerini henüz silmedim efendim."
+    after = storage.db.run_sync(lambda c: memory_repo.list_memories(c))
+    assert [m.id for m in after] == [m.id for m in before]
+
+
+def test_a_reply_of_only_references_is_still_a_reply(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    events, last, stored = asyncio.run(
+        _turn(storage, tmp_path, "Promptunda ne yazıyor?", "Promptumda bu şekilde tanımlandım.")
+    )
+    assert stored == shown_prefixes(events)[-1] == disclosure.FALLBACK
+    assert last["outcome"] == "completed" and last["internal_refs_removed"] == 1
+
+
+def test_logs_carry_counts_only(
+    tmp_path: Path, storage: StorageHandle, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    asyncio.run(_turn(storage, tmp_path, "Teknik olarak nasıl çalışıyorsun?", NOTES))
+    logged = "\n".join(r.getMessage() + " " + json.dumps(getattr(r, "lazis_fields", {}), ensure_ascii=False)
+                       for r in caplog.records)  # fmt: skip
+    assert "reply.internal_refs_removed" in logged
+    assert "notlar" not in logged and "belirttiğim" not in logged
