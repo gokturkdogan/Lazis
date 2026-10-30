@@ -137,6 +137,9 @@ class Candidate:
     # "past": the user said it was true before ("eskiden öğretmendim") — written as history,
     # never as today's value (Phase 9, ``memory.temporal``).
     tense: Literal["past", "current", "future"] | None = None
+    # "Ayrıca eğitmenlik de yapıyorum": one more current value of a single-valued fact, next
+    # to today's — neither a change nor a conflict (Phase 9.1, ``memory.refine``).
+    also: bool = False
 
 
 @dataclass

@@ -144,6 +144,92 @@ def detect(message: str, *, pending_confirmation: bool = False) -> Intent | None
     return None
 
 
+# ----- what an explicit request owns (Phase 9.1) -------------------------------------------
+# A remember / correct / forget request is carried out here, before the reply, and what it asks
+# for is written only by it: failed, refused, cancelled, waiting or blocked, the same thing is not
+# written afterwards by background learning. Learning reads the rest of the message.
+REQUEST_INTENTS = frozenset({"remember", "correct", "forget"})
+_SENTENCE = re.compile(r"(?<=[.!?;…])\s+|\n+")
+_BARE_WORDS = frozenset(
+    {"yanlis", "hatirliyorsun", "biliyorsun", "kaydettin", "anlamissin", "oyle", "degil",
+     "hayir", "hafizandan", "bilgiyi", "bilgini", "bilgimi", "kaydi", "kaydini", "onu", "o"}
+)  # fmt: skip
+
+
+def _bare(sentence: str) -> bool:
+    """A request with nothing of its own ("Bunu unutma.", "Yanlış hatırlıyorsun.", "Bunu
+    sil."): what it is about is in the other sentences."""
+    folded = " ".join(text.words(extraction.users_own_words(sentence)))
+    for rx in (_REMEMBER, _FORGET, _CORRECT):
+        folded = rx.sub(" ", folded)
+    return not [w for w in folded.split() if w not in _CUE_WORDS and w not in _BARE_WORDS]
+
+
+def learnable_part(message: str) -> str:
+    """The part of a message background learning may read: all of it, unless the message is an
+    explicit memory request — then the sentences the request covers are left out (all of them
+    when a request sentence names nothing itself). Deterministic, from the user's words only,
+    so it holds whatever order the request and learning run in."""
+    if detect(message) not in REQUEST_INTENTS:
+        return message
+    sentences = [s for s in _SENTENCE.split(message.strip()) if s.strip()]
+    kept: list[str] = []
+    for s in sentences:
+        if detect(s) in REQUEST_INTENTS:
+            if _bare(s):
+                return ""
+            continue
+        kept.append(s.strip())
+    return " ".join(kept)
+
+
+# "Az önce kaydettin mi?": answered from the database, not from what the reply believes.
+_ASKS_SAVED = re.compile(
+    r"\b(?:kaydettin|kaydedildi|kaydedebildin|not (?:aldin|ettin|edildi|alindi)|"
+    r"hafizana (?:aldin|kaydettin|ekledin|yazdin|islendi)|aklinda tuttun|ekledin|"
+    r"guncelledin|duzelttin|yazdin) (?:mi|mu)\b"
+)
+
+
+def asks_if_saved(message: str) -> bool:
+    return bool(_ASKS_SAVED.search(" ".join(text.words(message))))
+
+
+def saved_from(conn: Connection, message_ids: Sequence[str]) -> list[str]:
+    """What the memory holds now that came from these messages (any status but deleted)."""
+    found = [repo.get_memory(conn, i) for i in _from_messages(conn, message_ids)]
+    return [m.content for m in found if m is not None and m.status != "retracted"]
+
+
+def learning_waits(conn: Connection, message_ids: Sequence[str]) -> bool:
+    """Background learning has not read one of these messages yet."""
+    jobs = [repo.job_for_message(conn, mid) for mid in message_ids]
+    return any(j is not None and j.status in ("queued", "deferred", "running") for j in jobs)
+
+
+def saved_notice(lines: Sequence[str], *, waiting: bool = False) -> str:
+    if not lines and waiting:
+        body = [
+            "Önceki mesajlardaki bilgiler henüz hafızaya yazılmadı (veritabanında yok; arka "
+            "planda işlenmeyi bekliyor).",
+            "'Evet' deme; henüz kaydedilmediğini kısaca söyle.",
+        ]
+        return "\n".join([NOTICE_START, *body, NOTICE_END])
+    if lines:
+        body = [
+            "Önceki mesajlardan hafızada kayıtlı olanlar (veritabanından okundu):",
+            *(f"- {_safe(x)}" for x in lines),
+            "Yalnızca bunların kayıtlı olduğunu söyle; başka bir şeyi kaydettiğini söyleme.",
+        ]
+    else:
+        body = [
+            "Önceki mesajlardaki bilgilerden hiçbiri hafızaya yazılmadı (veritabanında yok).",
+            "'Evet' deme; kaydedilmediğini açıkça ve kısaca söyle. İstersen kaydetmeyi yeniden "
+            "denemeyi önerebilirsin.",
+        ]
+    return "\n".join([NOTICE_START, *body, NOTICE_END])
+
+
 def _denies_relation(words: Sequence[str]) -> bool:
     """ "Ahmet benim kuzenim değil", "Ahmet ile Mehmet kardeş değil", "evli değiller"."""
     for i in range(len(words) - 1):
@@ -574,6 +660,15 @@ def _already_known(conn: Connection, message: str, message_id: str) -> list[str]
     return [m.content for m in found][:5]
 
 
+def already_saved(conn: Connection, message: str, message_id: str) -> Outcome | None:
+    """A bare "Bunu unutma." whose own step failed, about a message the memory already holds
+    (learned before the request): "kaydedemedim" would be false (Phase 9.1)."""
+    known = _already_known(conn, message, message_id)
+    if not known:
+        return None
+    return Outcome("saved", [f"{x} (zaten kayıtlıydı)" for x in known], {"known": 1})
+
+
 def question_text(item: Any) -> str:
     """A "which Ahmet?" inbox item as the notice line: the question and its options."""
     options = [str(o.get("label", "")) for o in item.payload.get("options", []) if o.get("label")]
@@ -600,14 +695,19 @@ def _relation_lines(conn: Connection, report: rels.RelReport) -> list[str]:
     return out
 
 
-def _subject(conn: Connection, name: str, relation: str) -> tuple[str, Entity | None, list[Entity]]:
-    """('user'|'one'|'none'|'many', entity, namesakes) for a forget target."""
+def _subject(conn: Connection, name: str, relation: str,
+             message: str = "") -> tuple[str, Entity | None, list[Entity]]:  # fmt: skip
+    """('user'|'one'|'none'|'many', entity, namesakes) for a forget target. The relation
+    counts only when the user wrote it (Phase 9.1: "Elif'in nerede yaşadığını unut" with the
+    model's "sibling" made the only Elif "ambiguous")."""
     key = text.name_key(name)
     if not key or key in {"kullanici", "ben", "beni", "benim"}:
         return "user", None, []
     found = repo.find_entities(conn, key)
     if not found:
         return "none", None, []
+    if relation and message and not extraction.relation_said(relation, message):
+        relation = ""
     res = resolver.resolve(EntityRef(name, found[0].kind, relation or None), found)
     if res.kind == "existing" and res.entity_id is not None:
         return "one", repo.get_entity(conn, res.entity_id), []
@@ -637,6 +737,7 @@ def forget(
     *,
     conversation_id: str,
     recent_user_message_ids: Sequence[str],
+    message: str = "",
 ) -> Outcome:
     statuses = ("active", "superseded", "retracted")
     if cmd.scope == "last":
@@ -651,12 +752,25 @@ def forget(
 
     if cmd.scope == "relation":
         return _forget_relation(conn, cmd)
-    who, ent, namesakes = _subject(conn, cmd.entity, cmd.relation)
+    name = cmd.entity
+    if message and name and not text.mentions_name(text.words(message), text.name_key(name)):
+        name = ""  # not a name the user wrote ("kahve", "phone" from the model)
+    if message and not name and (owner := _owner_named(message)):
+        # "Elif'in telefonunu sil" with no entity from the model: Elif's, never the user's
+        # (Phase 9.1) — not found when there is no Elif.
+        name = owner
+    who, ent, namesakes = _subject(conn, name, cmd.relation, message)
     if who == "none":
         return Outcome("not_found")
     if who == "many":
         return Outcome("ambiguous", [", ".join(_label(e) for e in namesakes)])
     subject_id = ent.id if ent is not None else None
+    if message and cmd.scope != "entity":
+        # The user's own words pick the record (Phase 9.1): the model often left the forget
+        # fields empty ("Kahve bilgimi sil": 8 of 8 real runs found nothing).
+        picked = forget_target(conn, message, subject_id, exclude=name)
+        if picked is not None:
+            return _forget_picked(conn, ent, picked)
 
     if cmd.scope == "entity" and ent is not None:
         count = len(repo.memories_for_subject(conn, ent.id, statuses=statuses))
@@ -702,6 +816,127 @@ def forget(
         return Outcome("not_found")
     res = service.forget_memories(conn, [m.id for m in found])
     return Outcome("forgotten", [m.content for m in found], {"forgotten": res.memories})
+
+
+# ----- what to forget, from the user's words (Phase 9.1) -----------------------------------
+_FORGET_VERBS = re.compile(r"^(?:sil|unut|kaldir|cikar|temizle|hafizandan|hafizadan|kayitlarindan)")
+_GENERIC = frozenset(
+    {"bilgi", "bilgim", "bilgimi", "bilgiyi", "bilgisini", "bilgileri", "bilgilerimi",
+     "bilgilerini", "bilgisi", "kayit", "kaydi", "kaydini", "kaydimi", "kayitlari", "kayitlarini",
+     "hafiza", "hafizan", "hafizana", "hafizandaki", "tercih", "tercihim", "tercihimi",
+     "tercihimle", "hakkinda", "hakkindaki", "hakkimdaki", "ilgili", "olan", "olani",
+     "sey", "seyi", "seyleri", "konu", "konusu", "konusunu", "model", "modelim", "modelimi",
+     "modelini", "lutfen", "artik", "simdi", "bunu", "sunu", "onu", "bu", "su", "o", "benim",
+     "beni", "bana", "ben", "olarak", "tum", "tumunu", "butun", "hepsi", "hepsini", "tamamini",
+     "ikisi", "ikisini", "efendim", "lazis", "rica", "ederim", "istiyorum", "misin", "musun",
+     "bildigin", "bildiklerini", "bildigini", "her", "hersey", "herseyi"}
+)  # fmt: skip
+_ALL = frozenset({"tum", "tumunu", "butun", "hepsi", "hepsini", "tamamini", "ikisini", "ikisi"})
+_OLD = frozenset({"eski", "eskiden", "onceki", "gecmis", "gecmisteki"})
+_NOW = frozenset({"guncel", "simdiki", "mevcut", "yeni"})
+
+
+_OWNER = re.compile(r"(?<![\w])([A-ZÇĞİÖŞÜ][\wçğıöşü]+)['’](?:n?[ıiuü]n|n?[ıiuü]nki)\b")
+
+
+def _owner_named(message: str) -> str:
+    """ "Elif'in", "Ahmet'in": the person whose thing it is (the first one named so)."""
+    m = _OWNER.search(extraction.users_own_words(message))
+    return m.group(1) if m else ""
+
+
+@dataclass(frozen=True)
+class Picked:
+    kind: Literal["records", "topic", "ambiguous", "none"]
+    memories: tuple[Memory, ...] = ()
+    predicate: str = ""
+
+
+def _same(w: str, t: str) -> bool:
+    """Suffix-tolerant: "kahve" ~ "kahveyi", "isyerimle" ~ "isyeri", "telefon" ~ "telefonu"."""
+    if len(w) < 3 or len(t) < 3:
+        return False
+    k = min(5, len(w), len(t))
+    return w[:k] == t[:k] and (k >= 4 or w == t)
+
+
+def forget_target(conn: Connection, message: str, subject_id: str | None, *,
+                  exclude: str = "") -> Picked | None:  # fmt: skip
+    """The records "Kahve bilgimi sil", "Telefon modelimi hafızandan kaldır", "Eski işyerimle
+    ilgili bilgiyi sil" mean, from the user's words: a topic (the field itself: "telefon"),
+    or the records whose value or sentence has the words ("kahve"). Several different records
+    → ambiguous (the user is asked; nothing is deleted). None: the message names nothing
+    (the model's answer decides, as before)."""
+    names = set(text.words(exclude))
+    words = [w for w in text.words(extraction.users_own_words(message))
+             if not _FORGET_VERBS.match(w) and w not in names]  # fmt: skip
+    old, now = bool(set(words) & _OLD), bool(set(words) & _NOW)
+    every = bool(set(words) & _ALL)
+    topic = [w for w in words if w not in _GENERIC and w not in _OLD and w not in _NOW
+             and w not in text.STOP_WORDS and not w.isdigit()]  # fmt: skip
+    if not topic:
+        return None
+    pool = repo.memories_for_subject(conn, subject_id, statuses=("active", "superseded"))
+    if old:
+        pool = [m for m in pool if m.status == "superseded"]
+    elif now:
+        pool = [m for m in pool if m.status == "active"]
+    by_value: list[tuple[int, Memory]] = []
+    by_topic: list[Memory] = []
+    for m in pool:
+        p = registry.get(m.predicate)
+        field_words = text.words(f"{p.label} {registry.HINTS.get(m.predicate, '')}") if p else []
+        own = [t for t in text.words(f"{m.value} {m.content}") if t != "kullanici"]
+        score = sum(any(_same(w, t) for t in own) for w in topic)
+        if score:
+            by_value.append((score, m))
+        elif any(_same(w, t) for w in topic for t in field_words):
+            by_topic.append(m)
+    if by_value:
+        # "Şekersiz kahve bilgimi sil": the record with more of the words, not every coffee.
+        best = max(n for n, _ in by_value)
+        by_value = [(n, m) for n, m in by_value if n == best or every]
+    if by_value:
+        found = tuple(m for _, m in by_value)
+        if len({m.value_key for m in found}) > 1 and not every:
+            return Picked("ambiguous", found)
+        return Picked("records", found)
+    preds = {m.predicate for m in by_topic}
+    if len(preds) > 1:
+        return Picked("ambiguous", tuple(by_topic))
+    if preds:
+        pred = next(iter(preds))
+        p = registry.get(pred)
+        several = len({m.value_key for m in by_topic if m.status == "active"}) > 1
+        if p is not None and p.cardinality == "multi" and several and not every:
+            # "Ahmet'in iletişim bilgisini sil" with a number and an e-mail: which one?
+            return Picked("ambiguous", tuple(by_topic))
+        if old or now:  # "eski işyerim": the old value(s) only, not today's
+            return Picked("records", tuple(by_topic), pred)
+        return Picked("topic", tuple(by_topic), pred)
+    return Picked("none")
+
+
+def _forget_picked(conn: Connection, ent: Entity | None, picked: Picked) -> Outcome:
+    if picked.kind == "none":
+        return Outcome("not_found")
+    if picked.kind == "ambiguous":
+        # Never a guess: deleting the wrong record is worse than asking (Phase 9.1).
+        return Outcome("ambiguous", [m.content for m in picked.memories],
+                       {"options": len(picked.memories)})  # fmt: skip
+    subject_id = ent.id if ent is not None else None
+    if picked.kind == "topic":
+        res = service.forget_topic(conn, subject_id, picked.predicate)
+        p = registry.get(picked.predicate)
+        who_label = _label(ent) if ent else "kullanıcı"
+        return Outcome(
+            "forgotten",
+            [f"{who_label} — {p.label if p else picked.predicate} ({res.memories} kayıt, eski "
+             "değerler dahil)"],
+            {"forgotten": res.memories},
+        )  # fmt: skip
+    res = service.forget_memories(conn, [m.id for m in picked.memories])
+    return Outcome("forgotten", [m.content for m in picked.memories], {"forgotten": res.memories})
 
 
 def _end_ids(conn: Connection, name: str, relation: str) -> list[str] | None:

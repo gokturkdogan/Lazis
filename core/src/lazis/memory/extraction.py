@@ -64,6 +64,7 @@ class Extracted:
 class Validation:
     accepted: list[Extracted] = field(default_factory=list[Extracted])
     dropped: dict[str, int] = field(default_factory=dict[str, int])
+    fitted: dict[str, int] = field(default_factory=dict[str, int])  # field corrected (counts)
 
     def drop(self, reason: str) -> None:
         self.dropped[reason] = self.dropped.get(reason, 0) + 1
@@ -206,7 +207,7 @@ def build_instruction(
 
 
 # Predicates kept for stored data but not offered to the model (relationships replace them).
-NOT_IN_PROMPT = frozenset({"relationship"})
+NOT_IN_PROMPT = frozenset({"relationship", "age"})
 MAX_RELATIONS = 8
 ENTITY_KINDS = ("", "person", "organization", "project", "place", "event", "group")
 
@@ -521,6 +522,19 @@ def validate(
             pred = registry.PREDICATES["relationship"]  # "Ahmet — family: arkadaş" is a relation
         if policy.contact_detected(value) and pred.key != "contact":
             pred = registry.PREDICATES["contact"]  # a phone number or e-mail address
+        # The field must fit the meaning (Phase 9.1): read from the user's words, not taken
+        # from the model ("34 yaşındayım" was family, "Ece Bursa'da yaşıyor" family,
+        # "Atlas'ta çalışıyorum" a city).
+        fitted = fit_field(
+            pred.key, value, quote, statement, about_person=ref is not None, name=name
+        )
+        if fitted == ("", ""):
+            out.drop("field_unclear")  # held back rather than written in the wrong field
+            continue
+        if fitted is not None and fitted != (pred.key, value):
+            key = f"{pred.key}_to_{fitted[0]}"
+            out.fitted[key] = out.fitted.get(key, 0) + 1
+            pred, value = registry.PREDICATES[fitted[0]], fitted[1]
         if ref is None and pred.key not in _NOTE_EXEMPT and (
             thing or (pred.cardinality == "single" and pred.kind == "profile" and not profile_file
                       and not _first_person(users_own_words(target.text)))
@@ -585,11 +599,107 @@ def _speaks_as_i(message: str) -> bool:
                for w in text.words(message))  # fmt: skip
 
 
+# "çalıştığımı", "yaşadığım", "olacağımı": a verb's noun with "my" (Phase 9.1: "Atlas
+# şirketinde çalıştığımı kaydet" was not the user's and became a note).
+_MY_VERBAL_NOUN = re.compile(
+    r"(?:[dt][iu]g[iu]m|[ae]c[ae]g[iu]m)(?:[iu]|[ae]|d[ae]n?|l[ae]|[iu]z)?$"
+)
+
+
 def _first_person(message: str) -> bool:
     """Looser than :func:`mentions_user`: any first person word ("adım", "günüm")."""
     words = [w for w in text.words(message) if w not in _NOT_FIRST_PERSON]
     return any(w in _FIRST_PERSON_WORDS or (len(w) >= 3 and _FIRST_PERSON_ANY.search(w))
+               or _MY_VERBAL_NOUN.search(w)
                for w in words) or mentions_user(" ".join(words))  # fmt: skip
+
+
+# ----- the field fits the meaning (Phase 9.1) ---------------------------------------------
+# Words of family: "family" is for these only ("annem öğretmen", "Ece'nin iki çocuğu var").
+_KIN = re.compile(
+    r"\b(?:anne\w*|baba\w*|kardes\w*|abla\w*|abi(?:m|si|n|sinin|min)?|agabey\w*|"
+    r"es(?:im|i|in|inin|imin|imle|iyle)|kari(?:m|si|sinin|mla)|koca(?:m|si|sinin|mla)|"
+    r"cocu[gk]\w*|ogul\w*|ogl[ua]\w*|kiz(?:im|i|in|inin|imin|imla|lari|larim)|dede\w*|"
+    r"nine\w*|teyze\w*|hala(?:m|si|n|sinin|min)|amca\w*|dayi\w*|kuzen\w*|yegen\w*|torun\w*|"
+    r"eniste\w*|yenge\w*|gelin(?:i|im|in)?|damad\w*|damat|kayin\w*|evli\w*|bekar\w*|"
+    r"nisanl\w*|bosan\w*|aile\w*|akraba\w*|ikiz\w*|ebeveyn\w*|sevgili\w*)\b"
+)
+_AGE = re.compile(r"\b(\d{1,3}) yas(?:inda(?:yim|yiz|sin|siniz|dir|lar)?|ini|imda)\b|"
+                  r"\byas(?:im|i|in) (\d{1,3})\b")  # fmt: skip
+_RESIDENCE = re.compile(
+    r"\b(?:yasiyor\w*|yasar\w*|yasadig\w*|yasamakta\w*|yasayan\w*|oturuyor\w*|oturur\w*|"
+    r"ikamet\w*|tasin\w*|memleket\w*)"
+)
+_WORK = re.compile(r"\b(?:calis\w*|isyer\w*|is yer\w*|sirket\w*|firma\w*|staj\w*|ise basla\w*)")
+_PLACE = re.compile(
+    r"([A-ZÇĞİÖŞÜ][\wçğıöşü]+(?: [A-ZÇĞİÖŞÜ][\wçğıöşü]+)?)['’](?:da|de|ta|te|ya|ye|a|e)\b"
+)
+_VISIT = re.compile(r"\b(?:git(?:tim|ti|tik)|gidiyor\w*|gez(?:dim|di|dik|iyor\w*)|ziyaret\w*|"
+                    r"tatil\w*|seyahat\w*)")  # fmt: skip
+_USERS = re.compile(r"^\s*kullan[ıi]c[ıi]n[ıi]n\s+", re.IGNORECASE)
+_BARE_NAME = re.compile(r"^[A-ZÇĞİÖŞÜ][\wçğıöşü]+(?: [A-ZÇĞİÖŞÜ][\wçğıöşü]+){0,2}$")
+_RELABEL = frozenset({"family", "note", "birthday"})  # where an age was seen written
+
+
+def fit_field(predicate: str, value: str, quote: str, statement: str, *,
+              about_person: bool, name: str = "") -> tuple[str, str] | None:  # fmt: skip
+    """The field (and value) the user's words support, when the model's does not fit: an age
+    is ``age``; ``family`` without a word of family is a city (``location``) when someone
+    lives somewhere, otherwise a ``note``; a ``location`` said with "çalışıyorum" and no word
+    of living, or of a visit, is held back (``("", "")``). None: the model's field stands."""
+    q, s, v = text.fold(quote), text.fold(statement), text.fold(value)
+    if predicate in _RELABEL and (m := _AGE.search(f"{q} {v}")):
+        kin_said = _KIN.search(_after_name(q, name) if about_person else q)
+        if not kin_said:
+            return ("age", m.group(1) or m.group(2))
+    if predicate == "location" and _VISIT.search(q) and not _RESIDENCE.search(q):
+        return ("", "")  # a visit ("Atlas adlı restorana gittim") is not where one lives
+    if predicate == "family":
+        about = v + " " + (_after_name(s, name) if about_person else s)
+        if _KIN.search(about):
+            if not about_person and not _KIN.search(v) and _KIN.search(s):
+                # "Annem öğretmen" as family "öğretmen": the value says whose it is.
+                return ("family", _relative_value(statement) or value)
+            return None
+        if _RESIDENCE.search(f"{q} {v} {s}") and (place := _place(value, quote)):
+            return ("location", place)
+        return ("note", value)
+    if predicate == "location" and _WORK.search(f"{q} {s}") and not _RESIDENCE.search(q):
+        # "Atlas'ta çalışıyorum" / "İzmir'de çalışıyorum": where one works is not where one
+        # lives — and whether it is a company or a city is not known: held back.
+        return ("", "")
+    return None
+
+
+def _relative_value(statement: str) -> str:
+    """ "Kullanıcının annesi öğretmen." → "annesi öğretmen"."""
+    v = _USERS.sub("", statement).strip().rstrip(".").strip()
+    return v[:MAX_VALUE] if v and v != statement.strip() else ""
+
+
+def _after_name(folded: str, name: str) -> str:
+    """The part of a sentence from the person's name on: "Kız kardeşi Ece Bursa'da yaşıyor" is
+    about Ece's city — "kız kardeşi" is who she is to the user."""
+    key = text.fold(name).strip()
+    at = folded.find(key) if key else -1
+    return folded[at:] if at >= 0 else folded
+
+
+def _place(value: str, quote: str) -> str | None:
+    v = value.strip()
+    if _BARE_NAME.match(v) and not _RESIDENCE.search(text.fold(v)):
+        return v
+    for source in (value, quote):
+        if m := _PLACE.search(source):
+            return m.group(1)
+    return None
+
+
+def relation_said(relation: str, message: str) -> bool:
+    """The user wrote this relation (a type key or its words) in the message."""
+    t = relations_vocab.TYPES.get(relation)
+    phrases = [*t.words, t.label] if t is not None else [relation]
+    return any(_grounded(p, [message]) for p in phrases if p)
 
 
 def _grounded(phrase: str, texts: Sequence[str]) -> bool:

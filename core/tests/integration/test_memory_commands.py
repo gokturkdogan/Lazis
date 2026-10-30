@@ -251,12 +251,16 @@ def test_a_named_topic_is_forgotten_with_its_history(
     assert [m.predicate for m in left] == ["interest"]  # both occupation values are gone
 
 
-def test_nothing_to_save_keeps_the_background_job(tmp_path: Path, storage: StorageHandle) -> None:
+def test_a_refused_request_is_not_learned_in_the_background(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    # Until Phase 9.1 the job stayed queued and learning wrote what the reply said it had not
+    # saved; now the request owns what it asked for, carried out or not.
     cmd = answer("remember", items=[item("note", "x", "x", "metinde olmayan alıntı")])
     llm, _ = run(storage, tmp_path, lambda r: cmd, "Bunu unutma: anahtarlar çekmecede.")
     assert "kaydettim ya da not aldım deme" in last_user(llm.chat_requests[0])  # refused
     counts = storage.db.run_sync(lambda c: memory_repo.job_counts(c))
-    assert "skipped" not in counts and sum(counts.values()) == 1  # still learned in the background
+    assert counts == {"skipped": 1} and saved(storage) == []
 
 
 def test_a_bare_request_with_nothing_before_it_asks_what_to_keep(

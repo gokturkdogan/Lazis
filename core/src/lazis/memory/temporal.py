@@ -65,7 +65,9 @@ _CHANGE = re.compile(
     r"\b(artik|simdi|su an|su sira|bundan boyle|yeni|yeniden|"
     r"tasin\w*|gec(?:tim|ti|tik|mis\w*|ecegim)|basla\w*|ayril\w*|birak\w*|degis\w*|"
     r"emekli ol\w*|evlen\w*|bosan\w*|mezun ol\w*|terk et\w*|kapat\w*|sat(?:tim|ti)|"
-    r"\w+ (?:beri)|aslinda|yanlis (?:soyledim|dedim)|duzeltiyorum|degil)\b"
+    r"\w+ (?:beri)|aslinda|yanlis (?:soyledim|dedim)|duzeltiyorum|degil|"
+    # "Bildiklerini güncelle: 35 yaşındayım" (Phase 9.1): the user says it changed.
+    r"guncelle\w*)\b"
 )
 
 _TIME_PHRASE = re.compile(
@@ -136,11 +138,23 @@ def tense(clause: str) -> Tense:
 
 # Leaving something ("Kervan'dan ayrıldım", "işi bıraktım", "istifa ettim"): what was left is
 # in the past — unless the clause also arrives somewhere ("Ankara'dan ayrılıp İzmir'e taşındım").
-_LEFT = re.compile(r"\b(?:ayrild(?:im|ik)|birakt(?:im|ik)|istifa ett(?:im|ik)|cikt(?:im|ik))\b")
+# Someone else leaving counts too ("Elif Kervan'dan ayrıldı", "Ahmet doktorluğu bıraktı").
+_LEFT = re.compile(
+    r"\b(?:ayrild(?:im|ik|i)|birakt(?:im|ik|i)|istifa ett(?:im|ik|i)|cikt(?:im|ik))\b"
+)
 _LEAVING = re.compile(r"\b(?:ayril|birak|istifa|cik)")
 _ARRIVED = re.compile(
     r"\b(?:tasin\w*|gec(?:tim|tik)|basla\w*|katil\w*|gir(?:dim|dik)|artik|simdi)\b"
 )
+
+
+# "geliştirici(si)" → "geliştir", "öğretmenlik" → "öğretmen": the word an occupation is made
+# from ("Yazılım geliştiriciliğini bıraktım", "yazılım geliştirmiyor"; Phase 9.1).
+_AGENT = re.compile(r"(?:[iu]c[iu]|c[iu])(?:l[iu](?:k|g[iu]\w*))?(?:s[iu])?$|l[iu](?:k|g[iu]\w*)$")
+
+
+def occupation_stem(word: str) -> str:
+    return _AGENT.sub("", word)
 
 
 def left(clause: str, anchor: str | None) -> bool:
@@ -150,7 +164,18 @@ def left(clause: str, anchor: str | None) -> bool:
     if not _LEFT.search(joined) or _ARRIVED.search(joined):
         return False
     a = " ".join(text.words(anchor or ""))
-    return bool(a) and not _LEAVING.search(a) and text.mentions_name(text.words(clause), a)
+    if not a or _LEAVING.search(a):
+        return False
+    words = text.words(clause)
+    if text.mentions_name(words, a):
+        return True
+    # An occupation said with another ending ("geliştiriciliğini" for "geliştiricisi").
+    *rest, last = a.split()
+    stem = occupation_stem(last)
+    return len(stem) >= 5 and any(
+        w.startswith(stem) and all(any(b.startswith(r[:5]) for b in words[:i]) for r in rest)
+        for i, w in enumerate(words)
+    )
 
 
 def tense_of(message: str, quote: str | None, anchor: str | None = None) -> Tense:

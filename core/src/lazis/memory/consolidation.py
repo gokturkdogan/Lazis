@@ -50,6 +50,8 @@ def plan(c: Candidate, current: Sequence[Memory], *, explicit: bool) -> Plan:
     if pred is None or not active:
         return Plan("create")
     if pred.cardinality == "single":
+        if c.also and not c.change:
+            return Plan("create")  # one more current value ("ayrıca eğitmenim")
         if c.change or explicit:
             return Plan("supersede", tuple(m.id for m in active))
         return Plan("conflict", tuple(m.id for m in active))

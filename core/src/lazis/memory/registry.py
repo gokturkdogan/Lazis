@@ -79,6 +79,9 @@ PREDICATES: dict[str, Predicate] = {
         _P("event", "olay / deneyim", "event", "multi", dated=True),
         _P("decision", "karar", "decision", "multi", dated=True),
         _P("birthday", "doğum günü", "profile", "single", "personal"),
+        # Phase 9.1: an age was written as "family" or "note" ("34 yaşındayım"). Set by the
+        # validation from the user's words only; not offered to the model.
+        _P("age", "yaş", "profile", "single", "personal"),
         _P("family", "aile bilgisi", "fact", "multi", "personal"),
         _P("health", "sağlık bilgisi", "fact", "multi", "sensitive"),
         _P("finance", "finansal bilgi", "fact", "multi", "sensitive"),
@@ -147,6 +150,7 @@ HINTS: dict[str, str] = {
     "event": "olay deneyim",
     "decision": "karar",
     "birthday": "doğum günü doğdu yaş",
+    "age": "yaş yaşında kaç",
     "family": "aile anne baba kardeş eş çocuk kızı oğlu",
     "health": "sağlık hastalık",
     "finance": "para borç maaş",

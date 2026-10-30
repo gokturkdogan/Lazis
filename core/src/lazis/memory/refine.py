@@ -45,6 +45,9 @@ _PASSING_PREDICATES = frozenset({"note", "likes", "dislikes", "interest", "habit
 # Values a "not" right after them denies today ("Kervan'da çalışmıyorum", "öğretmen değilim").
 _DENIABLE = frozenset({"employer", "location", "occupation"})
 _STILL = frozenset({"artik", "hala", "halen", "simdi"})
+# "…, ayrıca eğitmenlik yapıyorum", "eğitmenlik de yapıyorum": one more job, next to today's.
+_ALSO = ("ayrica", "ayni zamanda", "yani sira", "bir de", "ek olarak", "hem de")
+_ALSO_PREDICATES = frozenset({"occupation", "employer"})
 _COUNTS = frozenset({"iki", "uc", "dort", "bes", "alti", "yedi", "bir", "cok", "birkac", "kac"})
 
 
@@ -74,13 +77,24 @@ def refine(
         if c.change and not temporal.change_marked(msg):
             c = replace(c, change=False)
             count("change_not_said")
-        if c.predicate in _DENIABLE and said_with_not(clause, c.value):
+        if c.predicate in _DENIABLE and (
+            said_with_not(clause, c.value)
+            or (c.predicate == "occupation" and denied_as_verb(clause, c.value))
+        ):
             # "Artık Kervan Lojistik'te çalışmıyorum" given as employer Kervan (seen with Gemma):
             # history when it ended, nothing when it was only denied — never today's value.
             count("said_with_not")
             if not _PRESENT.search(" ".join(text.words(clause))):
                 continue
             c = replace(c, tense="past", change=False, replaces=None)
+        if (
+            c.predicate in _ALSO_PREDICATES
+            and not c.change
+            and tense == "current"
+            and said_as_also(msg, c.value)
+        ):
+            c = replace(c, also=True)
+            count("also_current")
         if c.predicate in _PASSING_PREDICATES and _passing(clause, c.quote):
             count("ephemeral")  # a passing state: not kept
             continue
@@ -203,6 +217,51 @@ def said_with_not(clause: str, value: str) -> bool:
             # A suffix after an apostrophe ("te", "da") is a word of its own here.
             after = [w for w in words[i + n :] if len(w) > 3 and w not in _STILL]
             return bool(after) and bool(_NEGATED.search(after[0]))
+    return False
+
+
+_MIN_STEM = 5
+
+
+def said_as_also(message: str, value: str) -> bool:
+    """ "Yazılım geliştiricisiyim, ayrıca eğitmenlik yapıyorum" for "eğitmen" (the cue comes
+    before it), "Eğitmenlik de yapıyorum" (right after it) — not for the first job."""
+    words = text.words(message)
+    vw = text.words(value)
+    if not vw:
+        return False
+    stem = temporal.occupation_stem(vw[0])[:_MIN_STEM] or vw[0]
+    joined = " ".join(words)
+    for i, w in enumerate(words):
+        if not w.startswith(stem):
+            continue
+        after = words[i + len(vw) : i + len(vw) + 2]
+        if after and len(after[0]) <= 3 and after[0] not in ("de", "da"):
+            after = after[1:]  # the case ending of a name ("Atlas'ta da")
+        before = " ".join(words[:i])
+        if after[:1] in (["de"], ["da"]) or any(f" {cue} " in f" {before} " for cue in _ALSO):
+            return True
+    return any(f" {cue} " in f" {joined} " for cue in ("hem",)) and words.count("hem") >= 2
+
+
+def denied_as_verb(clause: str, value: str) -> bool:
+    """A negated word of the clause is the occupation's own verb ("Ahmet artık yazılım
+    geliştirmiyor" for "yazılım geliştiricisi"). The other words of the value must be there
+    too, so that "kod geliştirmiyor" does not end "oyun geliştiricisi"."""
+    vw = text.words(value)
+    if not vw:
+        return False
+    # Phase 9.1: the model gave only the old value, and it stayed current (Phase 6 sessions
+    # 3.memory, "Ahmet artık yazılım geliştirmiyor, kendi restoranını açtı").
+    stem = temporal.occupation_stem(vw[-1])
+    if len(stem) < _MIN_STEM:
+        return False
+    words = text.words(clause)
+    rest = vw[:-1]
+    for i, w in enumerate(words):
+        if w.startswith(stem) and w != vw[-1] and _NEGATED.search(w[len(stem) :]):
+            before = words[max(0, i - len(rest)) : i]
+            return all(any(b.startswith(r[:_MIN_STEM]) for b in before) for r in rest)
     return False
 
 

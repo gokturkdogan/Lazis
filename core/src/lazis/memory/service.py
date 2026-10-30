@@ -65,6 +65,7 @@ def candidate_from_json(data: dict[str, Any]) -> Candidate:
         keywords=tuple(data.get("keywords", ())),
         origin=data.get("origin", "stated"),
         tense=data.get("tense"),
+        also=bool(data.get("also", False)),
     )
 
 
@@ -253,6 +254,13 @@ def apply_one(
     current = repo.consolidation_candidates(
         conn, subject_id, c.predicate, value=c.value, replaces=c.replaces
     )
+    if source.type == "message" and not c.change:
+        # Two values said together ("Yazılım geliştiricisiyim, eğitmenlik de yapıyorum") are
+        # both what the user said: one written a moment ago in this same batch is no
+        # conflict, and no replacement, for the other (Phase 9.1). The same value twice is
+        # still one record.
+        current = [m for m in current
+                   if m.id not in report.created or consolidation.same_value(c, m)]  # fmt: skip
     plan = consolidation.plan(c, current, explicit=explicit)
     if force == "create":
         plan = consolidation.Plan("create")

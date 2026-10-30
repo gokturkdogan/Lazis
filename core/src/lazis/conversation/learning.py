@@ -25,7 +25,7 @@ from lazis.conversation.context import AssembledPrompt, TokenEstimator
 from lazis.conversation.scheduler import BackgroundJob, CacheKey, InferenceScheduler
 from lazis.errors import LazisError, LlmCancelledError, LlmError, LlmInvalidResponseError
 from lazis.ids import utc_now_iso
-from lazis.memory import corrections, extraction, lists, namesakes, orchestrator, refine
+from lazis.memory import commands, corrections, extraction, lists, namesakes, orchestrator, refine
 from lazis.memory import repository as memory_repo
 from lazis.memory.extraction import Target
 from lazis.memory.models import ApplyReport, Job
@@ -142,8 +142,16 @@ class Learner:
                         memory_repo.set_job(conn, j.id, status="skipped", now=now,
                                             error="message_missing")  # fmt: skip
                         continue
+                    # What an explicit request asked for is written by the request only
+                    # (Phase 9.1): failed or cancelled, it is not learned here either — even
+                    # when this runs before the request is settled.
+                    part = commands.learnable_part(msg.content)
+                    if not part.strip():
+                        memory_repo.set_job(conn, j.id, status="skipped", now=now,
+                                            error="explicit_request")  # fmt: skip
+                        continue
                     memory_repo.set_job(conn, j.id, status="running", now=now)
-                    targets.append(Target(f"m{len(targets) + 1}", msg.id, msg.content))
+                    targets.append(Target(f"m{len(targets) + 1}", msg.id, part))
             return targets, orchestrator.extraction_context(
                 conn, targets, conversation_id=conversation_id
             )

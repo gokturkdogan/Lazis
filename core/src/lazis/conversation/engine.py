@@ -146,6 +146,8 @@ class TurnHandle:
     memory_outcome: str | None = None
     memory_request_ms: float | None = None
     memory_recalled: bool = False  # recall brought stored memory (references to it are true)
+    # "Az önce kaydettin mi?" (Phase 9.1): what the database holds from the previous messages.
+    saved_before: list[str] | None = None
     # Truthful memory claims (Phase 7.1): the state the reply is checked against, how many
     # claims were reworded, and when the first checked text reached the user.
     claim_state: str | None = None
@@ -1097,9 +1099,13 @@ class ConversationEngine:
         state = claims.state_for(
             intent, handle.memory_outcome, statement=statement, learning=learning_on
         )
+        if handle.saved_before:
+            # "Kaydettin mi?" with records from those messages in the database: "kaydettim" is
+            # true (and nothing else is).
+            state = claims.ClaimState.SAVE_SUCCEEDED
         return claims.Policy(
             state=state,
-            has_memory=handle.memory_recalled,
+            has_memory=handle.memory_recalled or bool(handle.saved_before),
             memory_turn=intent is not None and intent not in ("recall", "secret"),
             memory_talk=claims.memory_talk(handle.user.content),
             explaining=claims.explaining(handle.user.content),
@@ -1266,6 +1272,13 @@ class ConversationEngine:
             log_event(_log, logging.INFO, "memory.secret_not_stored", conversation_id=conv.id)
             return commands.Outcome("secret_not_stored").notice()
         if intent is None:
+            if commands.asks_if_saved(user.content):
+                # Answered from the database: "Evet" after a failed save was the model's guess.
+                recent = [m.id for m in loaded.window if m.role == "user" and m.seq < user.seq]
+                lines = await self._q(lambda c: commands.saved_from(c, recent[-2:]))
+                waiting = await self._q(lambda c: commands.learning_waits(c, recent[-2:]))
+                handle.saved_before = lines
+                return commands.saved_notice(lines, waiting=waiting)
             return ""
         handle.memory_intent = intent
         if intent == "recall":
@@ -1306,12 +1319,22 @@ class ConversationEngine:
             except LazisError as exc:
                 log_event(_log, logging.WARNING, "memory.request_failed", code=exc.code)
                 outcome = commands.Outcome("failed")
+                prev = [m for m in loaded.window if m.role == "user" and m.seq < user.seq][-1:]
+                if intent == "remember" and prev and commands.cue_only(user.content):
+                    p = prev[0]
+                    known = await self._q(lambda c: commands.already_saved(c, p.content, p.id))
+                    outcome = known or outcome
         handle.memory_request_ms = round((time.monotonic() - started) * 1000, 1)
+        if intent in commands.REQUEST_INTENTS and not commands.learnable_part(user.content):
+            # The request owns what it asked for, whatever came of it (Phase 9.1): failed,
+            # refused or waiting, background learning does not write it afterwards. A message
+            # with more in it is still learned from — only the rest (see the learner).
+            await self._q(lambda c: commands.skip_job(c, user.id))
         if outcome is None:  # the model judged it not to be a memory request
             handle.memory_outcome = "none"
             return ""
         handle.memory_outcome = outcome.kind
-        if (
+        if intent not in commands.REQUEST_INTENTS and (
             outcome.kind
             in (
                 "saved",
@@ -1323,15 +1346,10 @@ class ConversationEngine:
                 "distinguished",
                 "cancelled",
             )
-            or (outcome.kind == "ambiguous" and intent in ("remember", "choose"))
-            or (
-                # "Telefon bilgimi unut" with nothing found teaches nothing either (Phase 9: the
-                # learning job read it as a note "bilinmiyor").
-                outcome.kind == "not_found" and intent == "forget"
-            )
+            or (outcome.kind == "ambiguous" and intent == "choose")
         ):
-            # Handled here: the background job must not process the same request again (an
-            # ambiguous one waits in the inbox already).
+            # An answer ("Evet", "Komşum olan", "aynı kişi") handled here: the background job
+            # must not read it again (an ambiguous one waits in the inbox already).
             await self._q(lambda c: commands.skip_job(c, user.id))
         log_event(
             _log,
@@ -1362,6 +1380,9 @@ class ConversationEngine:
             if not prev:
                 return commands.Outcome("nothing")  # "Bunu unutma." with nothing before it
             content_id, content = prev[0].id, prev[0].content
+            # That message is what the request asks for: from now on only the request writes
+            # it (Phase 9.1) — a failed request must not be followed by learning it anyway.
+            await self._q(lambda c: commands.skip_job(c, content_id))
         if remember:
             target = extraction.Target("m1", content_id, content)
             ctx = await self._q(
@@ -1412,8 +1433,6 @@ class ConversationEngine:
         if cmd.action == "none":
             return None
         if cmd.action in ("remember", "correct"):
-            if content_id != user.id:
-                await self._q(lambda c: commands.skip_job(c, content_id))
             return await self._q(
                 lambda c: commands.apply_items(
                     c, cmd, message_id=content_id, message=content, conversation_id=conv.id
@@ -1422,7 +1441,11 @@ class ConversationEngine:
         recent = [m.id for m in loaded.window if m.role == "user" and m.seq < user.seq][-1:]
         return await self._q(
             lambda c: commands.forget(
-                c, cmd, conversation_id=conv.id, recent_user_message_ids=recent
+                c,
+                cmd,
+                conversation_id=conv.id,
+                recent_user_message_ids=recent,
+                message=user.content,
             )
         )
 
