@@ -264,4 +264,5 @@ def test_a_name_still_being_asked_about_is_not_guessed(
     )
     outcome, notice = say(tmp_path, storage, "Ahmet'in mesleğini unut.", cmd)
     assert outcome == "ambiguous" and "Hiçbir şey silinmedi" in notice
+    assert "henüz kaydedilmedi" in notice  # the other Ahmet is not "in the records"
     assert values(storage) == {("Ahmet", "occupation", "mimar")}

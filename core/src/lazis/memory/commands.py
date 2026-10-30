@@ -816,8 +816,12 @@ def forget(
     if ent is not None and service.pending_namesake(conn, text.name_key(ent.name)):
         # "Komşum Ahmet doktor" is still waiting for "which Ahmet?": the user may have two in
         # mind — the only stored one is a guess (Phase 9.1 run 1, d16: its job was deleted).
-        return Outcome("ambiguous", [_label(ent), f"{ent.name} (henüz hangisi olduğu sorulan)"],
-                       rule=_WHICH_ONE)  # fmt: skip
+        return Outcome(
+            "ambiguous",
+            [f"{_label(ent)} — hafızada kayıtlı",
+             f"adı {ent.name} olan başka biri — henüz kaydedilmedi (hangisi olduğu soruluyor)"],
+            rule=_WHICH_ONE + " Kaydedilmemiş olan için 'kayıtlarımda' deme.",
+        )  # fmt: skip
     subject_id = ent.id if ent is not None else None
     if message and (cmd.scope != "entity" or ent is None):
         # The user's own words pick the record (Phase 9.1): the model often left the forget

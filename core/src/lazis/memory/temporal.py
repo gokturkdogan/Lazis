@@ -157,6 +157,11 @@ def occupation_stem(word: str) -> str:
     return _AGENT.sub("", word)
 
 
+def is_leaving(value: str) -> bool:
+    """The value is the leaving itself ("doktorluğu bıraktı", "Kervan'dan ayrıldım")."""
+    return bool(_LEFT.search(" ".join(text.words(value))))
+
+
 def left(clause: str, anchor: str | None) -> bool:
     """The clause says the user left ``anchor`` (a workplace, a city, a habit's object) — and
     ``anchor`` is not the leaving itself ("sigarayı bıraktım" as a value stays current)."""

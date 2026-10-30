@@ -74,6 +74,11 @@ def refine(
         tense = temporal.tense(clause)
         if tense == "current" and temporal.left(clause, c.value):
             tense = "past"  # "Kervan'dan ayrıldım": Kervan is history
+        if c.predicate in _DENIABLE and temporal.is_leaving(c.value):
+            # "Ahmet doktorluğu bıraktı" proposed as Ahmet's job "doktorluğu bıraktı" (Phase 9.1
+            # run 2, t15): a leaving is no job, no workplace, no home — never today's value.
+            count("leaving_as_value")
+            continue
         if c.change and not temporal.change_marked(msg):
             c = replace(c, change=False)
             count("change_not_said")

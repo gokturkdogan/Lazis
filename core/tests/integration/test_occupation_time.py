@@ -162,3 +162,17 @@ def test_an_updated_age_replaces_the_old_one(tmp_path: Path, storage: StorageHan
     assert s.values("user", "age") == {"35"}
     assert s.values("user", "age", "superseded") == {"34"}
     assert s.values("user", "family") == set()
+
+
+def test_a_leaving_is_not_the_new_job(tmp_path: Path, storage: StorageHandle) -> None:
+    # Phase 9.1 run 2 (t15): the model gave the leaving itself as Ahmet's current job.
+    first, said = "Komşum Ahmet doktor.", "Ahmet doktorluğu bıraktı."
+    s = converse(tmp_path, storage, [first, said], Brain(answers={
+        first: ([item("Ahmet doktor", "occupation", "doktor", entity="Ahmet")],
+                [rel("Komşum Ahmet", "", "neighbor", "Ahmet")]),
+        said: ([item("Ahmet doktorluğu bıraktı", "occupation", "doktor", entity="Ahmet"),
+                item("Ahmet doktorluğu bıraktı", "occupation", "doktorluğu bıraktı", entity="Ahmet",
+                     change=True)], []),
+    }))  # fmt: skip
+    assert s.values("Ahmet", "occupation") == set()
+    assert s.values("Ahmet", "occupation", "superseded") == {"doktor"}
