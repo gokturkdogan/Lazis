@@ -176,3 +176,28 @@ def test_a_leaving_is_not_the_new_job(tmp_path: Path, storage: StorageHandle) ->
     }))  # fmt: skip
     assert s.values("Ahmet", "occupation") == set()
     assert s.values("Ahmet", "occupation", "superseded") == {"doktor"}
+
+
+def test_only_the_leaving_given_ends_the_job_it_names(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    # Phase 9.1 runs 2 and 3 (t15): one item, the leaving itself — it must still end "doktor".
+    first, said = "Komşum Ahmet doktor.", "Ahmet doktorluğu bıraktı."
+    s = converse(tmp_path, storage, [first, said], Brain(answers={
+        first: ([item("Ahmet doktor", "occupation", "doktor", entity="Ahmet")],
+                [rel("Komşum Ahmet", "", "neighbor", "Ahmet")]),
+        said: ([item("Ahmet doktorluğu bıraktı", "occupation", "doktorluğu bıraktı", entity="Ahmet",
+                     change=True)], []),
+    }))  # fmt: skip
+    assert s.values("Ahmet", "occupation") == set()
+    assert s.values("Ahmet", "occupation", "superseded") == {"doktor"}
+
+
+def test_a_leaving_that_names_nothing_stored_writes_nothing(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    said = "Muhasebeciliği bıraktım."
+    s = converse(tmp_path, storage, [said], Brain(answers={
+        said: ([item("Muhasebeciliği bıraktım", "occupation", "muhasebeciliği bıraktım")], []),
+    }))  # fmt: skip
+    assert [f for f in s.facts if f["predicate"] == "occupation"] == []

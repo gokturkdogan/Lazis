@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal
 
 from lazis.ids import utc_now_iso
-from lazis.memory import consolidation, policy, registry, relations, resolver, text
+from lazis.memory import consolidation, policy, registry, relations, resolver, temporal, text
 from lazis.memory import repository as repo
 from lazis.memory.models import ApplyReport, Candidate, Entity, EntityRef, InboxItem, Memory
 from lazis.storage.driver import Connection
@@ -370,6 +370,21 @@ def _apply_past(
     """
     pred = registry.get(c.predicate)
     assert pred is not None
+    if temporal.is_leaving(c.value):
+        # "doktorluğu bıraktı" as the value: it ends today's value it names ("doktor"), and is
+        # never written itself (Phase 9.1).
+        named = [m for m in repo.memories_for_subject(conn, subject_id, predicate=c.predicate)
+                 if temporal.left(c.value, m.value)]  # fmt: skip
+        for m in named:
+            before = uow.snapshot("memories", m.id)
+            repo.set_status(conn, m, "superseded", now, valid_to=now)
+            repo.set_conflict(conn, m.id, "none", now)
+            uow.record("memories", m.id, "update", before)
+            _evidence(conn, m.id, source, c.quote, now)
+            report.superseded.append(m.id)
+        if not named:
+            report.drop("leaving_unmatched")
+        return
     same = [
         m for m in repo.memories_for_subject(conn, subject_id, predicate=c.predicate,
                                              statuses=("active", "superseded"))

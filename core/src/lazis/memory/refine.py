@@ -76,8 +76,12 @@ def refine(
             tense = "past"  # "Kervan'dan ayrıldım": Kervan is history
         if c.predicate in _DENIABLE and temporal.is_leaving(c.value):
             # "Ahmet doktorluğu bıraktı" proposed as Ahmet's job "doktorluğu bıraktı" (Phase 9.1
-            # run 2, t15): a leaving is no job, no workplace, no home — never today's value.
+            # runs 2 and 3, t15): a leaving is no job, no workplace, no home — never today's
+            # value. It ends the stored one it names, if any (`service._apply_past`).
             count("leaving_as_value")
+            out_f.append(
+                replace(e, candidate=replace(c, tense="past", change=False, replaces=None))
+            )
             continue
         if c.change and not temporal.change_marked(msg):
             c = replace(c, change=False)
