@@ -711,6 +711,11 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             about_person and _counted(name, message)
         ):
             return ("occupation", value)  # "Kuzenim Can Ankara'da avukat" as family "avukat"
+        if about_person and not _grounded(value, [quote, message]):
+            # Someone else's note in the model's words ("üniversitede okuyor" as "üniversite
+            # öğrencisi"): before Phase 9.1 dropped as a field mismatch, still not written
+            # (Phase 8 bootstrap p04).
+            return ("", "")
         return ("note", value)  # namesakes' jobs too (Phase 8 bootstrap n02, final run)
     if predicate == "location" and _WORK.search(f"{q} {s}") and not _RESIDENCE.search(q):
         # "Atlas'ta çalışıyorum" / "İzmir'de çalışıyorum": where one works is not where one

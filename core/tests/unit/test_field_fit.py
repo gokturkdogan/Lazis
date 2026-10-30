@@ -50,6 +50,10 @@ def written(message: str, item: dict[str, Any]) -> list[tuple[str, str, str]]:
         ("İş arkadaşım Deniz yeni bir eve taşındı.",
          proposal("Deniz yeni bir eve taşındı", "family", "yeni bir eve taşındı", "Deniz yeni bir eve taşındı.",
                   "Deniz"), [("note", "yeni bir eve taşındı", "Deniz")]),
+        # ... but not in the model's words (Phase 8 bootstrap p04): held back.
+        ("Arif'in kızı Ece üniversitede okuyor.",
+         proposal("Arif'in kızı Ece üniversitede okuyor", "family", "üniversite öğrencisi",
+                  "Ece üniversite öğrencisi.", "Ece", "Arif'in kızı"), []),
         # A named relative's job given as family (Phase 9.1 run 1, b13 / b17).
         ("Kuzenim Can Ankara'da avukat.", proposal("Can Ankara'da avukat", "family", "avukat", "Can Ankara'da avukat.",
                                                    "Can", "kuzeni"), [("occupation", "avukat", "Can")]),
