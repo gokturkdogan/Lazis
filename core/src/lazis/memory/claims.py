@@ -232,6 +232,8 @@ def fold(text: str) -> str:
 # Memory context words: they make an ordinary verb a memory act ("hafızama ekledim").
 _CONTEXT = (
     r"(?:hafiza(?:m|mi|ma|mda|mdan|mdaki|miza|mizda|mizdaki)|akli(?:m|ma|mda)"
+    # Without the possessive (Phase 9.1, Phase 7.2 regression n01: "… akılda tutacağım").
+    r"|akilda"
     r"|notlarim(?:a|da|in)?|kayitlarim(?:a|da|in)?|bilgilerime|listeme|ajandama|defterime|takvimime"
     r"|hafizamin|aklimin|bilgilerim(?:in)?|listemin"
     # The user's records as the place ("bilgilerinize ekledim", Phase 9 real-model finding).
@@ -742,7 +744,7 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # Words that may begin a claim or a reference (folded prefixes). The last word of what has
 # arrived is always held too: it may be incomplete ("Kay" + "dettim") or the connector of a
 # claim that follows ("ve" + "not aldım").
-_RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
+_RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "akil", "notlar", "unut", "hatirla", "ogren",
           "bilgilerim", "listem", "ajandam", "defterim", "takvimim", "bilgileriniz",
           "profiliniz", "sistemim", "sisteminiz", "veritabanim", "bellegim",
           "kullanacag")  # fmt: skip

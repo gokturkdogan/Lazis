@@ -37,6 +37,11 @@ REWORDED = [
         "Bu bilgiyi ilerideki konuşmalarımızda anladım.",
     ),
     ("Bunu sonraki sohbetlerimizde kullanacağım.", "Bunu sonraki sohbetlerimizde anladım."),
+    # Phase 9.1 (Phase 7.2 regression n01, shown while learning waited).
+    (
+        "Komşunuz ve iş arkadaşınız olarak akılda tutacağım.",
+        "Komşunuz ve iş arkadaşınız olarak anladım.",
+    ),
     ("Not aldım.", "Anladım."),
     ("Not ettim.", "Anladım."),
     ("Kaydettim efendim.", "Anladım efendim."),
@@ -177,6 +182,8 @@ def test_claims_after_a_statement_are_reworded(reply: str, expected: str) -> Non
 
 # ----- 2. not claims: untouched --------------------------------------------------------------
 UNTOUCHED = [
+    "Bunu akılda tutmanızı öneririm.",
+    "Akılda kalıcı bir isim seçmişsiniz.",
     "Metninizi düzelttim.",
     "Bu bilgiyi bu konuşmada kullanacağım.",
     "Bunu ileride projelerinizde kullanabilirsiniz.",
