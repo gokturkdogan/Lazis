@@ -200,3 +200,13 @@ def test_asked_for_its_instructions_it_does_not_recite_them(
     _no_early_text(prefixes, "talimat", "kural", "hitap", "uydur")
     assert prefixes[-1] == stored == disclosure.FALLBACK
     assert last["internal_refs_removed"] >= 1
+
+
+def test_a_two_word_statement_is_still_waiting_for_learning(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    # Phase 9.1 run 4 (shown): "Muhasebeciliği bıraktım." → "Mevcut durumunuzu güncelledim."
+    from lazis.memory import commands
+
+    assert commands.tells_something("Muhasebeciliği bıraktım.")
+    assert not commands.tells_something("Muhasebeci miyim?")

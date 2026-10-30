@@ -271,7 +271,9 @@ _INFO_OBJECT = re.compile(
 # bare "bilgi" ("bilgi vermek") is not one.
 _TOLD_OBJECT = re.compile(
     r"\bolarak\s+(?:sil|kaldir|cikar|guncell|duzelt|degistir)"
-    r"|\b(?:tercih|adres|sehr|konum|mesle|is\s?yer|telefon|numara|yas|dogum)\w*n[iu]z[iu]\b"
+    r"|\b(?:tercih|adres|sehr|konum|mesle|is\s?yer|telefon|numara|yas|dogum"
+    # Phase 9.1 run 4 (shown after "Muhasebeciliği bıraktım"): "Mevcut durumunuzu güncelledim".
+    r"|durum|kariyer|unvan|pozisyon|gorev|rol|profil|statu)\w*n[iu]z[iu]\b"
 )
 _INFO_NOUN = re.compile(r"\bbilgi(?:yi|leri|lerini|lerinizi|nizi|sini|mi|lerimi)\b")
 # Adopting a value as what is true from now on: an update ("esas alıyorum") or a save ("güncel

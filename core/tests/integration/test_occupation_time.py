@@ -201,3 +201,15 @@ def test_a_leaving_that_names_nothing_stored_writes_nothing(
         said: ([item("Muhasebeciliği bıraktım", "occupation", "muhasebeciliği bıraktım")], []),
     }))  # fmt: skip
     assert [f for f in s.facts if f["predicate"] == "occupation"] == []
+
+
+def test_the_job_in_other_words_ends_the_stored_one(tmp_path: Path, storage: StorageHandle) -> None:
+    # Phase 9.1 run 4 (t15): the model gave "doktorluk" for "Ahmet doktorluğu bıraktı".
+    first, said = "Komşum Ahmet doktor.", "Ahmet doktorluğu bıraktı."
+    s = converse(tmp_path, storage, [first, said], Brain(answers={
+        first: ([item("Ahmet doktor", "occupation", "doktor", entity="Ahmet")],
+                [rel("Komşum Ahmet", "", "neighbor", "Ahmet")]),
+        said: ([item("Ahmet doktorluğu bıraktı", "occupation", "doktorluk", entity="Ahmet")], []),
+    }))  # fmt: skip
+    assert s.values("Ahmet", "occupation") == set()
+    assert s.values("Ahmet", "occupation", "superseded") == {"doktor"}

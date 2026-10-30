@@ -115,6 +115,12 @@ def looks_like_statement(message: str) -> bool:
     return len(message.split()) >= 3 and not _QUESTION.search(text.casefold(message))
 
 
+def tells_something(message: str) -> bool:
+    """For the claim state (Phase 9.1 run 4): any message that is not a question is learned
+    from — "Muhasebeciliği bıraktım." (two words) too, though it gets no notice."""
+    return bool(text.words(message)) and not _QUESTION.search(text.casefold(message))
+
+
 def contains_secret(message: str) -> bool:
     return policy.secret_kind(message) is not None
 

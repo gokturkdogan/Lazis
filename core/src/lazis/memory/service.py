@@ -389,6 +389,7 @@ def _apply_past(
         m for m in repo.memories_for_subject(conn, subject_id, predicate=c.predicate,
                                              statuses=("active", "superseded"))
         if consolidation.same_value(c, m)
+        or (c.predicate == "occupation" and _same_job(c.value, m.value))
     ]  # fmt: skip
     old = next((m for m in same if m.status == "superseded"), None)
     if old is not None:
@@ -416,6 +417,17 @@ def _apply_past(
     uow.record("memories", m.id, "create", None)
     report.created.append(m.id)
     report.history.append(m.id)
+
+
+def _same_job(a: str, b: str) -> bool:
+    """ "doktorluk" and "doktor", "öğretmenlik" and "öğretmen": one job in other words (Phase
+    9.1 run 4: "Ahmet doktorluğu bıraktı" made a history record "doktorluk" and left "doktor"
+    current)."""
+    wa, wb = text.words(a), text.words(b)
+    if not wa or len(wa) != len(wb) or wa[:-1] != wb[:-1]:
+        return False
+    sa, sb = temporal.occupation_stem(wa[-1]), temporal.occupation_stem(wb[-1])
+    return len(sa) >= 4 and sa == sb
 
 
 def _evidence(conn: Connection, memory_id: str, source: Source, quote: str | None,

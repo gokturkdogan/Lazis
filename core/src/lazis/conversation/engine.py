@@ -1094,7 +1094,7 @@ class ConversationEngine:
         """The memory state the reply is checked against — from the real outcome of this
         turn's memory request, not from anything the model writes (Phase 7.1)."""
         intent = handle.memory_intent
-        statement = commands.looks_like_statement(handle.user.content)
+        statement = commands.tells_something(handle.user.content)
         learning_on = self._memory.auto_extract and learning.is_trusted(self._memory, model)
         state = claims.state_for(
             intent, handle.memory_outcome, statement=statement, learning=learning_on
