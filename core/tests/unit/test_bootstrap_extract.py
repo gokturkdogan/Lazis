@@ -253,3 +253,24 @@ def test_a_fact_said_of_the_bare_name_is_held(relation: str) -> None:
             "change": False, "replaces": "", "certain": True, "sensitive": "", "importance": 0.6}  # fmt: skip
     placed, warnings = _placed(body, [item])
     assert placed == [] and warnings == ["held: namesake_unclear × 1"]
+
+
+def test_a_job_next_to_a_city_is_not_a_city() -> None:
+    # Phase 9.1, real Gemma (namesakes m1): family "pilot" became the cousin's location.
+    body = "İki Can var. Biri kuzenim, pilot, İstanbul'da yaşıyor. Diğeri komşum, aşçı."
+    q = "Biri kuzenim, pilot, İstanbul'da yaşıyor"
+    items = [
+        {"message": "m1", "quote": q, "entity": "Can", "relation": "kuzen", "predicate": "family",
+         "value": v, "statement": f"Can {v}.", "change": False, "replaces": "", "certain": True,
+         "sensitive": "", "importance": 0.6}
+        for v in ("pilot", "İstanbul")
+    ]  # fmt: skip
+    placed, _ = _placed(body, items)
+    sec = files.read("p.txt", body.encode()).sections[0]
+    import json
+
+    r = extract.validate(json.dumps({"items": items}, ensure_ascii=False), sec)
+    assert r is not None
+    preds = {f.candidate.value: f.candidate.predicate for f in r.facts}
+    assert preds == {"pilot": "note", "İstanbul": "location"}
+    assert sorted(placed) == [("pilot", "kuzeni"), ("İstanbul", "kuzeni")]

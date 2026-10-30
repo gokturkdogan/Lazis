@@ -74,7 +74,10 @@ def _located(value: str, quote: str) -> bool:
         return False
     after = q[q.index(v) + len(v) :]
     suffixed = after[:1] in ("'", "’") and after[1:].split(" ")[0] in _LOCATIVE
-    return suffixed or bool(_RESIDENCE.search(" ".join(after.split()[:3])))
+    # Up to the next comma: in "Biri kuzenim, pilot, İstanbul'da yaşıyor" İstanbul is where
+    # the cousin lives, not "pilot" (Phase 9.1, real Gemma, namesakes m1).
+    own = re.split(r"[,;]", after, maxsplit=1)[0]
+    return suffixed or bool(_RESIDENCE.search(" ".join(own.split()[:3])))
 
 
 def _right_after_name(name: str, value: str, quote: str) -> bool:
