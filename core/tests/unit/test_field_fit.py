@@ -89,6 +89,10 @@ def written(message: str, item: dict[str, Any]) -> list[tuple[str, str, str]]:
         # model's statement says nothing of living either).
         ("Kervan'dan ayrıldım, artık Atlas'tayım.",
          proposal("artık Atlas'tayım", "location", "Atlas", "Kullanıcı artık Atlas'ta."), []),
+        # Without work in the message it stays a city (Phase 9 guards regression f05).
+        ("Bilgimi güncelle: artık İzmir'deyim.",
+         proposal("artık İzmir'deyim", "location", "İzmir", "Kullanıcı artık İzmir'de."),
+         [("location", "İzmir", "user")]),
         ("Artık İzmir'deyim, oraya taşındım.",
          proposal("Artık İzmir'deyim, oraya taşındım", "location", "İzmir", "Kullanıcı İzmir'e taşındı."),
          [("location", "İzmir", "user")]),
@@ -135,4 +139,6 @@ def test_a_correction_keeps_being_at_for_its_own_field() -> None:
     item = proposal("Atlas'tayım", "location", "Atlas", "Kullanıcı Atlas'ta.")
     target = Target("m1", "msg", "Kervan bilgisini düzelt: Atlas'tayım.")
     assert extraction.validate([item], [target], request=True).accepted
-    assert not extraction.validate([item], [target]).accepted
+    # Learning never reads a request's sentence; with leaving a job said, it holds it back.
+    left = Target("m1", "msg", "Kervan'dan ayrıldım, artık Atlas'tayım.")
+    assert not extraction.validate([item], [left]).accepted

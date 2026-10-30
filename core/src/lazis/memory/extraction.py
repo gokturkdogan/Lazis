@@ -640,6 +640,8 @@ _WORK = re.compile(r"\b(?:calis\w*|isyer\w*|is yer\w*|sirket\w*|firma\w*|staj\w*
 _PLACE = re.compile(
     r"([A-ZÇĞİÖŞÜ][\wçğıöşü]+(?: [A-ZÇĞİÖŞÜ][\wçğıöşü]+)?)['’](?:da|de|ta|te|ya|ye|a|e)\b"
 )
+# Work, or leaving a job ("Kervan'dan ayrıldım"), in the same message.
+_AT_WORK = re.compile(_WORK.pattern + r"|\b(?:ayril\w*|istifa\w*|isten\s+cik\w*|is\s+degistir\w*)")
 # "Atlas'tayım", "İzmir'deyiz": being at a place (a locative with the copula).
 _BEING_AT = re.compile(r"['’](?:d|t)[ae]y(?:im|iz)\b")
 _VISIT = re.compile(r"\b(?:git(?:tim|ti|tik)|gidiyor\w*|gez(?:dim|di|dik|iyor\w*)|ziyaret\w*|"
@@ -675,12 +677,18 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             return ("age", m.group(1) or m.group(2))
     if predicate == "location" and _VISIT.search(q) and not _RESIDENCE.search(q):
         return ("", "")  # a visit ("Atlas adlı restorana gittim") is not where one lives
-    lives = _RESIDENCE.search(f"{q} {text.fold(message)}")
-    if not request and predicate == "location" and _BEING_AT.search(q) and not lives:
-        # "Kervan'dan ayrıldım, artık Atlas'tayım": being at a place is not living there unless
-        # the user speaks of living ("Ankara'da yaşıyordum, şimdi İstanbul'dayım") (Phase 9.1,
-        # Phase 9 learning regression t08). A correction's value takes the field it corrects
-        # instead (commands).
+    said = f"{q} {text.fold(message)}"
+    if (
+        not request
+        and predicate == "location"
+        and _BEING_AT.search(q)
+        and _AT_WORK.search(said)
+        and not _RESIDENCE.search(said)
+    ):
+        # "Kervan'dan ayrıldım, artık Atlas'tayım": with work or leaving a job in the message,
+        # being at a place is a workplace, not a home (Phase 9.1, Phase 9 learning regression
+        # t08). "Bilgimi güncelle: artık İzmir'deyim" stays a city (Phase 9 guards regression
+        # f05). A correction's value takes the field it corrects instead (commands).
         return ("", "")
     if (
         about_person
