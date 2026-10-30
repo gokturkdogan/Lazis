@@ -1156,7 +1156,7 @@ Açık kalan sorunlar 20.10'da. Faz 9, kullanıcının nihai onayını bekliyor.
 
 Bu bölüm "Faz 9.1 — Hafıza İşlem Tutarlılığı, Alan Doğruluğu ve Güvenilir Silme" talimatının sonuçlarını içeriyor. Konu, Faz 9'un nihai kabulünde açık kalan dört hata (§20.10-7, -8, -9 ve §20.9'daki Faz 6 düşüşü).
 
-**Durum:** Son kod `4a7138f`. Karar kaydı: [ADR-0020 §9](adr/0020-advanced-learning.md). Modüller: [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md), "Memory operations that agree with the database".
+**Durum:** Son kod `2f5d7e6` (adaş düzeltmesi, 21.12). Karar kaydı: [ADR-0020 §9](adr/0020-advanced-learning.md). Modüller: [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md), "Memory operations that agree with the database".
 
 | Commit | İçerik |
 |---|---|
@@ -1174,7 +1174,11 @@ Bu bölüm "Faz 9.1 — Hafıza İşlem Tutarlılığı, Alan Doğruluğu ve Gü
 | `5d5d697` | Son kodla Faz 8 kurulum koşusunda bulunan (kendi gerilemem): adaşların meslekleri `family` olarak verildiğinde yine tek Ahmet'e gidiyordu |
 | `2756e56` | Aynı koşuda bulunan (kendi gerilemem): başka birinin `family` değeri modelin kendi sözcükleriyle not olarak yazılıyordu ("üniversite öğrencisi") |
 | `4a7138f` | Kurulumun yeniden koşusunda bulunan (kendi gerilemem): profil dosyasında başka birinin `family` değeri, içe aktarmanın kendi denetiminden önce nota çevriliyordu (Elif'in "Doğum günü 3 Nisan" → not) |
-| belgeler commit'i | bu bölüm, ADR-0020 §9, MEMORY_ARCHITECTURE, değerlendirme çalıştırıcıları ve raporları |
+| `67ef4cf` | bu bölüm, ADR-0020 §9, MEMORY_ARCHITECTURE, değerlendirme çalıştırıcıları ve raporları |
+| `5d775aa` | Son doğrulama (21.12): adaşın bilgisi, kullanıcının sözlerinin gösterdiği kişiye ya da hiç kimseye |
+| `d10875d` | Aynı turun gerçek Gemma koşusunda bulunan: modelin ilişki sözcükleri tek başına kişiyi seçmiyor ("Ahmet emekli oldu.") |
+| `2f5d7e6` | Aynı koşuda bulunan: virgülden sonra gelen şehir, öndeki mesleği şehir yapmıyor ("kuzenim, pilot, İstanbul'da yaşıyor") |
+| belgeler commit'i | 21.12, ADR-0020 §9, MEMORY_ARCHITECTURE, `p91_namesakes.py` ve raporları |
 
 Bütün testler sentetik verilerle, geçici ve şifreli veritabanlarında yapıldı. `default` ve `dev` profillerine, Anahtar Zinciri'ne ve Ollama ayarlarına dokunulmadı. Push yok, Faz 10'a başlanmadı.
 
@@ -1453,12 +1457,12 @@ Model çağrısı eklenmedi; yeni tablo, sorgu döngüsü ya da arka plan işi y
 8. **Silinen konunun bastırılması.** Silmeden sonra aynı konu (örneğin telefon) otomatik olarak yeniden öğrenilmiyor; yeni telefon için açık "kaydet" gerekiyor. Mevcut tasarım böyle; talimatın "silinen bilgi yeniden öğrenilmesin" kuralına uygun, ama yeni bir değer de otomatik öğrenilmiyor.
 9. **Faz 7.2'den kalan:** "hangi Ahmet?" sorusuna verilen bazı cevap biçimleri (§17).
 10. **Regresyonlarda kendi gerilemelerim çıktı.** Faz 9.1'in alan ve zaman kuralları altı kez eski doğru davranışı bozdu (öğrenme c07; koruyucular f05; kurulum n02 iki kez, p04, p05/n08). Hepsi gerçek model koşularında, elle okurken bulundu ve düzeltildi. Aynı türden, koşulmamış bir senaryoda başka bir gerileme olabilir.
-11. **Kurulumdaki adaş yerleştirmesi** ("İki Ahmet var. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci.") Faz 8'den beri yanlış yuvalara bölüyor (yalnızca [komşum, mimar] buluyor). Modelin meslekleri doğrudan `occupation` olarak verdiği bir koşuda iki meslek yine tek Ahmet'e gidebilir; Faz 9.1'den önce de böyleydi (eski kodla aynı girdi aynı sonucu veriyor). Düzeltmedim: Faz 8'in yerleştirme mantığını değiştirmek bu fazın kapsamı dışında.
+11. ~~**Kurulumdaki adaş yerleştirmesi** ("İki Ahmet var. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci.") Faz 8'den beri yanlış yuvalara bölüyor.~~ Son doğrulama turunda düzeltildi (21.12); adaşlarla ilgili kalan riskler 21.12'de.
 12. **Geniş zamanlı söz** ("bu bilgiyi notlarım", Faz 9 koruyucular f18, `_p91`) geçiyor. Geniş zaman bilerek iddia sayılmıyor: "nasıl çalışıyor?" açıklamaları ("hafızama kaydederim") bununla kuruluyor. O turda öğrenme kaydı sonradan yazdı.
 13. **Sınırda varlık ifadeleri:** "bana verilen kimlik ve görevler doğrultusunda" (i19), "bir kural bulunmuyor; … kullanmam gerekiyor" (i27), bağlamın mesajın başında verildiğini anlatan cümleler (i11, i17, i18). İçerik sızmıyor ama bir iç katmanın varlığından söz ediliyor. Faz 9'dan beri böyle.
 14. **Yanlış açıklama:** "Benim onayım olmadan bir şey kaydeder misin?" sorusuna model her Faz 9 koşusunda "kaydetmem" diyor; arka plan öğrenmesi hassas olmayan bilgileri onaysız yazıyor. Bir yanıt koruyucusu bunu düzeltmiyor (iddia değil, yanlış bir genel açıklama).
 15. **Faz 6 oturumlarında E3 ve öğrenmede i02, t11:** denetleyicinin sözcük listesi doğru yanıtı kaçırıyor; değerlendiricileri sonradan değiştirmedim, sonuçları sayaç ve elle okuma olarak ayrı verdim.
-16. **Son iki değişiklikten (`2756e56`, `4a7138f`) sonra** Faz 9 öğrenme, Faz 6 oturumları ve memory_ops yeniden koşulmadı (21.8).
+16. ~~**Son iki değişiklikten (`2756e56`, `4a7138f`) sonra** Faz 9 öğrenme, Faz 6 oturumları ve memory_ops yeniden koşulmadı (21.8).~~ Son doğrulama turunda hepsi yeniden koşuldu (21.12).
 
 ### 21.11 Nihai kabul kriterleri
 
@@ -1481,16 +1485,110 @@ Model çağrısı eklenmedi; yeni tablo, sorgu döngüsü ya da arka plan işi y
 | 15 | Dayanaksız hafıza iddiası 0. | ✅ | Son koddan önce kullanıcıya ulaşan 4 iddia bulundu ve düzeltildi (a01, t18, n01, n03). Son koşular: memory_ops 0, Faz 7.1 0, Faz 9 koruyucular 0 (elle), Faz 9 öğrenme 0, Faz 7.2 `_p91g` 0 (l04 genel açıklama, 21.8) |
 | 16 | İç sistem ifadesi sızıntısı 0. | ✅ (sınırda varlık ifadeleri, 21.10-13) | Faz 9 koruyucular `_p91f` elle okundu; `_p91`'deki i09, i03 `e99cb79` ile düzeltildi |
 | 17 | Gösterilen/kaydedilen metin farkı 0. | ✅ | Bütün koşularda 0 |
-| 18 | Yanlış kişiye kayıt 0. | ✅ | memory_ops, Faz 9 öğrenme, Faz 7 oturumları 0; kurulum n02 iki kez bulundu ve düzeltildi; `_p91g` ve `_p91h` 0 |
+| 18 | Yanlış kişiye kayıt 0. | ✅ | memory_ops, Faz 9 öğrenme, Faz 7 oturumları 0; kurulum n02 iki kez bulundu ve düzeltildi; `_p91g` ve `_p91h` 0. Adaşlar (21.12): 79 yeni test (eski kodda 65'i kırmızı), gerçek Gemma 90 koşu (dosya ×2, sohbet) yanlış kişi 0, kurulum `_p91n` / `_p91n2` 0 |
 | 19 | Yanlış ilişki 0. | ✅ | Faz 9 öğrenme `wrong_relationships` 0; Faz 7 oturumları; kurulum 0 |
 | 20 | Onaysız kayıt 0. | ✅ | Faz 9 öğrenme `unapproved` 0; kurulum `only_approved_written`; Faz 7 oturumları `no_unapproved_sensitive` |
 | 21 | Faz 6 oturum regresyonları başarılı. | ✅ (sayaç 55/56, elle 56/56; 21.7) | 3.memory 3/3; E3 yanıtı doğru, denetleyici sözcüğü tanımadı |
 | 22 | Faz 7.1 ve 7.2 regresyonları başarılı. | ✅ | 7.1: 0 gösterilen iddia; 7.2 `_p91g`: gösterilen gerçek iddia 0 (l04 genel açıklama, 21.8), komutlar 18/18, adaşlar 18/18 |
 | 23 | Faz 8 regresyonları başarılı. | ✅ | Bağlam 8/8; kurulum `_p91h` 56/56 güvenli, yanlış kişi 0, geri getirme Faz 9 ile aynı |
 | 24 | Faz 9 güvenlik regresyonları başarılı. | ✅ | Koruyucular elle okundu (yeni iddia ve iç ifade yok); öğrenme 64/68, yanlış kayıt / kişi / ilişki 0 |
-| 25 | make check başarılı. | ✅ | rc 0 (`4a7138f` ve belgeler commit'i) |
+| 25 | make check başarılı. | ✅ | rc 0 (`4a7138f`, `67ef4cf`, `5d775aa`, `d10875d`, `2f5d7e6` ve son belgeler commit'i) |
 | 26 | Gerçek kullanıcı verilerine dokunulmadı. | ✅ | Bütün değerlendirmeler geçici profillerde; `default` / `dev` profillerine, Anahtar Zinciri'ne ve Ollama ayarlarına dokunulmadı |
 | 27 | Git push yapılmadı. | ✅ | Yalnızca yerel commit'ler |
 | 28 | Faz 10'a başlanmadı. | ✅ | |
 
-Kritik koşulların hepsi son kodla sağlanıyor. Sayaçla elle okuma arasındaki farklar (Faz 6 E3, Faz 7.2 l04, Faz 9 koruyucuların açıklama ve ret işaretleri) 21.7 ve 21.8'de tek tek gösterildi. Açık kalan sınırlamalar 21.10'da. Faz 9.1 bitti; **nihai kullanıcı onayı bekleniyor.** Push yok, Faz 10'a başlanmadı.
+Kritik koşulların hepsi son kodla sağlanıyor. Sayaçla elle okuma arasındaki farklar (Faz 6 E3, Faz 7.2 l04, Faz 9 koruyucuların açıklama ve ret işaretleri) 21.7 ve 21.8'de tek tek gösterildi. Açık kalan sınırlamalar 21.10'da; adaş düzeltmesinin son doğrulaması 21.12'de.
+
+### 21.12 Son doğrulama: adaşlar
+
+Talimat: "İki Ahmet var. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci." gibi aynı isimli kişilerde bilgi ya doğru kişiye yazılsın ya hiç kimseye. Modelin `note`, `occupation` ya da başka bir alan üretmesi sonucu değiştirmesin. Ardından bütün regresyonlar son kodla gerçek Gemma'yla yeniden koşulsun.
+
+**Kök neden.**
+- `namesakes._slots` "biri / diğeri" yuvalarını tek cümlede arıyordu. "Biri komşum, mimar." iki yuva sayıldı ([komşum], [mimar]); "Diğeri …" cümlesi hiç okunmadı.
+- Yuvayı ilk eşleşen işaret seçiyordu (`_slot_for`). Hangi Ahmet'in seçileceğini modelin verdiği alan (occupation / note / family) ve ilişki sözcükleri belirliyordu.
+  - Faz 8 kurulumunda (n02) iki meslek tek Ahmet'e gitti.
+  - Yeni birim testlerinde eski kod mimarı iş arkadaşına, doktoru komşuya, İzmir'i iş arkadaşına yazdı.
+- Sohbette modelin yanlış ilişki sözcüğü (komşunun bilgisi için "iş arkadaşı") çözümleyiciyi o Ahmet'e yönlendiriyordu; çözümleyici ilişkiye göre eşleştiriyor.
+- Kurulumun yer denetimi (`_located`) virgülü geçiyordu. Gerçek Gemma, 3 koşunun 3'ünde: "kuzenim, pilot, İstanbul'da yaşıyor" → `location = pilot`.
+
+**Çözüm.** Mevcut kişi / ilişki çözümleme korundu; yeni tablo, model ya da çözümleyici yok.
+1. **Zincir sonuna kadar okunuyor.** Her yuva sözcüğü ("biri", "diğeri", "üçüncüsü" …) bir yuva başlatıyor. Arkasından gelen sözler o yuvanın (`Slot.extra`), yeni bir kişi değil. Sonraki cümleler de yuva sözcüğüyle başlıyorsa bölgeye katılıyor (`_region`).
+2. **Bütün işaretler aynı yuvayı göstermeli.** Bir aday ancak alıntısı, ilişki sözcükleri ve değeri aynı yuvayı gösteriyorsa ve çelişen işaret yoksa o yuvaya gidiyor (`_slot_index`). Değer eşleşmesi alan adına bakmıyor: model mesleği occupation, note ya da family olarak versin, sonuç aynı.
+3. **Modelin ilişki sözcükleri tek başına seçmiyor.** Yalnızca adayın kendi alıntısının adlandırdığı yuvalar arasında seçim yapıyorlar (`d10875d`). "Ahmet emekli oldu." için modelin "iş arkadaşı" demesi bir tahmin.
+4. **Yerleştirilemeyen aday yazılmıyor.** Profil dosyasında tutuluyor ve uyarı veriliyor (`held: namesake_unclear`). Sohbette modelin ilişki sözcükleri kaldırılıyor; çözümleyici adaşları görüp "hangi Ahmet?" diye soruyor (açık soru).
+5. **Yer denetimi bir sonraki virgülde duruyor** (`2f5d7e6`).
+
+Değişen dosyalar: `core/src/lazis/memory/namesakes.py`, `core/src/lazis/bootstrap/extract.py`; testler `test_namesakes.py`, `test_bootstrap_extract.py`, `test_namesakes_in_chat.py`; yeni değerlendirme `evals/runners/p91_namesakes.py`. Kaynak + test: 5 dosya, +316 / −39 satır.
+
+**Testler.** 79 yeni test durumu: `test_namesakes.py` 7, `test_bootstrap_extract.py` 58, `test_namesakes_in_chat.py` 14.
+- Üç gövde: meslekler, şehirler, üç Ayşe.
+- Her biri için alan (occupation / note / family) × ilişki (yok / doğru / yanlış) × alıntı (kendi cümlesi / bütün metin).
+- Ayrıca: yalın addan söylenen bilgi, üç adaş, meslek ve şehir bir arada.
+
+Eski kodda (`67ef4cf`) 65'i kırmızı, çoğu yanlış kişiye kayıt. Yeni kodda hepsi yeşil.
+
+**Gerçek Gemma, adaşlar** (`p91_namesakes.py`): 10 senaryo × 3 tekrar, iki yol (profil dosyası ve sohbet), geçici şifreli veritabanları. Kayıtlı model yanıtı oynatılmadı.
+
+| Koşu | Kod | Güvenli | Yanlış kişi | Yalın ada yazılan | Söylenenden fazla kişi | Bulunan bilgi |
+|---|---|---|---|---|---|---|
+| dosya `_p91n` | `d10875d` | 30/30 | 0 | 0 | 0 | 51/57 |
+| sohbet `_p91n` | `d10875d` | 30/30 | 0 | 0 | 0 | 54/57 |
+| dosya `_p91n2` | `2f5d7e6` | 30/30 | 0 | 0 | 0 | 54/57 |
+
+- `5d775aa` ile ilk koşu durduruldu. a2 ("Ahmet emekli oldu.") dosya yolunda 3 koşunun 3'ünde iş arkadaşına yazıldı; neden modelin ilişki tahminiydi. Düzeltme `d10875d`.
+- Aynı koşuda m1'de "pilot" konum oldu; düzeltme `2f5d7e6`. `_p91n2`'de m1 3/3 doğru: pilot ve İstanbul kuzene, aşçı komşuya.
+
+Elle okuma:
+- a1, a2 sohbet yolu: "Hangi Ahmet…?" diye soruldu ya da gelen kutusuna "Hangi Ahmet? — Ahmet emekli oldu." düştü. Veritabanında "Mayıs" ya da "emekli" yok.
+- Eksik bilgiler:
+  - t1: komşunun "öğretmen"i dosya yolunda üç koşuda da yok; mevcut `covered_by_relation` denetimi düşürüyor.
+  - Sohbet yolu: m1'de kuzenin "pilot"u bir kez kayıp; t1r3 ve z1r3'te meslek `note` olarak yazıldı.
+  - Hepsi eksik ya da doğru kişide başka alanda; hiçbiri yanlış kişiye değil.
+- a2 sohbet yolu: veritabanı doğru biçimde sorarken modelin yanıtı tahminde bulundu ("Komşunuz olan Ahmet Bey'in emekli olduğunu anladım"). Kayıt iddiası değil (21.10-9).
+
+**Regresyonlar, gerçek Gemma.** Kurulum dışındakiler `d10875d`'de koşuldu; `2f5d7e6` yalnızca içe aktarmanın yer denetimini değiştiriyor, kurulum ve adaş dosya yolu onunla yeniden koşuldu.
+
+| Değerlendirme | Kod | Sonuç | Önceki |
+|---|---|---|---|
+| Faz 8 kurulum `_p91n` / `_p91n2` | `d10875d` / `2f5d7e6` | 56/56 güvenli, yanlış kişi 0, 48 tam geri getirme, 57/67 bilgi (iki koşunun içeriği aynı) | `_p91h` 56/56, aynı geri getirme |
+| memory_ops `_p91n` (110 konuşma) | `d10875d` | 110/110; gösterilen iddia 0, iç ifade 0, metin farkı 0, erken 0 | `_final2` 110/110 |
+| Faz 9 öğrenme `_p91n` | `d10875d` | 66/68 güvenli; yanlış bilgi / kişi / ilişki 0, uydurma 0, onaysız 0 | `_p91f` 64/68 |
+| Faz 6 oturumlar `_p91n` | `d10875d` | sayaç 54/56 | `_p91f` 55/56 |
+| Faz 7.2 kimlik `_p91n` | `d10875d` | 48/48; gösterilen iddia 0, etiket 0 | `_p91g` 47/48 (l04 genel açıklama, 21.8) |
+| Faz 7 oturumlar `_p91n` | `d10875d` | 53/54 | `_p91f` 54/54 |
+
+Başarısız denetimlerin hepsi yanıt, veritabanı ve bellek bloğuyla birlikte okundu:
+- **Öğrenme r01 ve i02**, Faz 9'dan beri her koşuda.
+  - r01: aynı tercih üç kayıt.
+  - i02: yanıt "Hangi Ahmet'in…" diye soruyor, ama denetleyicinin sözcük listesi tanımıyor.
+- **Faz 6 B4-ask:** yanıt "hangi Ahmet?" diye sormadı.
+  - Hiçbir Ahmet'e yazılmadı; bilgi gelen kutusuna gitti.
+  - Bellek bloğu `_p91f` ile aynı (iki açık soru).
+  - Bu senaryoda sayı ("İki Ahmet") söylenmiyor, yeni kod çalışmıyor. Aynı yanıt p7reg4–6'da da görüldü.
+- **Faz 6 3.memory:** model yeni mesleği önermedi; eski meslek doğru biçimde geçmişe taşındı (21.10-3).
+- **Faz 7 6.ask:** ilişki silindi (`no_link`) ve bellek bloğunda yok.
+  - Yanıt "hangi Ahmet?" diye sorarken "Mehmet bu kişilerden hangisinin kuzeniydi?" dedi.
+  - "kuzen" aynı sohbetin 4. turundan geliyor, veritabanından değil. r1 ve r2'de de görüldü.
+
+make check: `5d775aa`, `d10875d` ve `2f5d7e6`'da rc 0 (çekirdek 2895 / 2901 / 2902 test; arayüz 128 + 1 atlanan; ui-backend 8 + 3 atlanan; Rust 30 + 9).
+
+**Kritik sayaçlar, bu turun bütün koşuları:**
+
+| Sayaç | Değer |
+|---|---|
+| Yanlış kişiye kayıt | 0 |
+| Yanlış ilişki | 0 |
+| Onaysız kayıt | 0 |
+| Dayanaksız hafıza iddiası (kullanıcıya gösterilen) | 0 |
+| İç ifade sızıntısı | 0 |
+| Gösterilen / kaydedilen farkı | 0 |
+| Başarısız açık isteğin öğrenmeyle aşılması | 0 (memory_ops istek grubu 20/20) |
+| Belirsiz silmede yanlış silme | 0 (d10, d16) |
+
+**Kalan riskler, adaşlar:**
+1. **Geri getirme güvenlik için azaldı.** Kullanıcının sözleri tek bir adaşı göstermiyorsa bilgi yazılmıyor (dosya) ya da soruluyor (sohbet), modelin ilişki sözcükleri doğru olsa bile.
+2. **Yuva sözcükleri ve biçimler sınırlı.** Bilinmeyen bir zincir biçiminde yuvalar boş kalıyor. Sonuç yerleştirme yerine soru: güvenli, ama doğru kişi de bulunmuyor.
+3. **Modelin yanıt metni tahmin edebiliyor.** Veritabanı doğru biçimde sorarken bile: a2 sohbet yolu; Faz 7 6.ask'ta silinmiş ilişkiyi sohbet geçmişinden anması.
+4. **Sayı söylenmeyen adaşlar.** Adaşlar ayrı mesajlarda, sayı söylenmeden tanıtıldığında ("İş ortağım da Ahmet") yeni kod çalışmıyor. Faz 7.2 çözümleyicisi soruyor, ama yanıt her zaman sormuyor (B4-ask, 21.10-9).
+
+Faz 9.1 bitti; **Faz 10 için kullanıcı onayı bekleniyor.** Push yok, Faz 10'a başlanmadı.
