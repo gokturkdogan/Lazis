@@ -57,7 +57,7 @@ Every knowledge write is one change set with per-row history (P1 `UnitOfWork`). 
 
 ### P6.3 Predicates
 
-36 predicates in `registry.py` (profile, devices, preferences, time-bound, sensitive, projects, `relationship`, `note`). `single` predicates have one current value per subject (a new value needs a change signal, else the user is asked); `multi` predicates accumulate. `pinned` predicates (`preferred_name`, `communication_preference`) are recalled for every message. Sensitivity is a floor: `health`, `finance`, `contact`, `address` are always sensitive.
+37 predicates in `registry.py` (`age` since Phase 9.1, set from the user's words only; profile, devices, preferences, time-bound, sensitive, projects, `relationship`, `note`). `single` predicates have one current value per subject (a new value needs a change signal, else the user is asked); `multi` predicates accumulate. `pinned` predicates (`preferred_name`, `communication_preference`) are recalled for every message. Sensitivity is a floor: `health`, `finance`, `contact`, `address` are always sensitive.
 
 ### P6.4 Learning (automatic extraction)
 
@@ -430,6 +430,22 @@ Decision record: [ADR-0020](adr/0020-advanced-learning.md). Report: [PHASE_9_REP
 | `conversation/disclosure.py` | removes internal labels and LAZIS's own instructions cited as a source or given to it ("bana sağlanan kurallar", "sistemin sunduğu hafıza notları", "programcılarım bana … söylediler"); a citation frame alone, otherwise the sentence; a reply of nothing else → one neutral sentence. `asks_instructions(message)`: when the user asks about the instructions, sentences are held whole, its own principles ("ilkelerim") count as its instructions, enumerations and everything after an introduced instruction are dropped, the reply ends with the neutral sentence; refusals and denials stay |
 | `memory/claims.py` | as Phase 7.1, plus: "kayıt aldım", the user's records and its system as the place ("bilgilerinize ekledim", "sistemime ekledim"), after a statement what the user told as the value or object ("tercihinizi … olarak güncelledim"), converbs claim what the main verb claims (when one of the two acts happened, only the other is negated: "düzeltmeden … not ettim", "silip … kaydetmedim"), adopting a value ("esas alıyorum", "güncel tutacağım") is an update or a save, act verbs held in every turn, a second check after the rewording (fail closed); `Policy.memory_talk` (the user speaks of the memory), `Policy.explaining` (a general how/why question); a plain save does not allow "güncelledim" |
 | `memory/commands.py` | an explicit request is `corrected` only when something stored was superseded or retracted |
+
+**Memory operations that agree with the database (Phase 9.1, ADR-0020 §9):**
+
+| Module | Does |
+|---|---|
+| `memory/commands.py` | `learnable_part`: what learning may read of a message with an explicit request (the request's sentences left out; nothing when a request sentence names nothing itself). `asks_if_saved` / `saved_from` / `learning_waits` / `saved_notice`: "Az önce kaydettin mi?" from the evidence table. `already_saved`: a failed bare request about a stored fact. `forget_target`: the user's words pick what to forget (a field, or the records with the words; several → asked; someone named is never the user; a name with an open "which one?" is asked about). A correction that superseded nothing says the old value stands (`Outcome.still`); its new value takes the corrected profile field. `tells_something`: every statement may be learned, so its reply may not claim a write |
+| `conversation/learning.py` | targets are `learnable_part` of each message; a job with nothing left is `skipped` (`explicit_request`) |
+| `ConversationEngine._memory_request` | skips the job when the request leaves nothing to learn, whatever its outcome; a bare request takes the previous message's job before the model call |
+| `memory/extraction.py` | `fit_field`: age → `age`; `family` only with words of family (else a city, a known job word as `occupation`, or a note; the value says whose); a workplace, a visit, or being at a place in a message about work or leaving a job never a home city (held back; learning only, `validate(request=True)` for explicit requests); a person's job word as a note or as `family` → `occupation` unless the message names several people of that name (then it stays a note); someone else's `family` value that would become a note is held back unless it is in the user's words; in a profile file someone else's `family` value is left to the import's own check (`bootstrap.extract._checked_predicate`); "çalıştığımı" is first person |
+| `memory/refine.py`, `memory/temporal.py` | a negated job verb ends the job (`denied_as_verb`), leaving in another ending or person (`left`, `occupation_stem`), a leaving given as the value is past (`is_leaving`), "güncelle" is a change word, "ayrıca / … de" a second current job (`said_as_also` → `Candidate.also`) |
+| `service._apply_past` | a leaving given as the value ends the stored job it names and is not written; "doktorluk" = "doktor" (`_same_job`) |
+| `memory/claims.py` | "… kullanacağım" with a lasting time, "akılda tutacağım" are save claims; records without a possessive ("kayıtlara / notlara / hafızaya ekledim") are a memory place |
+| `conversation/disclosure.py` | rules set for it without "bana" ("belirlenen kurallar", with first person in the sentence), principles given ("Bana … ilkeler … verildi") are references; the stream holds the participles |
+| `memory/refine.py` `said_as_also` | a case ending is not "da / de" ("Kervan'da çalışıyorum") |
+| `service.apply_one`, `consolidation.plan` | values written in one batch never conflict; `also` → a second current value of a single-valued field |
+| `registry` | `age` (single, personal; in `extraction.NOT_IN_PROMPT`) |
 
 ---
 

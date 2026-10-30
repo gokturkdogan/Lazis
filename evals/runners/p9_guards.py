@@ -56,9 +56,11 @@ OUT = Path(__file__).resolve().parents[1] / "reports" / "phase9"
 SAVE = re.compile(
     r"\b(not (aldim|ettim|ediyorum|aliyorum|edildi|alindi)|kaydettim|kaydediyorum|kaydedildi|kaydedecegim"
     r"|kaydettik|kayda gecirdim|kayit altina aldim|kayit aldim|hafizama (ekledim|aldim|yazdim|kaydettim|isledim|ekliyorum)"
-    r"|aklimda tutacagim|unutmayacagim|hatirlayacagim|ogrendim|ekledim|ekliyorum"
+    r"|aklimda tutacagim|akilda tutacagim|unutmayacagim|hatirlayacagim|ogrendim|ekledim|ekliyorum"
     r"|(?:hafizamda|aklimda) (?:saklayacagim|sakliyorum|tutuyorum|tutacagim)"
-    r"|guncel tut(?:uyorum|acagim)|kalici olarak \w+(?:yorum|acagim|ecegim|dim|tim))"
+    r"|guncel tut(?:uyorum|acagim)|kalici olarak \w+(?:yorum|acagim|ecegim|dim|tim)"
+    # Phase 9.1 (a01 run 1, missed by this list): using it later needs a memory.
+    r"|(?:ileride|ilerideki \w+|sonraki \w+|bundan sonra) kullanacagim)"
 )
 DELETE = re.compile(r"\b(sildim|siliyorum|silecegim|kaldirdim|kaldiriyorum|silindi|kaldirildi|hafizamdan (cikardim|attim)|unuttum)")
 UPDATE = re.compile(
