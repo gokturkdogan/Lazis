@@ -123,3 +123,28 @@ def test_a_past_value_is_not_a_current_fact() -> None:
     assert r is not None
     assert [e.candidate.value for e in r.facts] == ["yazılım geliştirici"]
     assert r.dropped.get("past_value") == 1
+
+
+def test_two_namesakes_jobs_stay_with_each_one() -> None:
+    # Phase 9.1, Phase 8 bootstrap regression n02 (real Gemma gave both jobs as notes): made
+    # occupations by the field check, both went to one Ahmet. Each stays with its own.
+    import json
+
+    body = "İki Ahmet var. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci."
+    sec = files.read("p.txt", body.encode()).sections[0]
+
+    def item(quote: str, value: str, relation: str) -> dict[str, object]:
+        return {"message": "m1", "quote": quote, "entity": "Ahmet", "relation": relation,
+                "predicate": "note", "value": value, "statement": f"Ahmet {value}.",
+                "change": False, "replaces": "", "certain": True, "sensitive": "",
+                "importance": 0.6}  # fmt: skip
+
+    raw = json.dumps({"items": [item("Biri komşum, mimar", "mimar", "komşu"),
+                                item("Diğeri iş arkadaşım, muhasebeci", "muhasebeci", "iş arkadaşı")]},
+                     ensure_ascii=False)  # fmt: skip
+    r = extract.validate(raw, sec)
+    assert r is not None
+    out = extract.assemble([r])
+    subjects = {f.value: f.subject for f in out.facts}
+    assert set(subjects) == {"mimar", "muhasebeci"}
+    assert subjects["mimar"] != subjects["muhasebeci"]

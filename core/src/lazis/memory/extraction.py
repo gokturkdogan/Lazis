@@ -687,6 +687,7 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
         and predicate == "note"
         and len(text.words(value)) <= 3
         and any(w.startswith(_OCCUPATIONS) for w in text.words(value))
+        and not _counted(name, message)
     ):
         return ("occupation", value)  # "Komşum Ahmet doktor" as a note "doktor" (run 1, t15)
     if predicate == "family":
@@ -706,6 +707,17 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
         # lives — and whether it is a company or a city is not known: held back.
         return ("", "")
     return None
+
+
+def _counted(name: str, message: str) -> bool:
+    """The message itself names several people of this name ("İki Ahmet var. Biri komşum,
+    mimar. Diğeri iş arkadaşım, muhasebeci."): which one a job is, is left to the namesake
+    planner as the model gave it (Phase 9.1, Phase 8 bootstrap regression n02: both jobs, made
+    occupations here, went to one Ahmet)."""
+    from lazis.memory import namesakes  # namesakes imports this module
+
+    key = text.name_key(name) if name else ""
+    return bool(key) and any(g.key == key for g in namesakes.stated(message).groups)
 
 
 def _relative_value(statement: str) -> str:
