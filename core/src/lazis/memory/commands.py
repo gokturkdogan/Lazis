@@ -541,11 +541,13 @@ def apply_items(
     from lazis.memory.orchestrator import extraction_context
 
     known = extraction_context(conn, [target]).known
-    checked = extraction.validate(cmd.items, [target])
+    checked = extraction.validate(cmd.items, [target], request=True)
     if cmd.action == "remember" and not checked.accepted and cmd.items:
         # An explicit request is not dropped for a wrong predicate: the user's words (the
         # quote is still checked) are kept as a note about the same subject.
-        notes = extraction.validate([{**i, "predicate": "note"} for i in cmd.items], [target])
+        notes = extraction.validate(
+            [{**i, "predicate": "note"} for i in cmd.items], [target], request=True
+        )
         if notes.accepted:
             notes.dropped.update({f"as_note_{k}": v for k, v in checked.dropped.items()})
             checked = notes
@@ -681,7 +683,7 @@ def _users_words_as_note(conn: Connection, message: str, message_id: str,
     item = {"message": "m1", "quote": content, "entity": "", "relation": "", "predicate": "note",
             "value": content, "statement": f"Kullanıcının notu: {content}.", "change": False,
             "replaces": "", "certain": True, "sensitive": "", "importance": 0.6}  # fmt: skip
-    checked = extraction.validate([item], [Target("m1", message_id, message)])
+    checked = extraction.validate([item], [Target("m1", message_id, message)], request=True)
     if not checked.accepted:
         return []
     report = service.apply_candidates(

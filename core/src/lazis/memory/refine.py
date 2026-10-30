@@ -235,7 +235,9 @@ _MIN_STEM = 5
 def said_as_also(message: str, value: str) -> bool:
     """ "Yazılım geliştiricisiyim, ayrıca eğitmenlik yapıyorum" for "eğitmen" (the cue comes
     before it), "Eğitmenlik de yapıyorum" (right after it) — not for the first job."""
-    words = text.words(message)
+    # A name keeps its case ending: "Kervan'da çalışıyorum" is not "Kervan da" (Phase 9.1,
+    # Phase 9 learning regression t08 / c07).
+    words = text.words(re.sub(r"['’`´]", "", message))
     vw = text.words(value)
     if not vw:
         return False

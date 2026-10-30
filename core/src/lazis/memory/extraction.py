@@ -429,13 +429,15 @@ def validate(
     context: Sequence[str] = (),
     unsettled: Collection[str] = (),
     profile_file: bool = False,
+    request: bool = False,
 ) -> Validation:
     """``context``: recent user messages before the targets — a person or project named
     there may be referred to without a name ("o restoran açmış"). ``unsettled``: name keys
     with an open "which Ahmet?" question — relation words found only in earlier messages do
     not settle it (the user has to say it now). ``profile_file``: the targets are sections of
     the user's own profile file (Phase 8) — written about the user, so "Meslek: analist" needs
-    no first-person word to be the user's."""
+    no first-person word to be the user's. ``request``: the items come from an explicit
+    request (a correction puts its value in the field it corrects, not here)."""
     out = Validation()
     by_tag = {t.tag: t for t in targets}
     context_words = text.words(" ".join(context))
@@ -529,8 +531,9 @@ def validate(
         # from the model ("34 yaşındayım" was family, "Ece Bursa'da yaşıyor" family,
         # "Atlas'ta çalışıyorum" a city).
         fitted = fit_field(
-            pred.key, value, quote, statement, about_person=ref is not None, name=name
-        )
+            pred.key, value, quote, statement, about_person=ref is not None, name=name,
+            request=request, message=target.text,
+        )  # fmt: skip
         if fitted == ("", ""):
             out.drop("field_unclear")  # held back rather than written in the wrong field
             continue
@@ -637,6 +640,8 @@ _WORK = re.compile(r"\b(?:calis\w*|isyer\w*|is yer\w*|sirket\w*|firma\w*|staj\w*
 _PLACE = re.compile(
     r"([A-ZÇĞİÖŞÜ][\wçğıöşü]+(?: [A-ZÇĞİÖŞÜ][\wçğıöşü]+)?)['’](?:da|de|ta|te|ya|ye|a|e)\b"
 )
+# "Atlas'tayım", "İzmir'deyiz": being at a place (a locative with the copula).
+_BEING_AT = re.compile(r"['’](?:d|t)[ae]y(?:im|iz)\b")
 _VISIT = re.compile(r"\b(?:git(?:tim|ti|tik)|gidiyor\w*|gez(?:dim|di|dik|iyor\w*)|ziyaret\w*|"
                     r"tatil\w*|seyahat\w*)")  # fmt: skip
 _USERS = re.compile(r"^\s*kullan[ıi]c[ıi]n[ıi]n\s+", re.IGNORECASE)
@@ -657,7 +662,8 @@ _OCCUPATIONS = (
 
 
 def fit_field(predicate: str, value: str, quote: str, statement: str, *,
-              about_person: bool, name: str = "") -> tuple[str, str] | None:  # fmt: skip
+              about_person: bool, name: str = "",
+              request: bool = False, message: str = "") -> tuple[str, str] | None:  # fmt: skip
     """The field (and value) the user's words support, when the model's does not fit: an age
     is ``age``; ``family`` without a word of family is a city (``location``) when someone
     lives somewhere, otherwise a ``note``; a ``location`` said with "çalışıyorum" and no word
@@ -669,6 +675,13 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             return ("age", m.group(1) or m.group(2))
     if predicate == "location" and _VISIT.search(q) and not _RESIDENCE.search(q):
         return ("", "")  # a visit ("Atlas adlı restorana gittim") is not where one lives
+    lives = _RESIDENCE.search(f"{q} {text.fold(message)}")
+    if not request and predicate == "location" and _BEING_AT.search(q) and not lives:
+        # "Kervan'dan ayrıldım, artık Atlas'tayım": being at a place is not living there unless
+        # the user speaks of living ("Ankara'da yaşıyordum, şimdi İstanbul'dayım") (Phase 9.1,
+        # Phase 9 learning regression t08). A correction's value takes the field it corrects
+        # instead (commands).
+        return ("", "")
     if (
         about_person
         and predicate == "note"

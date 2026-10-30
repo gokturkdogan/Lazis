@@ -85,6 +85,13 @@ def written(message: str, item: dict[str, Any]) -> list[tuple[str, str, str]]:
          [("location", "İstanbul", "user")]),
         ("İzmir'e taşındım.", proposal("İzmir'e taşındım", "location", "İzmir", "Kullanıcı İzmir'e taşındı."),
          [("location", "İzmir", "user")]),
+        # Being at a place is not living there (real, Phase 9 learning regression t08: the
+        # model's statement says nothing of living either).
+        ("Kervan'dan ayrıldım, artık Atlas'tayım.",
+         proposal("artık Atlas'tayım", "location", "Atlas", "Kullanıcı artık Atlas'ta."), []),
+        ("Artık İzmir'deyim, oraya taşındım.",
+         proposal("Artık İzmir'deyim, oraya taşındım", "location", "İzmir", "Kullanıcı İzmir'e taşındı."),
+         [("location", "İzmir", "user")]),
         ("Yazılım geliştiricisiyim.", proposal("Yazılım geliştiricisiyim.", "occupation", "yazılım geliştiricisi",
                                                "Kullanıcı yazılım geliştiricisi."),
          [("occupation", "yazılım geliştiricisi", "user")]),
@@ -121,3 +128,11 @@ def test_the_extraction_prompt_is_unchanged_by_the_age_field() -> None:
     assert not re.search(r"\bage\b", extraction.predicates_for_prompt())
     enum = extraction.schema()["properties"]["items"]["items"]["properties"]["predicate"]["enum"]
     assert "age" not in enum
+
+
+def test_a_correction_keeps_being_at_for_its_own_field() -> None:
+    # "Kervan bilgisini düzelt: Atlas'tayım." — the request puts it in the field it corrects.
+    item = proposal("Atlas'tayım", "location", "Atlas", "Kullanıcı Atlas'ta.")
+    target = Target("m1", "msg", "Kervan bilgisini düzelt: Atlas'tayım.")
+    assert extraction.validate([item], [target], request=True).accepted
+    assert not extraction.validate([item], [target]).accepted

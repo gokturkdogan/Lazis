@@ -142,6 +142,26 @@ def test_workplaces_over_time(tmp_path: Path, storage: StorageHandle, said: str,
     assert s.values("user", "employer", "superseded") == history
 
 
+def test_a_case_ending_is_no_also(tmp_path: Path, storage: StorageHandle) -> None:
+    # Phase 9 learning regression c07: "Pusula'da" read as "Pusula da" made both current.
+    said = "Pusula'da çalışıyorum."
+    s = converse(tmp_path, storage, [KERVAN, said],
+                 Brain(answers={KERVAN: ([KERVAN_ITEM], []),
+                                said: ([item("Pusula'da çalışıyorum", "employer", "Pusula")], [])}))  # fmt: skip
+    assert s.values("user", "employer") == {"Kervan"}  # not replaced unasked, not added
+    assert [i["type"] for i in s.inbox] == ["conflict"]
+
+
+def test_a_workplace_said_with_also_is_current_next_to_the_first(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    said = "Atlas'ta da çalışıyorum."
+    s = converse(tmp_path, storage, [KERVAN, said],
+                 Brain(answers={KERVAN: ([KERVAN_ITEM], []),
+                                said: ([item("Atlas'ta da çalışıyorum", "employer", "Atlas")], [])}))  # fmt: skip
+    assert s.values("user", "employer") == {"Kervan", "Atlas"}
+
+
 def test_a_friend_who_left_medicine(tmp_path: Path, storage: StorageHandle) -> None:
     first, said = "Komşum Ahmet doktor.", "Ahmet doktorluğu bıraktı."
     s = converse(tmp_path, storage, [first, said], Brain(answers={
