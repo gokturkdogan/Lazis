@@ -491,8 +491,11 @@ def _slot_index(
         signals = [_by_quote(slots, c.quote or ""), _by_type(slots, type_key)]
     else:
         c = item.candidate
-        signals = [_by_quote(slots, c.quote or ""), _by_relation(slots, ref.relation, key),
-                   _by_value(slots, c.value)]  # fmt: skip
+        # The model's relation words choose only among the slots the item's own words name:
+        # "Ahmet emekli oldu." given as the colleague's is the model's guess, not the user's.
+        named = _named(slots, c.quote or "")
+        by_rel = _by_relation(slots, ref.relation, key)
+        signals = [_only(named), by_rel if by_rel in named else None, _by_value(slots, c.value)]
     found = {i for i in signals if i is not None}
     return found.pop() if len(found) == 1 else None
 
@@ -501,9 +504,13 @@ def _only(hits: Sequence[int]) -> int | None:
     return hits[0] if len(hits) == 1 else None
 
 
-def _by_quote(slots: Sequence[Slot], quote: str) -> int | None:
+def _named(slots: Sequence[Slot], quote: str) -> list[int]:
     q = set(text.words(quote)) - _EMPTY
-    return _only([i for i, s in enumerate(slots) if s.words and set(s.words.split()) <= q])
+    return [i for i, s in enumerate(slots) if s.words and set(s.words.split()) <= q]
+
+
+def _by_quote(slots: Sequence[Slot], quote: str) -> int | None:
+    return _only(_named(slots, quote))
 
 
 def _by_type(slots: Sequence[Slot], type_key: str | None) -> int | None:

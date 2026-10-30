@@ -371,26 +371,32 @@ _GIVEN = {"right": ("komşu", "iş arkadaşı"), "none": ("", ""), "wrong": ("i�
 
 
 @pytest.mark.parametrize("field", ["occupation", "note", "family"])
-@pytest.mark.parametrize("relations", ["right", "none", "wrong"])
+@pytest.mark.parametrize(
+    ("relations", "quotes"),
+    [("right", "own"), ("none", "own"), ("wrong", "own"), ("wrong", "whole")],
+)
 def test_each_namesakes_job_goes_to_the_one_named_or_to_none(
-    tmp_path: Path, storage: StorageHandle, field: str, relations: str
+    tmp_path: Path, storage: StorageHandle, field: str, relations: str, quotes: str
 ) -> None:
     # Phase 8 bootstrap n02: "mimar" was read as the second person and both jobs went to one
     # Ahmet. Whatever field or relation words the model gives, a job is written to the Ahmet
     # the user's words name, or to nobody.
     first, second = _GIVEN[relations]
-    items = [item(field, "mimar", "Ahmet mimar.", "Biri komşum, mimar", entity="Ahmet",
-                  relation=first),
-             item(field, "muhasebeci", "Ahmet muhasebeci.", "Diğeri iş arkadaşım, muhasebeci",
-                  entity="Ahmet", relation=second)]  # fmt: skip
+    q1, q2 = (
+        ("Biri komşum, mimar", "Diğeri iş arkadaşım, muhasebeci")
+        if quotes == "own"
+        else (JOBS, JOBS)
+    )
+    items = [item(field, "mimar", "Ahmet mimar.", q1, entity="Ahmet", relation=first),
+             item(field, "muhasebeci", "Ahmet muhasebeci.", q2, entity="Ahmet", relation=second)]  # fmt: skip
     chat(storage, tmp_path, JOBS, memory=extraction({JOBS: (items, TWO_RELS)}))
     found = people(storage)
     assert sorted(r or "" for _, r, _ in found) == ["iş arkadaşı", "komşusu"]  # two, not three
     jobs = {r: sorted(v for _, v in facts_of(storage, i)) for i, r, _ in found}
     assert set(jobs["komşusu"]) <= {"mimar"} and set(jobs["iş arkadaşı"]) <= {"muhasebeci"}
-    if relations != "wrong":
+    if (relations, quotes) != ("wrong", "whole"):  # the quote names the slot
         assert jobs == {"komşusu": ["mimar"], "iş arkadaşı": ["muhasebeci"]}
-    else:
+    else:  # only the model's relation words and the value, disagreeing
         assert jobs == {"komşusu": [], "iş arkadaşı": []}
         assert open_questions(storage) == 2  # "which Ahmet?" for each, nothing guessed
 

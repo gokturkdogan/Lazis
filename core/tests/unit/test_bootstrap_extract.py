@@ -236,7 +236,20 @@ def test_a_namesakes_fact_goes_to_the_one_named_or_to_none(
         assert whose[value].split()[0] in label, (value, label)  # never another namesake
     values = [v for v, _ in placed]
     assert len(values) == len(set(values))
-    if relations != "wrong":
-        assert sorted(values) == sorted(whose)  # nothing lost when the words agree
-    else:
+    if relations == "wrong" and quotes == "whole":
+        # Nothing but the model's relation words and the value to go by, and they disagree.
         assert values == [] and warnings == [f"held: namesake_unclear × {n}"]
+    else:  # the item's own line names its slot: the model's wrong relation words do not count
+        assert sorted(values) == sorted(whose)
+
+
+@pytest.mark.parametrize("relation", ["", "komşu", "iş arkadaşı"])
+def test_a_fact_said_of_the_bare_name_is_held(relation: str) -> None:
+    # Phase 9.1, real Gemma (namesakes a2): "Ahmet emekli oldu." given as the colleague's —
+    # the model's relation words, not the user's, would have picked one of the two.
+    body = "İki Ahmet tanıyorum. Biri komşum, diğeri iş arkadaşım. Ahmet emekli oldu."
+    item = {"message": "m1", "quote": "Ahmet emekli oldu.", "entity": "Ahmet", "relation": relation,
+            "predicate": "occupation", "value": "emekli", "statement": "Ahmet emekli.",
+            "change": False, "replaces": "", "certain": True, "sensitive": "", "importance": 0.6}  # fmt: skip
+    placed, warnings = _placed(body, [item])
+    assert placed == [] and warnings == ["held: namesake_unclear × 1"]
