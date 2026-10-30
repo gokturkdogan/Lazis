@@ -363,3 +363,57 @@ def test_namesakes_the_user_told_apart_are_never_merged(
     )
     assert len(people(storage)) == 2
     assert "farklı kişiler olarak işaretlendi" in outcome_notice(llm, 1)
+
+
+# ----- what is said of each namesake (Phase 9.1) -----------------------------------------------
+JOBS = "İki Ahmet tanıyorum. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci."
+_GIVEN = {"right": ("komşu", "iş arkadaşı"), "none": ("", ""), "wrong": ("iş arkadaşı", "komşu")}
+
+
+@pytest.mark.parametrize("field", ["occupation", "note", "family"])
+@pytest.mark.parametrize("relations", ["right", "none", "wrong"])
+def test_each_namesakes_job_goes_to_the_one_named_or_to_none(
+    tmp_path: Path, storage: StorageHandle, field: str, relations: str
+) -> None:
+    # Phase 8 bootstrap n02: "mimar" was read as the second person and both jobs went to one
+    # Ahmet. Whatever field or relation words the model gives, a job is written to the Ahmet
+    # the user's words name, or to nobody.
+    first, second = _GIVEN[relations]
+    items = [item(field, "mimar", "Ahmet mimar.", "Biri komşum, mimar", entity="Ahmet",
+                  relation=first),
+             item(field, "muhasebeci", "Ahmet muhasebeci.", "Diğeri iş arkadaşım, muhasebeci",
+                  entity="Ahmet", relation=second)]  # fmt: skip
+    chat(storage, tmp_path, JOBS, memory=extraction({JOBS: (items, TWO_RELS)}))
+    found = people(storage)
+    assert sorted(r or "" for _, r, _ in found) == ["iş arkadaşı", "komşusu"]  # two, not three
+    jobs = {r: sorted(v for _, v in facts_of(storage, i)) for i, r, _ in found}
+    assert set(jobs["komşusu"]) <= {"mimar"} and set(jobs["iş arkadaşı"]) <= {"muhasebeci"}
+    if relations != "wrong":
+        assert jobs == {"komşusu": ["mimar"], "iş arkadaşı": ["muhasebeci"]}
+    else:
+        assert jobs == {"komşusu": [], "iş arkadaşı": []}
+        assert open_questions(storage) == 2  # "which Ahmet?" for each, nothing guessed
+
+
+@pytest.mark.parametrize(
+    ("msg", "name", "said", "field"),
+    [
+        ("Üç Ayşe var. Biri kuzenim, doktor. Biri komşum, öğretmen. Diğeri iş arkadaşım, avukat.",
+         "Ayşe", [("Biri kuzenim, doktor", "doktor", "kuzeni"),
+                  ("Biri komşum, öğretmen", "öğretmen", "komşusu"),
+                  ("Diğeri iş arkadaşım, avukat", "avukat", "iş arkadaşı")], "occupation"),
+        ("İki Ahmet var. Biri komşum, İzmir'de yaşıyor. Diğeri iş arkadaşım, Ankara'da yaşıyor.",
+         "Ahmet", [("Biri komşum, İzmir'de yaşıyor", "İzmir", "komşusu"),
+                   ("Diğeri iş arkadaşım, Ankara'da yaşıyor", "Ankara", "iş arkadaşı")], "location"),
+    ],
+)  # fmt: skip
+def test_three_namesakes_and_cities_each_to_their_own(
+    tmp_path: Path, storage: StorageHandle, msg: str, name: str,
+    said: list[tuple[str, str, str]], field: str,
+) -> None:  # fmt: skip
+    items = [item(field, v, f"{name} {v}.", q, entity=name) for q, v, _ in said]
+    chat(storage, tmp_path, msg, memory=extraction({msg: (items, [])}))
+    found = people(storage, name)
+    assert len(found) == len(said)
+    got = {r: [v for _, v in facts_of(storage, i)] for i, r, _ in found}
+    assert got == {label: [v] for _, v, label in said}

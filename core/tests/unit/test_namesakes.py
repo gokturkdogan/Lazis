@@ -94,6 +94,17 @@ GROUPS: list[tuple[str, list[tuple[str, int, list[str]]], set[str]]] = [
     ("Ahmet komşum, aynı zamanda iş arkadaşım.", [], {"ahmet"}),
     ("Kerem hem öğretmen hem yazar.", [], {"kerem"}),
     ("Hem Ahmet hem de Mehmet komşum.", [], set()),
+    # what is said of each slot, in sentences of their own (Phase 9.1, Phase 8 bootstrap n02:
+    # "mimar" was read as the second person and "Diğeri …" was not read)
+    ("İki Ahmet tanıyorum. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci.",
+     [("Ahmet", 2, ["neighbor", "colleague"])], set()),
+    ("İki Ahmet var: biri komşum ve mimar, diğeri iş arkadaşım ve muhasebeci.",
+     [("Ahmet", 2, ["neighbor", "colleague"])], set()),
+    ("Üç Ayşe var. Biri kuzenim, doktor. Biri komşum, öğretmen. Diğeri iş arkadaşım, avukat.",
+     [("Ayşe", 3, ["cousin", "neighbor", "colleague"])], set()),
+    ("İki Zeynep var hayatımda: biri kuzenim, avukat; diğeri eski iş arkadaşım, doktor.",
+     [("Zeynep", 2, ["cousin", "colleague"])], set()),
+    ("İki Ahmet tanıyorum. Biri komşum. Bugün hava güzel.", [("Ahmet", 2, [])], set()),
     # two groups in one message
     ("İki Ahmet var: biri komşum, diğeri kuzenim. İki Ayşe de var: biri teyzem, diğeri arkadaşım.",
      [("Ahmet", 2, ["neighbor", "cousin"]), ("Ayşe", 2, ["aunt_maternal", "friend"])], set()),
@@ -188,3 +199,12 @@ def test_a_person_related_to_himself_is_replaced_by_the_users_words() -> None:
     found, _ = extraction.validate_relations([bad], [Target("m1", "id", msg)], ())
     assert [(e.candidate.source, e.candidate.type, e.candidate.target.name, e.candidate.status) for e in found] == [
         (None, "colleague", "Mehmet", "ended")]  # fmt: skip
+
+
+def test_what_is_said_of_a_slot_stays_with_it() -> None:
+    st = stated("İki Ahmet var. Biri komşum, İzmir'de yaşıyor. Diğeri iş arkadaşım, muhasebeci.")
+    (g,) = st.groups
+    assert [(s.type, s.extra) for s in g.slots] == [
+        ("neighbor", ("izmir", "yasiyor")),
+        ("colleague", ("muhasebeci",)),
+    ]

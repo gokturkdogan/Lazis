@@ -29,7 +29,7 @@ from dataclasses import dataclass, field, replace
 
 from lazis.ids import utc_now_iso
 from lazis.memory import graphstore as gs
-from lazis.memory import relations, text
+from lazis.memory import relations, resolver, text
 from lazis.memory import repository as repo
 from lazis.memory.extraction import Extracted, ExtractedRel
 from lazis.memory.models import USER_ID, EntityRef
@@ -66,6 +66,7 @@ class Slot:
     surface: str  # as written ("iş arkadaşım")
     type: str | None  # a relationship to the user the words name ("colleague"), if any
     label: str | None  # the entity's relation label ("iş arkadaşı", "eski patronu")
+    extra: tuple[str, ...] = ()  # folded words said of it after the slot ("biri komşum, mimar")
 
 
 @dataclass(frozen=True)
@@ -139,16 +140,46 @@ def _slots(region: str, name_key: str, count: int) -> tuple[Slot, ...]:
         pieces.append(body[last : sep.start()])
         last = sep.end()
     pieces.append(body[last:])
+    marks = list(_MARKERS.finditer(folded))
+    if marks:
+        # One slot per slot word, whatever follows it in its piece: "biri komşum, mimar.
+        # Diğeri iş arkadaşım, muhasebeci." is two people, not "komşum" and "mimar" (Phase 9.1:
+        # Phase 8 bootstrap n02 put both jobs on one Ahmet).
+        ends = [m.start() for m in marks[1:]] + [len(body)]
+        pieces = [body[m.end() : e] for m, e in zip(marks, ends, strict=True)]
+        slots = [s for s in (_marked(p, name_key) for p in pieces) if s is not None]
+        return tuple(slots) if len(slots) == count else ()
     slots = [s for s in (slot_of(p, name_key) for p in pieces) if s is not None]
     return tuple(slots) if len(slots) == count else ()
+
+
+def _marked(piece: str, name_key: str) -> Slot | None:
+    """The slot after one slot word: its first part names it ("komşum"), the rest is said of
+    it ("mimar")."""
+    parts = [x for x in re.split(r"[,;.!?]|\bve\b|\bile\b", piece) if x.strip()]
+    for i, part in enumerate(parts):
+        slot = slot_of(part, name_key)
+        if slot is None:
+            continue
+        extra = tuple(
+            w for x in parts[i + 1 :] for w in text.words(x)
+            if w not in _EMPTY and text.name_key(w) != name_key
+        )  # fmt: skip
+        return replace(slot, extra=extra)
+    return None
 
 
 def _region(sentences: Sequence[str], i: int, end: int) -> str:
     """The text after a counted name: the rest of its sentence, and the next sentence when it
     goes on with the slots ("İki Ahmet tanıyorum. Biri komşum, diğeri iş arkadaşım.")."""
     region = sentences[i][end:]
-    if i + 1 < len(sentences) and _MARKERS.match(text.fold(sentences[i + 1].lstrip())):
-        region = f"{region.rstrip(' .!?')}: {sentences[i + 1]}"
+    following: list[str] = []
+    for nxt in sentences[i + 1 :]:  # "Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci."
+        if not _MARKERS.match(text.fold(nxt.lstrip())):
+            break
+        following.append(nxt)
+    if following:
+        region = f"{region.rstrip(' .!?')}: {' '.join(following)}"
     return region
 
 
@@ -230,25 +261,6 @@ def _refs(fact: Extracted | None, rel: ExtractedRel | None) -> list[tuple[str, E
 def _with_user(rel: ExtractedRel, end: str) -> bool:
     other = rel.candidate.target if end == "source" else rel.candidate.source
     return other is None or text.name_key(other.name) in {"kullanici", "ben", "user", ""}
-
-
-def _slot_for(slots: Sequence[Slot], quote: str, type_key: str | None, value: str) -> int | None:
-    """Which slot a candidate is about: its quote, else its relationship type, else its value
-    (an occupation in "biri öğretmen")."""
-    q = set(text.words(quote)) - _EMPTY
-    hits = [i for i, s in enumerate(slots) if s.words and set(s.words.split()) <= q]
-    if len(hits) == 1:
-        return hits[0]
-    if type_key is not None:
-        hits = [i for i, s in enumerate(slots) if s.type == type_key]
-        if len(hits) == 1:
-            return hits[0]
-    v = set(text.words(value))
-    if v:
-        hits = [i for i, s in enumerate(slots) if v & set(s.words.split())]
-        if len(hits) == 1:
-            return hits[0]
-    return None
 
 
 def _existing_for(conn: Connection, key: str, slot: Slot) -> list[str]:
@@ -339,6 +351,27 @@ def _assign(
         )
 
 
+def _unrelate(
+    f_or_r: Extracted | ExtractedRel,
+    end: str,
+    new_f: dict[int, Extracted],
+    new_r: dict[int, ExtractedRel],
+) -> None:
+    if isinstance(f_or_r, Extracted):
+        cur = new_f[id(f_or_r)]
+        assert cur.candidate.entity is not None
+        ref = replace(cur.candidate.entity, relation=None)
+        new_f[id(f_or_r)] = replace(cur, candidate=replace(cur.candidate, entity=ref))
+        return
+    cur_r = new_r[id(f_or_r)]
+    c = cur_r.candidate
+    if end == "source" and c.source is not None:
+        c = replace(c, source=replace(c.source, relation=None))
+    elif end == "target":
+        c = replace(c, target=replace(c.target, relation=None))
+    new_r[id(f_or_r)] = replace(cur_r, candidate=c)
+
+
 def _about(
     key: str, facts: Sequence[Extracted], rels: Sequence[ExtractedRel]
 ) -> list[tuple[Extracted | ExtractedRel, str, EntityRef]]:
@@ -418,6 +451,10 @@ def _plan_group(
         idx = _slot_index(item, end, ref, slots, g.key)
         if idx is None or ids[idx] is None:
             report.unassigned += 1
+            if idx is None and g.slots and ref.relation:
+                # The model's relation words disagree with the user's (Phase 9.1): not
+                # trusted, so the resolver sees the namesakes and asks instead of picking.
+                _unrelate(item, end, new_f, new_r)
             continue
         target = ids[idx]
         assert target is not None
@@ -445,21 +482,54 @@ def _descriptor(item: Extracted | ExtractedRel, end: str, ref: EntityRef, key: s
 def _slot_index(
     item: Extracted | ExtractedRel, end: str, ref: EntityRef, slots: Sequence[Slot], key: str
 ) -> int | None:
+    """The slot the user's words, the relation and the value each point to — only when those
+    that point somewhere agree (Phase 9.1: whatever field the model chose, a fact never goes to
+    a namesake its own words do not name)."""
     if isinstance(item, ExtractedRel):
         c = item.candidate
         type_key = c.type if _with_user(item, end) else None
-        return _slot_for(slots, c.quote or "", type_key, "")
-    c = item.candidate
-    type_key = None
-    if ref.relation:
-        s = slot_of(ref.relation, key)
-        type_key = s.type if s is not None else None
-    value = c.value if c.predicate in ("occupation", "employer", "location") else ""
-    idx = _slot_for(slots, c.quote or "", type_key, value)
-    if idx is None and value:
-        hits = [i for i, s in enumerate(slots) if s.words == text.fold(value)]
-        idx = hits[0] if len(hits) == 1 else None
-    return idx
+        signals = [_by_quote(slots, c.quote or ""), _by_type(slots, type_key)]
+    else:
+        c = item.candidate
+        signals = [_by_quote(slots, c.quote or ""), _by_relation(slots, ref.relation, key),
+                   _by_value(slots, c.value)]  # fmt: skip
+    found = {i for i in signals if i is not None}
+    return found.pop() if len(found) == 1 else None
+
+
+def _only(hits: Sequence[int]) -> int | None:
+    return hits[0] if len(hits) == 1 else None
+
+
+def _by_quote(slots: Sequence[Slot], quote: str) -> int | None:
+    q = set(text.words(quote)) - _EMPTY
+    return _only([i for i, s in enumerate(slots) if s.words and set(s.words.split()) <= q])
+
+
+def _by_type(slots: Sequence[Slot], type_key: str | None) -> int | None:
+    if type_key is None:
+        return None
+    return _only([i for i, s in enumerate(slots) if s.type == type_key])
+
+
+def _by_relation(slots: Sequence[Slot], relation: str | None, key: str) -> int | None:
+    """The candidate's relation words ("komşusu", "iş arkadaşı") against each slot's."""
+    if not relation:
+        return None
+    own = slot_of(relation, key)
+    if own is not None and own.type is not None:
+        return _by_type(slots, own.type)
+    return _only([i for i, s in enumerate(slots)
+                  if s.label and resolver.relation_compatible(relation, s.label)])  # fmt: skip
+
+
+def _by_value(slots: Sequence[Slot], value: str) -> int | None:
+    """A value said of one slot only ("Biri komşum, mimar": "mimar"), or a slot that is the
+    value itself ("biri öğretmen")."""
+    v = set(text.words(value)) - _EMPTY
+    if not v:
+        return None
+    return _only([i for i, s in enumerate(slots) if v & (set(s.words.split()) | set(s.extra))])
 
 
 def _plan_same(

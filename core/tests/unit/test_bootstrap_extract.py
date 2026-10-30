@@ -175,3 +175,68 @@ def test_the_imports_own_check_files_someones_family_value(
     assert r is not None
     out = extract.assemble([r])
     assert [(f.predicate, f.value) for f in out.facts] == [expected]
+
+
+# ----- namesakes: the right one, or none (Phase 9.1) -------------------------------------------
+# Every form of model answer for "İki Ahmet …" files: the field (note / occupation / family /
+# location), the relation words (none, the right ones, wrong ones), the quote (its own line or
+# the whole paragraph). A fact goes to the namesake the user's words name, or is held back —
+# never to another person of the name (Phase 8 bootstrap n02: both jobs on one Ahmet).
+_JOBS = "İki Ahmet tanıyorum. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci."
+_CITIES = "İki Ahmet var. Biri komşum, İzmir'de yaşıyor. Diğeri iş arkadaşım, Ankara'da yaşıyor."
+_THREE = "Üç Ayşe var. Biri kuzenim, doktor. Biri komşum, öğretmen. Diğeri iş arkadaşım, avukat."
+_NAMESAKES = [
+    # (section, name, [(own quote, value, relation the user gave it)], fields)
+    (_JOBS, "Ahmet", [("Biri komşum, mimar", "mimar", "komşu"),
+                      ("Diğeri iş arkadaşım, muhasebeci", "muhasebeci", "iş arkadaşı")],
+     ("note", "occupation", "family")),
+    (_CITIES, "Ahmet", [("Biri komşum, İzmir'de yaşıyor", "İzmir", "komşu"),
+                        ("Diğeri iş arkadaşım, Ankara'da yaşıyor", "Ankara", "iş arkadaşı")],
+     ("location", "note", "family")),
+    (_THREE, "Ayşe", [("Biri kuzenim, doktor", "doktor", "kuzen"),
+                      ("Biri komşum, öğretmen", "öğretmen", "komşu"),
+                      ("Diğeri iş arkadaşım, avukat", "avukat", "iş arkadaşı")],
+     ("note", "occupation", "family")),
+]  # fmt: skip
+_CASES = [
+    (body, name, said, field, relations, quotes)
+    for body, name, said, fields in _NAMESAKES
+    for field in fields
+    for relations in ("none", "right", "wrong")
+    for quotes in ("own", "whole")
+]
+
+
+def _placed(body: str, items: list[dict[str, object]]) -> tuple[list[tuple[str, str]], list[str]]:
+    import json
+
+    sec = files.read("p.txt", body.encode()).sections[0]
+    r = extract.validate(json.dumps({"items": items}, ensure_ascii=False), sec)
+    assert r is not None
+    out = extract.assemble([r])
+    label = {p.key: p.relation or p.description or "" for p in out.people}
+    return [(f.value, label[f.subject]) for f in out.facts], out.warnings
+
+
+@pytest.mark.parametrize(("body", "name", "said", "field", "relations", "quotes"), _CASES)
+def test_a_namesakes_fact_goes_to_the_one_named_or_to_none(
+    body: str, name: str, said: list[tuple[str, str, str]], field: str, relations: str, quotes: str
+) -> None:
+    n = len(said)
+    items = [
+        {"message": "m1", "quote": q if quotes == "own" else body, "entity": name,
+         "relation": {"none": "", "right": rel, "wrong": said[(i + 1) % n][2]}[relations],
+         "predicate": field, "value": v, "statement": f"{name} {v}.", "change": False,
+         "replaces": "", "certain": True, "sensitive": "", "importance": 0.6}
+        for i, (q, v, rel) in enumerate(said)
+    ]  # fmt: skip
+    placed, warnings = _placed(body, items)
+    whose = {v: rel for _, v, rel in said}
+    for value, label in placed:
+        assert whose[value].split()[0] in label, (value, label)  # never another namesake
+    values = [v for v, _ in placed]
+    assert len(values) == len(set(values))
+    if relations != "wrong":
+        assert sorted(values) == sorted(whose)  # nothing lost when the words agree
+    else:
+        assert values == [] and warnings == [f"held: namesake_unclear × {n}"]

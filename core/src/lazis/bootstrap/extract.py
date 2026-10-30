@@ -236,16 +236,26 @@ def _key_for(
     end: str,
     sec: files.Section,
     st: namesakes.Stated,
-) -> str:
+) -> str | None:
+    """The proposed person an item is about; None when the section counts several people of
+    this name and the item's own words do not say which one (Phase 9.1): held back, never put
+    on one of them by guess nor on another person of the name."""
     nk = text.name_key(ref.name)
-    g = next((g for g in st.groups if g.key == nk and g.slots), None)
-    slot = None if g is None else namesakes.slot_index(item, end, ref, list(g.slots), nk)
-    return people.for_ref(ref, sec, st, slot)
+    group = next((g for g in st.groups if g.key == nk), None)
+    if group is not None and group.slots:
+        slot = namesakes.slot_index(item, end, ref, list(group.slots), nk)
+        if slot is None:
+            return None
+        return people.for_ref(ref, sec, st, slot)
+    if group is not None and not ref.relation:
+        return None  # the slots could not be read and nothing else says which one
+    return people.for_ref(ref, sec, st, None)
 
 
 def assemble(results: list[SectionResult]) -> Proposals:
     out = Proposals()
     people = _People(out)
+    held = 0
     for r in results:
         sec = r.section
         st = namesakes.stated(sec.body)
@@ -258,6 +268,9 @@ def assemble(results: list[SectionResult]) -> Proposals:
                 said = extraction.appositive(files.line_text(sec, c.quote or ""), ref.name)
                 ref = replace(ref, relation=said) if said else ref
             subject = USER if ref is None else _key_for(people, ref, e, "entity", sec, st)
+            if subject is None:
+                held += 1
+                continue
             p = out.person(subject) if subject != USER else None
             out.facts.append(ProposedFact(
                 subject=subject, predicate=c.predicate, value=c.value, statement=c.statement,
@@ -272,6 +285,9 @@ def assemble(results: list[SectionResult]) -> Proposals:
             c = e.candidate
             src = USER if c.source is None else _key_for(people, c.source, e, "source", sec, st)
             tgt = _key_for(people, c.target, e, "target", sec, st)
+            if src is None or tgt is None:
+                held += 1
+                continue
             if src == tgt:
                 continue
             # Relations to the user name the person too: keep the user's words as the label.
@@ -283,4 +299,6 @@ def assemble(results: list[SectionResult]) -> Proposals:
                 certain=c.certain, statement=c.statement, section=sec.heading, excerpt=c.quote,
                 line=files.line_of(sec, c.quote or ""),
             ))  # fmt: skip
+    if held:
+        out.warnings.append(f"held: namesake_unclear × {held}")
     return out
