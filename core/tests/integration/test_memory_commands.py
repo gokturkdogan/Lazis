@@ -302,3 +302,18 @@ def test_a_database_write_failure_is_reported_not_claimed(
 )
 def test_statements_get_the_nothing_written_yet_notice(message: str, statement: bool) -> None:
     assert commands.looks_like_statement(message) is statement
+
+
+def test_a_correction_that_changed_nothing_says_the_old_value_stands(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    c = Candidate(predicate="employer", value="Kervan", statement="Kullanıcı Kervan'da çalışıyor.")
+    storage.db.run_sync(
+        lambda conn: service.apply_candidates(conn, [c], source=Source("import"), explicit=True)
+    )
+    # A note only (another field cannot be told): Kervan is still current, and the reply knows.
+    cmd = answer("correct", items=[item("note", "Atlas'ta bir şey var", "Atlas'ta bir şey var.",
+                                        "Atlas")])  # fmt: skip
+    llm, _ = run(storage, tmp_path, lambda r: cmd, "Kervan bilgisini düzelt: Atlas.")
+    notice = last_user(llm.chat_requests[0])
+    assert "Eski bilgi değiştirilmedi" in notice and "Kullanıcı Kervan'da çalışıyor." in notice

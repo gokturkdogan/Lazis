@@ -29,6 +29,12 @@ def unauthorized(text: str, policy: Policy) -> list[str]:
 
 # ----- 1. claims after a statement (learning pending): reworded -------------------------------
 REWORDED = [
+    # Phase 9.1 (shown after a failed save): using it later needs a memory.
+    (
+        "Bu bilgiyi ilerideki konuşmalarımızda kullanacağım.",
+        "Bu bilgiyi ilerideki konuşmalarımızda anladım.",
+    ),
+    ("Bunu sonraki sohbetlerimizde kullanacağım.", "Bunu sonraki sohbetlerimizde anladım."),
     ("Not aldım.", "Anladım."),
     ("Not ettim.", "Anladım."),
     ("Kaydettim efendim.", "Anladım efendim."),
@@ -169,6 +175,8 @@ def test_claims_after_a_statement_are_reworded(reply: str, expected: str) -> Non
 
 # ----- 2. not claims: untouched --------------------------------------------------------------
 UNTOUCHED = [
+    "Bu bilgiyi bu konuşmada kullanacağım.",
+    "Bunu ileride projelerinizde kullanabilirsiniz.",
     "Tercihinizi güncellememi isterseniz söyleyin.",
     "İsterseniz bunu bilgilerinize ekleyebilirim.",
     "İsterseniz bunu sistemime ekleyebilirim.",

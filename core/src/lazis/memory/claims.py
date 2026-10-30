@@ -281,7 +281,13 @@ _ADOPT_RE = re.compile(
     r"\b(?:(esas|temel|baz|referans) al|guncel tut|kalici olarak (?:tut|sakl|kullan|kayded|kaydet))"
 )
 _HEED_RE = re.compile(r"\b(?:dikkate al|goz onunde (?:bulundur|tut))")
-_LASTING = re.compile(r"\b(?:bundan (?:boyle|sonra|itibaren)|artik|ileride|kalici|her zaman)\b")
+_LASTING = re.compile(
+    r"\b(?:bundan (?:boyle|sonra|itibaren)|artik|ileride|ilerideki|kalici|her zaman|bir dahaki|"
+    r"(?:sonraki|gelecek|gelecekteki) (?:konusma|sohbet|gorusme)\w*)\b"
+)
+# "Bu bilgiyi ilerideki konuşmalarımızda kullanacağım" (Phase 9.1, shown after a failed save):
+# using it later needs a memory. Only with a word of later: "bunu kullanacağım" is this turn.
+_USE_LATER_RE = re.compile(r"\bkullan(?=[ae]?y?[ae]c[ae]g)")
 _COMMIT_RE = re.compile(r"\b(?:unut|hatirla)")
 _OGREN_RE = re.compile(r"\bogren")
 
@@ -528,7 +534,8 @@ def find_claims(sentence: str, policy: Policy) -> list[_Claim]:
     if lasting:
         # "Bundan sonra Atlas'ı esas alacağım", "… dikkate alacağım": a commitment that needs
         # a memory.
-        for rx in (_ADOPT_RE, _HEED_RE):
+        later = [_USE_LATER_RE] if _LASTING.search(f) else []
+        for rx in (_ADOPT_RE, _HEED_RE, *later):
             for m in rx.finditer(f):
                 kind = "update" if rx is _ADOPT_RE and m.group(1) else "save"
                 verb(m.start(), m.end(), kind, _context_before(f, m.start()))
@@ -735,7 +742,8 @@ def check(text: str, policy: Policy) -> tuple[str, list[Rewrite]]:
 # claim that follows ("ve" + "not aldım").
 _RISKY = ("kayd", "kayit", "not", "hafiza", "akli", "notlar", "unut", "hatirla", "ogren",
           "bilgilerim", "listem", "ajandam", "defterim", "takvimim", "bilgileriniz",
-          "profiliniz", "sistemim", "sisteminiz", "veritabanim", "bellegim")  # fmt: skip
+          "profiliniz", "sistemim", "sisteminiz", "veritabanim", "bellegim",
+          "kullanacag")  # fmt: skip
 # Act verbs are held in every turn: whether "düzelterek" is a claim depends on the words after
 # it ("… bilgisini … esas alıyorum"), and shown text is never taken back.
 _RISKY_ACT = ("sil", "kaldir", "cikar", "guncell", "duzelt", "degistir", "birlestir")

@@ -469,6 +469,9 @@ def validate(
         # A subject that is a thing, not a name ("kira", "araba sigortası"): never one of the
         # user's own profile facts — kept as the user's note (Phase 7.2: "kira — technology"
         # and "araba sigortası — birthday: mart" were written as the user's).
+        if key in _FIELD_NAMES:
+            # The model wrote the field as the subject ("entity": "location", Phase 9.1 a13).
+            name, key = "", ""
         thing = bool(name) and key not in _SELF and not name[0].isupper()
         if key in _SELF or (name and not name[0].isupper()):
             # Not a person or project name ("kızının okulu", "Kullanıcı"): about the user.
@@ -596,7 +599,7 @@ def _speaks_as_i(message: str) -> bool:
     """A first person verb or pronoun ("geçtim", "çalışıyorum", "ben") — not a noun that only
     ends like a possessive ("Yazılım")."""
     return any(w in _FIRST_PERSON_WORDS or (len(w) >= 5 and _FIRST_PERSON_VERB.search(w))
-               for w in text.words(message))  # fmt: skip
+               or _MY_VERBAL_NOUN.search(w) for w in text.words(message))  # fmt: skip
 
 
 # "çalıştığımı", "yaşadığım", "olacağımı": a verb's noun with "my" (Phase 9.1: "Atlas
@@ -638,7 +641,19 @@ _VISIT = re.compile(r"\b(?:git(?:tim|ti|tik)|gidiyor\w*|gez(?:dim|di|dik|iyor\w*
                     r"tatil\w*|seyahat\w*)")  # fmt: skip
 _USERS = re.compile(r"^\s*kullan[ıi]c[ıi]n[ıi]n\s+", re.IGNORECASE)
 _BARE_NAME = re.compile(r"^[A-ZÇĞİÖŞÜ][\wçğıöşü]+(?: [A-ZÇĞİÖŞÜ][\wçğıöşü]+){0,2}$")
-_RELABEL = frozenset({"family", "note", "birthday"})  # where an age was seen written
+_RELABEL = frozenset({"family", "note", "birthday"})
+# Common jobs (folded word starts): a person's job given as "family" is their occupation.
+_OCCUPATIONS = (
+    "avukat", "doktor", "hekim", "hemsire", "ogretmen", "muhendis", "mimar", "polis", "asker",
+    "hakim", "savci", "eczaci", "muhasebeci", "asci", "garson", "pilot", "sofor", "berber",
+    "kuafor", "terzi", "ciftci", "memur", "isci", "yazar", "ressam", "muzisyen", "oyuncu",
+    "gazeteci", "sekreter", "veteriner", "cerrah", "psikolog", "akademisyen", "profesor",
+    "yazilimci", "gelistirici", "tasarimci", "programci", "analist", "mudur", "yonetici",
+    "danisman", "fizyoterapist", "diyetisyen", "itfaiyeci", "bankaci", "girisimci", "noter",
+    "tercuman", "cevirmen", "editor", "fotografci", "kasiyer", "teknisyen", "elektrikci",
+    "tesisatci", "marangoz", "kaptan", "rehber", "antrenor", "sporcu", "futbolcu", "sarkici",
+    "yonetmen", "esnaf", "emlakci", "mali musavir", "dis hekimi", "ogretim gorevlisi",
+)  # fmt: skip  # where an age was seen written
 
 
 def fit_field(predicate: str, value: str, quote: str, statement: str, *,
@@ -654,6 +669,13 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             return ("age", m.group(1) or m.group(2))
     if predicate == "location" and _VISIT.search(q) and not _RESIDENCE.search(q):
         return ("", "")  # a visit ("Atlas adlı restorana gittim") is not where one lives
+    if (
+        about_person
+        and predicate == "note"
+        and len(text.words(value)) <= 3
+        and any(w.startswith(_OCCUPATIONS) for w in text.words(value))
+    ):
+        return ("occupation", value)  # "Komşum Ahmet doktor" as a note "doktor" (run 1, t15)
     if predicate == "family":
         about = v + " " + (_after_name(s, name) if about_person else s)
         if _KIN.search(about):
@@ -663,6 +685,8 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             return None
         if _RESIDENCE.search(f"{q} {v} {s}") and (place := _place(value, quote)):
             return ("location", place)
+        if any(w.startswith(_OCCUPATIONS) for w in text.words(value)):
+            return ("occupation", value)  # "Kuzenim Can Ankara'da avukat" as family "avukat"
         return ("note", value)
     if predicate == "location" and _WORK.search(f"{q} {s}") and not _RESIDENCE.search(q):
         # "Atlas'ta çalışıyorum" / "İzmir'de çalışıyorum": where one works is not where one
@@ -715,6 +739,9 @@ def _grounded(phrase: str, texts: Sequence[str]) -> bool:
 
 # The model sometimes names the user as the entity.
 _SELF = frozenset({"kullanici", "ben", "kendisi", "user"})
+_FIELD_NAMES = frozenset(registry.PREDICATES) | frozenset(
+    text.name_key(p.label) for p in registry.PREDICATES.values()
+)
 
 
 # ----- relationships (Phase 7) -------------------------------------------------------------

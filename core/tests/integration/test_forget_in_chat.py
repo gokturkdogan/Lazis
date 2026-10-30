@@ -234,3 +234,34 @@ def test_a_friends_record_by_name(tmp_path: Path, storage: StorageHandle) -> Non
     outcome, _ = say(tmp_path, storage, "Elif'in yaşadığı şehir bilgisini sil.", EMPTY)
     assert outcome == "forgotten"
     assert values(storage) == {("user", "location", "İstanbul")}
+
+
+def test_a_thing_the_model_gave_as_a_person_is_the_users_topic(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    # Phase 9.1 run 1 (d18): forget_scope "entity", forget_entity "kahve".
+    cmd = answer("forget", forget_scope="entity", forget_entity="kahve")
+    seed(storage, COFFEE, PHONE)
+    outcome, _ = say(tmp_path, storage, "Kahveyle ilgili tüm bilgileri sil.", cmd)
+    assert outcome == "forgotten"
+    assert values(storage) == {("user", "phone", "Pixel 8")}
+
+
+def test_a_name_still_being_asked_about_is_not_guessed(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    # Phase 9.1 run 1 (d16): "Arkadaşım Ahmet mimar." stored; "Komşum Ahmet doktor." waiting for
+    # "which Ahmet?" — "Ahmet'in mesleğini unut" deleted the stored one's job.
+    from lazis.memory import repository as repo
+
+    seed(storage, ("occupation", "mimar", "Ahmet mimar.", "Ahmet"))
+    storage.db.run_sync(lambda c: repo.insert_inbox(
+        c, type="ambiguous_entity", summary="Hangi Ahmet? — Ahmet doktor.",
+        payload={"candidate": {"entity": {"name": "Ahmet"}}, "pending_names": ["ahmet"], "options": []},
+        now="2026-10-30T00:00:00Z"))  # fmt: skip
+    cmd = answer(
+        "forget", forget_scope="topic", forget_entity="Ahmet", forget_predicate="occupation"
+    )
+    outcome, notice = say(tmp_path, storage, "Ahmet'in mesleğini unut.", cmd)
+    assert outcome == "ambiguous" and "Hiçbir şey silinmedi" in notice
+    assert values(storage) == {("Ahmet", "occupation", "mimar")}

@@ -449,6 +449,8 @@ class Outcome:
     ]  # fmt: skip
     lines: list[str] = field(default_factory=list[str])
     counts: dict[str, int] = field(default_factory=dict[str, int])
+    still: list[str] = field(default_factory=list[str])  # a correction left these current
+    rule: str = ""  # instead of the kind's own rule
 
     def notice(self) -> str:
         body = {
@@ -495,7 +497,13 @@ class Outcome:
             "distinguished": "Bunları ayrı kişiler olarak tuttuğunu kısaca söyle.",
             "cancelled": "Kaydetmediğini kısaca söyle.",
         }[self.kind]
-        lines = [NOTICE_START, body, *(f"- {_safe(x)}" for x in self.lines), rules, NOTICE_END]
+        kept = (
+            ["Eski bilgi değiştirilmedi, hâlâ kayıtlı ve güncel (düzelttim deme):",
+             *(f"- {_safe(x)}" for x in self.still)]
+            if self.still else []
+        )  # fmt: skip
+        lines = [NOTICE_START, body, *(f"- {_safe(x)}" for x in self.lines), *kept,
+                 self.rule or rules, NOTICE_END]  # fmt: skip
         return "\n".join(lines)
 
 
@@ -547,6 +555,8 @@ def apply_items(
         conn, message, facts, rels_in, message_id=message_id,
         kind="user_request", actor="user",
     )  # fmt: skip
+    if cmd.action == "correct":
+        facts = [_in_the_corrected_field(conn, e, message) for e in facts]
     checked = replace(checked, accepted=facts)
     candidates = [
         replace(
@@ -593,7 +603,8 @@ def apply_items(
             if report.superseded or rel_report.retracted or rel_report.superseded
             else "saved"
         )
-        return Outcome(kind, lines, {"saved": len(saved), **rel_report.counts()})
+        still = _still_current(conn, message) if cmd.action == "correct" and kind == "saved" else []
+        return Outcome(kind, lines, {"saved": len(saved), **rel_report.counts()}, still)
     refused = [_REFUSAL[r] for r in reasons if r in _REFUSAL]
     if refused:
         return Outcome("refused", refused, {"refused": sum(reasons.values())})
@@ -608,6 +619,40 @@ def apply_items(
         # kept as a note — checked like any other item (quote, secrets, instructions).
         return Outcome("saved", note, {"saved": len(note), "as_note": 1})
     return Outcome("nothing")
+
+
+def _named_current(conn: Connection, message: str) -> list[Memory]:
+    """The user's current single-valued records the message names by value ("Kervan bilgisini
+    düzelt: …" → çalıştığı yer: Kervan)."""
+    words = text.words(message)
+    out: list[Memory] = []
+    for m in repo.memories_for_subject(conn, None):
+        p = registry.get(m.predicate)
+        key = " ".join(text.words(m.value))
+        if p is not None and p.cardinality == "single" and key and text.mentions_name(words, key):
+            out.append(m)
+    return out
+
+
+def _in_the_corrected_field(conn: Connection, e: extraction.Extracted, message: str
+                            ) -> extraction.Extracted:  # fmt: skip
+    """A correction's new value goes where the value it corrects is: "Kervan bilgisini düzelt:
+    Atlas'tayım" with Kervan the workplace is the workplace, not a city (Phase 9.1, a13: the
+    model said location, three times in three)."""
+    c = e.candidate
+    if c.entity is not None:
+        return e
+    named = [m for m in _named_current(conn, message)
+             if text.fold(m.value).strip() != text.fold(c.value).strip()]  # fmt: skip
+    fields = {m.predicate for m in named}
+    p = registry.get(c.predicate)
+    if len(fields) != 1 or c.predicate in fields or p is None or p.kind != "profile":
+        return e
+    return replace(e, candidate=replace(c, predicate=next(iter(fields)), change=True))
+
+
+def _still_current(conn: Connection, message: str) -> list[str]:
+    return [m.content for m in _named_current(conn, message)][:3]
 
 
 def request_content(message: str) -> str:
@@ -760,12 +805,21 @@ def forget(
         # (Phase 9.1) — not found when there is no Elif.
         name = owner
     who, ent, namesakes = _subject(conn, name, cmd.relation, message)
+    if who == "none" and name and message and not _owner_named(message):
+        # Nobody by that name, and the user named no one's ("Kahveyle ilgili tüm bilgileri
+        # sil" with entity "kahve", Phase 9.1 run 1): a topic of the user's own.
+        name, who = "", "user"
     if who == "none":
         return Outcome("not_found")
     if who == "many":
-        return Outcome("ambiguous", [", ".join(_label(e) for e in namesakes)])
+        return Outcome("ambiguous", [", ".join(_label(e) for e in namesakes)], rule=_WHICH_ONE)
+    if ent is not None and service.pending_namesake(conn, text.name_key(ent.name)):
+        # "Komşum Ahmet doktor" is still waiting for "which Ahmet?": the user may have two in
+        # mind — the only stored one is a guess (Phase 9.1 run 1, d16: its job was deleted).
+        return Outcome("ambiguous", [_label(ent), f"{ent.name} (henüz hangisi olduğu sorulan)"],
+                       rule=_WHICH_ONE)  # fmt: skip
     subject_id = ent.id if ent is not None else None
-    if message and cmd.scope != "entity":
+    if message and (cmd.scope != "entity" or ent is None):
         # The user's own words pick the record (Phase 9.1): the model often left the forget
         # fields empty ("Kahve bilgimi sil": 8 of 8 real runs found nothing).
         picked = forget_target(conn, message, subject_id, exclude=name)
@@ -917,13 +971,19 @@ def forget_target(conn: Connection, message: str, subject_id: str | None, *,
     return Picked("none")
 
 
+_WHICH_ONE = (
+    "Hiçbir şey silinmedi. Kullanıcıya bu kayıtlardan hangisini silmek istediğini, seçenekleri "
+    "tek tek sayarak sor (ya da hepsini mi); sildim deme."
+)
+
+
 def _forget_picked(conn: Connection, ent: Entity | None, picked: Picked) -> Outcome:
     if picked.kind == "none":
         return Outcome("not_found")
     if picked.kind == "ambiguous":
         # Never a guess: deleting the wrong record is worse than asking (Phase 9.1).
         return Outcome("ambiguous", [m.content for m in picked.memories],
-                       {"options": len(picked.memories)})  # fmt: skip
+                       {"options": len(picked.memories)}, rule=_WHICH_ONE)  # fmt: skip
     subject_id = ent.id if ent is not None else None
     if picked.kind == "topic":
         res = service.forget_topic(conn, subject_id, picked.predicate)

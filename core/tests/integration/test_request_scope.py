@@ -387,3 +387,39 @@ def test_a_failed_bare_request_about_a_known_fact_is_not_a_failure(
     assert out[1] == "saved"
     assert "zaten kayıtlıydı" in last_user(llm.chat_requests[-1])
     assert facts(storage) == [("note", "köpeğinin veterineri Dr. Selin", "active")]
+
+
+# Real command answers (Phase 9.1 run 1 probe, three of three alike).
+A01 = ('{"action": "remember", "items": [{"message": "m1", "quote": "Atlas şirketinde çalıştığımı", '
+       '"entity": "Atlas", "relation": "works_at", "predicate": "employer", "value": "Atlas", '
+       '"statement": "Kullanıcı Atlas şirketinde çalışıyor.", "change": false, "replaces": "", '
+       '"certain": true, "sensitive": "", "importance": 0.9}], "relations": []}')  # fmt: skip
+A13 = ('{"action":"correct","items":[{"message":"m1","quote":"Atlas\'tayım","entity":"location",'
+       '"relation":"lives_in","predicate":"location","value":"Atlas","statement":"Kullanıcı şu an '
+       'Atlas\'ta bulunuyor.","change":true,"replaces":"Kervan","certain":true,"sensitive":"finance",'
+       '"importance":1}],"relations":[], "forget_scope": "last", "forget_entity": "", '
+       '"forget_relation": "", "forget_predicate": "", "forget_value": "", "forget_other": "", '
+       '"forget_type": ""}')  # fmt: skip
+
+
+def test_the_users_workplace_named_as_its_own_subject_is_saved(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    _, out = talk(tmp_path, storage, [ATLAS], command=lambda r: A01)
+    assert out == ["saved"]
+    assert facts(storage) == [("employer", "Atlas", "active")]
+
+
+def test_a_correction_lands_in_the_field_it_corrects(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    from lazis.memory import service
+
+    storage.db.run_sync(lambda c: service.apply_candidates(
+        c, [Candidate(predicate="employer", value="Kervan", statement="Kullanıcı Kervan'da çalışıyor.")],
+        source=Source("import"), explicit=True))  # fmt: skip
+    _, out = talk(
+        tmp_path, storage, ["Kervan bilgisini düzelt: Atlas'tayım."], command=lambda r: A13
+    )
+    assert out == ["corrected"]
+    assert facts(storage) == [("employer", "Atlas", "active"), ("employer", "Kervan", "superseded")]

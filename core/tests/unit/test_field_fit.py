@@ -50,6 +50,15 @@ def written(message: str, item: dict[str, Any]) -> list[tuple[str, str, str]]:
         ("İş arkadaşım Deniz yeni bir eve taşındı.",
          proposal("Deniz yeni bir eve taşındı", "family", "yeni bir eve taşındı", "Deniz yeni bir eve taşındı.",
                   "Deniz"), [("note", "yeni bir eve taşındı", "Deniz")]),
+        # A named relative's job given as family (Phase 9.1 run 1, b13 / b17).
+        ("Kuzenim Can Ankara'da avukat.", proposal("Can Ankara'da avukat", "family", "avukat", "Can Ankara'da avukat.",
+                                                   "Can", "kuzeni"), [("occupation", "avukat", "Can")]),
+        ("Eşim Zeynep hemşire.", proposal("Eşim Zeynep hemşire", "family", "hemşire", "Kullanıcının eşi Zeynep hemşire.",
+                                          "Zeynep", "eşi"), [("occupation", "hemşire", "Zeynep")]),
+        ("Komşum Ahmet doktor.", proposal("Ahmet doktor", "note", "doktor", "Ahmet doktor.", "Ahmet", "komşusu"),
+         [("occupation", "doktor", "Ahmet")]),
+        ("Ahmet'e kitap aldım.", proposal("Ahmet'e kitap aldım", "note", "kitap aldı", "Kullanıcı Ahmet'e kitap aldı.",
+                                          "Ahmet"), [("note", "kitap aldı", "Ahmet")]),
         # Family stays family, and its value says whose (real: family "öğretmen").
         ("Annem öğretmen.", proposal("Annem öğretmen.", "family", "öğretmen", "Kullanıcının annesi öğretmen."),
          [("family", "annesi öğretmen", "user")]),
