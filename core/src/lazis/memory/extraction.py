@@ -707,9 +707,11 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             return None
         if _RESIDENCE.search(f"{q} {v} {s}") and (place := _place(value, quote)):
             return ("location", place)
-        if any(w.startswith(_OCCUPATIONS) for w in text.words(value)):
+        if any(w.startswith(_OCCUPATIONS) for w in text.words(value)) and not (
+            about_person and _counted(name, message)
+        ):
             return ("occupation", value)  # "Kuzenim Can Ankara'da avukat" as family "avukat"
-        return ("note", value)
+        return ("note", value)  # namesakes' jobs too (Phase 8 bootstrap n02, final run)
     if predicate == "location" and _WORK.search(f"{q} {s}") and not _RESIDENCE.search(q):
         # "Atlas'ta çalışıyorum" / "İzmir'de çalışıyorum": where one works is not where one
         # lives — and whether it is a company or a city is not known: held back.

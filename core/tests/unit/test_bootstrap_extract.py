@@ -125,9 +125,11 @@ def test_a_past_value_is_not_a_current_fact() -> None:
     assert r.dropped.get("past_value") == 1
 
 
-def test_two_namesakes_jobs_stay_with_each_one() -> None:
-    # Phase 9.1, Phase 8 bootstrap regression n02 (real Gemma gave both jobs as notes): made
-    # occupations by the field check, both went to one Ahmet. Each stays with its own.
+@pytest.mark.parametrize("predicate", ["note", "family"])
+def test_two_namesakes_jobs_stay_with_each_one(predicate: str) -> None:
+    # Phase 9.1, Phase 8 bootstrap regression n02 (real Gemma gave both jobs as notes, and in
+    # the final run as family): made occupations by the field check, both went to one Ahmet.
+    # Each stays with its own.
     import json
 
     body = "İki Ahmet var. Biri komşum, mimar. Diğeri iş arkadaşım, muhasebeci."
@@ -135,7 +137,7 @@ def test_two_namesakes_jobs_stay_with_each_one() -> None:
 
     def item(quote: str, value: str, relation: str) -> dict[str, object]:
         return {"message": "m1", "quote": quote, "entity": "Ahmet", "relation": relation,
-                "predicate": "note", "value": value, "statement": f"Ahmet {value}.",
+                "predicate": predicate, "value": value, "statement": f"Ahmet {value}.",
                 "change": False, "replaces": "", "certain": True, "sensitive": "",
                 "importance": 0.6}  # fmt: skip
 
