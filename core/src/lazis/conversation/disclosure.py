@@ -64,13 +64,22 @@ _GIVE = (
 )
 # "sistemin bana mesajın başında sunduğu hafıza notları": the memory block of the prompt
 # (Phase 9 real-model finding).
-_RULE = r"(?:kural|talimat|yonerge|kisitlama|prompt|hafiza\s+(?:not|blo))"
+# "Bana … belirli ilkeler ve bir üslup çerçevesi verildi" (Phase 9.1 regression, i03).
+_RULE = r"(?:kural|talimat|yonerge|kisitlama|prompt|ilke|prensip|hafiza\s+(?:not|blo))"
 _GIVEN = re.compile(
     r"\b(?:bana|sistem(?:in)?\s+(?:tarafindan|bana)|gelistirici\w*\s+tarafindan)\s+"
     rf"(?:[\w']+\s+){{0,3}}?{_GIVE}\w*\s+(?:[\w']+\s+){{0,2}}?{_RULE}\w*"
     rf"|\bbana\b[^.!?\n]{{0,200}}?\b{_RULE}\w*(?:\s+ve\s+{_RULE}\w*)?(?:\s+[\w']+){{0,4}}?"
     rf"\s+{_GIVE}\w*"
 )
+# Rules set for it, without "bana", in a sentence about itself: "… iletişim kurabilmem için
+# belirlenen kuralların bir parçasıdır" (Phase 9.1 regression, i09). "Satranç belirlenen
+# kurallara göre oynanır" speaks of no one: it stays.
+_SET = re.compile(
+    r"\b(?:belirlen|tanimlan|konul|koyul|yuklen)(?:en|mis)\w*\s+(?:[\w']+\s+)?"
+    r"(?:kural|talimat|yonerge)\w*"
+)
+_MY_ACT = re.compile(r"\w{2,}m[ae]m\b")  # "kurabilmem", "kullanmam": a verb's noun, mine
 # Told by its makers, in the active voice: "Programcılarım bana dürüst olmamı söylediler",
 # "Bana … öğrettiler" (Phase 9 real-model finding: what "bana verilen talimatlar" says).
 _TOLD = re.compile(
@@ -198,6 +207,8 @@ def find_refs(sentence: str, ctx: Context | None = None) -> list[tuple[int, int]
     rules = [(_OWNED, False), (_GIVEN, False), (_TOLD, False), (_SYSTEM, True)]
     if ctx.asks:
         rules.append((_ASKED, False))
+    if first or _MY_ACT.search(f):
+        rules.append((_SET, False))
     for rx, needs_first in rules:
         for m in rx.finditer(f):
             if any(a <= m.start() < b for a, b in quotes):
@@ -286,7 +297,9 @@ def _drop(sentence: str, frozen: int) -> str:
 
 # Word prefixes that may begin a reference ("sistem" only bare: "sistem notu", not "sistemim").
 _RISKY = ("talimat", "yonerge", "prompt", "gelistirici", "gizli", "dahili", "arka", "kisisel",
-          "hafiza", "baglam", "programci", "yapimci", "tasarimci", "yaratici")  # fmt: skip
+          "hafiza", "baglam", "programci", "yapimci", "tasarimci", "yaratici",
+          # Rules set for it ("belirlenen kurallar", Phase 9.1 regression, i09).
+          "belirlen", "tanimlan", "konul", "koyul", "yuklen")  # fmt: skip
 
 
 def _risky_word(w: str) -> bool:

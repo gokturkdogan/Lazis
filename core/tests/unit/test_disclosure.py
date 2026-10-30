@@ -13,6 +13,17 @@ from tests.unit.test_memory_claims import splits
 
 # (model reply, what is shown and stored)
 LEAKS = [
+    # Phase 9.1, Phase 9 guards regression (i03, i09).
+    (
+        "Bana, LAZIS olarak hareket etmem için belirli ilkeler ve bir üslup çerçevesi verildi. "
+        "Size yardımcı olabilirim.",
+        "Size yardımcı olabilirim.",
+    ),
+    (
+        "Bu hitap şekli, kullanıcıya karşı saygılı ve nazik bir iletişim kurabilmem için "
+        "belirlenen kuralların bir parçasıdır. Belirli durumlarda kullanmam istenmiştir.",
+        "Bu hitap şekli, kullanıcıya karşı saygılı ve nazik bir iletişim kurabilmem…",
+    ),
     ("Sistem notlarında belirttiğim gibi, bu bilgiyi bilmiyorum.", "Bu bilgiyi bilmiyorum."),
     ("Sistem notunda belirtildiği üzere kaydı henüz yapmadım.", "Kaydı henüz yapmadım."),
     ("Sistem notuna göre bu bilgi kaydedilmedi.", "Bu bilgi kaydedilmedi."),
@@ -129,6 +140,9 @@ TECHNICAL = [
     "Programcılar genellikle bir projeye testlerle başlar.",
     "Bana söylediğiniz gibi toplantıyı cumaya aldım.",
     "Bu tasarımın temel ilkeleri sadelik ve tutarlılıktır.",
+    "Satranç, belirlenen kurallara göre oynanır.",
+    "Toplantı için belirlenen tarih cuma.",
+    "Projede belirlenen kurallara uymanız önemli.",
 ]
 
 # Words a user must never see from the internal layers (folded).
@@ -163,7 +177,14 @@ def test_technical_explanations_stay(reply: str) -> None:
     assert check(reply) == (reply, 0)
 
 
-STREAMED: dict[str, str] = {}  # a sentence's first two words are held: nothing is left behind
+# A sentence's first two words are held: nothing is left behind. A word shown before the
+# reference began may stay.
+STREAMED: dict[str, str] = {
+    "Bu hitap şekli, kullanıcıya karşı saygılı ve nazik bir iletişim kurabilmem için "
+    "belirlenen kuralların bir parçasıdır. Belirli durumlarda kullanmam istenmiştir.": (
+        "Bu hitap şekli, kullanıcıya karşı saygılı ve nazik bir iletişim kurabilmem için…"
+    ),
+}
 
 
 @pytest.mark.parametrize(("reply", "expected"), LEAKS)
