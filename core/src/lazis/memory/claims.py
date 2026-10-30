@@ -234,6 +234,9 @@ _CONTEXT = (
     r"(?:hafiza(?:m|mi|ma|mda|mdan|mdaki|miza|mizda|mizdaki)|akli(?:m|ma|mda)"
     # Without the possessive (Phase 9.1, Phase 7.2 regression n01: "… akılda tutacağım").
     r"|akilda"
+    # Records with no possessive (Phase 9.1, Phase 7.2 regression n03: "Kayıtlara Mehmet'in
+    # doğum gününün 3 Nisan olduğunu ekledim." while "hangi Mehmet?" waited).
+    r"|kayitlara|notlara|hafizaya"
     r"|notlarim(?:a|da|in)?|kayitlarim(?:a|da|in)?|bilgilerime|listeme|ajandama|defterime|takvimime"
     r"|hafizamin|aklimin|bilgilerim(?:in)?|listemin"
     # The user's records as the place ("bilgilerinize ekledim", Phase 9 real-model finding).

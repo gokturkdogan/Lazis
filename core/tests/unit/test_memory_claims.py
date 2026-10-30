@@ -183,6 +183,8 @@ def test_claims_after_a_statement_are_reworded(reply: str, expected: str) -> Non
 # ----- 2. not claims: untouched --------------------------------------------------------------
 UNTOUCHED = [
     "Bunu akılda tutmanızı öneririm.",
+    "Resmi kayıtlara göre nüfus arttı.",
+    "Hastanın kayıtlara geçmesi için formu doldurdum.",
     "Akılda kalıcı bir isim seçmişsiniz.",
     "Metninizi düzelttim.",
     "Bu bilgiyi bu konuşmada kullanacağım.",
@@ -357,6 +359,14 @@ OUTCOMES = [
         "Kayıt aldım efendim. Ancak hangi Ahmet'e ait olduğunu belirtir misiniz?",
         "Henüz kaydetmedim efendim. Ancak hangi Ahmet'e ait olduğunu belirtir misiniz?",
     ),
+    # Phase 9.1 (Phase 7.2 regression n03): records with no possessive.
+    (
+        SAVE_PENDING,
+        "Kayıtlara Mehmet'in doğum gününün 3 Nisan olduğunu ekledim.",
+        "Kayıtlara Mehmet'in doğum gününün 3 Nisan olduğunu henüz kaydetmedim.",
+    ),
+    (SAVE_PENDING, "Bunu hafızaya aldım.", "Bunu hafızaya henüz kaydetmedim."),
+    (SAVE_PENDING, "Notlara ekledim.", "Notlara henüz kaydetmedim."),
     (
         SAVE_PENDING,
         "Kaydetme işlemi henüz tamamlanmadı efendim.",
