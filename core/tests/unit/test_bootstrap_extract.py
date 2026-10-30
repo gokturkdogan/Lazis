@@ -150,3 +150,28 @@ def test_two_namesakes_jobs_stay_with_each_one(predicate: str) -> None:
     subjects = {f.value: f.subject for f in out.facts}
     assert set(subjects) == {"mimar", "muhasebeci"}
     assert subjects["mimar"] != subjects["muhasebeci"]
+
+
+@pytest.mark.parametrize(
+    ("body", "quote", "entity", "value", "expected"),
+    [
+        ("## Elif\nKız kardeşim. Pilot. Muğla'da yaşıyor. Doğum günü 3 Nisan.",
+         "Doğum günü 3 Nisan.", "Elif", "3 Nisan", ("birthday", "3 Nisan")),
+        ("Komşum Ahmet emekli.", "Komşum Ahmet emekli.", "Ahmet", "emekli", ("occupation", "emekli")),
+    ],
+)  # fmt: skip
+def test_the_imports_own_check_files_someones_family_value(
+    body: str, quote: str, entity: str, value: str, expected: tuple[str, str]
+) -> None:
+    # Phase 9.1, Phase 8 bootstrap regression p05 / n08: the chat's field check made these
+    # notes before the import's own check could read "Doğum günü" or the job after the name.
+    import json
+
+    sec = files.read("p.txt", body.encode()).sections[0]
+    item = {"message": "m1", "quote": quote, "entity": entity, "relation": "", "predicate": "family",
+            "value": value, "statement": f"{entity} {value}.", "change": False, "replaces": "",
+            "certain": True, "sensitive": "", "importance": 0.6}  # fmt: skip
+    r = extract.validate(json.dumps({"items": [item]}, ensure_ascii=False), sec)
+    assert r is not None
+    out = extract.assemble([r])
+    assert [(f.predicate, f.value) for f in out.facts] == [expected]

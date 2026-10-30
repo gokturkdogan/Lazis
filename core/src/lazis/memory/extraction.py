@@ -532,7 +532,7 @@ def validate(
         # "Atlas'ta çalışıyorum" a city).
         fitted = fit_field(
             pred.key, value, quote, statement, about_person=ref is not None, name=name,
-            request=request, message=target.text,
+            request=request, message=target.text, profile_file=profile_file,
         )  # fmt: skip
         if fitted == ("", ""):
             out.drop("field_unclear")  # held back rather than written in the wrong field
@@ -665,7 +665,8 @@ _OCCUPATIONS = (
 
 def fit_field(predicate: str, value: str, quote: str, statement: str, *,
               about_person: bool, name: str = "",
-              request: bool = False, message: str = "") -> tuple[str, str] | None:  # fmt: skip
+              request: bool = False, message: str = "",
+              profile_file: bool = False) -> tuple[str, str] | None:  # fmt: skip
     """The field (and value) the user's words support, when the model's does not fit: an age
     is ``age``; ``family`` without a word of family is a city (``location``) when someone
     lives somewhere, otherwise a ``note``; a ``location`` said with "çalışıyorum" and no word
@@ -699,6 +700,11 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
     ):
         return ("occupation", value)  # "Komşum Ahmet doktor" as a note "doktor" (run 1, t15)
     if predicate == "family":
+        if about_person and profile_file:
+            # Someone else's family value in a profile file: the import's own check decides
+            # ("Doğum günü 3 Nisan." → birthday, "Ahmet emekli" → occupation), as before
+            # Phase 9.1 (Phase 8 bootstrap p05, n08, p04).
+            return None
         about = v + " " + (_after_name(s, name) if about_person else s)
         if _KIN.search(about):
             if not about_person and not _KIN.search(v) and _KIN.search(s):
