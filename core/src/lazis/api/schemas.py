@@ -386,6 +386,8 @@ class DiagLastTurnModel(_Schema):
     style_refused: list[str] | None = None
     style_signals: int | None = None
     style_learned: list[str] | None = None
+    style_reminded: bool | None = None  # the saved preferences went in front of the message
+    style_address_fixed: int | None = None  # "siz" forms turned into "sen" (the preference)
 
 
 class DiagPrewarmModel(_Schema):

@@ -43,6 +43,7 @@ from lazis.conversation import TurnRequest, adaptation
 from lazis.errors import TurnDuplicateError
 from lazis.ids import utc_now_iso
 from lazis.memory import repository as memory_repo
+from lazis.personality import address as addr
 from lazis.personality import preferences as prefs
 from lazis.personality.persona import SITUATIONAL
 from lazis.providers.llm.ollama import OllamaProvider
@@ -80,11 +81,38 @@ AFTER = [
     "Zaman yönetimi için bir ipucu verir misin?",
 ]
 
-_SIZ = re.compile(
-    r"\b(siz|size|sizi|sizin|sizce|sizde|sizden|sizinle|sizler|sizleri)\b"
-    r"|\b\w+[ıiuü]n[ıiuü]z\b",
-    re.IGNORECASE,
-)
+# Independent of the address guard's own rules (which it would pass by construction): any
+# word LAZIS says to the user that ends like the plural "you" — the -nız family after a vowel
+# (ihtiyacınız, yapabilirsiniz, isterseniz, olursanız) or a vowel-stem imperative (deneyin,
+# unutmayın) — plus the guard's own list. Genitives that look the same ("olayın", "deneyin
+# sonucu") are flagged too and read by hand.
+_BROAD = re.compile(r"[aeıioöuü]n[ıiuü]z[a-zçğıöşü]{0,5}$|^[a-zçğıöşü]{2,}[aeıioöuü]y[ıiuü]n$")
+# What a short reply must still say (PER-06: shorter, not emptier): every pattern must match.
+KEY: dict[str, tuple[str, ...]] = {
+    QUESTIONS[0]: (r"değiştiril|mutable",),
+    QUESTIONS[1]: (r"aynı saat|düzenli|rutin|ekran|kafein",),
+    QUESTIONS[2]: (r"ışı|güneş", r"karbondioksit|co2|co₂|su ", r"glikoz|şeker|oksijen"),
+    QUESTIONS[3]: (r"ölçü|miktar|kafein|kişi|bağlı|ihtiyac",),
+    QUESTIONS[4]: (r"gündem",),
+    QUESTIONS[5]: (r"geçmiş|commit|history",),
+    QUESTIONS[7]: (r"her gün|düzenli|dakika|sayfa|küçük|ilgi",),
+    QUESTIONS[8]: (r"talep", r"maliyet|para arz|para bas|para miktar|para politika"),
+    QUESTIONS[9]: (r"hedef|tercih|program|uygun|bağlı|rutin|zaman",),
+    QUESTIONS[10]: (r"teşekkür|nazik|kibar|net",),
+    QUESTIONS[11]: (r"boğaz|sultanahmet|kadıköy|müze|vapur|beyoğlu|galata|adalar",),
+    QUESTIONS[12]: (r"hedef|her gün|düzenli|kelime|temel",),
+    QUESTIONS[13]: (r"internet",),
+    QUESTIONS[14]: (r"su|sulama",),
+    QUESTIONS[15]: (r"nefes|uyku|egzersiz|spor|yürüyüş|meditasyon",),
+    QUESTIONS[16]: (r"inner", r"left"),
+    QUESTIONS[17]: (r"bütçe|gider|harcama",),
+    QUESTIONS[18]: (r"iletişim|deneyim",),
+    QUESTIONS[19]: (r"saçıl|rayleigh|dalga boy",),
+    AFTER[0]: (r"kübit|qubit|süperpozisyon",),
+    AFTER[1]: (r"\bun", r"maya"),
+    AFTER[2]: (r"kalp|kilo|ruh|stres|kas",),
+    AFTER[3]: (r"şifrel|ssl|tls|güvenli",),
+}
 _OFFER = re.compile(r"ister misin|ister misiniz|isterseniz|istersen|yardımcı olabil|başka bir", re.I)
 _FORMAL = re.compile(r"efendim|rica ederim|memnuniyetle|saygılarımla|arz ederim", re.I)
 _WEEKDAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
@@ -95,7 +123,19 @@ def words(t: str | None) -> int:
 
 
 def siz_forms(t: str | None) -> list[str]:
-    return [m.group(0) for m in _SIZ.finditer(t or "")]
+    out: list[str] = []
+    for w, punct in addr.spoken_words(t):
+        lw = addr.lower(w)
+        if addr.to_sen(w, before_punct=punct) is not None or (
+            _BROAD.search(lw) and "deniz" not in lw and not lw.startswith(addr.NOT_PLURAL)
+        ):
+            out.append(w)
+    return out
+
+
+def complete(q: str, t: str | None) -> bool:
+    low = addr.lower(t or "") + "\n" + (t or "").lower()  # Turkish and English casing
+    return all(re.search(p, low) for p in KEY.get(q, ()))
 
 
 @dataclass
@@ -198,13 +238,15 @@ async def control(run: Run) -> None:
         for q in QUESTIONS:
             t = await p.say(q)
             run.control[q] = words(t["reply"])
-            run.add("control", "control", "q", t, {"replied": bool(t["reply"])})
+            run.add("control", "control", "q", t, {"replied": bool(t["reply"])},
+                    complete=complete(q, t["reply"]))  # fmt: skip
         await p.restart()
         await p.clean_session()
         for q in AFTER:
             t = await p.say(q)
             run.control[q] = words(t["reply"])
-            run.add("control", "control", "after", t, {"replied": bool(t["reply"])})
+            run.add("control", "control", "after", t, {"replied": bool(t["reply"])},
+                    complete=complete(q, t["reply"]))  # fmt: skip
 
     await with_profile(run, go)
 
@@ -244,6 +286,20 @@ EXPLICIT: dict[str, tuple[str, str, Callable[[Run, str, str | None], bool], dict
 }
 
 
+def _checks(name: str, label: str, check: Callable[[Run, str, str | None], bool], run: Run,
+            q: str, t: dict[str, Any]) -> dict[str, bool]:  # fmt: skip
+    out = {label: check(run, q, t["reply"])}
+    if name in ("e_short", "e_extras"):
+        out["complete"] = complete(q, t["reply"])  # shorter, not emptier
+    return out
+
+
+def _seen(p: Profile) -> dict[str, Any]:
+    """What reached the model and what the address guard changed (diagnostics, no words)."""
+    last = (p.engine.last_turn if p.engine is not None else None) or {}
+    return {"reminded": last.get("style_reminded"), "address_fixed": last.get("style_address_fixed")}
+
+
 async def explicit(run: Run, name: str) -> None:
     instruction, label, check, expect = EXPLICIT[name]
 
@@ -256,15 +312,15 @@ async def explicit(run: Run, name: str) -> None:
                 layer2=system_lines(run.llm), state=st)  # fmt: skip
         for q in QUESTIONS:
             t = await p.say(q)
-            run.add("E", name, "in_session", t, {label: check(run, q, t["reply"])},
-                    control=run.control.get(q), siz=siz_forms(t["reply"]))  # fmt: skip
+            run.add("E", name, "in_session", t, _checks(name, label, check, run, q, t),
+                    control=run.control.get(q), siz=siz_forms(t["reply"]), **_seen(p))  # fmt: skip
         await p.restart()
         await p.clean_session()
-        for q in AFTER:
+        for i, q in enumerate(AFTER):
             t = await p.say(q)
-            run.add("E", name, "new_session", t, {label: check(run, q, t["reply"])},
-                    control=run.control.get(q), siz=siz_forms(t["reply"]),
-                    layer2=system_lines(run.llm))  # fmt: skip
+            run.add("E", name, "new_session", t, _checks(name, label, check, run, q, t),
+                    control=run.control.get(q), siz=siz_forms(t["reply"]), first=i == 0,
+                    layer2=system_lines(run.llm), **_seen(p))  # fmt: skip
         st = state(p)
         run.add("E", name, "kept", None,
                 {"still_stored": all(st["effective"][k] == v for k, v in expect.items())},

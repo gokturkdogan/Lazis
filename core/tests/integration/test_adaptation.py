@@ -19,12 +19,13 @@ from lazis.conversation import repository as conv_repo
 from lazis.ids import utc_now_iso
 from lazis.memory import retrieval
 from lazis.personality import CommunicationPreferences, Layers
+from lazis.personality import preferences as prefs
 from lazis.security.secrets import SecretBytes
 from lazis.storage import StorageHandle, driver, open_storage
 from lazis.storage.database import Database
 from lazis.storage.migrations import current_version, load_migrations, migrate
 from tests.conftest import make_client
-from tests.conversation_support import ScriptedLLM, make_engine, run_turn
+from tests.conversation_support import MODEL, ScriptedLLM, make_engine, run_turn
 from tests.integration.test_people_guard import fact
 
 BASE = CommunicationPreferences()
@@ -328,6 +329,49 @@ def test_an_instruction_shapes_its_own_reply_the_next_session_and_a_restart(
     for system in (same_turn, next_session, restarted):
         assert short in system and sen in system
     assert "konuşma tarzını değiştirdi" in note  # this reply knows it changed
+
+
+def test_a_new_session_applies_saved_preferences_from_its_first_reply(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """ADR-0022 §8: no earlier instruction in the history — the preferences still reach the
+    first reply (next to the message), and a "siz" reply is shown and stored in "sen"."""
+    llm = ScriptedLLM(reply=lambda r: "İsterseniz size kısaca anlatayım; ihtiyacınız buysa.")
+
+    async def go() -> tuple[str, str, str, str, dict[str, Any]]:
+        engine = make_engine(storage, llm, tmp_path)
+        _, cid = await run_turn(engine, "Merhaba")
+        plain = _last_user(llm)
+        await run_turn(engine, "Daha kısa cevap ver, bir de bana siz deme.", cid)
+        await engine.close()
+        again = make_engine(storage, llm, tmp_path)  # a restart …
+        await again.start_new_session(MODEL)  # … and a new session: an empty history
+        _, new = await run_turn(again, "Bir film önerir misin?")
+        first = _last_user(llm)
+        history = [m.content for m in llm.chat_requests[-1].messages[1:-1]]
+        stored = run(
+            storage,
+            lambda c: c.execute(
+                "SELECT content FROM messages WHERE conversation_id = ? AND role = 'assistant'"
+                " ORDER BY seq DESC LIMIT 1",
+                (new,),
+            ).fetchone()[0],
+        )
+        diag = again.last_turn or {}
+        again.layers = Layers(preferences=False)
+        await run_turn(again, "Bir dizi önerir misin?", new)
+        off = _last_user(llm)
+        await again.close()
+        return plain, first, stored, off, {"history": history, **diag}
+
+    plain, first, stored, off, diag = asyncio.run(go())
+    assert prefs.REMINDER_START not in plain  # nothing saved yet: nothing added
+    assert first.index(prefs.REMINDER_START) < first.index("Bir film önerir misin?")
+    assert "kısa yanıtları tercih ediyor" in first and "'sen' diye hitap" in first
+    assert not any("siz deme" in h for h in diag["history"])  # not from the history
+    assert stored == "İstersen sana kısaca anlatayım; ihtiyacın buysa."
+    assert diag["style_reminded"] is True and diag["style_address_fixed"] == 3
+    assert prefs.REMINDER_START not in off  # PER-07: layer 2 off, no reminder
 
 
 def test_a_refused_request_leaves_the_prompt_alone(tmp_path: Path, storage: StorageHandle) -> None:

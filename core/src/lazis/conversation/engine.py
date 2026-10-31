@@ -160,6 +160,8 @@ class TurnHandle:
     people_removed: dict[str, int] = field(default_factory=dict[str, int])
     # Phase 10B: what this message changed in the communication preferences (layer 2).
     style: adaptation.Observed | None = None
+    style_reminded: bool = False  # the saved preferences went in front of the message
+    address_fixed: int = 0  # "siz" forms the address guard turned into "sen"
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -1016,6 +1018,7 @@ class ConversationEngine:
                     self._claim_policy(handle, model),
                     disclosure.asks_instructions(handle.user.content),
                     handle.people_ctx or people.Context(),
+                    address=self.preferences.address if self.layers.preferences else "siz",
                 )
                 handle.claim_state = guard.policy.state.value
                 handle.check()
@@ -1237,6 +1240,8 @@ class ConversationEngine:
             "style_learned": None
             if handle.style is None
             else [s.dimension for s in handle.style.learned],
+            "style_reminded": handle.style_reminded,
+            "style_address_fixed": handle.address_fixed,
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1269,6 +1274,16 @@ class ConversationEngine:
 
     def _note_claims(self, handle: TurnHandle, guard: ReplyGuard) -> None:
         handle.claims_rewritten = len(guard.rewrites)
+        handle.address_fixed = guard.address_fixed
+        if guard.address_fixed:
+            # A count only: never the words.
+            log_event(
+                _log,
+                logging.INFO,
+                "style.address_fixed",
+                conversation_id=handle.conversation.id,
+                count=guard.address_fixed,
+            )
         handle.internal_refs_removed = guard.internal_removed
         handle.people_removed = dict(guard.people_removed)
         if guard.people_removed:
@@ -1311,9 +1326,12 @@ class ConversationEngine:
         budget = self._memory.context_budget_tokens * (2 if overview else 1)
         if handle.style is not None and handle.style.notice():
             notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
+        # Layer 2 again, next to the message: a saved preference holds from the first reply of
+        # a new session, with no earlier instruction in the history (ADR-0022 §8).
+        reminder = style_prefs.reminder(self.preferences) if self.layers.preferences else ""
         if not self.layers.memory:
             budget = 0  # PER-07: the memory layer off — no recall block
-        if budget <= 0 and not notice:
+        if budget <= 0 and not notice and not reminder:
             return built
         user = handle.user
         previous = next(
@@ -1357,7 +1375,7 @@ class ConversationEngine:
                       error=type(exc).__name__)  # fmt: skip
         if not notice and commands.looks_like_statement(user.content):
             notice = commands.PENDING_NOTICE
-        note = "\n\n".join(x for x in (notice, retrieval.render(found)) if x)
+        note = "\n\n".join(x for x in (notice, retrieval.render(found), reminder) if x)
         if not note or built.messages[-1].role != "user":
             return built
         cost = self.estimator.text(note) + 2
@@ -1365,6 +1383,7 @@ class ConversationEngine:
             log_event(_log, logging.INFO, "memory.recall_skipped", reason="context_full")
             return built
         handle.memory_ids = found.memory_ids
+        handle.style_reminded = bool(reminder)
         handle.memory_note_floor = (len(note) + 2) // 4
         last = built.messages[-1]
         return replace(

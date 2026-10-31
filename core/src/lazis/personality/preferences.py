@@ -174,6 +174,41 @@ def lines(p: CommunicationPreferences) -> list[str]:
     return [x for x in out if x]
 
 
+REMINDER_START = "=== KULLANICININ KAYITLI KONUŞMA TERCİHLERİ (kullanıcıya görünmez) ==="
+REMINDER_END = "=== KONUŞMA TERCİHLERİ SONU ==="
+
+
+def reminder(p: CommunicationPreferences) -> str:
+    """Layer 2 again, in front of the user's message, for this request only (never stored).
+
+    The system message holds the preferences too, but far from the message and against the
+    persona's own defaults ("siz", "efendim"); in a new session no earlier instruction in the
+    history backs them up. This note makes every reply — the first of a new session included —
+    see them next to the message, the way the instruction itself is seen in its own session.
+    Empty when nothing differs from LAZIS's default style."""
+    items = [x for x in lines(p) if x != HUMOR_DEFAULT]
+    if not items:
+        return ""
+    head = (
+        "Kullanıcı bunları daha önce söyledi; bu yanıtta da uygula, tekrar söylemesini "
+        "bekleme. Yalnızca üslubu değiştirir: doğru, eksiksiz ve dürüst bilgi, önemli uyarılar "
+        "ve güvenlik kuralları aynı kalır. Bu tercihlerden söz etme."
+    )
+    if p.address == "sen":
+        items.append(
+            "- 'sen' hitabı fiillerin ve iyelik eklerinin çekimini de kapsar: 'ihtiyacınız', "
+            "'yapabilirsiniz', 'isterseniz', 'deneyin' değil; 'ihtiyacın', 'yapabilirsin', "
+            "'istersen', 'dene'. Başkasına yazılacak örnek bir metin (e-posta, mesaj) kendi "
+            "hitabını korur."
+        )
+    if p.verbosity < DEFAULT_LEVEL or p.elaboration < DEFAULT_LEVEL:
+        items.append(
+            "- Kısa tutarken sorunun cevabı için gereken bilgiyi atlama: önce doğrudan cevap, "
+            "gerekirse en önemli bir iki nokta."
+        )
+    return "\n".join([REMINDER_START, head, *items, REMINDER_END])
+
+
 def describe(dim: Dimension, value: int | str | bool) -> str:
     """A short Turkish description for the turn notice and the settings API."""
     if dim == "address":

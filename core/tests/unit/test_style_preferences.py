@@ -168,3 +168,21 @@ def test_stored_preference_records_map_to_their_dimensions() -> None:
 def test_values_round_trip() -> None:
     for dim, value in (("verbosity", 3), ("address", "sen"), ("honorific", False)):
         assert P.parse(dim, P.dump(value)) == value  # type: ignore[arg-type]
+
+
+# ----- the per-turn reminder (ADR-0022 §8) ---------------------------------------------------
+def test_the_reminder_is_empty_for_lazis_own_style() -> None:
+    assert P.reminder(CommunicationPreferences()) == ""
+    assert P.reminder(CommunicationPreferences(humor=5)) == ""
+
+
+def test_the_reminder_carries_every_saved_preference_and_keeps_the_facts() -> None:
+    p = CommunicationPreferences(verbosity=3, address="sen", honorific=False)
+    text = P.reminder(p)
+    assert text.startswith(P.REMINDER_START) and text.endswith(P.REMINDER_END)
+    for line in P.lines(p):
+        if line != P.HUMOR_DEFAULT:
+            assert line in text
+    assert "'yapabilirsin'" in text and "'ihtiyacın'" in text  # the suffixes too
+    assert "gereken bilgiyi atlama" in text  # short, not incomplete
+    assert "güvenlik kuralları aynı kalır" in text

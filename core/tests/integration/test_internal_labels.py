@@ -16,12 +16,14 @@ from lazis.conversation import repository
 from lazis.memory import commands, retrieval, service
 from lazis.memory.models import Candidate, EntityRef
 from lazis.memory.service import Source
+from lazis.personality import preferences as prefs
 from lazis.storage import StorageHandle
 from tests.conversation_support import ScriptedLLM, make_engine, run_turn
 from tests.integration.test_memory_commands import answer, item
 
 LABELS = ("HAFIZA İŞLEMİ", "KİŞİSEL HAFIZA", "SİSTEM NOTU", "===")
-HEADERS = {commands.NOTICE_START, commands.NOTICE_END, retrieval.BLOCK_START, retrieval.BLOCK_END}
+HEADERS = {commands.NOTICE_START, commands.NOTICE_END, retrieval.BLOCK_START, retrieval.BLOCK_END,
+           prefs.REMINDER_START, prefs.REMINDER_END}  # fmt: skip
 
 SCENARIOS = [
     # memory questions
@@ -99,6 +101,8 @@ def test_labels_never_reach_the_model_outside_the_current_note(
     assert set(lines) <= HEADERS
     if commands.NOTICE_START in request.messages[-1].content:
         assert "kullanıcıya görünmez" in commands.NOTICE_START
+    if prefs.REMINDER_START in request.messages[-1].content:
+        assert "kullanıcıya görünmez" in prefs.REMINDER_START
 
 
 def test_stored_messages_hold_only_what_was_said(tmp_path: Path, storage: StorageHandle) -> None:

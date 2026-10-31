@@ -1402,6 +1402,8 @@ export interface components {
             prompt_tokens: number | null;
             /** Runtime Ttft Ms */
             runtime_ttft_ms: number | null;
+            /** Style Address Fixed */
+            style_address_fixed?: number | null;
             /** Style Applied */
             style_applied?: string[] | null;
             /** Style Cleared */
@@ -1410,6 +1412,8 @@ export interface components {
             style_learned?: string[] | null;
             /** Style Refused */
             style_refused?: string[] | null;
+            /** Style Reminded */
+            style_reminded?: boolean | null;
             /** Style Signals */
             style_signals?: number | null;
             /** Total Ms */
