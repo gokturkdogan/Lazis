@@ -1,6 +1,6 @@
 # ADR-0021: Memory and preference reliability before adaptation (Phase 10A)
 
-- **Status:** Implemented in Phase 10A (2026-10-31); awaiting the owner's approval with [PHASE_10_REPORT.md](../PHASE_10_REPORT.md). Phases 10B–10D not started.
+- **Status:** Accepted. Implemented in Phase 10A and accepted by the owner on 2026-10-31 ([PHASE_10_REPORT.md](../PHASE_10_REPORT.md)); the remaining risks stay open (report §10).
 - **Related:** [ADR-0017](0017-truthful-memory-claims.md) (claim guard), [ADR-0018](0018-namesakes-and-explicit-requests.md) (namesakes), [ADR-0020](0020-advanced-learning.md) (learning; open issues in PHASE_9_REPORT §22), [PERSONALITY_ENGINE.md](../PERSONALITY_ENGINE.md) §3–§4, [MEMORY_ARCHITECTURE.md](../MEMORY_ARCHITECTURE.md) Part P10A.
 
 ## Context

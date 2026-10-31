@@ -1,6 +1,6 @@
 # LAZIS — Faz 10 Raporu: Uyarlanabilir Kişilik ve Süreklilik
 
-- **Durum:** **Faz 10A (hafıza ve tercih güvenilirliği) tamamlandı; sahibinin onayını bekliyor.** Faz 10B, 10C ve 10D'ye başlanmadı. Otomatik tercih öğrenmesi **etkinleştirilmedi**. Hiçbir şey push edilmedi.
+- **Durum:** **Faz 10A (hafıza ve tercih güvenilirliği) tamamlandı ve sahibi tarafından kabul edildi (2026-10-31).** Sahibi aynı mesajda Faz 10B'ye onay verdi. 10A'nın kalan riskleri §10'da açık konular olarak duruyor. Faz 10C ve 10D'ye başlanmadı. Hiçbir şey push edilmedi.
 - **Tarih:** 2026-10-31
 - **Karar kaydı:** [ADR-0021](adr/0021-memory-and-preference-reliability.md). Modüller: [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P10A. Faz 9'dan devralınan açık konular: [PHASE_9_REPORT.md §22](PHASE_9_REPORT.md).
 - **Yerel commit'ler:**
