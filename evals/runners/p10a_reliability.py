@@ -259,7 +259,23 @@ async def f2(p: Profile, s: str) -> None:
         "no_old_value": not has(t["reply"], "Kervan"),
     })  # fmt: skip
     run.report.state(s, "db", {"forgotten": t["outcome"] == "forgotten",
-                               "gone": not facts_about(p, "Kervan")})  # fmt: skip
+                               "gone": not facts_about(p, "Kervan"),
+                               "no_workplace_relation": not _user_rels(p, "works_at")},
+                     {"user_relationships": _user_rels(p, None)})  # fmt: skip
+
+
+def _user_rels(p: Profile, type_: str | None) -> list[str]:
+    from lazis.memory import graphstore as gs
+
+    def read(c: Any) -> list[str]:
+        out = []
+        for r in gs.relationships_of(c, "user"):
+            e = memory_repo.get_entity(c, r.target_id)
+            if type_ is None or r.type == type_:
+                out.append(f"{r.type}:{e.name if e else '?'}:{r.status}")
+        return out
+
+    return p.q(read)
 
 
 async def f3(p: Profile, s: str) -> None:
@@ -340,7 +356,8 @@ async def g1(p: Profile, s: str) -> None:
         "compacted": bool(compacted) and bool(d["summaries"]),
         "no_forgotten_value_usable": not has(usable_values, "Kervan"),
         "no_forgotten_in_summary": not has(usable_text, "Kervan") and not has(usable_text, "kuzen"),
-        "no_forgotten_relation_usable": not any(r["type"] == "cousin" and r["verdict"] is None
+        "no_forgotten_relation_usable": not any(r["type"] in ("cousin", "works_at")
+                                                and r["verdict"] is None
                                                 for r in d["relationships"]),
         # Two stored Ahmets, or the stored one with an open "which one?" question.
         "ahmet_needs_label": "Ahmet" in d["needs_label"],

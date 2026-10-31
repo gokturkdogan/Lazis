@@ -1,6 +1,6 @@
 # LAZIS — Development Roadmap
 
-> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 implemented and accepted by the owner ([PHASE_4_REPORT.md](PHASE_4_REPORT.md), [ADR-0012](adr/0012-desktop-experience-and-resilience.md)). **P5 implemented 2026-10-20; awaiting the owner's approval** ([PHASE_5_REPORT.md](PHASE_5_REPORT.md), [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md)). **P6 implemented 2026-10-20** ([PHASE_6_REPORT.md](PHASE_6_REPORT.md), [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-learning-recall-and-model-trust.md)); the owner's Phase 7 brief was taken as the go-ahead (the P6 acceptance test result was not stated). **P7 implemented 2026-10-20** ([PHASE_7_REPORT.md](PHASE_7_REPORT.md), [ADR-0016](adr/0016-entity-relationship-graph.md)); the owner's Phase 7.1 brief followed it. P7.1 (truthful memory claims) implemented and accepted ([PHASE_7_1_REPORT.md](PHASE_7_1_REPORT.md), [ADR-0017](adr/0017-truthful-memory-claims.md)). **P7.2 (namesakes, explicit requests, internal labels) implemented 2026-10-21; awaiting the owner's acceptance test and approval** ([PHASE_7_2_REPORT.md](PHASE_7_2_REPORT.md), [ADR-0018](adr/0018-namesakes-and-explicit-requests.md)); the owner's Phase 8 brief stated Phases 0–7.2 as complete. P8 (personal knowledge bootstrap) implemented 2026-10-21 and accepted (the owner's Phase 9 brief: "Faz 0–8 tamamlandı ve kabul edildi") ([PHASE_8_REPORT.md](PHASE_8_REPORT.md), [ADR-0019](adr/0019-personal-knowledge-bootstrap.md)). P9 (advanced automatic learning) implemented 2026-10-28, with the final corrections and P9.1 (memory operation consistency, namesakes) 2026-10-30/31; **P9 and P9.1 accepted by the owner 2026-10-31**, with open issues kept in [PHASE_9_REPORT.md §22](PHASE_9_REPORT.md) ([ADR-0020](adr/0020-advanced-learning.md)); P10 not started · Last updated: 2026-10-31
+> Status: Phase 0.1 (revised; supersedes the 11-phase Phase 0 roadmap). P1 implemented and hardened (P1.1) 2026-10-17 ([PHASE_1_REPORT.md](PHASE_1_REPORT.md), [PHASE_1_1_REPORT.md](PHASE_1_1_REPORT.md)). P2 implemented 2026-10-17; model decision accepted ([PHASE_2_REPORT.md](PHASE_2_REPORT.md), [ADR-0001](adr/0001-primary-model.md)). **P3 implemented 2026-10-17, with the single-assistant addendum 2026-10-18 ([ADR-0011](adr/0011-single-assistant-timeline.md)); awaiting the owner's approval** ([PHASE_3_REPORT.md](PHASE_3_REPORT.md), [ADR-0010](adr/0010-conversation-persistence-and-context.md)). P4 implemented and accepted by the owner ([PHASE_4_REPORT.md](PHASE_4_REPORT.md), [ADR-0012](adr/0012-desktop-experience-and-resilience.md)). **P5 implemented 2026-10-20; awaiting the owner's approval** ([PHASE_5_REPORT.md](PHASE_5_REPORT.md), [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md)). **P6 implemented 2026-10-20** ([PHASE_6_REPORT.md](PHASE_6_REPORT.md), [ADR-0014](adr/0014-personal-memory-store.md), [ADR-0015](adr/0015-learning-recall-and-model-trust.md)); the owner's Phase 7 brief was taken as the go-ahead (the P6 acceptance test result was not stated). **P7 implemented 2026-10-20** ([PHASE_7_REPORT.md](PHASE_7_REPORT.md), [ADR-0016](adr/0016-entity-relationship-graph.md)); the owner's Phase 7.1 brief followed it. P7.1 (truthful memory claims) implemented and accepted ([PHASE_7_1_REPORT.md](PHASE_7_1_REPORT.md), [ADR-0017](adr/0017-truthful-memory-claims.md)). **P7.2 (namesakes, explicit requests, internal labels) implemented 2026-10-21; awaiting the owner's acceptance test and approval** ([PHASE_7_2_REPORT.md](PHASE_7_2_REPORT.md), [ADR-0018](adr/0018-namesakes-and-explicit-requests.md)); the owner's Phase 8 brief stated Phases 0–7.2 as complete. P8 (personal knowledge bootstrap) implemented 2026-10-21 and accepted (the owner's Phase 9 brief: "Faz 0–8 tamamlandı ve kabul edildi") ([PHASE_8_REPORT.md](PHASE_8_REPORT.md), [ADR-0019](adr/0019-personal-knowledge-bootstrap.md)). P9 (advanced automatic learning) implemented 2026-10-28, with the final corrections and P9.1 (memory operation consistency, namesakes) 2026-10-30/31; **P9 and P9.1 accepted by the owner 2026-10-31**, with open issues kept in [PHASE_9_REPORT.md §22](PHASE_9_REPORT.md) ([ADR-0020](adr/0020-advanced-learning.md)). P10 approved by the owner 2026-10-31 in four sub-phases, each gated; **P10A (memory and preference reliability) implemented 2026-10-31; awaiting the owner's approval** ([PHASE_10_REPORT.md](PHASE_10_REPORT.md), [ADR-0021](adr/0021-memory-and-preference-reliability.md)); P10B–P10D not started · Last updated: 2026-10-31
 > Rules:
 > - One phase at a time. Each phase must produce a **testable result**. No phase is complete because code was written: it is complete when its exit conditions are met, its tests were **executed and reported truthfully**, the docs and ADRs are updated, and **the user explicitly approves** the next phase.
 > - Size: S (≈ 1–2 focused weeks), M (≈ 2–4), L (≈ 4–6). These are rough planning sizes, not commitments.
@@ -368,6 +368,36 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 - **Risks:** R12.
 - **Testable result:** the user states a preference once and it holds; a dated plan is followed up once, naturally.
 - **Exit conditions:** persona and follow-up targets met; the user's review passes.
+- **As built (in progress):** the owner approved P10 on 2026-10-31 in four sub-phases. Each needs the owner's approval before the next one starts.
+  - **P10A — memory and preference reliability (implemented 2026-10-31, awaiting approval):**
+    - a people guard in the reply stream;
+    - forgotten things checked by fingerprints (a new value mark);
+    - one gate for what LAZIS raises unasked (`memory/proactive.py`);
+    - preference signals counted per user message and session (`memory/signals.py`).
+    No migration. Automatic preference learning is not enabled. Report: [PHASE_10_REPORT.md](PHASE_10_REPORT.md), [ADR-0021](adr/0021-memory-and-preference-reliability.md).
+  - **P10B — adaptive personality:**
+    - explicit preferences take effect at once and persist;
+    - implicit preferences need ≥ 3 independent signals in ≥ 2 sessions;
+    - each change is limited to ±0.1;
+    - safety, accuracy and core persona cannot be changed by learned preferences;
+    - acceptance: PER-06, PER-07, PER-12.
+    `0008_adaptation` is tested on an isolated database first; it is applied to the real profile only with the owner's separate approval.
+  - **P10C — continuity and proactive follow-ups:**
+    - open loops and episodes;
+    - at most one follow-up question per session;
+    - never a topic the user declined, deleted or cancelled, or one that cannot be matched reliably;
+    - relationship brief ≤ 250 tokens;
+    - acceptance: PER-08.
+  - **P10D:**
+    - a guided intake interview (skip, pause, resume);
+    - Settings → "LAZIS'in seninle konuşma tarzı" (view and edit learned preferences);
+    - anti-repetition and daily episode summaries;
+    - ≥ 40 blind pairs for PER-02, voted by the owner at the end.
+  - Voice-specific style stays in P13.
+- **Separate performance work (not in P10 scope):**
+  - Under heavy load, turns sent while a background compaction runs start late: median 17.8 s, worst 61.8 s at 500 facts (PHASE_9_REPORT §12). The model's cache then holds the compaction prompt, so the turn re-processes the long conversation prefix.
+  - First step: measure prefix processing on its own, then consider compacting in a separate model context or only while the conversation is idle.
+  - Tracked in PHASE_10_REPORT §11.
 
 ## P11 — Authorized local document ingestion (L)
 

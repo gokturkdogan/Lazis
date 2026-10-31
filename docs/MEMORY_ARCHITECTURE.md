@@ -448,6 +448,23 @@ Decision record: [ADR-0020](adr/0020-advanced-learning.md). Report: [PHASE_9_REP
 | `service.apply_one`, `consolidation.plan` | values written in one batch never conflict; `also` → a second current value of a single-valued field |
 | `registry` | `age` (single, personal; in `extraction.NOT_IN_PROMPT`) |
 
+## Part P10A — As built (Phase 10A): memory and preference reliability
+
+Decisions in [ADR-0021](adr/0021-memory-and-preference-reliability.md). No migration: the only new rows are suppression fingerprints of a new kind in the existing `memory_suppressions` table.
+
+| Module | Does |
+|---|---|
+| `conversation/people.py` | the people guard, between the disclosure guard and the claim guard (`reply_guard`): in a turn whose message leaves a namesake unsettled, a sentence certain about one candidate is dropped and a reply left without a question asks "Hangi Ahmet olduğunu belirtir misiniz?"; a sentence that speaks of something forgotten is dropped (a reply left with nothing: "Bu konuda kayıtlı bir bilgim yok."). Whole sentences, only in turns with something to check (`Context.active`); otherwise text passes through untouched. `build`: the unsettled people from recall, and the forgotten index when the user asks something or names a stored person |
+| `memory/unsettled.py` | `load`: the namesakes recall held back (`Recall.unsettled`), grouped by name, with each candidate's label types, stored values and relationships; a name the message settled is skipped. `certain`: a declarative, unconditional sentence naming the person that states a candidate's stored value or relationship without that candidate's label (**fact**), or gives some candidates' labels, not all, with the user's news or "kastettiğiniz" (**label**). The user's own words are never held against it |
+| `memory/forgotten.py` | `Index`: forgotten fingerprints, stored names, the user's message. `speaks_of(sentence)`: a forgotten relationship (two people, or one and the user's message's other person, with a third-person relation word — the user's own "arkadaşınız" counts only for the user's relationships; a negated "ilişki bulunmuyor" without a type does not count) or a forgotten value (a span that is a forgotten value of the user or of a person the sentence names, unless the user's message says it) |
+| `memory/proactive.py` | the one gate for what LAZIS raises unasked (Phase 10C follow-ups and brief): refuses forgotten, rejected, not active, conflict pending, confidence < 0.6, sensitive, inferred; `needs_label` for namesakes and names with an open question; `clean_text` drops summary sentences that speak of something forgotten or name such a person without a label |
+| `memory/signals.py` | preference signals (read by Phase 10B): one per user message, the same folded words once, sessions counted separately; only `message` evidence of user messages; only active records whose value was not forgotten or rejected; `Tally.enough` = ≥ 3 statements in ≥ 2 sessions |
+| `service._forget` | also writes a predicate-free **value mark** (`repository.value_fingerprint_with`: HMAC of subject and value) so text can be checked for the value; an explicit save of the value clears it. Learning never reads it (its own fingerprints are unchanged) |
+| `relations.types_in` | relation nouns with copula and case endings ("kuzeniydi", "kardeşiyle") — for these checks only, never for learning |
+| `retrieval.Recall.unsettled` | the entity ids recall held back for this message |
+| `service._forget_twins` | forgetting the user's employer or location also deletes and suppresses the twin `works_at` / `works_in_place` / `lives_in` relationship (all of them when a topic is forgotten), and deletes a target organization or place that nothing else refers to, with its inbox items |
+| `extraction.validate` | a personal fact written about the user is dropped when the message names someone and the user's own words have no first person (`about_someone_named`); plans, events, decisions, goals and projects are kept. `fit_field`: a location with no residence word and no capitalized place is a note |
+
 ---
 
 # Phase 0 design (long-term plan)
