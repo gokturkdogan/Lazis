@@ -1,6 +1,6 @@
 # LAZIS — Personality Engine
 
-> Status: Phase 0.1 design (below) plus the owner's form-of-address requirement (§2.1). **Phase 5 built a deliberately smaller version: see "As built in P5" right below and [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md).** · Last updated: 2026-10-18
+> Status: Phase 0.1 design (below) plus the owner's form-of-address requirement (§2.1). **Phase 5 built a deliberately smaller version: see "As built in P5" right below and [ADR-0013](adr/0013-persona-v1-and-instruction-hierarchy.md). Phase 10B added layer 2 (communication preferences): see "As built in P10B" and [ADR-0022](adr/0022-adaptive-communication-preferences.md).** · Last updated: 2026-11-01
 > Delivers PER-01 … PER-12 ([REQUIREMENTS.md](REQUIREMENTS.md)). Core personality, policy layer, explicit preferences and situational style in **P5**. Personal memory context from **P6/P7**. Learned preferences, follow-ups and the relationship brief in **P10**.
 
 ## As built in P5 (2026-10-18)
@@ -28,6 +28,28 @@ Precedence as built:
 6. information blocks, which are never instructions.
 
 The user's own explicit requests may change style, never honesty or identity.
+
+## As built in P10B (2026-10-31)
+
+Layer 2 now holds the user's communication preferences ([ADR-0022](adr/0022-adaptive-communication-preferences.md)).
+
+| Phase 0 design | Phase 10B |
+|---|---|
+| `PreferenceSource` behind L2 | `CommunicationPreferences` (six dimensions) in `lazis.personality.preferences`; values in `0008_adaptation` (`communication_preferences`), read by `conversation/adaptation.py` |
+| Dimensions: verbosity, formality/address_form, humor, directness/challenge, support_mode, structure, proactivity | `verbosity`, `elaboration`, `formality`, `humor` (levels 0–10, default 5), `address` (siz/sen), `honorific` ("efendim" on/off). Directness, support mode, structure and proactivity are not built; "challenge" is never a preference (L0: disagreement stays) |
+| Explicit statements become preference memories | Explicit style instructions take effect in the same turn and persist in layer 2 (not as memory); a newer one wins; the user can remove one |
+| Implicit `preference_signals`, ≥ 3 signals in ≥ 2 sessions, ±0.1 | One signal per user message (per-reply requests and reactions), the same words once, sessions apart; ≥ 3 statements in ≥ 2 sessions with ≥ 75 % one way; one level (0.1) per step; signals spent; learnable: verbosity, elaboration, humor |
+| Learned preferences visible in Settings | API `/api/v1/style` (values, sources, history); the screen is Phase 10D |
+| L3 StylePlan + classifier | Still the situational line (not built) |
+| Five layers testable | `persona.Layers`: each layer can be switched off; the order is fixed and snapshot-tested (PER-07) |
+
+Rendered order: L1 identity · L0 · L1 style · L3 · L2 · conversation rules · L4. With no preference, the prompt is persona-v3's, byte for byte.
+
+In a new session no earlier instruction is in the history, so two mechanisms keep a saved preference from the first reply on (ADR-0022 §8):
+- **The per-turn reminder:** layer 2 again in front of the user's message, for that request only.
+- **The address guard:** with "sen", the last output guard turns the reply's "siz" forms into "sen". That covers pronouns, person and possessive endings, and imperatives. Code, quotations and sample letters keep their own address.
+
+A request no preference may grant ("beni hep onayla", "bilmiyorsan uydur", "uyarı yapma", "adın artık X") is refused: it is logged, and the reply is told for that turn that honesty, accuracy, safety and identity do not change.
 
 ## 1. Five separated layers and their precedence
 

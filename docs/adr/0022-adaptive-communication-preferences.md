@@ -1,0 +1,92 @@
+# ADR-0022: Adaptive communication preferences (Phase 10B)
+
+- **Status:** Implemented in Phase 10B (2026-10-31; decision 8 added 2026-11-01 after the first real-model run); awaiting the owner's approval with [PHASE_10_REPORT.md](../PHASE_10_REPORT.md) Part B. Phases 10C–10D not started.
+- **Related:** [ADR-0013](0013-persona-v1-and-instruction-hierarchy.md) (persona, instruction hierarchy), [ADR-0021](0021-memory-and-preference-reliability.md) (independent signals), [PERSONALITY_ENGINE.md](../PERSONALITY_ENGINE.md) §1, §3, [ACCEPTANCE_CRITERIA.md](../ACCEPTANCE_CRITERIA.md) PER-06, PER-07, PER-12.
+
+## Context
+
+Until Phase 10B, how LAZIS talks was fixed in the persona (Phase 5). Only two config values (`[personality]` verbosity and humor) could change it. A user's "Daha kısa cevap ver" reached the model only as a memory record. Background learning stored it as `communication_preference`, and recall pinned it to every message. That had three problems:
+
+- It was memory (layer 4) acting as an instruction.
+- It depended on extraction.
+- It could not be told apart from a learned preference, changed or removed reliably.
+
+A record that asked LAZIS to "always agree" would travel the same way.
+
+The owner's Phase 10B brief asks for:
+
+- **Explicit style instructions:** applied at once and kept across sessions; a newer instruction wins.
+- **Implicit learning:** ≥ 3 consistent, independent signals in ≥ 2 sessions, with ±0.1 per automatic change, and only on supported style dimensions.
+- **Five separable layers:** order and priority deterministic.
+- **The core character protected:** "Her zaman beni onayla" changes nothing.
+- **User control:** explicit vs learned can be told apart, a removed preference does not come back from old signals, and learning never silently overrides an explicit preference.
+- **A migration:** tested on isolated databases only.
+
+## Decision
+
+1. **Layer 2 is its own source of truth.** `personality/preferences.py` defines six dimensions:
+
+   | Dimension | What it controls | Values |
+   |---|---|---|
+   | `verbosity` | length | levels 0–10 |
+   | `elaboration` | unrequested explanation | levels 0–10 |
+   | `formality` | register | levels 0–10 |
+   | `humor` | humor | levels 0–10 |
+   | `address` | form of address | "siz" / "sen" |
+   | `honorific` | "efendim" | on / off |
+
+   Level 5 is LAZIS's own default. Each value renders one fixed line in the system message, and every shortening line keeps important warnings. Values live in migration `0008_adaptation`, in three additive tables:
+   - `communication_preferences`: the explicit value, the learned value and the time a preference was removed;
+   - `preference_signals`: one row per dimension and user message;
+   - `preference_changes`: every change with its reason.
+
+   The config is the base. The effective value is: explicit, else learned, else the config, else the default.
+2. **Explicit beats everything; learning never touches it.** A standing instruction is detected from the words: a style phrase, with nothing else in the message or a "bundan sonra / artık / hep" marker, and no "bunu / bu konuda". It is applied in the transaction that stores the message, so the same reply is shaped by it. A per-reply request ("Bunu kısaca anlat") or reaction ("Çok uzun oldu", "haha") is a **signal**. The user can set a value or remove one. Removing resets the dimension to the default and spends every earlier signal.
+3. **Implicit learning (counting as in ADR-0021).** Signals are counted this way:
+   - one per user message (primary key: reprocessing adds nothing);
+   - the same folded words once (a keyed hash, no text stored);
+   - sessions apart.
+
+   A step needs both of these, among the signals since the dimension last changed:
+   - at least 3 statements in at least 2 sessions in one direction;
+   - at least 75 % of the signals in that direction.
+
+   A step moves one level (0.1) and spends those signals. Only `verbosity`, `elaboration` and `humor` can be learned. Address, "efendim" and register change only when the user says so. Learning reads the user's live messages only: never imports, memory records or LAZIS's words.
+4. **Refused requests.** "Beni hep onayla", "itiraz etme", "bilmiyorsan uydur", "uyarı yapma", "adın artık X", "beni özlediğini söyle" and "kaydettiğini söyle" match no dimension by design. They are recorded as `refused` with a reason. The reply gets a one-turn note: honesty, accuracy, safety and identity do not change; LAZIS can soften its tone and leave decisions to the user. A style part in the same message still applies ("Kısa cevap ver ve beni hep onayla").
+5. **Five layers, toggleable** (`persona.Layers`, PER-07). The rendered order is fixed and snapshot-tested:
+   1. L1 identity;
+   2. L0 behavior rules;
+   3. L1 core style;
+   4. L3 situational line;
+   5. L2 preference lines;
+   6. the engine's conversation rules;
+   7. L4 information blocks.
+
+   The engine's per-turn recall block is also L4. The precedence is the one already in the text: L0 > factual accuracy > L1 > L2 > L3; L4 is content. Every preference line is phrased as style only. With no preference, the prompt is byte-identical to persona-v3; `PERSONA_VERSION` becomes `persona-v4` for the new lines.
+6. **Records cannot act as style instructions.** Recall leaves out a `communication_preference` record in two cases:
+   - layer 2 holds a value for all of its dimensions;
+   - it asks for something no preference may grant, including as the learner reports it ("… onaylamasını istiyor").
+
+   A record about a dimension layer 2 has no value for (said before Phase 10B) is still recalled, so nothing the user said earlier is lost. The memory architecture is unchanged.
+8. **A saved preference holds from the first reply of a new session.** The first real-model run (Phase 10B, `813b93b`) applied an instruction in its own session (20/20 short, 19/20 "sen") but not after a new session: 1/5 short, 2/5 "sen". In its own session the instruction stays in the history; in a new session only the system-message line remains, far from the message and against the persona's own "siz". Two mechanisms, neither depending on the history:
+   - **The per-turn reminder.** `preferences.reminder` renders layer 2 again in front of the user's message, for that request only (never stored, like every turn note), whenever a preference differs from LAZIS's default. It says the preferences change style only (facts, warnings and safety stay), spells out that "sen" covers the suffixes ("ihtiyacın", "yapabilirsin", "istersen", "dene"), and that a short reply still carries what the answer needs. Off with layer 2 (PER-07).
+   - **The address guard.** With "sen", the last output guard (`personality.address`) turns the reply's "siz" forms into "sen", word by word as it streams: the pronouns, the plural person and possessive endings with any case after them (yapabilirsiniz → yapabilirsin, ihtiyacınıza → ihtiyacına, isterseniz → istersen) and the plural imperative (unutmayın → unutma, deneyin. → dene.). It leaves alone code, quotations, `>` lines and a sample letter or message (salutation to closing), where "siz" is right for the person it is written to, and words that only look plural (deniz, yalnız, hepiniz, organize; genitives like "olayın" unless punctuation follows). The shown, stored and spoken text are the same. Only a count is logged.
+
+   Length and unrequested explanation have no deterministic guard: cutting text could drop the answer. The reminder carries them, and the real-model check also requires each short reply to keep its answer's key facts.
+9. **API only, no screen.** `GET /api/v1/style`, `PUT|DELETE /api/v1/style/{dimension}` and `GET /api/v1/style/history` are the infrastructure for the Phase 10D Settings screen.
+
+## Alternatives considered
+
+- **Detecting instructions with a model call.** An explicit request already costs 5–16 s when it goes through the command step (Phase 7.2). A style instruction must shape its own reply with no delay. The word rules run in microseconds. The cost is their coverage, measured in the real runs.
+- **Preferences only in the per-turn note.** The note is never stored, so old notes do not pile up, but the system message is where the persona's rules and their precedence live, and a preference there is part of the deterministic, snapshot-tested prompt (PER-07). Both are used (decision 8): the system message is the source, and the note repeats it next to the message. A change makes the next prefix cold once; the note adds a few dozen tokens to every request with a preference.
+- **Rewriting lengths, or a second model pass to enforce a preference.** Cutting a reply to a word count can drop the answer or a warning; a second pass doubles the reply time. Rejected; only the form of address, which can be changed word by word without changing the content, has a guard.
+- **Reading `communication_preference` records as layer 2.** This mixes layers and inherits extraction's mistakes and duplicates. Rejected; old records stay readable as memory until layer 2 holds their dimension.
+- **Continuous learning without consuming signals.** Old signals would push the value again after every step. Rejected: each step needs fresh evidence.
+
+## Consequences
+
+- One explicit change makes the next request's prefix cold once (measured in the report).
+- Word rules: an unknown phrasing of an instruction is not stored. The model still follows it for that reply, but it does not persist. A report ("herkes beni onayladı") must not trigger a refusal, so the patterns are narrow and some phrasings are missed. A third-person record phrased differently ("… asla karşı çıkmamalı") is not filtered; it still meets the L0 rules (measured in PER-12 probe a37).
+- The address guard changes LAZIS's words after the model wrote them. Its rules are closed and tested, but Turkish morphology is ambiguous at the edges: a genitive that looks like an imperative is left alone (a missed "siz" is preferable to a wrong word), and an unquoted sample text without a salutation would be turned into "sen".
+- Implicit learning is slow by design: at least three different statements over two sessions for 0.1, and fresh ones for every further step.
+- The real profile is not migrated by this phase. Starting the new build on it would apply `0008_adaptation`, with the usual pre-migration backup. The owner's separate approval is required first.

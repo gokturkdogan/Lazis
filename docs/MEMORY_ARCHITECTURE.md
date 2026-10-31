@@ -465,6 +465,16 @@ Decisions in [ADR-0021](adr/0021-memory-and-preference-reliability.md). No migra
 | `service._forget_twins` | forgetting the user's employer or location also deletes and suppresses the twin `works_at` / `works_in_place` / `lives_in` relationship (all of them when a topic is forgotten), and deletes a target organization or place that nothing else refers to, with its inbox items |
 | `extraction.validate` | a personal fact written about the user is dropped when the message names someone and the user's own words have no first person (`about_someone_named`); plans, events, decisions, goals and projects are kept. `fit_field`: a location with no residence word and no capitalized place is a note |
 
+## Part P10B — As built (Phase 10B): communication preferences leave memory
+
+Style is layer 2 of the persona now ([ADR-0022](adr/0022-adaptive-communication-preferences.md)); memory is not rewritten.
+
+| Change | Does |
+|---|---|
+| `retrieval.recall` | Leaves out a `communication_preference` record in two cases (except in "hakkımda ne biliyorsun?" overviews): when layer 2 holds a value for every dimension it is about (`preferences.dimensions_of`), or when it asks for something no preference may grant (`preferences.refused_in(…, reported=True)`). A record about a dimension layer 2 has no value for is still recalled, so preferences said before Phase 10B keep working |
+| Migration `0008_adaptation` | Adds `communication_preferences`, `preference_signals` and `preference_changes`. No memory table changes; nothing is backfilled from memory records |
+| Background learning | Unchanged. It may still write a `communication_preference` record from the same message; recall then leaves it out as above |
+
 ---
 
 # Phase 0 design (long-term plan)
