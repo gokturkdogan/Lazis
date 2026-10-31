@@ -179,14 +179,19 @@ def _subject_for(
 
 
 def _pending_namesake(conn: Connection, key: str) -> bool:
+    return key in pending_namesake_keys(conn)
+
+
+def pending_namesake_keys(conn: Connection) -> set[str]:
+    """Name keys with an open "which Ahmet?" question."""
+    keys: set[str] = set()
     for item in repo.list_inbox(conn, status="open", types=("ambiguous_entity",)):
-        if key in item.payload.get("pending_names", []):
-            return True
+        keys.update(str(k) for k in item.payload.get("pending_names", []))
         cand: dict[str, Any] = item.payload.get("candidate", {})
         ent: dict[str, Any] = cand.get("entity") or {}
-        if text.name_key(str(ent.get("name", ""))) == key:
-            return True
-    return False
+        if name := text.name_key(str(ent.get("name", ""))):
+            keys.add(name)
+    return keys
 
 
 def pending_namesake(conn: Connection, key: str) -> bool:
@@ -226,7 +231,11 @@ def apply_one(
     # Forgotten or rejected before: never re-learned (or re-offered) unless asked again.
     fps = _fingerprints(conn, subject_id, c)
     if explicit:
-        repo.remove_suppressions(conn, fps)
+        # Asked again: no longer forgotten, in text either (the value mark, Phase 10A).
+        value = repo.value_fingerprint_with(
+            repo.fingerprint_key(conn), subject_id, text.fold(c.value).strip()
+        )
+        repo.remove_suppressions(conn, [*fps, value])
     elif repo.is_suppressed(conn, fps):
         report.drop("suppressed")
         return
@@ -626,6 +635,17 @@ def _forget(
             repo.add_suppression(
                 conn,
                 fp=repo.fingerprint(conn, m.subject_id, m.predicate, m.value_key),
+                subject_id=m.subject_id,
+                predicate=None,
+                reason="forgotten",
+                now=now,
+            )
+            # The same value under any predicate: lets text be checked for it (Phase 10A).
+            repo.add_suppression(
+                conn,
+                fp=repo.value_fingerprint_with(
+                    repo.fingerprint_key(conn), m.subject_id, m.value_key
+                ),
                 subject_id=m.subject_id,
                 predicate=None,
                 reason="forgotten",

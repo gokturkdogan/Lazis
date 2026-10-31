@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Any
 
 from lazis.config.model import Settings
-from lazis.conversation import compaction, disclosure, learning, repository
+from lazis.conversation import compaction, disclosure, learning, people, repository
 from lazis.conversation.context import (
     ASSISTANT_TEMPLATE_TOKENS,
     AssembledPrompt,
@@ -153,6 +153,10 @@ class TurnHandle:
     claim_state: str | None = None
     claims_rewritten: int = 0
     internal_refs_removed: int = 0  # Phase 9: references to internal layers removed
+    # Phase 10A: what the reply may not say about people (unsettled namesakes, forgotten
+    # things) and how many sentences were dropped for it, by kind.
+    people_ctx: people.Context | None = None
+    people_removed: dict[str, int] = field(default_factory=dict[str, int])
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -878,6 +882,7 @@ class ConversationEngine:
                 guard = ReplyGuard(
                     self._claim_policy(handle, model),
                     disclosure.asks_instructions(handle.user.content),
+                    handle.people_ctx or people.Context(),
                 )
                 handle.claim_state = guard.policy.state.value
                 handle.check()
@@ -1088,6 +1093,7 @@ class ConversationEngine:
             "claim_state": handle.claim_state,
             "claims_rewritten": handle.claims_rewritten,
             "internal_refs_removed": handle.internal_refs_removed,
+            "people_sentences_removed": sum(handle.people_removed.values()),
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1121,6 +1127,17 @@ class ConversationEngine:
     def _note_claims(self, handle: TurnHandle, guard: ReplyGuard) -> None:
         handle.claims_rewritten = len(guard.rewrites)
         handle.internal_refs_removed = guard.internal_removed
+        handle.people_removed = dict(guard.people_removed)
+        if guard.people_removed:
+            # Kinds and counts only: never the words.
+            log_event(
+                _log,
+                logging.INFO,
+                "reply.people_sentences_removed",
+                conversation_id=handle.conversation.id,
+                count=sum(guard.people_removed.values()),
+                kinds=",".join(sorted(guard.people_removed)),
+            )
         if guard.internal_removed:
             log_event(
                 _log,
@@ -1183,6 +1200,14 @@ class ConversationEngine:
             found = retrieval.Recall()
         handle.memory_ms = round((time.monotonic() - started) * 1000, 1)
         handle.memory_recalled = bool(found.items or found.relations or found.answer)
+        asking = "?" in user.content or overview or claims.memory_talk(user.content)
+        try:
+            handle.people_ctx = await self._q(
+                lambda c: people.build(c, found.unsettled, user.content, asking=asking)
+            )
+        except Exception as exc:  # never blocks or fails a reply
+            log_event(_log, logging.WARNING, "reply.people_context_failed",
+                      error=type(exc).__name__)  # fmt: skip
         if not notice and commands.looks_like_statement(user.content):
             notice = commands.PENDING_NOTICE
         note = "\n\n".join(x for x in (notice, retrieval.render(found)) if x)

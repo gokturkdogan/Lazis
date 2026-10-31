@@ -379,6 +379,7 @@ class DiagLastTurnModel(_Schema):
     claim_state: str | None = None  # Phase 7.1: the memory state the reply was checked against
     claims_rewritten: int | None = None
     internal_refs_removed: int | None = None  # Phase 9: internal-layer references removed
+    people_sentences_removed: int | None = None  # Phase 10A: unsettled / forgotten people
 
 
 class DiagPrewarmModel(_Schema):

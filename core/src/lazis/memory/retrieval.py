@@ -75,6 +75,9 @@ class Recall:
     answer: tuple[str, ...] = ()  # the graph's answer to a relationship question
     relations: dict[str, tuple[str, ...]] = field(default_factory=dict[str, tuple[str, ...]])
     relationship_ids: tuple[str, ...] = ()
+    # People named in the message whose identity it does not settle (their facts are held
+    # back): the reply guard keeps the reply from speaking of one of them (Phase 10A).
+    unsettled: tuple[str, ...] = ()
 
     @property
     def empty(self) -> bool:
@@ -225,7 +228,7 @@ def recall(
     )[:MAX_FORGOTTEN]
     questions = _open_questions(conn, query, conversation_id, recent_since)
     return Recall(tuple(chosen), subjects, ambiguous, forgotten, known, questions, answer,
-                  rel_lines, tuple(dict.fromkeys(rel_ids)))  # fmt: skip
+                  rel_lines, tuple(dict.fromkeys(rel_ids)), tuple(sorted(unsure)))  # fmt: skip
 
 
 def _unsettled(conn: Connection, query: str, named: list[Entity]) -> set[str]:

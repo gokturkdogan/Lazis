@@ -237,24 +237,31 @@ def are_distinct(conn: Connection, a: str, b: str) -> bool:
 
 
 # ----- suppression fingerprints (keyed, no text) -------------------------------------------
-def _hmac(conn: Connection, msg: str) -> str:
-    key = repo._fingerprint_key(conn)  # pyright: ignore[reportPrivateUsage]
+def _hmac(key: bytes, msg: str) -> str:
     return hmac.new(key, msg.encode(), hashlib.sha256).hexdigest()
 
 
-def rel_fingerprint(conn: Connection, source_id: str, type: str, target_id: str) -> str:
+def rel_fingerprint_with(key: bytes, source_id: str, type: str, target_id: str) -> str:
     """Order-free for symmetric types (Ahmet–Mehmet kardeş = Mehmet–Ahmet kardeş); a directed
     type is also recognised when read from the other end (mother ↔ child)."""
     t = relations.get(type)
     if t is not None and t.symmetric:
         a, b = sorted((source_id, target_id))
-        return _hmac(conn, f"rel\x00{a}\x00{type}\x00{b}")
-    return _hmac(conn, f"rel\x00{source_id}\x00{type}\x00{target_id}")
+        return _hmac(key, f"rel\x00{a}\x00{type}\x00{b}")
+    return _hmac(key, f"rel\x00{source_id}\x00{type}\x00{target_id}")
+
+
+def pair_fingerprint_with(key: bytes, a: str, b: str) -> str:
+    lo, hi = sorted((a, b))
+    return _hmac(key, f"pair\x00{lo}\x00{hi}")
+
+
+def rel_fingerprint(conn: Connection, source_id: str, type: str, target_id: str) -> str:
+    return rel_fingerprint_with(repo.fingerprint_key(conn), source_id, type, target_id)
 
 
 def pair_fingerprint(conn: Connection, a: str, b: str) -> str:
-    lo, hi = sorted((a, b))
-    return _hmac(conn, f"pair\x00{lo}\x00{hi}")
+    return pair_fingerprint_with(repo.fingerprint_key(conn), a, b)
 
 
 def suppress(conn: Connection, fp: str, reason: str, now: str) -> None:

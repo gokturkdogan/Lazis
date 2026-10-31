@@ -305,6 +305,34 @@ def match_at(words: Sequence[str], i: int) -> tuple[str, int, str] | None:
     return None
 
 
+# Copula and case endings after a relation noun's own ("kuzeniydi", "kardeşidir",
+# "kuzenine", "kardeşiyle"): read only by the reply checks (Phase 10A), never by learning —
+# with them, ordinary words would be read as relations there.
+_LOOSE_TAIL = re.compile(
+    r"(?:y?di|y?du|y?dir|y?dur|y?tir|y?tur|y?mis|y?mus|yken|nde|nda|nden|ndan|ne|na|yle|yla"
+    r"|ydiniz|ydunuz|ymis|dir|dur)$"
+)
+
+
+def types_in(words: Sequence[str]) -> list[tuple[str, str]]:
+    """(type, possessive ending) for each relation noun in the words, also with a copula or
+    case ending (see above)."""
+    found: list[tuple[str, str]] = []
+    for i, w in enumerate(words):
+        m = match_at(words, i)
+        if m is None and (tail := _LOOSE_TAIL.search(w)) is not None and tail.start() >= 3:
+            m = match_at([w[: tail.start()]], 0)
+        if m is not None:
+            found.append((m[0], m[2]))
+    return found
+
+
+def second_person(ending: str) -> bool:
+    """ "kuzeniniz", "arkadaşınız", "komşunuzun": the user's relation, said to the user."""
+    e = re.sub(r"^(?:ler|lar)", "", ending)  # folded: "ınız" is "iniz"
+    return e.startswith(("iniz", "unuz", "niz", "nuz"))
+
+
 def first_person(ending: str) -> bool:
     """True if a relation noun's ending is first-person possessive ("arkadaşım",
     "kardeşimin", "annem", "ablamız"), so the relation is the user's."""

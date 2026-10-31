@@ -826,8 +826,31 @@ def _fingerprint_key(conn: Connection) -> bytes:
 
 
 def fingerprint(conn: Connection, subject_id: str | None, predicate: str, value_key: str) -> str:
+    return fingerprint_with(_fingerprint_key(conn), subject_id, predicate, value_key)
+
+
+def fingerprint_with(key: bytes, subject_id: str | None, predicate: str, value_key: str) -> str:
     msg = f"{subject_id or 'user'}\x00{predicate}\x00{value_key}".encode()
-    return hmac.new(_fingerprint_key(conn), msg, hashlib.sha256).hexdigest()
+    return hmac.new(key, msg, hashlib.sha256).hexdigest()
+
+
+def fingerprint_key(conn: Connection) -> bytes:
+    """The key of every suppression fingerprint (for checks that hash many candidates)."""
+    return _fingerprint_key(conn)
+
+
+def value_fingerprint_with(key: bytes, subject_id: str | None, value_key: str) -> str:
+    """A forgotten value of a subject, whatever its predicate (Phase 10A): lets a sentence be
+    checked for it (:mod:`lazis.memory.forgotten`) without knowing which field it was."""
+    msg = f"value\x00{subject_id or 'user'}\x00{value_key}".encode()
+    return hmac.new(key, msg, hashlib.sha256).hexdigest()
+
+
+def forgotten_fingerprints(conn: Connection) -> frozenset[str]:
+    rows = conn.execute(
+        "SELECT fingerprint FROM memory_suppressions WHERE reason = 'forgotten'"
+    ).fetchall()
+    return frozenset(str(r[0]) for r in rows)
 
 
 def add_suppression(

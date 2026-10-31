@@ -1344,6 +1344,8 @@ export interface components {
             outcome: "completed" | "cancelled" | "failed";
             /** Output Tokens */
             output_tokens: number | null;
+            /** People Sentences Removed */
+            people_sentences_removed?: number | null;
             /** Prompt Tokens */
             prompt_tokens: number | null;
             /** Runtime Ttft Ms */
