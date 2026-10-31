@@ -39,6 +39,7 @@ Reason = Literal[
 ]
 MIN_CONFIDENCE = 0.6
 _SENTENCE = re.compile(r"[^.!?]+(?:[.!?]+|$)")
+_CITATION = re.compile(r"^\s*(?:\[#[\d#,–\- ]+\]\s*)+$")
 
 
 @dataclass(frozen=True)
@@ -92,15 +93,20 @@ class Gate:
         dropped = 0
         for line in body.splitlines():
             kept: list[str] = []
+            after_drop = False
             for m in _SENTENCE.finditer(line):
                 sentence = m.group(0)
                 if not sentence.strip():
                     continue
+                if after_drop and _CITATION.match(sentence):
+                    continue  # "[#7]" of the sentence just dropped
+                after_drop = False
                 if self.index.speaks_of(sentence) is not None or self._unlabeled(sentence):
                     dropped += 1
+                    after_drop = True
                     continue
                 kept.append(sentence.strip())
-            if kept:
+            if kept and not all(_CITATION.match(k) or k in ("-", "•") for k in kept):
                 lines.append(" ".join(kept))
         return "\n".join(lines), dropped
 

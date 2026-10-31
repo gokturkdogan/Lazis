@@ -108,6 +108,9 @@ def test_namesakes_need_a_label_and_summaries_are_cleaned(
         "Adı geçen kişiler:\n- Defne: Kız [#11]"
     )
     assert dropped == 2
+    # The dropped sentence's citation goes with it (Phase 10A real run g1 left "[#7]" lines).
+    clean, dropped = gate.clean_text("Devam eden konular:\n- Ahmet emekli oldu. [#5]\n- Koşu. [#3]")
+    assert clean == "Devam eden konular:\n- Koşu. [#3]" and dropped == 1
 
 
 # ----- signals ------------------------------------------------------------------------------

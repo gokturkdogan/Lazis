@@ -754,6 +754,15 @@ def fit_field(predicate: str, value: str, quote: str, statement: str, *,
             # (Phase 8 bootstrap p04).
             return ("", "")
         return ("note", value)  # namesakes' jobs too (Phase 8 bootstrap n02, final run)
+    if (
+        predicate == "location"
+        and not profile_file  # the import checks its own places (Phase 8)
+        and not _RESIDENCE.search(f"{q} {s}")
+        and not any(w[:1].isupper() for w in value.split())
+    ):
+        # "Komşum Ahmet emekli oldu" as Ahmet's city "emekli" (Phase 10A real run g1): no
+        # place name and no word of living — what was said, as a note.
+        return ("note", value)
     if predicate == "location" and _WORK.search(f"{q} {s}") and not _RESIDENCE.search(q):
         # "Atlas'ta çalışıyorum" / "İzmir'de çalışıyorum": where one works is not where one
         # lives — and whether it is a company or a city is not known: held back.

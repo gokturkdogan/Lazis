@@ -146,3 +146,15 @@ def test_a_correction_keeps_being_at_for_its_own_field() -> None:
     # Learning never reads a request's sentence; with leaving a job said, it holds it back.
     left = Target("m1", "msg", "Kervan'dan ayrıldım, artık Atlas'tayım.")
     assert not extraction.validate([item], [left]).accepted
+
+
+def test_a_location_with_no_place_and_no_living_is_a_note() -> None:
+    # Phase 10A real run g1: "Komşum Ahmet emekli oldu." stored as Ahmet's city "emekli".
+    fit = extraction.fit_field("location", "emekli", "Komşum Ahmet emekli oldu", "Ahmet emekli.",
+                               about_person=True, name="Ahmet", message="Komşum Ahmet emekli oldu.")  # fmt: skip
+    assert fit == ("note", "emekli")
+    # A place name, or words of living, stay a city.
+    assert extraction.fit_field("location", "İzmir", "Ahmet İzmir'de", "Ahmet İzmir'de.",
+                                about_person=True, name="Ahmet") is None  # fmt: skip
+    assert extraction.fit_field("location", "yurt dışı", "yurt dışında yaşıyor",
+                                "Ahmet yurt dışında yaşıyor.", about_person=True, name="Ahmet") is None  # fmt: skip
