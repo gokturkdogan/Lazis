@@ -168,3 +168,43 @@ def test_notices_carry_no_technical_wording() -> None:
     assert (
         json.dumps(commands.Outcome("cancelled").notice(), ensure_ascii=False).count("iptal") == 1
     )
+
+
+def test_someone_elses_news_is_not_the_users() -> None:
+    # Phase 10A real run (n4): with two Ahmets, the model proposed Ahmet's news for Ahmet (to be
+    # asked about) and again as the user's note — the note was written about the user.
+    msg = "Ahmet bugün aradı, satranç kulübüne yazılmış."
+    ahmets = _item("Ahmet", "note", "satranç kulübüne yazılmış", "Ahmet satranç kulübüne yazılmış.",
+                   "satranç kulübüne yazılmış")  # fmt: skip
+    users = _item("", "note", "satranç kulübü", "Kullanıcı satranç kulübüne yazılmış.",
+                  "satranç kulübüne yazılmış")  # fmt: skip
+    out = extraction.validate([ahmets, users], [Target("m1", "id", msg)])
+    assert [(e.candidate.about, e.candidate.entity.name if e.candidate.entity else "")
+            for e in out.accepted] == [("entity", "Ahmet")]  # fmt: skip
+    assert out.dropped == {"about_someone_named": 1}
+
+
+@pytest.mark.parametrize(
+    ("message", "item_", "predicate"),
+    [
+        # The user in the message: theirs.
+        ("Ahmet aradı, ben de satranç kulübüne yazıldım.",
+         _item("", "note", "satranç kulübü", "Kullanıcı satranç kulübüne yazıldı.",
+               "satranç kulübüne yazıldım"), "note"),
+        # A plan shared with someone: the user's.
+        ("Ahmet ile yarın toplantı var.",
+         _item("", "plan", "Ahmet ile toplantı", "Kullanıcının yarın Ahmet ile toplantısı var.",
+               "Ahmet ile yarın toplantı var"), "plan"),
+        # Nobody named.
+        ("Satranç kulübüne yazıldım.",
+         _item("", "note", "satranç kulübü", "Kullanıcı satranç kulübüne yazıldı.",
+               "Satranç kulübüne yazıldım"), "note"),
+    ],
+)  # fmt: skip
+def test_the_users_own_words_stay_the_users(
+    message: str, item_: dict[str, object], predicate: str
+) -> None:
+    out = extraction.validate([item_], [Target("m1", "id", message)])
+    assert [(e.candidate.predicate, e.candidate.about) for e in out.accepted] == [
+        (predicate, "user")
+    ]

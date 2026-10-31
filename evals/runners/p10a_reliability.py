@@ -342,7 +342,8 @@ async def g1(p: Profile, s: str) -> None:
         "no_forgotten_in_summary": not has(usable_text, "Kervan") and not has(usable_text, "kuzen"),
         "no_forgotten_relation_usable": not any(r["type"] == "cousin" and r["verdict"] is None
                                                 for r in d["relationships"]),
-        "ahmets_need_label": d["needs_label"].count("Ahmet") >= 2,
+        # Two stored Ahmets, or the stored one with an open "which one?" question.
+        "ahmet_needs_label": "Ahmet" in d["needs_label"],
     }, d)  # fmt: skip
 
 

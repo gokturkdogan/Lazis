@@ -662,6 +662,7 @@ def _forget(
                 reason="forgotten",
                 now=now,
             )
+        _forget_twins(conn, memories, topic, now)
         from lazis.memory import relationships
 
         for eid in entities:
@@ -681,6 +682,56 @@ def _forget(
         )
     repo.optimize_index(conn)
     return ForgetResult(len(memories), len(entities))
+
+
+# The user's workplace and city are stored twice: as a profile fact and as the graph's
+# relationship ("Kervan'da çalışıyorum" → employer Kervan, works_at Kervan; Phase 7). A
+# correction reaches both (corrections.apply); so does forgetting (Phase 10A — the relationship
+# stayed and could be raised again).
+_TWINS = {"employer": ("works_at", "works_in_place"), "location": ("lives_in",)}
+_ANY_STATUS = ("active", "ended", "planned", "unverified", "superseded", "retracted")
+
+
+def _forget_twins(
+    conn: Connection, memories: list[Memory], topic: tuple[str | None, str] | None, now: str
+) -> None:
+    from lazis.memory import graphstore as gs
+    from lazis.memory.models import USER_ID
+
+    wanted: dict[str, set[str] | None] = {}
+    for m in memories:
+        for t in _TWINS.get(m.predicate, ()) if m.subject_id is None else ():
+            keys = wanted.setdefault(t, set())
+            if keys is not None:
+                keys.add(text.name_key(m.value))
+    if topic is not None and topic[0] is None:
+        for t in _TWINS.get(topic[1], ()):
+            wanted[t] = None  # the whole field: every value, past ones too
+    if not wanted:
+        return
+    for r in gs.edges_from(conn, USER_ID, _ANY_STATUS):
+        if r.type not in wanted:
+            continue
+        target = repo.get_entity(conn, r.target_id)
+        keys = wanted[r.type]
+        if keys is not None and (target is None or text.name_key(target.name) not in keys):
+            continue
+        gs.suppress(conn, gs.rel_fingerprint(conn, USER_ID, r.type, r.target_id), "forgotten", now)
+        gs.delete_relationship(conn, r.id)
+        if target is not None and target.kind != "person" and _orphan(conn, target.id):
+            # Only this relationship knew the workplace or place: its name goes too.
+            repo.delete_entity(conn, target.id)
+            conn.execute(
+                "DELETE FROM memory_inbox WHERE payload_json LIKE ?", (f'%"{target.id}"%',)
+            )
+
+
+def _orphan(conn: Connection, entity_id: str) -> bool:
+    from lazis.memory import graphstore as gs
+
+    return not gs.relationships_of(conn, entity_id) and not repo.memories_for_subject(
+        conn, entity_id, statuses=_ANY_STATUS
+    )
 
 
 def forget_memories(

@@ -38,7 +38,7 @@ Reason = Literal[
     "forgotten", "rejected", "not_active", "conflict", "uncertain", "sensitive", "inferred"
 ]
 MIN_CONFIDENCE = 0.6
-_SENTENCE = re.compile(r"[^.!?\n]+(?:[.!?]+|$)")
+_SENTENCE = re.compile(r"[^.!?]+(?:[.!?]+|$)")
 
 
 @dataclass(frozen=True)
@@ -86,16 +86,23 @@ class Gate:
         return _common(r.conflict_state, r.confidence, r.sensitivity)
 
     def clean_text(self, body: str) -> tuple[str, int]:
-        """The sentences of a summary LAZIS may reuse unasked, and how many were dropped."""
-        kept: list[str] = []
+        """The sentences of a summary LAZIS may reuse unasked (line by line: summaries are
+        lists), and how many were dropped."""
+        lines: list[str] = []
         dropped = 0
-        for m in _SENTENCE.finditer(body):
-            sentence = m.group(0)
-            if self.index.speaks_of(sentence) is not None or self._unlabeled(sentence):
-                dropped += 1
-                continue
-            kept.append(sentence.strip())
-        return " ".join(s for s in kept if s), dropped
+        for line in body.splitlines():
+            kept: list[str] = []
+            for m in _SENTENCE.finditer(line):
+                sentence = m.group(0)
+                if not sentence.strip():
+                    continue
+                if self.index.speaks_of(sentence) is not None or self._unlabeled(sentence):
+                    dropped += 1
+                    continue
+                kept.append(sentence.strip())
+            if kept:
+                lines.append(" ".join(kept))
+        return "\n".join(lines), dropped
 
     def _unlabeled(self, sentence: str) -> bool:
         words = text.words(sentence)

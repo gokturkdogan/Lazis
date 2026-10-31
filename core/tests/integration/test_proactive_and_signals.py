@@ -8,6 +8,7 @@ from lazis.ids import utc_now_iso
 from lazis.memory import proactive, relationships, service, signals
 from lazis.memory import repository as repo
 from lazis.storage import StorageHandle, driver
+from lazis.storage.unit_of_work import UnitOfWork
 from tests.graph_support import World, run
 from tests.integration.test_people_guard import fact
 
@@ -96,6 +97,17 @@ def test_namesakes_need_a_label_and_summaries_are_cleaned(
         "Kullanıcı maraton için çalışıyor."
     )
     assert dropped == 2
+    # A summary is a list (Phase 10A real run g1): every line is kept or dropped, none lost.
+    listed = (
+        "Kullanıcının belirttiği hedefler:\n- Gelecek yıl maraton koşmak. [#3]\n"
+        "Adı geçen kişiler:\n- Ahmet: Komşu [#5]\n- Mehmet: Ahmet'in kuzeni [#9]\n- Defne: Kız [#11]"
+    )
+    clean, dropped = gate.clean_text(listed)
+    assert clean == (
+        "Kullanıcının belirttiği hedefler:\n- Gelecek yıl maraton koşmak. [#3]\n"
+        "Adı geçen kişiler:\n- Defne: Kız [#11]"
+    )
+    assert dropped == 2
 
 
 # ----- signals ------------------------------------------------------------------------------
@@ -177,3 +189,35 @@ def test_what_never_counts(storage: StorageHandle) -> None:
     by_key = run(storage, seed)
     run(storage, lambda c: service.forget_memories(c, [by_key["short"][2]]))
     assert signals.tally(run(storage, lambda c: signals.from_records(c, by_key))) == {}
+
+
+# ----- forgetting the workplace forgets its relationship too ----------------------------------
+def _workplace(c: driver.Connection, name: str) -> tuple[str, str]:
+    now = utc_now_iso()
+    mid = fact(c, None, "employer", name)
+    with UnitOfWork(c, kind="user_edit", actor="user", summary="seed"):
+        org = repo.insert_entity(c, kind="organization", name=name, relation=None,
+                                 description=None, now=now)  # fmt: skip
+    relationships.add_relationship(c, source_id="user", type="works_at", target_id=org.id)
+    return mid, org.id
+
+
+def test_forgetting_the_workplace_forgets_the_relationship(storage: StorageHandle) -> None:
+    # Phase 10A real run g1: "Çalıştığım yeri unut" left user → works_at → Kervan Lojistik.
+    run(storage, lambda c: _workplace(c, "Kervan Lojistik"))
+    run(storage, lambda c: service.forget_topic(c, None, "employer"))
+    rels = run(storage, lambda c: relationships.gs.relationships_of(c, "user"))
+    assert [r for r in rels if r.type == "works_at"] == []
+    assert run(storage, lambda c: repo.find_entities(c, "kervan lojistik")) == []
+    gate = run(storage, proactive.load)
+    assert gate.index.speaks_of("Kervan Lojistik'te çalışıyorsunuz.") == "value"
+
+
+def test_forgetting_one_workplace_keeps_the_other(storage: StorageHandle) -> None:
+    old, _ = run(storage, lambda c: _workplace(c, "Kervan Lojistik"))
+    run(storage, lambda c: _workplace(c, "Atlas Yazılım"))
+    run(storage, lambda c: service.forget_memories(c, [old]))
+    rels = run(storage, lambda c: relationships.gs.relationships_of(c, "user"))
+    names = {run(storage, lambda c, r=r: repo.get_entity(c, r.target_id)).name  # type: ignore[union-attr]
+             for r in rels if r.type == "works_at"}  # fmt: skip
+    assert names == {"Atlas Yazılım"}

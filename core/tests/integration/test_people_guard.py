@@ -135,6 +135,15 @@ def test_the_answer_is_dropped_and_the_question_kept(
     assert removed == {"unsettled_fact": 1}
 
 
+def test_the_next_sentence_starts_with_a_turkish_capital(
+    storage: StorageHandle, world: World
+) -> None:
+    # Phase 10A real run n1#2: "Bu arada, iş ortağınızın …" became "Iş ortağınızın …".
+    ctx = people.Context("Ahmet'in kardeşi kim?", (group(storage, world),))
+    reply = "Ahmet'in kardeşi Mehmet efendim.\n\nBu arada, iş ortağınızın adı da Ahmet mi?"
+    assert guarded(reply, ctx)[0] == "İş ortağınızın adı da Ahmet mi?"
+
+
 @pytest.mark.parametrize("chunk", [0, 1, 4])
 def test_a_reply_left_without_a_question_asks(
     storage: StorageHandle, world: World, chunk: int

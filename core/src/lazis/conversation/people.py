@@ -132,7 +132,7 @@ class PeopleGuard:
                 lead = _LEAD.match(body)
                 if lead is not None and len(body) > lead.end():
                     rest = body[lead.end() :]
-                    piece = sentence[: len(sentence) - len(body)] + rest[0].upper() + rest[1:]
+                    piece = sentence[: len(sentence) - len(body)] + _upper_tr(rest[0]) + rest[1:]
             self._after_drop = False
             return self._add(piece)
         self.removed[kind] = self.removed.get(kind, 0) + 1
@@ -148,3 +148,8 @@ class PeopleGuard:
             piece = piece.lstrip(" ")
         self.released += piece
         return piece
+
+
+def _upper_tr(ch: str) -> str:
+    """Turkish capital: "iş" → "İş", "ılık" → "Ilık"."""
+    return {"i": "İ", "ı": "I"}.get(ch, ch.upper())

@@ -441,6 +441,11 @@ def validate(
     out = Validation()
     by_tag = {t.tag: t for t in targets}
     context_words = text.words(" ".join(context))
+    # People the batch or the context names: a message about one of them, with no word of the
+    # user's own, says nothing about the user (see ``_about_someone_named``).
+    named_keys = {
+        text.name_key(n) for i in items if (n := _str(i, "entity", 80)) and n[0].isupper()
+    } - _SELF - _FIELD_NAMES | {k.entity.name_key for k in known}
     for item in items:
         target = by_tag.get(_str(item, "message"))
         if target is None:
@@ -551,6 +556,17 @@ def validate(
         if subject_kind not in pred.subjects:
             out.drop("subject_mismatch")
             continue
+        if (
+            ref is None
+            and not profile_file
+            and not request
+            and _about_someone_named(pred.key, target.text, named_keys)
+        ):
+            # "Ahmet bugün aradı, satranç kulübüne yazılmış." read as "Kullanıcı satranç
+            # kulübüne yazılmış" (Phase 10A real run, n4): it is Ahmet's news, never the user's.
+            # (An explicit "not al" keeps what the user asked to note.)
+            out.drop("about_someone_named")
+            continue
         sensitive = _str(item, "sensitive")
         importance = item.get("importance")
         values = split_values(value) if pred.key in LISTABLE else [value]
@@ -610,6 +626,21 @@ def _speaks_as_i(message: str) -> bool:
 _MY_VERBAL_NOUN = re.compile(
     r"(?:[dt][iu]g[iu]m|[ae]c[ae]g[iu]m)(?:[iu]|[ae]|d[ae]n?|l[ae]|[iu]z)?$"
 )
+
+
+# What the user and someone else can share without it being the person's own state: plans,
+# events, decisions ("Ahmet ile yarın toplantı var" is the user's meeting).
+_SHARED = frozenset({"plan", "event", "decision", "goal"})
+
+
+def _about_someone_named(predicate: str, message: str, named: Collection[str]) -> bool:
+    if predicate in _SHARED or predicate.startswith("project_"):
+        return False
+    own = users_own_words(message)
+    if _first_person(own):
+        return False
+    words = text.words(own)
+    return any(k and text.mentions_name(words, k) for k in named)
 
 
 def _first_person(message: str) -> bool:
