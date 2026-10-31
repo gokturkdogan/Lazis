@@ -8,10 +8,19 @@ model from elsewhere (conversation summary now, memory records later) is passed 
 """
 
 from lazis.personality.persona import (
+    ALL_LAYERS,
     PERSONA_VERSION,
-    CommunicationPreferences,
     ContextBlock,
+    Layers,
     render_system,
 )
+from lazis.personality.preferences import CommunicationPreferences
 
-__all__ = ["PERSONA_VERSION", "CommunicationPreferences", "ContextBlock", "render_system"]
+__all__ = [
+    "ALL_LAYERS",
+    "PERSONA_VERSION",
+    "CommunicationPreferences",
+    "ContextBlock",
+    "Layers",
+    "render_system",
+]

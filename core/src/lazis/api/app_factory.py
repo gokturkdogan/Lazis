@@ -42,6 +42,7 @@ from lazis.api.schemas import (
     SystemStatusResponse,
 )
 from lazis.api.security import LocalApiGuard, TokenBucket, error_payload
+from lazis.api.style import build_style_router
 from lazis.config.model import Settings
 from lazis.conversation import ConversationEngine
 from lazis.errors import LazisError
@@ -247,6 +248,7 @@ def create_app(ctx: ApiContext) -> FastAPI:
         build_chat_router(PREFIX, ctx.settings, lambda: ctx.llm, lambda: ctx.conversations)
     )
     app.include_router(build_conversation_router(PREFIX, lambda: ctx.conversations))
+    app.include_router(build_style_router(PREFIX, lambda: ctx.conversations))
     app.include_router(
         build_memory_router(
             PREFIX,

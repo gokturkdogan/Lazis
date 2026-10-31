@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Any
 
 from lazis.config.model import Settings
-from lazis.conversation import compaction, disclosure, learning, people, repository
+from lazis.conversation import adaptation, compaction, disclosure, learning, people, repository
 from lazis.conversation.context import (
     ASSISTANT_TEMPLATE_TOKENS,
     AssembledPrompt,
@@ -90,7 +90,8 @@ from lazis.memory import maintenance as memory_maintenance
 from lazis.memory import repository as memory_repo
 from lazis.memory.models import Candidate
 from lazis.observability.logging import get_logger, log_event
-from lazis.personality import CommunicationPreferences
+from lazis.personality import ALL_LAYERS, CommunicationPreferences, Layers
+from lazis.personality import preferences as style_prefs
 from lazis.providers.llm.ports import (
     ChatMessage,
     ChatRequest,
@@ -157,6 +158,8 @@ class TurnHandle:
     # things) and how many sentences were dropped for it, by kind.
     people_ctx: people.Context | None = None
     people_removed: dict[str, int] = field(default_factory=dict[str, int])
+    # Phase 10B: what this message changed in the communication preferences (layer 2).
+    style: adaptation.Observed | None = None
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -240,6 +243,13 @@ class Loaded:
     window: list[Message]
 
 
+def _dimension(name: str) -> style_prefs.Dimension:
+    for d in style_prefs.DIMENSIONS:
+        if d == name:
+            return d
+    raise ValueError("unknown style dimension")
+
+
 class ConversationEngine:
     def __init__(
         self,
@@ -254,9 +264,13 @@ class ConversationEngine:
         self._cfg = settings.conversation
         self._models = settings.models
         self.num_ctx = settings.models.context_tokens(self._cfg.context_profile)
-        self.preferences = CommunicationPreferences(
-            verbosity=settings.personality.verbosity, humor=settings.personality.humor
+        # Layer 2 (Phase 10B): the config is the base; explicit and learned values from the
+        # database come on top (``adaptation.effective``), read at start and on every turn.
+        self.base_preferences = CommunicationPreferences.from_settings(
+            settings.personality.verbosity, settings.personality.humor
         )
+        self.preferences = self.base_preferences
+        self.layers: Layers = ALL_LAYERS  # PER-07: tests and evaluations switch layers off
         self.budget = Budget.build(
             self.num_ctx,
             settings.models.max_output_tokens,
@@ -315,6 +329,9 @@ class ConversationEngine:
             if self._started:
                 return
             now = utc_now_iso()
+            self.preferences = await self._q(
+                lambda c: adaptation.effective(c, self.base_preferences)
+            )
             self.recovered_interrupted = await self._q(
                 lambda c: repository.mark_streaming_interrupted(c, now)
             )
@@ -466,6 +483,7 @@ class ConversationEngine:
             num_ctx=self.num_ctx,
             estimator=self.estimator,
             preferences=self.preferences,
+            layers=self.layers,
         )
 
     # ----- conversations ---------------------------------------------------------------
@@ -712,7 +730,9 @@ class ConversationEngine:
         title = auto_title(content, self._cfg.title_max_chars)
         budget = self.budget.hard_limit
 
-        def write(conn: Connection) -> tuple[Conversation, Message, Message, bool]:
+        def write(
+            conn: Connection,
+        ) -> tuple[Conversation, Message, Message, bool, adaptation.Observed]:
             with repository.transaction(conn):
                 if repository.find_by_client_id(conn, req.client_id) is not None:
                     raise TurnDuplicateError("message already submitted")
@@ -760,6 +780,7 @@ class ConversationEngine:
                     model=req.model,
                     channel=req.channel,
                 )
+                style = self._adapt(conn, conv.id, user, now)
                 learning.enqueue(
                     conn,
                     self._memory,
@@ -780,10 +801,12 @@ class ConversationEngine:
                 )
                 fresh = repository.get_conversation(conn, conv.id)
                 assert fresh is not None
-                return fresh, user, assistant, created
+                return fresh, user, assistant, created, style
 
-        conv, user, assistant, created = await self._q(write)
+        conv, user, assistant, created, style = await self._q(write)
         handle = TurnHandle(conv, user, assistant, created, request_id=f"turn-{assistant.id}")
+        handle.style = style
+        self._note_style(style)
         self._turn = handle
         self._focused = conv.id
         self._pending.pop(conv.id, None)
@@ -800,6 +823,116 @@ class ConversationEngine:
             model=req.model,
         )
         return handle
+
+    # ----- communication preferences (Phase 10B; the Settings screen is Phase 10D) ---------
+    async def style(self) -> dict[str, Any]:
+        """Each dimension: its value, where it comes from (explicit / learned / default), and
+        the stored explicit and learned values, so the two can always be told apart."""
+        await self.ensure_started()
+
+        def read(conn: Connection) -> dict[str, Any]:
+            eff = adaptation.effective(conn, self.base_preferences)
+            src = adaptation.sources(conn)
+            stored = adaptation.load(conn)
+            out: list[dict[str, Any]] = []
+            for dim in style_prefs.DIMENSIONS:
+                row = stored.get(dim)
+                value = eff.get(dim)
+                out.append(
+                    {
+                        "dimension": dim,
+                        "value": style_prefs.dump(value),
+                        "source": src[dim],
+                        "description": style_prefs.describe(dim, value),
+                        "learnable": dim in style_prefs.LEARNABLE,
+                        "explicit_value": None if row is None else row.explicit,
+                        "learned_value": None if row is None else row.learned,
+                        "updated_at": None
+                        if row is None
+                        else (row.explicit_at or row.learned_at or row.cleared_at),
+                    }
+                )
+            return {"dimensions": out}
+
+        return await self._q(read)
+
+    async def set_style(self, dimension: str, value: str) -> dict[str, Any]:
+        """The user edits a preference (an explicit value, source ``user_edit``)."""
+        dim = _dimension(dimension)
+        parsed = style_prefs.parse(dim, value)
+
+        def write(conn: Connection) -> None:
+            with repository.transaction(conn):
+                adaptation.set_explicit(
+                    conn, dim, parsed, base=self.base_preferences, now=utc_now_iso(),
+                    source="user_edit",
+                )  # fmt: skip
+
+        await self._q(write)
+        await self._refresh_preferences()
+        return await self.style()
+
+    async def clear_style(self, dimension: str) -> dict[str, Any]:
+        """The user removes a preference: back to the default, old signals never count again."""
+        dim = _dimension(dimension)
+
+        def write(conn: Connection) -> None:
+            with repository.transaction(conn):
+                adaptation.clear(conn, dim, base=self.base_preferences, now=utc_now_iso())
+
+        await self._q(write)
+        await self._refresh_preferences()
+        return await self.style()
+
+    async def style_history(self, limit: int = 50) -> list[dict[str, object]]:
+        await self.ensure_started()
+        return await self._q(lambda c: adaptation.history(c, limit))
+
+    async def _refresh_preferences(self) -> None:
+        self.preferences = await self._q(lambda c: adaptation.effective(c, self.base_preferences))
+
+    def _adapt(
+        self, conn: Connection, conversation_id: str, user: Message, now: str
+    ) -> adaptation.Observed:
+        """Layer 2 (Phase 10B), in the transaction that stores the message: an explicit style
+        instruction applies to this very reply; an implicit signal is counted. A failure rolls
+        back only this part (savepoint) and never fails the turn."""
+        conn.execute("SAVEPOINT style")
+        try:
+            before = conn.execute(
+                "SELECT role FROM messages WHERE conversation_id = ? AND seq < ?"
+                " ORDER BY seq DESC LIMIT 1",
+                (conversation_id, user.seq),
+            ).fetchone()
+            observed = adaptation.observe(
+                conn,
+                message_id=user.id,
+                conversation_id=conversation_id,
+                content=user.content,
+                after_reply=before is not None and before[0] == "assistant",
+                base=self.base_preferences,
+                now=now,
+            )
+        except Exception as exc:
+            conn.execute("ROLLBACK TO style")
+            conn.execute("RELEASE style")
+            log_event(_log, logging.WARNING, "style.observe_failed", error=type(exc).__name__)
+            return adaptation.Observed(preferences=self.preferences)
+        conn.execute("RELEASE style")
+        return observed
+
+    def _note_style(self, observed: adaptation.Observed) -> None:
+        self.preferences = observed.preferences
+        if observed.applied or observed.cleared or observed.refused or observed.learned:
+            log_event(
+                _log,
+                logging.INFO,
+                "style.changed",
+                applied=[s.dimension for s in observed.applied],
+                cleared=list(observed.cleared),
+                refused=list(observed.refused),
+                learned=[s.dimension for s in observed.learned],
+            )
 
     async def events(self, handle: TurnHandle) -> AsyncIterator[Event]:
         """The turn's events for one HTTP stream. If the client goes away, the generation is
@@ -1094,6 +1227,16 @@ class ConversationEngine:
             "claims_rewritten": handle.claims_rewritten,
             "internal_refs_removed": handle.internal_refs_removed,
             "people_sentences_removed": sum(handle.people_removed.values()),
+            # Phase 10B: layer 2 changes from this message (dimension names only).
+            "style_applied": None
+            if handle.style is None
+            else [s.dimension for s in handle.style.applied],
+            "style_cleared": None if handle.style is None else list(handle.style.cleared),
+            "style_refused": None if handle.style is None else list(handle.style.refused),
+            "style_signals": None if handle.style is None else handle.style.signals,
+            "style_learned": None
+            if handle.style is None
+            else [s.dimension for s in handle.style.learned],
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1166,6 +1309,10 @@ class ConversationEngine:
         it never blocks or fails a reply."""
         overview = handle.memory_intent == "recall"
         budget = self._memory.context_budget_tokens * (2 if overview else 1)
+        if handle.style is not None and handle.style.notice():
+            notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
+        if not self.layers.memory:
+            budget = 0  # PER-07: the memory layer off — no recall block
         if budget <= 0 and not notice:
             return built
         user = handle.user
@@ -1519,6 +1666,7 @@ class ConversationEngine:
             limit=self.budget.hard_limit,
             keep_last=1,
             preferences=self.preferences,
+            layers=self.layers,
         )
         if start is None:
             raise ContextBuildError("the newest message does not fit the context")

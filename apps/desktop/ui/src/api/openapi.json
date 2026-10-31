@@ -1816,6 +1816,73 @@
             ],
             "title": "Runtime Ttft Ms"
           },
+          "style_applied": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Applied"
+          },
+          "style_cleared": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Cleared"
+          },
+          "style_learned": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Learned"
+          },
+          "style_refused": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Refused"
+          },
+          "style_signals": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Signals"
+          },
           "total_ms": {
             "anyOf": [
               {
@@ -5069,6 +5136,213 @@
         "title": "RuntimeStatusModel",
         "type": "object"
       },
+      "StyleChangeModel": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "dimension": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dimension"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "new_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Value"
+          },
+          "old_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Value"
+          },
+          "source": {
+            "enum": [
+              "explicit",
+              "learned",
+              "cleared",
+              "user_edit",
+              "refused"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dimension",
+          "source",
+          "old_value",
+          "new_value",
+          "message_id",
+          "detail",
+          "created_at"
+        ],
+        "title": "StyleChangeModel",
+        "type": "object"
+      },
+      "StyleDimensionModel": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "dimension": {
+            "enum": [
+              "verbosity",
+              "elaboration",
+              "formality",
+              "humor",
+              "address",
+              "honorific"
+            ],
+            "title": "Dimension",
+            "type": "string"
+          },
+          "explicit_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicit Value"
+          },
+          "learnable": {
+            "title": "Learnable",
+            "type": "boolean"
+          },
+          "learned_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learned Value"
+          },
+          "source": {
+            "enum": [
+              "explicit",
+              "learned",
+              "default"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dimension",
+          "value",
+          "source",
+          "description",
+          "learnable",
+          "explicit_value",
+          "learned_value",
+          "updated_at"
+        ],
+        "title": "StyleDimensionModel",
+        "type": "object"
+      },
+      "StyleHistoryResponse": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/StyleChangeModel"
+            },
+            "title": "Changes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "changes"
+        ],
+        "title": "StyleHistoryResponse",
+        "type": "object"
+      },
+      "StyleResponse": {
+        "properties": {
+          "dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/StyleDimensionModel"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dimensions"
+        ],
+        "title": "StyleResponse",
+        "type": "object"
+      },
+      "StyleSetRequest": {
+        "properties": {
+          "value": {
+            "pattern": "^(10|[0-9]|siz|sen|0|1)$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "StyleSetRequest",
+        "type": "object"
+      },
       "SummaryInfoModel": {
         "additionalProperties": false,
         "properties": {
@@ -7336,6 +7610,168 @@
           }
         },
         "summary": "Effective Settings"
+      }
+    },
+    "/api/v1/style": {
+      "get": {
+        "operationId": "get_style_api_v1_style_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Style"
+      }
+    },
+    "/api/v1/style/history": {
+      "get": {
+        "operationId": "style_history_api_v1_style_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Style History"
+      }
+    },
+    "/api/v1/style/{dimension}": {
+      "delete": {
+        "operationId": "clear_style_api_v1_style__dimension__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dimension",
+            "required": true,
+            "schema": {
+              "enum": [
+                "verbosity",
+                "elaboration",
+                "formality",
+                "humor",
+                "address",
+                "honorific"
+              ],
+              "title": "Dimension",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Style"
+      },
+      "put": {
+        "operationId": "set_style_api_v1_style__dimension__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dimension",
+            "required": true,
+            "schema": {
+              "enum": [
+                "verbosity",
+                "elaboration",
+                "formality",
+                "humor",
+                "address",
+                "honorific"
+              ],
+              "title": "Dimension",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StyleSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Style"
       }
     },
     "/api/v1/system/status": {

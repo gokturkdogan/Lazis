@@ -73,13 +73,13 @@ def test_system_text_is_deterministic_and_has_no_per_turn_content() -> None:
     a = system_text(None, None)
     assert a == system_text(None, None)
     assert "Mesaj zamanı:" not in a  # time lives with each user message, not in the prefix
-    assert PROMPT_VERSION == "p72-v1" and PERSONA_VERSION == "persona-v3"
+    assert PROMPT_VERSION == "p72-v1" and PERSONA_VERSION == "persona-v4"
 
 
 def test_defaults_add_no_preference_text_and_preferences_are_explicit() -> None:
     default = system_text(None, None)
-    short = system_text(None, None, CommunicationPreferences(verbosity="short"))
-    no_humor = system_text(None, None, CommunicationPreferences(humor="off"))
+    short = system_text(None, None, CommunicationPreferences.from_settings("short"))
+    no_humor = system_text(None, None, CommunicationPreferences.from_settings(humor="off"))
     assert "kısa yanıtları tercih" not in default and "kısa yanıtları tercih" in short
     assert "Espri yapma." in no_humor and "hafif espri" in default
     assert len({default, short, no_humor}) == 3  # each preference changes the prefix

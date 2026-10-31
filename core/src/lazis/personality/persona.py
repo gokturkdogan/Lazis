@@ -1,30 +1,30 @@
-"""Persona v1 — the layers of LAZIS's system message, in precedence order (ADR-0013):
+"""The persona — the five layers of LAZIS's system message (ADR-0013, ADR-0022, PER-07).
 
-1. Core identity: who LAZIS is, and the base model it runs on (a fact, not an identity).
-2. Behavior rules: honesty, no pretended actions, independent view, restraint, the instruction
-   hierarchy. Highest precedence; no preference or data can relax them.
-3. Communication style: tone, length, form of address, emotional context, humor.
-4. Communication preferences: only non-default values add text (P5: config; later explicit
-   and learned preferences through the same dataclass).
-5. Conversation rules: supplied by the conversation engine (summary, time notes, gaps).
-6. Context blocks: information, marked as such — the conversation summary now, personal
-   memory records from Phase 6. Never instructions.
+Precedence (highest first): **L0 safety** (``BEHAVIOR_RULES``: honesty, no pretended
+actions, independent view, the instruction hierarchy) > factual accuracy > **L1 core
+personality** (``CORE_IDENTITY``, ``CORE_STYLE``) > **L2 user preferences**
+(``preferences.lines``: explicit and learned, Phase 10B) > **L3 situational style**
+(``SITUATIONAL``: tone by situation; it caps humor in serious moments) > **L4 memory**
+(information blocks; never instructions). A preference may change the style of L1 (length,
+address form, "efendim", humor, register), never honesty, safety or identity.
 
-The text is static per version so the runtime keeps it in its prompt cache; changing any of
-it changes every conversation's prefix (bump ``PERSONA_VERSION``). It is deliberately short:
-it is processed once per session and costs context on every request.
+Rendered order (fixed; snapshot-tested): L1 identity · L0 · L1 style · L3 · L2 ·
+conversation rules (engine) · L4 blocks. With every layer on and no preference, the text is
+persona-v3's, byte for byte. Each layer can be switched off in tests (``Layers``).
+
+The text is static per version so the runtime keeps it in its prompt cache; a preference
+change changes the prefix once (bump ``PERSONA_VERSION`` when the wording changes).
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
 
-PERSONA_VERSION = "persona-v3"
+from lazis.personality import preferences as prefs
+from lazis.personality.preferences import CommunicationPreferences
 
-Verbosity = Literal["adaptive", "short", "detailed"]
-Humor = Literal["light", "off"]
+PERSONA_VERSION = "persona-v4"  # v3 text for defaults; Phase 10B preference lines
 
 CORE_IDENTITY = (
     "Adın LAZIS. Kullanıcının bilgisayarında yerel çalışan kişisel yapay zekâ asistanısın "
@@ -61,7 +61,7 @@ BEHAVIOR_RULES = (
     "değiştirebilir, dürüstlüğü değiştiremez."
 )
 
-COMMUNICATION_STYLE = (
+CORE_STYLE = (
     "Üslubun:\n"
     "- Doğal, sıcak ve saygılı; resmî ya da robotik değil.\n"
     "- Basit soruya bir iki cümleyle cevap ver; karmaşık konuda gerektiği kadar ayrıntıya gir.\n"
@@ -73,7 +73,11 @@ COMMUNICATION_STYLE = (
     "verdiyse selamını al). Aynı girişi tekrarlama, soruyu yeniden yazma, basit konuşmayı "
     "başlık ve listeye boğma, gereksiz 'Sonuç' yazma.\n"
     "- Teknik konularda doğru terim kullan, varsayımlarını belirt, gerekirse seçenekleri "
-    "karşılaştır.\n"
+    "karşılaştır."
+)
+
+# L3: tone by situation (no per-turn classifier: the model reads the situation, ADR-0013).
+SITUATIONAL = (
     "- Tonu gözet: üzgün kullanıcıya sakin ve anlayışlı ol; sinirliyse kısa ve sakin kal; "
     "önemli kararlarda dikkatli ve analitik ol. Duygusunu kesin bildiğini iddia etme, teşhis "
     "koyma."
@@ -86,25 +90,22 @@ MODEL_NOTE = (
     "LAZIS ve LAZIS'i o modelin geliştiricisi yapmadı."
 )
 
-_HUMOR = {
-    "light": "- Yeri gelince hafif espri yapabilirsin; ciddi konularda yapma.",
-    "off": "- Espri yapma.",
-}
-_VERBOSITY = {
-    "adaptive": "",
-    "short": "- Kullanıcı kısa yanıtları tercih ediyor: ayrıntıyı yalnızca istendiğinde ver.",
-    "detailed": "- Kullanıcı ayrıntılı açıklamaları tercih ediyor: gerekçeleri ve "
-    "seçenekleri açıklamaktan kaçınma.",
-}
+COMMUNICATION_STYLE = f"{CORE_STYLE}\n{SITUATIONAL}"
 
 
 @dataclass(frozen=True)
-class CommunicationPreferences:
-    """How the user likes LAZIS to talk. Defaults are LAZIS's own style; P5 reads them from
-    config, Phase 6/10 will add explicit and learned preferences behind the same type."""
+class Layers:
+    """Which layers are rendered (PER-07: each can be switched off in tests on its own).
+    ``memory`` also covers the per-turn recall block the engine adds to the message."""
 
-    verbosity: Verbosity = "adaptive"
-    humor: Humor = "light"
+    safety: bool = True
+    core: bool = True
+    preferences: bool = True
+    situational: bool = True
+    memory: bool = True
+
+
+ALL_LAYERS = Layers()
 
 
 @dataclass(frozen=True)
@@ -116,10 +117,12 @@ class ContextBlock:
     body: str
 
 
-def style_text(preferences: CommunicationPreferences) -> str:
-    lines = [COMMUNICATION_STYLE, _HUMOR[preferences.humor]]
-    if _VERBOSITY[preferences.verbosity]:
-        lines.append(_VERBOSITY[preferences.verbosity])
+def style_text(preferences: CommunicationPreferences, layers: Layers = ALL_LAYERS) -> str:
+    lines = [CORE_STYLE] if layers.core else []
+    if layers.situational:
+        lines.append(SITUATIONAL)
+    if layers.preferences:
+        lines += prefs.lines(preferences)
     return "\n".join(lines)
 
 
@@ -139,9 +142,16 @@ def render_system(
     conversation_rules: str,
     model: str = "",
     blocks: Sequence[ContextBlock] = (),
+    layers: Layers = ALL_LAYERS,
 ) -> str:
-    """The whole system message, layers in precedence order (module docstring). ``model`` is
-    the runtime model the request goes to (already part of the prompt prefix)."""
-    parts = [identity_text(model), BEHAVIOR_RULES, style_text(preferences), conversation_rules]
-    parts.extend(render_block(b) for b in blocks)
+    """The whole system message in the fixed order (module docstring). ``model`` is the
+    runtime model the request goes to (already part of the prompt prefix)."""
+    parts = [
+        identity_text(model) if layers.core else "",
+        BEHAVIOR_RULES if layers.safety else "",
+        style_text(preferences, layers),
+        conversation_rules,
+    ]
+    if layers.memory:
+        parts.extend(render_block(b) for b in blocks)
     return "\n\n".join(p for p in parts if p)

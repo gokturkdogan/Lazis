@@ -30,7 +30,13 @@ from lazis.conversation.prompts import (
     PROMPT_VERSION,
     omitted_note,
 )
-from lazis.personality import CommunicationPreferences, ContextBlock, render_system
+from lazis.personality import (
+    ALL_LAYERS,
+    CommunicationPreferences,
+    ContextBlock,
+    Layers,
+    render_system,
+)
 from lazis.providers.llm.ports import ChatMessage
 
 DEFAULT_PREFERENCES = CommunicationPreferences()
@@ -125,6 +131,7 @@ def system_text(
     omitted: tuple[int, int] | None,
     preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
     model: str = "",
+    layers: Layers = ALL_LAYERS,
 ) -> str:
     """The persona layers, then this conversation's rules, then its summary and gap note as
     marked information blocks (derived from user content: never instructions)."""
@@ -134,8 +141,9 @@ def system_text(
     if omitted is not None:
         blocks.append(ContextBlock("Bağlamda olmayan mesajlar", omitted_note(*omitted)))
     return render_system(
-        preferences, conversation_rules=CONVERSATION_RULES, model=model, blocks=blocks
-    )
+        preferences, conversation_rules=CONVERSATION_RULES, model=model, blocks=blocks,
+        layers=layers,
+    )  # fmt: skip
 
 
 def prefix_hash(model: str, num_ctx: int, system: str) -> str:
@@ -152,12 +160,13 @@ def assemble(
     num_ctx: int,
     estimator: TokenEstimator,
     preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
+    layers: Layers = ALL_LAYERS,
 ) -> AssembledPrompt:
     """Build the request messages for ``window`` (messages with seq ≥ window_start_seq, in
     order, already including the new user message and excluding the reply being generated).
     """
     omitted = omitted_range(state, summary)
-    system = system_text(summary, omitted, preferences, model)
+    system = system_text(summary, omitted, preferences, model, layers)
     phash = prefix_hash(model, num_ctx, system)
     chat = [ChatMessage("system", system)]
     included: list[int] = []
@@ -231,6 +240,7 @@ def trim_to_fit(
     limit: int,
     keep_last: int,
     preferences: CommunicationPreferences = DEFAULT_PREFERENCES,
+    layers: Layers = ALL_LAYERS,
 ) -> int | None:
     """Fallback when compaction is impossible: the smallest ``window_start_seq`` (dropping
     the oldest verbatim messages, never the last ``keep_last``) whose prompt fits ``limit``.
@@ -264,6 +274,7 @@ def trim_to_fit(
             num_ctx=num_ctx,
             estimator=estimator,
             preferences=preferences,
+            layers=layers,
         )
         if built.estimated_tokens <= limit:
             return start

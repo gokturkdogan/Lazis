@@ -713,6 +713,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/style": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Style */
+        get: operations["get_style_api_v1_style_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/style/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Style History */
+        get: operations["style_history_api_v1_style_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/style/{dimension}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Style */
+        put: operations["set_style_api_v1_style__dimension__put"];
+        post?: never;
+        /** Clear Style */
+        delete: operations["clear_style_api_v1_style__dimension__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/status": {
         parameters: {
             query?: never;
@@ -1350,6 +1402,16 @@ export interface components {
             prompt_tokens: number | null;
             /** Runtime Ttft Ms */
             runtime_ttft_ms: number | null;
+            /** Style Applied */
+            style_applied?: string[] | null;
+            /** Style Cleared */
+            style_cleared?: string[] | null;
+            /** Style Learned */
+            style_learned?: string[] | null;
+            /** Style Refused */
+            style_refused?: string[] | null;
+            /** Style Signals */
+            style_signals?: number | null;
             /** Total Ms */
             total_ms: number | null;
             /** Ttft Ms */
@@ -2358,6 +2420,68 @@ export interface components {
             runtime: string;
             /** Version */
             version: string | null;
+        };
+        /** StyleChangeModel */
+        StyleChangeModel: {
+            /** Created At */
+            created_at: string;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Dimension */
+            dimension: string | null;
+            /** Message Id */
+            message_id: string | null;
+            /** New Value */
+            new_value: string | null;
+            /** Old Value */
+            old_value: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "explicit" | "learned" | "cleared" | "user_edit" | "refused";
+        };
+        /** StyleDimensionModel */
+        StyleDimensionModel: {
+            /** Description */
+            description: string;
+            /**
+             * Dimension
+             * @enum {string}
+             */
+            dimension: "verbosity" | "elaboration" | "formality" | "humor" | "address" | "honorific";
+            /** Explicit Value */
+            explicit_value: string | null;
+            /** Learnable */
+            learnable: boolean;
+            /** Learned Value */
+            learned_value: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "explicit" | "learned" | "default";
+            /** Updated At */
+            updated_at: string | null;
+            /** Value */
+            value: string;
+        };
+        /** StyleHistoryResponse */
+        StyleHistoryResponse: {
+            /** Changes */
+            changes: components["schemas"]["StyleChangeModel"][];
+        };
+        /** StyleResponse */
+        StyleResponse: {
+            /** Dimensions */
+            dimensions: components["schemas"]["StyleDimensionModel"][];
+        };
+        /** StyleSetRequest */
+        StyleSetRequest: {
+            /** Value */
+            value: string;
         };
         /** SummaryInfoModel */
         SummaryInfoModel: {
@@ -4023,6 +4147,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_style_api_v1_style_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StyleResponse"];
+                };
+            };
+        };
+    };
+    style_history_api_v1_style_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StyleHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_style_api_v1_style__dimension__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dimension: "verbosity" | "elaboration" | "formality" | "humor" | "address" | "honorific";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StyleSetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StyleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_style_api_v1_style__dimension__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dimension: "verbosity" | "elaboration" | "formality" | "humor" | "address" | "honorific";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StyleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

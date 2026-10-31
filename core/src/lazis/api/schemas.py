@@ -380,6 +380,12 @@ class DiagLastTurnModel(_Schema):
     claims_rewritten: int | None = None
     internal_refs_removed: int | None = None  # Phase 9: internal-layer references removed
     people_sentences_removed: int | None = None  # Phase 10A: unsettled / forgotten people
+    # Phase 10B: what the message changed in the communication preferences (names only).
+    style_applied: list[str] | None = None
+    style_cleared: list[str] | None = None
+    style_refused: list[str] | None = None
+    style_signals: int | None = None
+    style_learned: list[str] | None = None
 
 
 class DiagPrewarmModel(_Schema):
