@@ -1,6 +1,6 @@
 # LAZIS — Faz 9 Raporu: Gelişmiş Otomatik Öğrenme, Hafıza Kalitesi ve Güvenilir Kişisel Bağlam
 
-- **Durum:** Uygulandı ve gerçek modelle doğrulandı — **sahibinin kabul testi ve onayı bekleniyor.** Faz 10'a başlanmadı. Hiçbir şey push edilmedi.
+- **Durum:** **Faz 9 ve Faz 9.1 tamamlandı ve sahibi tarafından kabul edildi (2026-10-31, §22).** Kalan riskler açık konular olarak §22'de duruyor. Faz 10'a başlanmadı. Hiçbir şey push edilmedi.
 - **Tarih:** 2026-10-28 / 29
 - **Karar kaydı:** [ADR-0020](adr/0020-advanced-learning.md). Modüller, migration ve API: [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P9. Geliştirici notları: [DEVELOPER_GUIDE.md §18](DEVELOPER_GUIDE.md).
 - **Yerel commit'ler:**
@@ -1592,3 +1592,32 @@ make check: `5d775aa`, `d10875d` ve `2f5d7e6`'da rc 0 (çekirdek 2895 / 2901 / 2
 4. **Sayı söylenmeyen adaşlar.** Adaşlar ayrı mesajlarda, sayı söylenmeden tanıtıldığında ("İş ortağım da Ahmet") yeni kod çalışmıyor. Faz 7.2 çözümleyicisi soruyor, ama yanıt her zaman sormuyor (B4-ask, 21.10-9).
 
 Faz 9.1 bitti; **Faz 10 için kullanıcı onayı bekleniyor.** Push yok, Faz 10'a başlanmadı.
+
+---
+
+## 22. Kabul ve açık konular
+
+**2026-10-31:** Sahibi Faz 9.1 nihai raporunu inceledi ve Faz 9.1'i kabul etti: "Yapılan güvenlik düzeltmeleri ve gerçek Gemma test sonuçları bu fazın hedeflerini karşılıyor." Faz 9 ve Faz 9.1 tamamlandı olarak işaretlendi. Kabul, kod değişikliği olmadan yapıldı; son kod `2f5d7e6`, son belge commit'i `d9b4c4a`.
+
+Kabul, kalan riskleri kapatmıyor. Sahibinin talimatı gereği aşağıdaki konular **açık** ve sonraki geliştirmelerde ele alınacak. Hiçbiri çözülmüş sayılmıyor.
+
+**Sahibinin özellikle belirttiği üç açık konu:**
+
+1. **Model belirsiz bir kişi hakkında kesin konuşabiliyor.** Veritabanı doğru biçimde hiçbir adaşa yazmayıp "hangi Ahmet?" diye sorarken modelin yanıt metni bir kişiyi tahmin edebiliyor:
+   - Adaş sohbeti a2: "Komşunuz olan Ahmet Bey'in emekli olduğunu anladım".
+   - Faz 6 B4-ask: yanıt hiç sormadı (bilgi gelen kutusunda).
+   - Yanıt koruyucuları yalnızca hafıza iddialarını ve iç ifadeleri yakalıyor; kişi hakkında kesin bir cümleyi yakalamıyor. (21.12 risk 3 ve 4, 21.10-9)
+2. **Silinmiş bilgi sohbet geçmişinden yeniden anılabiliyor.** Faz 7 6.ask'ta ilişki veritabanından silindi ve bellek bloğunda yoktu. Yanıt yine de "Mehmet bu kişilerden hangisinin kuzeniydi?" dedi. "kuzen" aynı sohbetin önceki turundan geliyor. Silme hafızayı temizliyor, modelin gördüğü sohbet geçmişini temizlemiyor. (21.12 risk 3)
+3. **Aynı bilgi birden çok kez kaydedilebiliyor.** Aynı tercih farklı sözcüklerle söylendiğinde iki ya da üç ayrı kayıt oluşuyor (öğrenme r01, Faz 9'dan beri her koşuda). Kalite önerileri bunu gösterebiliyor ama birleştirmiyor. (§17, §19-1)
+
+**Raporun diğer açık konuları** (ayrıntıları kendi bölümlerinde):
+- Sözcük kuralları anlama değil; koşulmamış bir biçim yanlış ya da eksik işlenebilir (21.10-1, 21.12 risk 2).
+- Güvenlik için geri getirme azaldı; yerleştirilemeyen adaş bilgisi yazılmıyor ya da soruluyor (21.12 risk 1).
+- Modelin eksik önerileri (t03, t05, Faz 6 3.memory) (21.10-3).
+- Kötü Türkçe yeniden yazımlar (21.10-6, §19-11).
+- Silme hedefinin eşleşmesi ve konusuz "hepsini sil" (§19-10, 21.10-7).
+- Geniş zamanlı söz, sınırda varlık ifadeleri, "onaysız kaydetmem" yanlış açıklaması (21.10-12, -13, -14).
+- Yoğun yükte sıkıştırma gecikmesi (§12; Faz 9 son düzeltmeler talimatı gereği Faz 10'a bırakıldı, §19-9).
+- Yol haritasındaki Faz 9 kapsamından yapılmayanlar: öğrenme inceleme akışı, öğrenme çalıştırması geri alma, açık döngüler (open loops), bölümler (episodes), kalibrasyon raporu ([DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) P9 "As built").
+
+Push yok. Faz 10'a başlanmadı; Faz 10 hazırlık raporu sahibinin onayına sunuldu.

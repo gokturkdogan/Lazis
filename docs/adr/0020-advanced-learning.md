@@ -1,6 +1,6 @@
 # ADR-0020: Advanced automatic learning — whole lists, the right time, the right person (Phase 9)
 
-- **Status:** Implemented in Phase 9 (2026-10-28); awaiting the owner's acceptance test and approval with [PHASE_9_REPORT.md](../PHASE_9_REPORT.md).
+- **Status:** Accepted. Implemented in Phase 9 (2026-10-28) and Phase 9.1; the owner accepted Phases 9 and 9.1 on 2026-10-31 ([PHASE_9_REPORT.md §22](../PHASE_9_REPORT.md)). The remaining risks listed there stay open.
 - **Related:** [ADR-0014](0014-personal-memory-store.md) (store, consolidation), [ADR-0015](0015-learning-recall-and-model-trust.md) (learning), [ADR-0016](0016-entity-relationship-graph.md) (graph), [ADR-0017](0017-truthful-memory-claims.md) (claims), [ADR-0018](0018-namesakes-and-explicit-requests.md) (namesakes), [ADR-0019](0019-personal-knowledge-bootstrap.md) (import), [MEMORY_ARCHITECTURE.md](../MEMORY_ARCHITECTURE.md) Part P9.
 
 ## Context
