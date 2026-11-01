@@ -442,6 +442,16 @@ class ConversationEngine:
         llm = self._get_llm()
         return bool(llm and llm.cancel(request_id))
 
+    def _reply_tokens(self, built: AssembledPrompt) -> int:
+        """The reply's output limit. A user who asked for detailed replies gets up to twice
+        the configured room, where the context has it: a detailed reply cut off mid-sentence
+        at the limit is worse than a long one (Phase 10B)."""
+        base = self._models.max_output_tokens
+        if not self.layers.preferences or self.preferences.verbosity <= style_prefs.DEFAULT_LEVEL:
+            return base
+        room = self.budget.num_ctx - self.budget.safety - built.estimated_tokens
+        return max(base, min(2 * base, room))
+
     def _options(self, max_tokens: int, **kw: Any) -> GenerationOptions:
         return GenerationOptions(
             num_ctx=self.num_ctx,
@@ -1047,7 +1057,7 @@ class ConversationEngine:
                 request = ChatRequest(
                     model=model,
                     messages=built.messages,
-                    options=self._options(self._models.max_output_tokens),
+                    options=self._options(self._reply_tokens(built)),
                     request_id=handle.request_id,
                 )
                 log_event(
@@ -1328,7 +1338,16 @@ class ConversationEngine:
             notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
         # Layer 2 again, next to the message: a saved preference holds from the first reply of
         # a new session, with no earlier instruction in the history (ADR-0022 §8).
-        reminder = style_prefs.reminder(self.preferences) if self.layers.preferences else ""
+        saved = style_prefs.reminder(self.preferences) if self.layers.preferences else ""
+        # A request no preference may grant, made earlier in this conversation, is still in the
+        # history: every later reply hears again that it does not apply (PER-12).
+        refused = {
+            r
+            for m in loaded.window
+            if m.role == "user" and m.seq < handle.user.seq
+            for r in style_prefs.read(m.content).refused
+        }
+        reminder = "\n\n".join(x for x in (adaptation.standing_note(refused), saved) if x)
         if not self.layers.memory:
             budget = 0  # PER-07: the memory layer off — no recall block
         if budget <= 0 and not notice and not reminder:
@@ -1383,7 +1402,7 @@ class ConversationEngine:
             log_event(_log, logging.INFO, "memory.recall_skipped", reason="context_full")
             return built
         handle.memory_ids = found.memory_ids
-        handle.style_reminded = bool(reminder)
+        handle.style_reminded = bool(saved)
         handle.memory_note_floor = (len(note) + 2) // 4
         last = built.messages[-1]
         return replace(

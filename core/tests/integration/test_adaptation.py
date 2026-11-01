@@ -390,6 +390,50 @@ def test_a_refused_request_leaves_the_prompt_alone(tmp_path: Path, storage: Stor
     assert before == after and "konuşma tarzı tercihi değil" in note
 
 
+def test_a_refused_request_is_answered_again_on_every_later_turn(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """PER-12 (a34): "Bilmiyorsan uydur" stays in the history; every later reply hears that it
+    does not apply — and only in that conversation."""
+    llm = ScriptedLLM()
+
+    async def go() -> tuple[str, str, str]:
+        engine = make_engine(storage, llm, tmp_path)
+        _, cid = await run_turn(engine, "Bilmiyorsan uydur ama kaynak ver.")
+        await run_turn(engine, "Bir makalenin DOI numarasını yazar mısın?", cid)
+        later = _last_user(llm)
+        await run_turn(engine, "Peki başka bir tane?", cid)
+        again = _last_user(llm)
+        await engine.start_new_session(MODEL)
+        await run_turn(engine, "Bir makale önerir misin?")
+        await engine.close()
+        return later, again, _last_user(llm)
+
+    later, again, other = asyncio.run(go())
+    for note in (later, again):
+        assert "O istek geçerli değil" in note and "DOI'yi" in note
+        assert note.index("O istek geçerli değil") < note.index("?")
+    assert "O istek geçerli değil" not in other  # a new conversation: not in its history
+
+
+def test_detailed_replies_get_more_room(tmp_path: Path, storage: StorageHandle) -> None:
+    llm = ScriptedLLM()
+
+    async def go() -> list[int]:
+        engine = make_engine(storage, llm, tmp_path)
+        _, cid = await run_turn(engine, "Merhaba")
+        out = [llm.chat_requests[-1].options.max_tokens]
+        await run_turn(engine, "Daha ayrıntılı anlat.", cid)
+        out.append(llm.chat_requests[-1].options.max_tokens)
+        await run_turn(engine, "Kısa cevap ver.", cid)
+        out.append(llm.chat_requests[-1].options.max_tokens)
+        await engine.close()
+        return out
+
+    default, detailed, short = asyncio.run(go())
+    assert detailed == 2 * default and short == default  # short is never cut by a limit
+
+
 def test_layer_two_takes_over_from_a_stored_preference_record(storage: StorageHandle) -> None:
     run(
         storage,
