@@ -510,7 +510,7 @@ class Probe:
 DONT_KNOW = ("bilmiyorum", "bilgim yok", "bilgiye sahip değil", "bilgim bulunmuyor", "söylemediniz",
              "paylaşmadınız", "kayıtlı", "hatırlamıyorum", "bilemiyorum", "söylemedin", "paylaşmadın",
              "erişimim yok", "bilgi yok", "kayıt bulunmuyor", "kayıt yok", "hatırlayamıyorum",
-             "bulamıyorum")  # fmt: skip
+             "bulamıyorum", "göremiyorum")  # fmt: skip
 TODAY = "<today>"  # resolved when the reply arrives (a run can cross midnight)
 
 PROBES = [
