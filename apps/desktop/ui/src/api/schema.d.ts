@@ -1373,6 +1373,10 @@ export interface components {
             context_prep_ms: number | null;
             /** Decode Tps */
             decode_tps: number | null;
+            /** Dois Example */
+            dois_example?: number | null;
+            /** Dois Unverified */
+            dois_unverified?: number | null;
             /** Failed Stage */
             failed_stage?: string | null;
             /** First Shown Ms */

@@ -388,6 +388,8 @@ class DiagLastTurnModel(_Schema):
     style_learned: list[str] | None = None
     style_reminded: bool | None = None  # the saved preferences went in front of the message
     style_address_fixed: int | None = None  # "siz" forms turned into "sen" (the preference)
+    dois_unverified: int | None = None  # DOIs with no source, replaced in the reply
+    dois_example: int | None = None  # DOIs kept as examples (the user asked for one)
 
 
 class DiagPrewarmModel(_Schema):

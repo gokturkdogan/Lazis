@@ -27,7 +27,15 @@ from datetime import datetime
 from typing import Any
 
 from lazis.config.model import Settings
-from lazis.conversation import adaptation, compaction, disclosure, learning, people, repository
+from lazis.conversation import (
+    adaptation,
+    citations,
+    compaction,
+    disclosure,
+    learning,
+    people,
+    repository,
+)
 from lazis.conversation.context import (
     ASSISTANT_TEMPLATE_TOKENS,
     AssembledPrompt,
@@ -162,6 +170,8 @@ class TurnHandle:
     style: adaptation.Observed | None = None
     style_reminded: bool = False  # the saved preferences went in front of the message
     address_fixed: int = 0  # "siz" forms the address guard turned into "sen"
+    dois_unverified: int = 0  # DOIs with no source, replaced in the reply
+    dois_example: int = 0  # DOIs kept because the user asked for an example
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -988,6 +998,7 @@ class ConversationEngine:
         last_flush = time.monotonic()
         metrics: GenerationMetrics | None = None
         built: AssembledPrompt | None = None
+        local_dois: asyncio.Task[frozenset[str]] | None = None
         loaded: Loaded | None = None
         sent_at: float | None = None
         first_at: float | None = None
@@ -1029,7 +1040,14 @@ class ConversationEngine:
                     disclosure.asks_instructions(handle.user.content),
                     handle.people_ctx or people.Context(),
                     address=self.preferences.address if self.layers.preferences else "siz",
+                    # What the model is sent now; the memory records' DOIs while it writes.
+                    dois=citations.grounded(
+                        m.content for m in built.messages if m.role != "assistant"
+                    ),
+                    doi_fiction=citations.asks_fiction(handle.user.content),
+                    dois_pending=True,
                 )
+                local_dois = asyncio.create_task(self._local_dois())
                 handle.claim_state = guard.policy.state.value
                 handle.check()
                 if model not in {m.name for m in await llm.loaded_models()}:
@@ -1080,6 +1098,9 @@ class ConversationEngine:
                             handle.stage = "generating"
                             first_at = time.monotonic()
                         parts.append(event.text)
+                        if local_dois is not None and local_dois.done():
+                            guard.add_dois(local_dois.result())
+                            local_dois = None
                         # Only text the output guards released (internal layers, memory
                         # claims) reaches the user, the stored message and (later) the voice —
                         # and they are always the same text.
@@ -1097,6 +1118,9 @@ class ConversationEngine:
                             flushed, last_flush = size, now_m
                     else:
                         metrics = event.metrics
+                if local_dois is not None:
+                    guard.add_dois(await local_dois)
+                    local_dois = None
                 await self._show(handle, guard.finish())
                 self._note_claims(handle, guard)
                 text = guard.released
@@ -1190,6 +1214,8 @@ class ConversationEngine:
                 extra={"lazis_fields": {"conversation_id": conv.id, "error": type(exc).__name__}},
             )
         finally:
+            if local_dois is not None:  # the reply ended early (cancelled, failed)
+                local_dois.cancel()
             handle.active_request_id = None
             self._record_last_turn(handle, metrics, sent_at, first_at, len(parts) > 0)
             if self._turn is handle:
@@ -1252,6 +1278,8 @@ class ConversationEngine:
             else [s.dimension for s in handle.style.learned],
             "style_reminded": handle.style_reminded,
             "style_address_fixed": handle.address_fixed,
+            "dois_unverified": handle.dois_unverified,
+            "dois_example": handle.dois_example,
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1282,8 +1310,27 @@ class ConversationEngine:
             handle.first_shown_at = time.monotonic()
         await self._emit(handle, {"type": "delta", "text": text})
 
+    async def _local_dois(self) -> frozenset[str]:
+        """DOIs in active memory records: a local source the reply may repeat (ADR-0022 §10)."""
+        try:
+            return await self._q(citations.local)
+        except Exception as exc:  # never blocks or fails a reply
+            log_event(_log, logging.WARNING, "reply.doi_sources_failed", error=type(exc).__name__)
+            return frozenset()
+
     def _note_claims(self, handle: TurnHandle, guard: ReplyGuard) -> None:
         handle.claims_rewritten = len(guard.rewrites)
+        handle.dois_unverified = len(guard.doi.replaced)
+        handle.dois_example = len(guard.doi.kept)
+        if guard.doi.replaced:
+            # A count only: never the identifiers.
+            log_event(
+                _log,
+                logging.INFO,
+                "reply.doi_unverified",
+                conversation_id=handle.conversation.id,
+                count=len(guard.doi.replaced),
+            )
         handle.address_fixed = guard.address_fixed
         if guard.address_fixed:
             # A count only: never the words.
@@ -1347,7 +1394,12 @@ class ConversationEngine:
             if m.role == "user" and m.seq < handle.user.seq
             for r in style_prefs.read(m.content).refused
         }
-        reminder = "\n\n".join(x for x in (adaptation.standing_note(refused), saved) if x)
+        # A DOI the user speaks of cannot be checked offline (ADR-0022 §10).
+        reminder = "\n\n".join(
+            x
+            for x in (adaptation.standing_note(refused), citations.note(handle.user.content), saved)
+            if x
+        )
         if not self.layers.memory:
             budget = 0  # PER-07: the memory layer off — no recall block
         if budget <= 0 and not notice and not reminder:
