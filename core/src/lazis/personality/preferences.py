@@ -189,23 +189,17 @@ def reminder(p: CommunicationPreferences) -> str:
     items = [x for x in lines(p) if x != HUMOR_DEFAULT]
     if not items:
         return ""
-    head = (
-        "Kullanıcı bunları daha önce söyledi; bu yanıtta da uygula, tekrar söylemesini "
-        "bekleme. Yalnızca üslubu değiştirir: doğru, eksiksiz ve dürüst bilgi, önemli uyarılar "
-        "ve güvenlik kuralları aynı kalır. Bu tercihlerden söz etme."
-    )
-    if p.address == "sen":
-        items.append(
-            "- 'sen' hitabı fiillerin ve iyelik eklerinin çekimini de kapsar: 'ihtiyacınız', "
-            "'yapabilirsiniz', 'isterseniz', 'deneyin' değil; 'ihtiyacın', 'yapabilirsin', "
-            "'istersen', 'dene'. Başkasına yazılacak örnek bir metin (e-posta, mesaj) kendi "
-            "hitabını korur."
-        )
+    # Short on purpose: a longer note ("facts, warnings and safety stay the same", the "sen"
+    # suffixes) made replies about 30 % longer with no length preference (Phase 10B, 16
+    # replies each). The model writes "sen" with its suffixes from this note alone, and the
+    # address guard covers the rest; the facts line stays where it is needed: when shortening.
     if p.verbosity < DEFAULT_LEVEL or p.elaboration < DEFAULT_LEVEL:
         items.append(
-            "- Kısa tutarken sorunun cevabı için gereken bilgiyi atlama: önce doğrudan cevap, "
-            "gerekirse en önemli bir iki nokta."
+            "- Bu tercihler yalnızca üslubu değiştirir: doğru ve dürüst bilgi, önemli uyarılar ve "
+            "güvenlik kuralları aynı kalır. Kısa tutarken sorunun cevabı için gereken bilgiyi "
+            "atlama: önce doğrudan cevap, gerekirse en önemli bir iki nokta."
         )
+    head = "Kullanıcının kayıtlı konuşma tercihleri; bu yanıtta da uygula, bunlardan söz etme:"
     return "\n".join([REMINDER_START, head, *items, REMINDER_END])
 
 

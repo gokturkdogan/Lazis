@@ -194,6 +194,13 @@ def test_the_reminder_carries_every_saved_preference_and_keeps_the_facts() -> No
     for line in P.lines(p):
         if line != P.HUMOR_DEFAULT:
             assert line in text
-    assert "'yapabilirsin'" in text and "'ihtiyacın'" in text  # the suffixes too
     assert "gereken bilgiyi atlama" in text  # short, not incomplete
     assert "güvenlik kuralları aynı kalır" in text
+
+
+def test_the_reminder_stays_short_without_a_shortening_preference() -> None:
+    text = P.reminder(CommunicationPreferences(address="sen"))
+    assert "'sen' diye hitap" in text
+    # the facts sentence made replies longer when nothing asked for shorter
+    assert "gereken bilgiyi atlama" not in text and "aynı kalır" not in text
+    assert len(text.splitlines()) == 4  # start, head, the line, end
