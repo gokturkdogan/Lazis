@@ -12,6 +12,9 @@ when it has a source LAZIS was given:
   formatı göster"): given, and the reply says it belongs to no publication unless it already
   does. Only a ``10.5555/`` example is kept as written; one with a publisher's prefix
   ("10.1038/…") may be a real publication's, so it becomes ``10.5555/ornek.0001``;
+* **miscopied** — within two characters of exactly one grounded DOI: the model copied the
+  user's (or a record's) DOI wrongly ("10.101038/nature14539" for "10.1038/nature14539"). It is
+  written back as the source has it, not hidden as if LAZIS would not give the user's own DOI;
 * **unsupported** — anything else: the identifier itself (with its ``doi.org`` link) is
   replaced in place by a plain Turkish phrase, and one sentence at the end says how to check
   the publication. Only the identifier is replaced; the rest of the reply (titles, authors,
@@ -93,6 +96,20 @@ def normalize(doi: str) -> str:
     return d
 
 
+MAX_COPY_ERRORS = 2
+
+
+def _distance(a: str, b: str) -> int:
+    """Edit distance (insertions, deletions, substitutions)."""
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
 def _valid(doi: str) -> bool:
     return len(doi.split("/", 1)[1]) >= MIN_SUFFIX
 
@@ -159,6 +176,7 @@ class DoiGuard:
     replaced: list[str] = field(default_factory=list[str])  # unsupported DOIs, normalized
     kept: list[str] = field(default_factory=list[str])  # example DOIs left in
     swapped: int = 0  # example DOIs with a publisher's prefix, replaced by a plain example
+    restored: list[str] = field(default_factory=list[str])  # miscopied, written as the source
     _before: str = ""
 
     def add(self, more: frozenset[str]) -> None:
@@ -200,6 +218,15 @@ class DoiGuard:
         self.released += piece
         return piece
 
+    def _copied_from(self, doi: str) -> str | None:
+        """The one grounded DOI this one is a miscopy of, if any."""
+        close = [
+            s
+            for s in self.sources
+            if abs(len(s) - len(doi)) <= MAX_COPY_ERRORS and _distance(s, doi) <= MAX_COPY_ERRORS
+        ]
+        return close[0] if len(close) == 1 else None
+
     def _unknown(self, m: re.Match[str]) -> bool:
         doi = normalize(m.group(1))
         return _valid(doi) and doi not in self.sources
@@ -219,10 +246,14 @@ class DoiGuard:
             whole = m.group(0)
             start = whole.lower().rfind(doi)
             return whole[:start] + example + whole[start + len(doi) :]
-        self.replaced.append(doi)
-        # What normalize cut off (a full stop, a closing parenthesis) stays in the text.
         whole = m.group(0)
         start = whole.lower().rfind(doi)
+        source = self._copied_from(doi)
+        if source is not None:
+            self.restored.append(source)
+            return whole[:start] + source + whole[start + len(doi) :]
+        self.replaced.append(doi)
+        # What normalize cut off (a full stop, a closing parenthesis) stays in the text.
         after = whole[start + len(doi) :]
         before = m.string[m.start() - 1] if m.start() > 0 else self._before
         if before == "(" and (after or m.string[m.end() : m.end() + 1]).startswith(")"):

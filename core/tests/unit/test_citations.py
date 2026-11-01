@@ -223,3 +223,22 @@ def test_the_whole_guard_chain_streams_to_the_same_text(address: str) -> None:
             out += g.feed(text[i : i + n])
             i += n
         assert out + g.finish() == whole == g.released
+
+
+def test_a_miscopied_source_doi_is_written_back_as_the_source_has_it() -> None:
+    # Phase 10B real run: the user gave 10.1038/nature14539, the model wrote 10.101038/…
+    out, g = guarded("Verdiğiniz DOI (10.101038/nature14539) üzerinden bakamıyorum.",
+                     sources=frozenset({USERS.replace("12373", "14539")}))  # fmt: skip
+    assert out == "Verdiğiniz DOI (10.1038/nature14539) üzerinden bakamıyorum."
+    assert g.restored == ["10.1038/nature14539"] and not g.replaced
+
+
+def test_a_doi_far_from_every_source_is_still_unsupported() -> None:
+    out, g = guarded(f"Şuna bakın: {FAKE}", sources=frozenset({USERS}))
+    assert FAKE not in out and g.replaced == [FAKE] and not g.restored
+
+
+def test_a_doi_close_to_two_sources_is_not_guessed() -> None:
+    sources = frozenset({"10.5555/abc.1001", "10.5555/abc.1003"})
+    out, g = guarded("Kaynak: 10.5555/abc.1002", sources=sources)
+    assert "10.5555/abc.100" not in out and g.replaced == ["10.5555/abc.1002"]

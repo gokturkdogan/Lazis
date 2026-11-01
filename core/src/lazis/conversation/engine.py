@@ -172,6 +172,7 @@ class TurnHandle:
     address_fixed: int = 0  # "siz" forms the address guard turned into "sen"
     dois_unverified: int = 0  # DOIs with no source, replaced in the reply
     dois_example: int = 0  # DOIs kept because the user asked for an example
+    dois_restored: int = 0  # miscopied source DOIs written back as the source has them
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -1280,6 +1281,7 @@ class ConversationEngine:
             "style_address_fixed": handle.address_fixed,
             "dois_unverified": handle.dois_unverified,
             "dois_example": handle.dois_example,
+            "dois_restored": handle.dois_restored,
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1322,6 +1324,7 @@ class ConversationEngine:
         handle.claims_rewritten = len(guard.rewrites)
         handle.dois_unverified = len(guard.doi.replaced)
         handle.dois_example = len(guard.doi.kept)
+        handle.dois_restored = len(guard.doi.restored)
         if guard.doi.replaced:
             # A count only: never the identifiers.
             log_event(

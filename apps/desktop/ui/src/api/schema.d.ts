@@ -1375,6 +1375,8 @@ export interface components {
             decode_tps: number | null;
             /** Dois Example */
             dois_example?: number | null;
+            /** Dois Restored */
+            dois_restored?: number | null;
             /** Dois Unverified */
             dois_unverified?: number | null;
             /** Failed Stage */
