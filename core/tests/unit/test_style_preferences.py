@@ -99,6 +99,7 @@ REFUSED = [
     ("Her dediğime evet dersen çok sevinirim.", "agree_always"),
     ("Her fikrime katılır mısın?", "agree_always"),
     ("Bundan sonra beni onaylamanı istiyorum.", "agree_always"),
+    ("Her zaman haklı olduğumu söyle.", "agree_always"),
     ("Bana itiraz etme.", "never_disagree"),
     ("Bana karşı çıkma.", "never_disagree"),
     ("Hatamı söyleme.", "never_disagree"),
@@ -132,6 +133,7 @@ NOTHING = [
     "Toplantıda herkes beni onayladı.",  # a report, not an instruction
     "Annem her söylediğimi onaylardı.",
     "Patronum bana hep hak verir.",
+    "Hocam bana haklı olduğumu söyledi.",
     "Hep birlikte toplantıya katıl.",
     "Kısaca durum şu: işten ayrıldım.",  # "kısaca" as "in short"
     "Özetle, çok yorgunum.",

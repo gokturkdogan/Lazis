@@ -544,6 +544,7 @@ _REFUSE: tuple[tuple[re.Pattern[str], str], ...] = (
             # "katıl" only with what is joined ("hep birlikte katıl" is not one)
             r"\bher (dedigim|soyledigim|fikrim|dusundugum)(e|i)?\b[^.?!]{0,20}"
             r"\b(onayla|hak ver|evet de|katil)" + _ASKED,
+            r"\bhakli oldugumu (soyle|soylemeni istiyorum|soylersen|soyler misin|soylemelisin)\b",
         ),
         "agree_always",
     ),
