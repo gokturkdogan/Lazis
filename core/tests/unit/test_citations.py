@@ -94,18 +94,31 @@ def test_a_source_does_not_cover_another_doi() -> None:
 
 
 def test_an_example_doi_is_kept_and_marked_as_not_real() -> None:
-    out, g = guarded("Bir DOI şöyle görünür: 10.1234/abcd.5678", fiction=True)
-    assert "10.1234/abcd.5678" in out and out.endswith(C.FICTION_NOTE)
-    assert g.kept == ["10.1234/abcd.5678"] and not g.replaced
+    out, g = guarded("Bir DOI şöyle görünür: 10.5555/abcd.5678", fiction=True)
+    assert "10.5555/abcd.5678" in out and out.endswith(C.FICTION_NOTE)
+    assert g.kept == ["10.5555/abcd.5678"] and not g.replaced and not g.swapped
+
+
+def test_an_example_with_a_publishers_prefix_becomes_a_plain_example() -> None:
+    # 10.1038 is Nature's: the number may be a real paper's, and "not real" would be false
+    out, g = guarded(f"Örnek: https://doi.org/{FAKE}. Bir de 10.1126/science.abc1234", fiction=True)
+    assert FAKE not in out and "10.1126" not in out
+    assert "Örnek: https://doi.org/10.5555/ornek.0001. Bir de 10.5555/ornek.0002" in out
+    assert out.endswith(C.FICTION_NOTE) and g.swapped == 2 and not g.replaced
 
 
 def test_an_example_the_reply_already_marks_gets_no_second_note() -> None:
-    text = "Kurgusal bir örnek: 10.1234/abcd.5678 — gerçek bir yayına ait değildir."
+    text = "Kurgusal bir örnek: 10.5555/abcd.5678 — gerçek bir yayına ait değildir."
     assert guarded(text, fiction=True)[0] == text
 
 
+def test_a_swapped_example_is_always_marked() -> None:
+    out, _ = guarded("Kurgusal bir örnek: 10.1234/abcd.5678", fiction=True)
+    assert "10.5555/ornek.0001" in out and out.endswith(C.FICTION_NOTE)
+
+
 def test_example_alone_does_not_mark_a_doi_as_fiction() -> None:
-    out, _ = guarded("Örnek: 10.1234/abcd.5678", fiction=True)
+    out, _ = guarded("Örnek: 10.5555/abcd.5678", fiction=True)
     assert out.endswith(C.FICTION_NOTE)  # "Örnek:" may introduce a real publication
 
 
@@ -165,6 +178,7 @@ def test_in_the_reply_guard_the_note_follows_the_address() -> None:
     out = reply_guard.check(f"Makale: {FAKE}", policy, address="sen")
     assert FAKE not in out
     assert "kontrol edebilirsin." in out and "edebilirsiniz" not in out
+    assert "yayın bilgilerini (başlık, yazar, dergi) doğrulayamıyorum" in out
 
 
 def test_until_the_memory_records_are_in_an_unknown_doi_is_held() -> None:

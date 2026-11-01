@@ -9,8 +9,9 @@ when it has a source LAZIS was given:
   blocks, the recall note) or in an active memory record: kept as it is. That covers a DOI the
   user wrote and one from a local source. Kept is not verified: nothing here says it exists;
 * **fiction** — the user's message asks for an example or fictional DOI ("örnek bir DOI
-  formatı göster"): kept, and the reply says it belongs to no publication unless it already
-  does;
+  formatı göster"): given, and the reply says it belongs to no publication unless it already
+  does. Only a ``10.5555/`` example is kept as written; one with a publisher's prefix
+  ("10.1038/…") may be a real publication's, so it becomes ``10.5555/ornek.0001``;
 * **unsupported** — anything else: the identifier itself (with its ``doi.org`` link) is
   replaced in place by a plain Turkish phrase, and one sentence at the end says how to check
   the publication. Only the identifier is replaced; the rest of the reply (titles, authors,
@@ -43,15 +44,22 @@ MIN_SUFFIX = 3
 _TRAILING = ".,;:"
 
 UNSUPPORTED = "doğrulayamadığım için yazmıyorum"  # in parentheses unless already in them
+# The DOI is gone, but the title, authors and journal next to it are no more verified than it
+# was: the sentence says so, without judging them (the guard is not a source checker).
 UNSUPPORTED_NOTE = (
-    "Buradaki DOI'yi doğrulayamıyorum, internete erişimim yok; yayını ve doğru DOI'sini "
-    "Crossref ya da Google Scholar'da başlığıyla aratarak kontrol edebilirsiniz."
+    "Buradaki DOI'yi ve yayın bilgilerini (başlık, yazar, dergi) doğrulayamıyorum, internete "
+    "erişimim yok. Böyle bir yayın olup olmadığını ve doğru DOI'sini Crossref ya da Google "
+    "Scholar'da aratarak kontrol edebilirsiniz."
 )
 UNSUPPORTED_NOTE_MANY = (
-    "Buradaki DOI'leri doğrulayamıyorum, internete erişimim yok; yayınları ve doğru DOI'lerini "
-    "Crossref ya da Google Scholar'da başlıklarıyla aratarak kontrol edebilirsiniz."
+    "Buradaki DOI'leri ve yayın bilgilerini (başlık, yazar, dergi) doğrulayamıyorum, internete "
+    "erişimim yok. Bu yayınların olup olmadığını ve doğru DOI'lerini Crossref ya da Google "
+    "Scholar'da aratarak kontrol edebilirsiniz."
 )
 FICTION_NOTE = "(Bu DOI yalnızca bir örnektir; gerçek bir yayına ait değildir.)"
+# An example DOI keeps only this prefix (Crossref's test prefix): one with a publisher's prefix
+# ("10.1038/…", Nature) may be a real publication's, and the note above would then be false.
+EXAMPLE_PREFIX = "10.5555/"
 
 # The reply already says its DOI is not a real one (folded). "Örnek:" alone is not enough: it
 # may introduce a real publication; nor is "uydurma" ("DOI uydurmam").
@@ -150,6 +158,7 @@ class DoiGuard:
     pending: str = ""
     replaced: list[str] = field(default_factory=list[str])  # unsupported DOIs, normalized
     kept: list[str] = field(default_factory=list[str])  # example DOIs left in
+    swapped: int = 0  # example DOIs with a publisher's prefix, replaced by a plain example
     _before: str = ""
 
     def add(self, more: frozenset[str]) -> None:
@@ -177,7 +186,7 @@ class DoiGuard:
         tail = ""
         if self.replaced:
             tail = UNSUPPORTED_NOTE_MANY if len(set(self.replaced)) > 1 else UNSUPPORTED_NOTE
-        elif self.kept and not _SAYS_FICTION.search(fold(self.released)):
+        elif self.kept and (self.swapped or not _SAYS_FICTION.search(fold(self.released))):
             tail = FICTION_NOTE
         if tail:
             tail = ("\n\n" if self.released.strip() else "") + tail
@@ -200,8 +209,16 @@ class DoiGuard:
         if not _valid(doi) or doi in self.sources:
             return m.group(0)
         if self.fiction:
-            self.kept.append(doi)
-            return m.group(0)
+            if doi.startswith(EXAMPLE_PREFIX):
+                self.kept.append(doi)
+                return m.group(0)
+            # The example number is replaced by one that is plainly an example.
+            example = f"{EXAMPLE_PREFIX}ornek.{len(self.kept) + 1:04d}"
+            self.kept.append(example)
+            self.swapped += 1
+            whole = m.group(0)
+            start = whole.lower().rfind(doi)
+            return whole[:start] + example + whole[start + len(doi) :]
         self.replaced.append(doi)
         # What normalize cut off (a full stop, a closing parenthesis) stays in the text.
         whole = m.group(0)

@@ -95,7 +95,7 @@ def test_an_example_doi_asked_for_is_kept_and_marked(
         lambda r: "Bir DOI şöyle görünür: 10.1234/ornek.5678",
         "Kurgusal bir DOI örneği yazar mısın?",
     )  # fmt: skip
-    assert shown == stored and "10.1234/ornek.5678" in stored
+    assert shown == stored and "10.1234" not in stored and "10.5555/ornek.0001" in stored
     assert stored.endswith(citations.FICTION_NOTE)
     assert diag["dois_example"] == 1 and diag["dois_unverified"] == 0
 

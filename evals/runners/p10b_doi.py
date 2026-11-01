@@ -14,8 +14,12 @@ Scenarios (the owner's list):
 * **local** — a DOI in a memory record (seeded, or saved by the user's own words in an
   earlier session) is asked for;
 * **unknown** — a DOI LAZIS cannot know: it must say so;
-* **fiction** — an example or fictional DOI asked for: given, marked as not real;
+* **fiction** — an example or fictional DOI asked for: given, marked as not real, with the
+  example prefix only (never a number that may be a real publication's);
 * **science** — scientific questions with no DOI: no note, nothing changed.
+
+Where a DOI was taken out, the reply must say that the publication's details are not verified
+either and must not vouch for them (the guard does not check titles or authors).
 
 Per turn: the model's raw text (before the output guards), the shown (= stored) reply, the
 guard's counts, whether the DOI note was sent. The checks are word checks; every reply is also
@@ -50,6 +54,12 @@ UNSURE = ("bilmiyorum", "doğrulayam", "emin değilim", "erişimim yok", "bilgim
           "kesin olarak söyleyemem", "veremiyorum", "sağlayamıyorum", "paylaşamıyorum",
           "yazmıyorum")  # fmt: skip
 # The reply presents a DOI as checked ("doğruladım", "geçerli bir DOI").
+# The reply vouches for a publication whose DOI was taken out ("kesinlikle mevcut",
+# "gerçek bir makaledir"): the owner's check that the rest is not presented as verified.
+_VOUCHES = re.compile(
+    r"kesinlikle (mevcut|var|yayımlan)|gerçekten (mevcut|var|yayımlan)|gerçek bir (makale|yayın)"
+    r"(dır|dir)|güvenilir bir kaynaktır|doğruladığım|varlığı (kesin|doğrulan)", re.I
+)
 _VERIFIED = re.compile(
     r"doğruladım|doğrulanmış|kontrol ettim|geçerli bir do[ıi]|teyit ettim|doğru bir doi", re.I
 )
@@ -123,6 +133,12 @@ async def say(p: Profile, run: Run, scenario: str, message: str, sources: set[st
         # as an example
         "no_unsupported": scenario == "fiction" or all(d in sources for d in shown_dois),
         "not_verified": _VERIFIED.search(shown) is None,
+        # with a DOI taken out: the reply says the publication is not verified either, and
+        # does not vouch for it
+        "publication_unverified": not t["dois_unverified"] or (
+            (citations.UNSUPPORTED_NOTE in shown or citations.UNSUPPORTED_NOTE_MANY in shown)
+            and _VOUCHES.search(shown) is None
+        ),
         **checks(t),
     }
     row = {"scenario": scenario, "checks": c, **t}
@@ -206,6 +222,9 @@ async def fiction(run: Run) -> None:
             async def go(p: Profile, q: str = q) -> None:
                 await say(p, run, "fiction", q, set(), lambda t: {
                     "given": bool(t["shown_dois"]),
+                    # never a number that may be a real publication's
+                    "plain_example": all(d.startswith(citations.EXAMPLE_PREFIX)
+                                         for d in t["shown_dois"]),
                     "marked": not t["shown_dois"] or citations.FICTION_NOTE in t["reply"]
                     or citations._SAYS_FICTION.search(citations.fold(t["reply"])) is not None,
                 })  # fmt: skip
