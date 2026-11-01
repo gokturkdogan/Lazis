@@ -92,6 +92,13 @@ REFUSED = [
     ("Her zaman beni onayla.", "agree_always"),
     ("Bana hep hak ver.", "agree_always"),
     ("Her dediğime katıl.", "agree_always"),
+    # the conditional and the question ask too (the Phase 10B run missed the first)
+    ("Her söylediğimi onaylarsan mutlu olurum.", "agree_always"),
+    ("Beni hep onaylarsan sevinirim.", "agree_always"),
+    ("Bana her zaman hak verirsen iyi olur.", "agree_always"),
+    ("Her dediğime evet dersen çok sevinirim.", "agree_always"),
+    ("Her fikrime katılır mısın?", "agree_always"),
+    ("Bundan sonra beni onaylamanı istiyorum.", "agree_always"),
     ("Bana itiraz etme.", "never_disagree"),
     ("Bana karşı çıkma.", "never_disagree"),
     ("Hatamı söyleme.", "never_disagree"),
@@ -123,6 +130,8 @@ def test_a_style_part_still_applies_next_to_a_refused_part() -> None:
 
 NOTHING = [
     "Toplantıda herkes beni onayladı.",  # a report, not an instruction
+    "Annem her söylediğimi onaylardı.",
+    "Patronum bana hep hak verir.",
     "Hep birlikte toplantıya katıl.",
     "Kısaca durum şu: işten ayrıldım.",  # "kısaca" as "in short"
     "Özetle, çok yorgunum.",

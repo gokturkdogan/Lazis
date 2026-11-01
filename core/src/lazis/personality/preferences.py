@@ -532,19 +532,18 @@ _CLEAR: tuple[tuple[re.Pattern[str], tuple[Dimension, ...]], ...] = (
     (_r(r"\bespri(yle)? ilgili (istegimi|tercihimi) (unut|kaldir|iptal et)\b"), ("humor",)),
 )
 
-# Requests no preference can grant (layers 0 and 1). Folded text; imperative forms only, so a
-# report ("herkes beni onayladı") is not one.
+# Requests no preference can grant (layers 0 and 1). Folded text; request forms only
+# (imperative, "-malısın", "-man istiyorum", the conditional "onaylarsan mutlu olurum", the
+# question "onaylar mısın"), so a report ("herkes beni onayladı") is not one.
+_ASKED = r"(r?s[ae]n|irs[ae]n|i?r misin|m[ae]ni? istiyorum|m[ae]lisin|y?[ae]c[ae]ksin)?\b"
 _REFUSE: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         _r(
-            r"\b(beni|bana|hep|her zaman|surekli|her seyde|ne dersem)\b[^.?!]{0,30}"
-            r"\b(onayla|hak ver|evet de)(malisin|yacaksin|man(i)? istiyorum)?\b",
-        ),
-        "agree_always",
-    ),
-    (
-        _r(
-            r"\bher (dedigime|soyledigime|fikrime)\b[^.?!]{0,20}\b(katil|evet de|hak ver|onayla)",
+            r"\b(beni|bana|hep|her zaman|surekli|her seyde|ne (dersem|soylersem))\b[^.?!]{0,30}"
+            r"\b(onayla|hak ver|evet de)" + _ASKED,
+            # "katıl" only with what is joined ("hep birlikte katıl" is not one)
+            r"\bher (dedigim|soyledigim|fikrim|dusundugum)(e|i)?\b[^.?!]{0,20}"
+            r"\b(onayla|hak ver|evet de|katil)" + _ASKED,
         ),
         "agree_always",
     ),
