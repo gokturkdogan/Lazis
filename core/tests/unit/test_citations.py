@@ -242,3 +242,18 @@ def test_a_doi_close_to_two_sources_is_not_guessed() -> None:
     sources = frozenset({"10.5555/abc.1001", "10.5555/abc.1003"})
     out, g = guarded("Kaynak: 10.5555/abc.1002", sources=sources)
     assert "10.5555/abc.100" not in out and g.replaced == ["10.5555/abc.1002"]
+
+
+def test_a_suffix_with_non_ascii_letters_is_taken_whole() -> None:
+    # Phase 10B real run: "10.1016/j.neuroniño.2026.08.012" left "niño.2026.08.012" behind
+    out, g = guarded("Şöyle olabilir: 10.1016/j.neuroniño.2026.08.012 ve bitti.")
+    assert "niño" not in out and "2026.08.012" not in out
+    assert g.replaced == ["10.1016/j.neuroniño.2026.08.012"]
+    out, g = guarded("Örnek: 10.1000/test.örnek.doi.2026", fiction=True)
+    assert "10.5555/ornek.0001" in out and "örnek.doi" not in out
+
+
+def test_a_turkish_suffix_after_an_apostrophe_is_not_part_of_the_doi() -> None:
+    sources = frozenset({"10.5555/tez.2024.0042"})
+    text = "DOI numarası 10.5555/tez.2024.0042'dir."
+    assert guarded(text, sources=sources)[0] == text

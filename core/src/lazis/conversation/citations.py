@@ -37,10 +37,11 @@ from lazis.memory.commands import NOTICE_END, NOTICE_START
 from lazis.storage.driver import Connection
 
 # Crossref's recommended pattern (10.<4–9 digits>/<suffix>), with an optional doi.org link or
-# "doi:" in front. A suffix of at least 3 characters once trailing punctuation is cut:
-# "10.2023/11." is a date, not a DOI.
+# "doi:" in front, and any letter in the suffix: the model writes "10.1016/j.neuroniño…" or
+# "10.1000/test.örnek…", and an ASCII-only suffix would leave the rest of it in the reply. A
+# suffix of at least 3 characters once trailing punctuation is cut: "10.2023/11." is a date.
 _DOI = re.compile(
-    r"(?:https?://(?:dx\.)?doi\.org/|\bdoi:\s?)?\b(10\.\d{4,9}/[-._;()/:A-Za-z0-9]+)",
+    r"(?:https?://(?:dx\.)?doi\.org/|\bdoi:\s?)?\b(10\.\d{4,9}/[-.;()/:\w]+)",
     re.IGNORECASE,
 )
 MIN_SUFFIX = 3

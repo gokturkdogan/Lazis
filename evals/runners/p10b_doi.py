@@ -38,11 +38,12 @@ from pathlib import Path
 from typing import Any
 
 from common import manifest
-from lazis.conversation import citations
-from lazis.providers.llm.ollama import OllamaProvider
 from p6_sessions import Profile, has
 from p10a_reliability import RawRecorder, _stored_last
 from p10b_adaptation import seed
+
+from lazis.conversation import citations
+from lazis.providers.llm.ollama import OllamaProvider
 
 OUT = Path(__file__).resolve().parents[1] / "reports" / "phase10"
 
@@ -53,7 +54,7 @@ UNSURE = ("bilmiyorum", "doğrulayam", "emin değilim", "erişimim yok", "bilgim
           "bulamıyorum", "bilemiyorum", "teyit edemiyorum", "doğrulama imkân",
           "kesin olarak söyleyemem", "veremiyorum", "sağlayamıyorum", "paylaşamıyorum",
           "yazmıyorum", "bulamadım", "sahip değilim", "bulamam", "kontrol edemiyorum",
-          "sunamam", "sağlayamam")  # fmt: skip
+          "sunamam", "sağlayamam", "mümkün değil", "kayıt bulunmuyor", "araştıramam")  # fmt: skip
 # A sentence that negates or doubts ("… mümkün değil", "… olup olmadığını doğrulayamıyorum",
 # "doğrulanmış bir DOI arıyorsanız") does not vouch for anything.
 _NEGATED = re.compile(r"değil|olup olmadığ|doğrulayam|edemiyorum|emin değil|arıyorsanız|"
