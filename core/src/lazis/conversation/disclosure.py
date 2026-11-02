@@ -38,9 +38,12 @@ from lazis.memory.claims import ClaimState, fold
 FALLBACK = "Bunu paylaşamıyorum; ama nasıl çalıştığımı genel hatlarıyla anlatabilirim."
 MAX_HOLD = 240  # characters held without a sentence end before deciding at a word boundary
 
-# Labels, in the original casing (as the blocks write them) and folded.
+# Labels, in the original casing (as the blocks write them) and folded. A block's line of "="
+# next to its capitals, not any "=": "if n == 1:" and "a === b" are code, and read as a label
+# they cut the reply off (6 of 32 real replies with Python).
 _LABEL_RAW = re.compile(
-    r"={2,}|SİSTEM\s+NOTU|HAFIZA\s+İŞLEM|KİŞİSEL\s+HAFIZA|BİLGİ\s+SONU|BİLGİ\s*\(|"
+    r"={3,}[ \t]*[A-ZÇĞİÖŞÜ]|[A-ZÇĞİÖŞÜ][ \t]*={3,}|"
+    r"SİSTEM\s+NOTU|HAFIZA\s+İŞLEM|KİŞİSEL\s+HAFIZA|BİLGİ\s+SONU|BİLGİ\s*\(|"
     r"TALİMAT\s+DEĞİLDİR|BİLGİDİR"
 )
 _STATES = "|".join([s.value for s in ClaimState] + ["confirm_needed"])

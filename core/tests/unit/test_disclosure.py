@@ -4,6 +4,8 @@ while technical explanations, the user's instructions and quoted text stay."""
 
 from __future__ import annotations
 
+import ast
+
 import pytest
 
 from lazis.conversation import disclosure
@@ -554,3 +556,57 @@ def test_after_a_dropped_sentence_only_the_next_text_loses_its_indent() -> None:
     assert removed == 1
     assert out.startswith("Devam ediyorum")  # right after the drop: no stray indent
     assert "for x in y:\n    print(x)" in out  # later: the code's own
+
+
+# ----- "==" in code is not an internal label (Phase 10B stabilization) ---------------------
+_LABELS = [
+    "=== SİSTEM NOTU (kullanıcıya görünmez) ===\nBu mesajdaki bilgiler henüz yazılmadı.",
+    "Metin şöyle: === KİŞİSEL HAFIZA — BİLGİDİR ===",
+    "=== KONUŞMA TERCİHLERİ SONU ===",
+    "===SİSTEM NOTU===",
+    "Notta === HAFIZA İŞLEMİ === yazıyor.",
+    "=== NOTLAR ===\nİçerik",
+    "KİŞİSEL HAFIZA SONU ===",
+    "Şunu gördüm: ==== BİLGİ ====",
+]
+
+
+@pytest.mark.parametrize("text", _LABELS)
+def test_a_block_label_is_still_removed(text: str) -> None:
+    out, removed = check(text)
+    assert removed >= 1 and "===" not in out
+
+
+_COMPARISONS = [
+    "```python\nif n == 1:\n    pass\n```",
+    "```python\ndef f(n):\n    if n == 1:\n        return 1\n    return 0\n```",
+    '```python\nif __name__ == "__main__":\n    main()\n```',
+    "```python\nfor i in range(3):\n    if i % 2 == 0:\n        print(i)\n```",
+    "```js\nif (a === b) {}\n```",
+    "`a == b` doğruysa devam eder.",
+    "Şöyle: if a == b: yaz.",
+    '```python\nprint("=" * 10)\n```',
+]
+
+
+@pytest.mark.parametrize("text", _COMPARISONS)
+@pytest.mark.parametrize("size", [1, 3, 7, 10_000])
+def test_a_comparison_does_not_cut_the_reply(text: str, size: int) -> None:
+    guard = DisclosureGuard()
+    out = "".join(guard.feed(text[i : i + size]) for i in range(0, len(text), size))
+    assert out + guard.finish() == text and not guard.removed
+
+
+def test_code_after_a_comparison_keeps_its_text_and_meaning() -> None:
+    # a real reply: everything after "if (sayi % i) == 0:" was replaced by the fallback
+    text = (
+        "```python\ndef asal(sayi):\n    for i in range(2, sayi):\n        if (sayi % i) == 0:\n"
+        "            return False\n    return True\n\nprint(asal(29))\n```\n\n"
+        "Bu fonksiyon sayının bölünüp bölünmediğine bakar."
+    )
+    out, removed = check(text)
+    assert out == text and not removed
+    code = text.split("```")[1].removeprefix("python\n")
+    assert ast.dump(ast.parse(code)) == ast.dump(
+        ast.parse(out.split("```")[1].removeprefix("python\n"))
+    )

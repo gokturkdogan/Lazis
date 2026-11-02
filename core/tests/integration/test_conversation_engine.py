@@ -537,6 +537,91 @@ def test_turn_preempts_background_compaction(tmp_path: Path, storage: StorageHan
     assert rows(storage, cid)[-1].status == "complete"
 
 
+def test_a_message_during_compaction_loses_nothing_and_compaction_finishes_later(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    llm = ScriptedLLM(reply=long_reply)
+    engine = make_engine(
+        storage,
+        llm,
+        tmp_path,
+        compact_at_tokens=1500,
+        keep_recent_tokens=256,
+        summary_max_tokens=400,
+        idle_compaction_delay_s=0.0,
+    )
+    texts = [f"Not {i}" for i in range(3)]
+
+    async def go() -> tuple[str, bool]:
+        cid: str | None = None
+        for t in texts:
+            _, cid = await run_turn(engine, t, cid)
+        assert cid is not None
+        llm.gate = asyncio.Event()  # the compaction blocks in the runtime
+        job = None
+        for _ in range(300):
+            await asyncio.sleep(0.01)
+            job = engine.scheduler.background
+            if job is not None and job.kind == "compaction":
+                break
+        assert job is not None and job.kind == "compaction"
+        llm.gate.set()
+        llm.gate = None
+        events, _ = await run_turn(engine, "Acil bir soru", cid)
+        assert events[-1]["type"] == "done"
+        for _ in range(500):  # compaction starts again once the turn is over, and finishes
+            await asyncio.sleep(0.01)
+            found = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
+            if found and engine.scheduler.background is None:
+                break
+        summarized = bool(storage.db.run_sync(lambda c: repository.list_summaries(c, cid)))
+        await engine.close()
+        return cid, summarized
+
+    cid, summarized = asyncio.run(go())
+    stored = rows(storage, cid)
+    assert [m.seq for m in stored] == sorted({m.seq for m in stored})
+    users = [m.content for m in stored if m.role == "user"]
+    assert users == [*texts, "Acil bir soru"]  # each once, in order
+    assert all(m.status == "complete" for m in stored)  # none left streaming
+    assert [m.role for m in stored] == ["user", "assistant"] * len(users)  # each one answered
+    assert summarized
+
+
+def test_closing_during_compaction_does_not_hang_and_keeps_every_message(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    llm = ScriptedLLM(reply=long_reply)
+    engine = make_engine(
+        storage,
+        llm,
+        tmp_path,
+        compact_at_tokens=1500,
+        keep_recent_tokens=256,
+        summary_max_tokens=400,
+        idle_compaction_delay_s=0.0,
+    )
+
+    async def go() -> str:
+        cid: str | None = None
+        for i in range(3):
+            _, cid = await run_turn(engine, f"Not {i}", cid)
+        assert cid is not None
+        llm.gate = asyncio.Event()  # never set: the runtime does not let go
+        for _ in range(300):
+            await asyncio.sleep(0.01)
+            job = engine.scheduler.background
+            if job is not None and job.kind == "compaction":
+                break
+        await asyncio.wait_for(engine.close(), 15)
+        return cid
+
+    cid = asyncio.run(go())
+    stored = rows(storage, cid)
+    assert [m.content for m in stored if m.role == "user"] == [f"Not {i}" for i in range(3)]
+    assert all(m.status == "complete" for m in stored)
+
+
 def test_delete_removes_everything_and_unloads_cached_text(
     tmp_path: Path, storage: StorageHandle
 ) -> None:
