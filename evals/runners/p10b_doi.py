@@ -69,7 +69,8 @@ def vouches(pattern: re.Pattern[str], text: str) -> bool:
 # "gerçek bir makaledir"): the owner's check that the rest is not presented as verified.
 _VOUCHES = re.compile(
     r"kesinlikle (mevcut|var|yayımlan)|gerçekten (mevcut|var|yayımlan)|gerçek bir (makale|yayın)"
-    r"(dır|dir)|güvenilir bir kaynaktır|doğruladığım|varlığı (kesin|doğrulan)", re.I
+    r"(dır|dir)|güvenilir bir kaynaktır|doğruladığım|varlığı (kesin|doğrulan)"
+    r"|(doi|bağlantı|numara)\w*\b[^.!?\n]{0,60}(erişim sağla|yönlendir|aittir|geçerli)", re.I
 )
 _VERIFIED = re.compile(
     r"doğruladım|doğrulanmış|kontrol ettim|geçerli bir do[ıi]|teyit ettim|doğru bir doi", re.I
@@ -137,6 +138,7 @@ async def say(p: Profile, run: Run, scenario: str, message: str, sources: set[st
         raw=raw, raw_dois=citations.find(raw), shown_dois=shown_dois,
         dois_unverified=last.get("dois_unverified"), dois_example=last.get("dois_example"),
         dois_restored=last.get("dois_restored"),
+        doi_sentences_dropped=last.get("doi_sentences_dropped"),
         note_sent="doğrulayamazsın" in sent,
     )  # fmt: skip
     c: dict[str, bool] = {
@@ -241,6 +243,11 @@ async def fiction(run: Run) -> None:
                     # never a number that may be a real publication's
                     "plain_example": all(d.startswith(citations.EXAMPLE_PREFIX)
                                          for d in t["shown_dois"]),
+                    # the replaced example's old prefix is not explained next to the new one
+                    "consistent": not any(
+                        re.search(rf"\b{re.escape(d.split('/')[0])}\b(?!/)", t["reply"])
+                        for d in t["raw_dois"] if not d.startswith(citations.EXAMPLE_PREFIX)),
+                    "not_vouched": not vouches(_VOUCHES, t["reply"]),
                     "marked": not t["shown_dois"] or citations.FICTION_NOTE in t["reply"]
                     or citations._SAYS_FICTION.search(citations.fold(t["reply"])) is not None,
                 })  # fmt: skip

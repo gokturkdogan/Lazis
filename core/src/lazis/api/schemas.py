@@ -391,6 +391,7 @@ class DiagLastTurnModel(_Schema):
     dois_unverified: int | None = None  # DOIs with no source, replaced in the reply
     dois_example: int | None = None  # DOIs kept as examples (the user asked for one)
     dois_restored: int | None = None  # miscopied source DOIs written back as the source
+    doi_sentences_dropped: int | None = None  # sentences vouching for a withheld DOI
 
 
 class DiagPrewarmModel(_Schema):

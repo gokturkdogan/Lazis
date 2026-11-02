@@ -173,6 +173,7 @@ class TurnHandle:
     dois_unverified: int = 0  # DOIs with no source, replaced in the reply
     dois_example: int = 0  # DOIs kept because the user asked for an example
     dois_restored: int = 0  # miscopied source DOIs written back as the source has them
+    doi_sentences_dropped: int = 0  # sentences vouching for a withheld DOI or an example
     first_shown_at: float | None = None
 
     def check(self) -> None:
@@ -1282,6 +1283,7 @@ class ConversationEngine:
             "dois_unverified": handle.dois_unverified,
             "dois_example": handle.dois_example,
             "dois_restored": handle.dois_restored,
+            "doi_sentences_dropped": handle.doi_sentences_dropped,
         }
 
     def _claim_policy(self, handle: TurnHandle, model: str) -> claims.Policy:
@@ -1325,6 +1327,7 @@ class ConversationEngine:
         handle.dois_unverified = len(guard.doi.replaced)
         handle.dois_example = len(guard.doi.kept)
         handle.dois_restored = len(guard.doi.restored)
+        handle.doi_sentences_dropped = len(guard.doi.dropped)
         if guard.doi.replaced:
             # A count only: never the identifiers.
             log_event(
@@ -1333,6 +1336,7 @@ class ConversationEngine:
                 "reply.doi_unverified",
                 conversation_id=handle.conversation.id,
                 count=len(guard.doi.replaced),
+                sentences_dropped=len(guard.doi.dropped),
             )
         handle.address_fixed = guard.address_fixed
         if guard.address_fixed:

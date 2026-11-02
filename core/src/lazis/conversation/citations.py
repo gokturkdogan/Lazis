@@ -10,15 +10,25 @@ when it has a source LAZIS was given:
   user wrote and one from a local source. Kept is not verified: nothing here says it exists;
 * **fiction** — the user's message asks for an example or fictional DOI ("örnek bir DOI
   formatı göster"): given, and the reply says it belongs to no publication unless it already
-  does. Only a ``10.5555/`` example is kept as written; one with a publisher's prefix
-  ("10.1038/…") may be a real publication's, so it becomes ``10.5555/ornek.0001``;
+  does; a later sentence that says it works or belongs to one ("Bu DOI'ler ilgili yayınlara
+  erişim sağlamaktadır") is dropped. Only a ``10.5555/`` example is kept as written; one with
+  a publisher's prefix ("10.1038/…") may be a real publication's, so it becomes
+  ``10.5555/ornek.0001``;
 * **miscopied** — within two characters of exactly one grounded DOI: the model copied the
   user's (or a record's) DOI wrongly ("10.101038/nature14539" for "10.1038/nature14539"). It is
   written back as the source has it, not hidden as if LAZIS would not give the user's own DOI;
 * **unsupported** — anything else: the identifier itself (with its ``doi.org`` link) is
   replaced in place by a plain Turkish phrase, and one sentence at the end says how to check
   the publication. Only the identifier is replaced; the rest of the reply (titles, authors,
-  quotations, other references) is left as the model wrote it.
+  quotations, other references) is left as the model wrote it — except, after it, a sentence
+  that speaks of the withheld identifier itself ("Bu DOI'ler ilgili yayınlara erişim
+  sağlamaktadır"): it would vouch for what is not shown, so it is dropped. A sentence that
+  doubts it ("doğrulayamıyorum") or says where to search is kept.
+
+An example DOI that is replaced keeps the reply consistent: its old prefix and suffix,
+written elsewhere in the reply ("Buradaki '10.1234' kısmı yayıncının kimliğidir"), become the
+example's. A bare prefix written before the example is held until the example shows which one
+it is.
 
 The guard streams: a DOI has no whitespace in it, so only a last word that could still become
 one (a digit in it, or the start of "doi:" or a link) is held back; any other word is released
@@ -61,6 +71,42 @@ UNSUPPORTED_NOTE_MANY = (
     "Scholar'da aratarak kontrol edebilirsiniz."
 )
 FICTION_NOTE = "(Bu DOI yalnızca bir örnektir; gerçek bir yayına ait değildir.)"
+
+# After a withheld DOI (folded text). A sentence about the identifier itself ("Bu DOI'ler …",
+# "Söz konusu numara …"), or one that says a DOI or link works, is valid or belongs to a
+# publication — unless it doubts it or points to a search.
+_ABOUT_IT = re.compile(
+    r"^[\s*_>#•\-\d.)]*(bu|soz konusu|yukaridaki|belirttigim|verdigim|paylastigim|ilgili)\s+"
+    r"(doi|numara|baglanti|link|kod|tanimlayici|adres)\w*"
+)
+_IDENT = re.compile(r"\b(doi|baglanti|link|numara)\w*")
+_VOUCH = re.compile(
+    r"erisim sagla|ulasabilirsin|yonlendir|gecerli|dogrulanmis|dogrulandi|aittir|karsilik gel"
+    r"|kesinlikle (mevcut|var)|gercekten (mevcut|var)|dogru bir doi"
+)
+_ADVICE = re.compile(r"google|scholar|crossref|pubmed|veri ?taban|aratarak|arayarak|arama yap")
+_DOUBT = re.compile(
+    r"degil|olup olmadig|dogrulayam|edemiyor|emin degil|olabilir|yazmiyorum|bilmiyorum|bulamiyorum"
+)
+# A sentence: up to closing punctuation followed by whitespace, or a line end.
+_SENTENCE = re.compile(r".*?(?:[.!?…]+(?=\s)|\n)\s*", re.S)
+_END = re.compile(r"[.!?…]+(?=\s)\s*|\n\s*")
+# A DOI prefix written on its own ("'10.1234' kısmı"), not the start of a DOI.
+_BARE_PREFIX = re.compile(r"\b10\.\d{4,9}\b(?!/)")
+
+
+def vouches(sentence: str, *, about_it: bool = True) -> bool:
+    """A sentence, after a withheld DOI, that would present it as checked or working. After an
+    example (``about_it`` False), only one that says it works or belongs to a publication:
+    "Bu DOI testlerde kullanılabilir" is about the example and stays."""
+    f = fold(sentence)
+    if _DOUBT.search(f):
+        return False
+    if about_it and _ABOUT_IT.search(f):
+        return True
+    return bool(_IDENT.search(f) and _VOUCH.search(f) and not _ADVICE.search(f))
+
+
 # An example DOI keeps only this prefix (Crossref's test prefix): one with a publisher's prefix
 # ("10.1038/…", Nature) may be a real publication's, and the note above would then be false.
 EXAMPLE_PREFIX = "10.5555/"
@@ -178,7 +224,13 @@ class DoiGuard:
     kept: list[str] = field(default_factory=list[str])  # example DOIs left in
     swapped: int = 0  # example DOIs with a publisher's prefix, replaced by a plain example
     restored: list[str] = field(default_factory=list[str])  # miscopied, written as the source
+    dropped: list[str] = field(default_factory=list[str])  # sentences about a withheld DOI
+    mapped: dict[str, str] = field(default_factory=dict[str, str])  # old example prefix/suffix
     _before: str = ""
+    _after: str = ""  # after a withheld DOI: text waiting for its sentence to end
+    # "before" the first withheld DOI, "open" in its sentence (released as it streams),
+    # "after" it (whole sentences, checked)
+    _state: str = "before"
 
     def add(self, more: frozenset[str]) -> None:
         """The rest of the sources (memory records): the guard decides on everything now."""
@@ -197,11 +249,15 @@ class DoiGuard:
             first = next((m for m in _DOI.finditer(ready) if self._unknown(m)), None)
             if first is not None:  # wait for the memory records before deciding on it
                 return self._release(ready[: first.start()], ready[first.start() :] + rest)
+        if self.fiction:
+            held = self._unmapped_prefix(ready)
+            if held is not None:  # wait for the example that shows which prefix it is
+                return self._release(ready[:held], ready[held:] + rest)
         return self._release(ready, rest)
 
     def finish(self) -> str:
         self.complete = True
-        out = self._release(self.pending, "")
+        out = self._release(self.pending, "", final=True)
         tail = ""
         if self.replaced:
             tail = UNSUPPORTED_NOTE_MANY if len(set(self.replaced)) > 1 else UNSUPPORTED_NOTE
@@ -212,12 +268,80 @@ class DoiGuard:
             self.released += tail
         return out + tail
 
-    def _release(self, ready: str, rest: str) -> str:
-        self._before = self.released[-1:]  # what precedes ``ready`` (an opening parenthesis)
+    def _release(self, ready: str, rest: str, *, final: bool = False) -> str:
+        # what precedes ``ready`` (an opening parenthesis), in the text as written so far
+        self._before = (self.released + self._after)[-1:]
         piece = _DOI.sub(self._one, ready)
+        if self.mapped:
+            piece = self._consistent(piece)
         self.pending = rest
+        piece = self._sentences(piece, final=final)
         self.released += piece
         return piece
+
+    def _unmapped_prefix(self, text: str) -> int | None:
+        """Where a bare prefix starts that no example has shown yet, unless an example DOI
+        follows it in ``text`` (it is then decided in the same release)."""
+        for m in _BARE_PREFIX.finditer(text):
+            if m.group(0) in self.mapped or f"{m.group(0)}/" == EXAMPLE_PREFIX:
+                continue
+            if not any(d.start() > m.start() for d in _DOI.finditer(text)):
+                return m.start()
+        return None
+
+    def _consistent(self, text: str) -> str:
+        """The replaced example's old prefix and suffix, written elsewhere, become the new."""
+        text = _BARE_PREFIX.sub(lambda m: self.mapped.get(m.group(0), m.group(0)), text)
+        for old, new in self.mapped.items():
+            if not old.startswith("10."):
+                text = re.sub(rf"(?<![\w/.]){re.escape(old)}(?![\w/])", new, text)
+        return text
+
+    def _anchors(self) -> list[str]:
+        """What a withheld DOI or an example leaves in the reply."""
+        return ([UNSUPPORTED] if self.replaced else []) + self.kept
+
+    def _sentences(self, piece: str, *, final: bool) -> str:
+        """After a withheld DOI or an example: release whole sentences, without those that
+        vouch for it. The sentence that holds it streams as before; nothing is held before."""
+        anchors = self._anchors()
+        if not anchors:
+            return piece
+        buf, out = self._after + piece, ""
+        while buf:
+            if self._state == "before":
+                hits = [(i, a) for a in anchors if (i := buf.lower().find(a)) >= 0]
+                if not hits:
+                    out, buf = out + buf, ""
+                    break
+                i, a = min(hits)
+                out, buf = out + buf[: i + len(a)], buf[i + len(a) :]
+                self._state = "open"
+            elif self._state == "open":
+                m = _END.search(buf)
+                if m is None:
+                    out, buf = out + buf, ""
+                    break
+                out, buf = out + buf[: m.end()], buf[m.end() :]
+                self._state = "after"
+            else:
+                m = _SENTENCE.match(buf)
+                if m is None or not m.end():
+                    break
+                out, buf = out + self._judge(m.group(0)), buf[m.end() :]
+        if final and buf:
+            out, buf = out + self._judge(buf), ""
+        self._after = buf
+        return out
+
+    def _judge(self, sentence: str) -> str:
+        low = sentence.lower()
+        if any(a in low for a in self._anchors()):
+            return sentence
+        if vouches(sentence, about_it=bool(self.replaced)):
+            self.dropped.append(sentence.strip())
+            return ""
+        return sentence
 
     def _copied_from(self, doi: str) -> str | None:
         """The one grounded DOI this one is a miscopy of, if any."""
@@ -244,6 +368,11 @@ class DoiGuard:
             example = f"{EXAMPLE_PREFIX}ornek.{len(self.kept) + 1:04d}"
             self.kept.append(example)
             self.swapped += 1
+            old_prefix, old_suffix = doi.split("/", 1)
+            new_prefix, new_suffix = example.split("/", 1)
+            self.mapped.setdefault(old_prefix, new_prefix)
+            if len(old_suffix) >= 4:
+                self.mapped.setdefault(old_suffix, new_suffix)
             whole = m.group(0)
             start = whole.lower().rfind(doi)
             return whole[:start] + example + whole[start + len(doi) :]

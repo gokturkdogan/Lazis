@@ -257,3 +257,125 @@ def test_a_turkish_suffix_after_an_apostrophe_is_not_part_of_the_doi() -> None:
     sources = frozenset({"10.5555/tez.2024.0042"})
     text = "DOI numarası 10.5555/tez.2024.0042'dir."
     assert guarded(text, sources=sources)[0] == text
+
+
+# ----- reply integrity after a withheld DOI and a replaced example (Phase 10B closing) -------
+LANCET = (
+    "The Lancet dergisinde 2021 yılında yayımlanan makalelerin DOI numaraları:\n\n"
+    "*   **COVID-19: WHO summary:** 10.1016/s0140-6736(21)00914-3\n"
+    "*   **The Lancet COVID-19 Commission:** 10.1016/s0140-6736(21)40105-8\n\n"
+    "Bu DOI'ler ilgili yayınlara erişim sağlamaktadır. Belirli bir konuya odaklanan farklı "
+    "bir makale isterseniz yardımcı olabilirim."
+)
+
+
+def test_a_sentence_about_the_withheld_doi_is_dropped() -> None:
+    # the a440a3d run: "Bu DOI'ler ilgili yayınlara erişim sağlamaktadır" stayed after both
+    # DOIs were withheld, and read as if they were checked
+    out, g = guarded(LANCET)
+    assert "erişim sağlamaktadır" not in out
+    assert "Belirli bir konuya odaklanan farklı bir makale isterseniz yardımcı olabilirim." in out
+    assert out.count("(doğrulayamadığım için yazmıyorum)") == 2
+    assert out.endswith(C.UNSUPPORTED_NOTE_MANY)
+    assert g.dropped == ["Bu DOI'ler ilgili yayınlara erişim sağlamaktadır."]
+
+
+def test_a_description_of_the_withheld_doi_is_dropped_too() -> None:
+    # the 813b93b run: "Bu DOI, … güncel verileri içeren çalışmalar arasında yer almaktadır."
+    text = (f"Bir örnek paylaşabilirim:\n\nDOI: {FAKE}\n\nBu DOI, küresel sıcaklık artışına dair "
+            "güncel verileri içeren çalışmalar arasında yer almaktadır. İsterseniz başka bir alt "
+            "başlığa odaklanabiliriz.")  # fmt: skip
+    out, g = guarded(text)
+    assert "çalışmalar arasında yer almaktadır" not in out and len(g.dropped) == 1
+    assert "İsterseniz başka bir alt başlığa odaklanabiliriz." in out
+
+
+KEPT_AFTER = [
+    "Bu DOI'yi doğrulayamıyorum.",  # doubt
+    "Bu numaranın gerçek bir yayına ait olup olmadığını bilmiyorum.",
+    "Güncel makalelere ve DOI numaralarına Google Scholar'da arayarak ulaşabilirsiniz.",  # advice
+    "Bu makaleyi Nature'ın resmi web sitesi üzerinden kontrol edebilirsiniz.",
+    "Konu çok geniş olduğu için alt başlık seçmek faydalı olur.",  # unrelated
+]
+
+
+@pytest.mark.parametrize("sentence", KEPT_AFTER)
+def test_doubt_advice_and_other_sentences_stay(sentence: str) -> None:
+    out, g = guarded(f"DOI: {FAKE}. {sentence} Teşekkürler.")
+    assert sentence in out and not g.dropped
+
+
+def test_nothing_is_dropped_before_the_withheld_doi_or_without_one() -> None:
+    before = "Bu DOI numarası şu makaleye aittir ve geçerlidir."
+    out, g = guarded(f"{before} {FAKE} Bitti.")
+    assert before in out and not g.dropped  # the sentence holding it streams as written
+    users = f"Verdiğiniz DOI ({USERS}) geçerli bir DOI biçimindedir. Bu DOI'ye erişim sağlar."
+    assert guarded(users, sources=frozenset({USERS}))[0] == users  # nothing withheld
+
+
+def test_the_withheld_dois_sentence_streams_and_only_later_ones_wait() -> None:
+    g = C.DoiGuard()
+    assert g.feed(f"Kaynak: {FAKE} ve ") == "Kaynak: (doğrulayamadığım için yazmıyorum) ve "
+    assert g.feed("devamı. Bu DOI ") == "devamı. "  # a later sentence waits for its end
+    assert g.feed("geçerlidir. Son ") == ""  # dropped
+    out = g.finish()
+    assert out.startswith("Son") and g.dropped == ["Bu DOI geçerlidir."]
+
+
+def test_a_replaced_examples_old_prefix_and_suffix_follow_it() -> None:
+    # the a440a3d run: "Bu formatta '10.1234' yayıncının kimliğini …" next to 10.5555/ornek.0001
+    text = ('Genel format: `10.XXXX/YYYY`.\n\nÖrnek: `10.1234/sample.article.5678`\n\nBu formatta '
+            '"10.1234" yayıncının kimliğini, "sample.article.5678" kısmı ise içeriği gösterir.')  # fmt: skip
+    out, g = guarded(text, fiction=True)
+    assert "10.1234" not in out and "sample.article" not in out
+    assert '"10.5555" yayıncının kimliğini, "ornek.0001" kısmı' in out
+    assert "`10.XXXX/YYYY`" in out  # a placeholder format is not a DOI
+    assert g.mapped == {"10.1234": "10.5555", "sample.article.5678": "ornek.0001"}
+
+
+def test_a_bare_prefix_before_the_example_waits_for_it() -> None:
+    text = "Önek (örneğin 10.1000) yayıncıyı gösterir. Örnek bir DOI: 10.1000/xyz123"
+    g = C.DoiGuard(fiction=True)
+    assert g.feed("Önek (örneğin 10.1000) yayıncıyı ") == "Önek (örneğin "  # held
+    out = "Önek (örneğin " + g.feed("gösterir. Örnek bir DOI: 10.1000/xyz123") + g.finish()
+    assert out.startswith(
+        "Önek (örneğin 10.5555) yayıncıyı gösterir. Örnek bir DOI: 10.5555/ornek.0001"
+    )
+    assert guarded(text, fiction=True, chunk=4)[0] == out
+
+
+def test_a_bare_prefix_with_no_example_is_left_alone() -> None:
+    text = "DOI Foundation'ın kendi öneki 10.1000'dir; DOI'ler hep 10. ile başlar."
+    out, _ = guarded(text, fiction=True)
+    assert out == text
+    other = "Nature'ın öneki 10.1038'dir."  # not fiction: never touched
+    assert guarded(other)[0] == other
+
+
+@pytest.mark.parametrize("address", ["siz", "sen"])
+@pytest.mark.parametrize("fiction", [False, True])
+def test_integrity_rules_stream_to_the_same_text(address: str, fiction: bool) -> None:
+    policy = claims.Policy(claims.ClaimState.NO_MEMORY_ACTION)
+    text = (
+        LANCET
+        + ' Önek "10.1016" yayıncıyı gösterir. Bu DOI geçerlidir.\nİsterseniz bakabilirsiniz.'
+    )
+    whole = reply_guard.check(text, policy, address=address, doi_fiction=fiction)
+    rng = random.Random(5)
+    for _ in range(40):
+        g = reply_guard.ReplyGuard(policy, address=address, doi_fiction=fiction)
+        out, i = "", 0
+        while i < len(text):
+            n = rng.randint(1, 9)
+            out += g.feed(text[i : i + n])
+            i += n
+        assert out + g.finish() == whole == g.released
+
+
+def test_after_an_example_a_sentence_that_vouches_for_it_is_dropped() -> None:
+    text = ("Örnekler:\n* 10.1016/s0140-6736(21)00914-3\n\nBu DOI'ler ilgili yayınlara erişim "
+            "sağlamaktadır. Bu DOI'yi yazılım testlerinde kullanabilirsiniz.")  # fmt: skip
+    out, g = guarded(text, fiction=True)
+    assert "10.5555/ornek.0001" in out and "erişim sağlamaktadır" not in out
+    assert "Bu DOI'yi yazılım testlerinde kullanabilirsiniz." in out  # about the example: stays
+    assert out.endswith(C.FICTION_NOTE) and len(g.dropped) == 1

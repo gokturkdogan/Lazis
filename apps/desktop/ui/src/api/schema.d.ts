@@ -1373,6 +1373,8 @@ export interface components {
             context_prep_ms: number | null;
             /** Decode Tps */
             decode_tps: number | null;
+            /** Doi Sentences Dropped */
+            doi_sentences_dropped?: number | null;
             /** Dois Example */
             dois_example?: number | null;
             /** Dois Restored */
