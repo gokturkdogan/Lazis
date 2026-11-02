@@ -292,6 +292,9 @@ def test_a_description_of_the_withheld_doi_is_dropped_too() -> None:
 
 KEPT_AFTER = [
     "Bu DOI'yi doğrulayamıyorum.",  # doubt
+    # the c2b8e09 run: the model's own warning was dropped
+    "Bu numaranın gerçek bir yayına ait olmadığını hatırlatmak isterim.",
+    "Bu DOI gerçek bir yayına ait olmayan, kurgusal bir örnektir.",
     "Bu numaranın gerçek bir yayına ait olup olmadığını bilmiyorum.",
     "Güncel makalelere ve DOI numaralarına Google Scholar'da arayarak ulaşabilirsiniz.",  # advice
     "Bu makaleyi Nature'ın resmi web sitesi üzerinden kontrol edebilirsiniz.",

@@ -85,8 +85,11 @@ _VOUCH = re.compile(
     r"|kesinlikle (mevcut|var)|gercekten (mevcut|var)|dogru bir doi"
 )
 _ADVICE = re.compile(r"google|scholar|crossref|pubmed|veri ?taban|aratarak|arayarak|arama yap")
+# "olmadığını", "yoktur" too: "Bu numaranın gerçek bir yayına ait olmadığını hatırlatmak
+# isterim" is the model's own warning, and stays.
 _DOUBT = re.compile(
-    r"degil|olup olmadig|dogrulayam|edemiyor|emin degil|olabilir|yazmiyorum|bilmiyorum|bulamiyorum"
+    r"degil|olmadig|olmayan|yoktur|dogrulayam|edemiyor|emin degil|olabilir|yazmiyorum|bilmiyorum"
+    r"|bulamiyorum"
 )
 # A sentence: up to closing punctuation followed by whitespace, or a line end.
 _SENTENCE = re.compile(r".*?(?:[.!?…]+(?=\s)|\n)\s*", re.S)
