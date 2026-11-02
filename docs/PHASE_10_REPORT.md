@@ -638,7 +638,7 @@ Son kodda (48 + 24 tur):
 | Kullanıcının DOI'si korunur | Son kodda gösterilen tek DOI doğru; yanlış kopyalar kaynaktaki haline döner (`a440a3d`, `c2b8e09` ve `c449a0d`'de canlı görüldü) |
 | Yerel DOI kaybolmaz | 6/6 |
 | Doğrulanmamış bilgi doğrulanmış gibi gösterilmez | Kapanış cümlesi her DOI kaldırmada var. Sınır: aşağıda |
-| İlgisiz metin değişmez | Kayıtlı 22 152 metinde koruma yalnızca üç onay cümlesi düşürüyor; hepsi gerçek koşulardan. `a440a3d`'den `f4b2c0d`'ye değişen 8 metnin 7'si DOI senaryo raporlarından, 1'i `813b93b`'nin a34 yanıtı; `f4b2c0d`'den son koda 4 metin değişiyor (yalnızca DOI'li yanıtlar). Regresyon raporlarında hiçbiri değişmiyor |
+| İlgisiz metin değişmez | Kayıtlı 22 152 metinde koruma yalnızca üç onay cümlesi düşürüyor; hepsi gerçek koşulardan. `a440a3d`'den `f4b2c0d`'ye değişen 8 metnin 7'si DOI senaryo raporlarından, 1'i `813b93b`'nin a34 yanıtı; `f4b2c0d`'den son koda 2 metin değişiyor (ikisi de saldırı tekrarından). Regresyon raporlarında hiçbiri değişmiyor |
 | Akış bütünlüğü | Son kodda DOI koruması tek başına: 169 metin, 4056 parçalı koşu, 0 uyuşmazlık. Tüm zincirdeki tek fark açıklama korumasından (§B.13.3) |
 | Gösterilen = saklanan | Her koşuda fark 0 |
 
