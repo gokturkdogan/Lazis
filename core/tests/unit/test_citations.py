@@ -394,3 +394,24 @@ def test_an_old_suffix_split_across_chunks_is_still_replaced() -> None:
     assert "example.123456" not in whole and '"ornek.0001" ise' in whole
     for chunk in (1, 2, 3, 5, 7):
         assert guarded(text, fiction=True, chunk=chunk)[0] == whole
+
+
+def test_a_prefix_taken_apart_follows_the_example_only_when_quoted() -> None:
+    # the c449a0d run: '"10" kısmı …, "1000" yayıncıya ait ön ek' next to 10.5555/ornek.0001
+    text = (
+        'Örnek: `10.1000/123456`\n\nBurada "10" kısmı başlangıcı, "1000" yayıncıya ait ön '
+        "eki gösterir. Bu sistemde 1000 kişi çalışır."
+    )
+    whole, _ = guarded(text, fiction=True)
+    assert '"10" kısmı başlangıcı, "5555" yayıncıya ait' in whole
+    assert "Bu sistemde 1000 kişi çalışır." in whole
+    for chunk in (1, 2, 3, 5, 7):
+        assert guarded(text, fiction=True, chunk=chunk)[0] == whole
+
+
+def test_a_doi_label_stays_however_the_text_is_chunked() -> None:
+    text = f"Kaynak\nDOI: {FAKE}\nBitti."
+    whole, _ = guarded(text)
+    assert "DOI: (doğrulayamadığım için yazmıyorum)" in whole
+    for chunk in (1, 2, 3, 4, 5, 8):
+        assert guarded(text, chunk=chunk)[0] == whole

@@ -47,11 +47,12 @@ from lazis.memory.commands import NOTICE_END, NOTICE_START
 from lazis.storage.driver import Connection
 
 # Crossref's recommended pattern (10.<4–9 digits>/<suffix>), with an optional doi.org link or
-# "doi:" in front, and any letter in the suffix: the model writes "10.1016/j.neuroniño…" or
+# "doi:" right in front ("DOI: …" keeps its label, however the text is chunked), and any
+# letter in the suffix: the model writes "10.1016/j.neuroniño…" or
 # "10.1000/test.örnek…", and an ASCII-only suffix would leave the rest of it in the reply. A
 # suffix of at least 3 characters once trailing punctuation is cut: "10.2023/11." is a date.
 _DOI = re.compile(
-    r"(?:https?://(?:dx\.)?doi\.org/|\bdoi:\s?)?\b(10\.\d{4,9}/[-.;()/:\w]+)",
+    r"(?:https?://(?:dx\.)?doi\.org/|\bdoi:)?\b(10\.\d{4,9}/[-.;()/:\w]+)",
     re.IGNORECASE,
 )
 MIN_SUFFIX = 3
@@ -286,8 +287,11 @@ class DoiGuard:
     def _could_be_mapped(self, word: str) -> bool:
         """The last word so far may still become a replaced example's old suffix ('"example.'
         of "example.123456"): held, or a split would leave it unchanged."""
-        w = word.lower().lstrip("(*_`[\"'")
-        return bool(w) and any(old.startswith(w) or w.startswith(old) for old in self.mapped)
+        if not self.mapped:
+            return False
+        w = word.lower().lstrip("(*_`[\"'“‘")
+        # an opening mark alone: what follows may be a quoted old prefix
+        return not w or any(old.startswith(w) or w.startswith(old) for old in self.mapped)
 
     def _unmapped_prefix(self, text: str) -> int | None:
         """Where a bare prefix starts that no example has shown yet, unless an example DOI
@@ -305,6 +309,10 @@ class DoiGuard:
         for old, new in self.mapped.items():
             if not old.startswith("10."):
                 text = re.sub(rf"(?<![\w/.]){re.escape(old)}(?![\w/])", new, text)
+            else:  # the prefix taken apart: '"10" kısmı …, "1000" yayıncıya ait ön ek' (quoted
+                # only: "1000 kişi" is a number)
+                code, new_code = old.split(".", 1)[1], new.split(".", 1)[1]
+                text = re.sub(rf"([\"'`“‘]){code}([\"'`”’])", rf"\g<1>{new_code}\g<2>", text)
         return text
 
     def _anchors(self) -> list[str]:
