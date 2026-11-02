@@ -382,7 +382,7 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
     - safety, accuracy and core persona cannot be changed by learned preferences;
     - acceptance: PER-06, PER-07, PER-12.
     `0008_adaptation` is tested on an isolated database first; it is applied to the real profile only with the owner's separate approval.
-    As built: layer 2 in `personality/preferences.py`, learning in `conversation/adaptation.py`, a per-turn reminder and an address guard so a saved preference holds from a new session's first reply, refused requests that stay refused, and a DOI guard (`conversation/citations.py`, approved by the owner). Final run on `a440a3d`: PER-06 new session 30/30, PER-12 42/42. Not migrated on the real profile. Report: [PHASE_10_REPORT.md](PHASE_10_REPORT.md) Part B, [ADR-0022](adr/0022-adaptive-communication-preferences.md).
+    As built: layer 2 in `personality/preferences.py`, learning in `conversation/adaptation.py`, a per-turn reminder and an address guard so a saved preference holds from a new session's first reply, refused requests that stay refused, and a DOI guard (`conversation/citations.py`, approved by the owner). Final runs: PER-06 new session 30/30 (`a440a3d`), PER-12 42/42 (`c449a0d`), DOI scenarios 48/48 plus 24 attack turns, read by hand (`6531811`, the final code). Not migrated on the real profile. Report: [PHASE_10_REPORT.md](PHASE_10_REPORT.md) Part B, [ADR-0022](adr/0022-adaptive-communication-preferences.md).
   - **P10C — continuity and proactive follow-ups:**
     - open loops and episodes;
     - at most one follow-up question per session;
@@ -398,7 +398,16 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 - **Separate performance work (not in P10 scope):**
   - Under heavy load, turns sent while a background compaction runs start late: median 17.8 s, worst 61.8 s at 500 facts (PHASE_9_REPORT §12). The model's cache then holds the compaction prompt, so the turn re-processes the long conversation prefix.
   - First step: measure prefix processing on its own, then consider compacting in a separate model context or only while the conversation is idle.
-  - Tracked in PHASE_10_REPORT §11. Phase 10B adds to it: with long replies ("ayrıntılı"), the context fills faster, first tokens grow to 3–7 s within a session and pauses of 137–150 s appear (Part B §B.9). To be handled before P10C.
+  - Tracked in PHASE_10_REPORT §11.
+  - **Measured at the Phase 10B close** (PHASE_10_REPORT §B.13.2; `evals/runners/p10b_latency.py`, results `evals/reports/phase10/latency_gemma4_12b-it-qat_a440a3d.jsonl`). The 137–183 s pauses are synchronous, in-turn compaction (130–168 s, 14k → 5k tokens) once the context reaches the hard limit. They happen with layer 2 on and off alike, and not with the production idle delay (5 s), where compaction runs between turns (33–60 s) and the first token stays at 0.70–0.81 s over 20 detailed turns. Technical debt, in order:
+    1. While compaction waits for idle (`_run_due`: context ≥ `compact_at`, user not idle), neither the post-turn re-warm nor learning runs: every turn re-processes the whole conversation (first token 4–10 s) and learning stays queued. Proposal: run the re-warm (and learning) in that state too.
+    2. The in-turn path summarises up to 14k tokens before the reply. Proposal: in the turn, only drop the oldest verbatim messages (the existing fallback) and summarise in the background afterwards; or start background compaction right after a turn that crosses `compact_at`, without waiting for idle.
+    3. A turn sent during background compaction still waits (Phase 9 §12: median 17.8 s at 500 facts).
+    4. Eval profiles set `idle_compaction_delay_s=3600`: their latencies are not production latencies, and runners wait up to 180 s per turn for learning that cannot run. Latency must be measured with production defaults.
+    5. Phase 10B's own cost: with layer 2 on, the first token of the early turns is about 0.33 s later (0.71–0.72 s vs 0.38–0.39 s). The likely cause is the per-turn reminder (~216 tokens, never cached), but it was not measured apart from the rest of the layer. Proposal: measure the reminder alone and a shorter one against PER-06.
+    6. Not measured: a user who writes during background compaction or within the 5 s idle delay. The production-default condition waited for background work after every turn.
+  - **Other technical debt from the Phase 10B close:** `disclosure.py` leaves leading whitespace in code blocks differently depending on how the text is chunked (shown = stored still holds; Python indentation can change); frequency in real streams not measured. A certain answer that does not repeat the ambiguous name ("Mehmet efendim.", n1#2) passes the people guard (from Phase 10A).
+  - To be handled before P10C, where LAZIS starts speaking on its own.
 
 ## P11 — Authorized local document ingestion (L)
 

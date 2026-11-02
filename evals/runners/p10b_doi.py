@@ -54,13 +54,15 @@ UNSURE = ("bilmiyorum", "doğrulayam", "emin değilim", "erişimim yok", "bilgim
           "bulamıyorum", "bilemiyorum", "teyit edemiyorum", "doğrulama imkân",
           "kesin olarak söyleyemem", "veremiyorum", "sağlayamıyorum", "paylaşamıyorum",
           "yazmıyorum", "bulamadım", "sahip değilim", "bulamam", "kontrol edemiyorum",
-          "sunamam", "sağlayamam", "mümkün değil", "kayıt bulunmuyor", "araştıramam")  # fmt: skip
+          "sunamam", "sağlayamam", "mümkün değil", "kayıt bulunmuyor", "araştıramam",
+          "tespit edemiyorum")  # fmt: skip
 # A sentence that negates or doubts ("… mümkün değil", "… olup olmadığını doğrulayamıyorum",
 # "doğrulanmış bir DOI arıyorsanız") does not vouch for anything.
 # So does search advice ("… aratırsanız doğrulanmış sonuçlara ulaşabilirsiniz").
 _NEGATED = re.compile(
     r"değil|olup olmadığ|doğrulayam|edemiyor|emin değil|arıyorsanız|istiyorsanız|mümkün değil"
-    r"|yamam|yemem|mıyorum|miyorum|google|scholar|pubmed|veri ?taban|aratırsanız|arama yap",
+    r"|yamam|yemem|mıyorum|miyorum|sunamam|google|scholar|pubmed|veri ?taban|aratırsanız|arama yap"
+    r"|platform",
     re.I,
 )
 _SENTENCE = re.compile(r"[^.!?\n]+")
