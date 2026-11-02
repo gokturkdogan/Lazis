@@ -240,7 +240,8 @@ class DoiGuard:
     def feed(self, chunk: str) -> str:
         self.pending += chunk
         cut = max(self.pending.rfind(" "), self.pending.rfind("\n"), self.pending.rfind("\t"))
-        if not _could_be_doi(self.pending[cut + 1 :]):
+        last = self.pending[cut + 1 :]
+        if not _could_be_doi(last) and not self._could_be_mapped(last):
             cut = len(self.pending) - 1
         if cut < 0:
             return ""
@@ -278,6 +279,12 @@ class DoiGuard:
         piece = self._sentences(piece, final=final)
         self.released += piece
         return piece
+
+    def _could_be_mapped(self, word: str) -> bool:
+        """The last word so far may still become a replaced example's old suffix ('"example.'
+        of "example.123456"): held, or a split would leave it unchanged."""
+        w = word.lower().lstrip("(*_`[\"'")
+        return bool(w) and any(old.startswith(w) or w.startswith(old) for old in self.mapped)
 
     def _unmapped_prefix(self, text: str) -> int | None:
         """Where a bare prefix starts that no example has shown yet, unless an example DOI

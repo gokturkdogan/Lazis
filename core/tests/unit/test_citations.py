@@ -379,3 +379,15 @@ def test_after_an_example_a_sentence_that_vouches_for_it_is_dropped() -> None:
     assert "10.5555/ornek.0001" in out and "erişim sağlamaktadır" not in out
     assert "Bu DOI'yi yazılım testlerinde kullanabilirsiniz." in out  # about the example: stays
     assert out.endswith(C.FICTION_NOTE) and len(g.dropped) == 1
+
+
+def test_an_old_suffix_split_across_chunks_is_still_replaced() -> None:
+    # the 4a6a782 run: '"example.' arrived alone, was released, and "example.123456" stayed
+    text = (
+        'Örnek bir DOI şu yapıdadır:\n`10.1000/example.123456`\n\nBurada "10.1000" '
+        'yayıncıya ait önek, "example.123456" ise içeriğe özgü kayıt numarasını temsil eder.'
+    )
+    whole, _ = guarded(text, fiction=True)
+    assert "example.123456" not in whole and '"ornek.0001" ise' in whole
+    for chunk in (1, 2, 3, 5, 7):
+        assert guarded(text, fiction=True, chunk=chunk)[0] == whole
