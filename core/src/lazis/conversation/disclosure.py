@@ -324,6 +324,7 @@ class DisclosureGuard:
     ctx: Context = field(default_factory=Context)
     _dropping: bool = False  # a dropped sentence was cut at MAX_HOLD: drop on to its end
     _space: str = ""  # whitespace held until text follows (a dropped tail leaves none)
+    _just_dropped: bool = False  # the next text follows a dropped sentence
 
     def feed(self, chunk: str) -> str:
         self.pending += chunk
@@ -370,12 +371,15 @@ class DisclosureGuard:
             self._space += piece
             return ""
         piece, self._space = self._space + piece, ""
-        if self.removed:
+        # Only right after a dropped sentence: anywhere else leading spaces are the text's own,
+        # and in code they are its meaning ("for x in y:\n    print(x)", however it is chunked).
+        if self._just_dropped:
+            self._just_dropped = False
             piece = re.sub(r"^(\s*\n)[ \t]+", r"\1", piece)  # no indent after a dropped line
-        if self.removed and not self.released.strip():
-            piece = piece.lstrip()  # a reply whose first sentence was dropped
-        elif self.released.endswith("\n"):
-            piece = piece.lstrip(" ")  # a paragraph whose first sentence was dropped
+            if not self.released.strip():
+                piece = piece.lstrip()  # a reply whose first sentence was dropped
+            elif self.released.endswith("\n"):
+                piece = piece.lstrip(" ")  # a paragraph whose first sentence was dropped
         self.released += piece
         return piece
 
@@ -421,6 +425,7 @@ class DisclosureGuard:
             frozen = len(self.released) - start
             new, removed = rewrite_sentence(sentence, frozen=frozen, ctx=self.ctx)
             self.removed += removed
+            self._just_dropped = self._just_dropped or removed > 0
             self._dropping = cut and removed > 0 and not re.search(r"\w", new[frozen:])
             self.pending = self.pending[end:]
             out += self._add(new[frozen:])

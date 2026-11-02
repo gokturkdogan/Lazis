@@ -1,6 +1,6 @@
 # LAZIS — Faz 10 Raporu: Uyarlanabilir Kişilik ve Süreklilik
 
-- **Durum:** **Faz 10A (hafıza ve tercih güvenilirliği) tamamlandı ve sahibi tarafından kabul edildi (2026-10-31).** Sahibi aynı mesajda Faz 10B'ye onay verdi. 10A'nın kalan riskleri §10'da açık konular olarak duruyor. **Faz 10B (iletişim tercihleri) uygulandı ve sahibinin onayını bekliyor (2026-11-02): aşağıda Bölüm B.** Faz 10C ve 10D'ye başlanmadı. Hiçbir şey push edilmedi.
+- **Durum:** **Faz 10A (hafıza ve tercih güvenilirliği) tamamlandı ve sahibi tarafından kabul edildi (2026-10-31).** Sahibi aynı mesajda Faz 10B'ye onay verdi. 10A'nın kalan riskleri §10'da açık konular olarak duruyor. **Faz 10B (iletişim tercihleri) tamamlandı ve sahibi tarafından kesin olarak onaylandı (2026-11-02): aşağıda Bölüm B.** Faz 10C ve 10D'ye başlanmadı. Hiçbir şey push edilmedi.
 - **Tarih:** 2026-10-31
 - **Karar kaydı:** [ADR-0021](adr/0021-memory-and-preference-reliability.md). Modüller: [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P10A. Faz 9'dan devralınan açık konular: [PHASE_9_REPORT.md §22](PHASE_9_REPORT.md).
 - **Yerel commit'ler:**
@@ -286,7 +286,7 @@ Faz 10A sahibinin onayını bekliyor. Onay gelmeden 10B'ye geçilmeyecek. 10B'de
 
 # Bölüm B — Faz 10B: İletişim tercihleri (katman 2)
 
-- **Durum:** **Faz 10B uygulandı; kapanış çalışmaları tamamlandı (§B.13); sahibinin kesin onayını bekliyor.** Faz 10C ve 10D'ye başlanmadı. Proaktif takip etkin değil. Hiçbir şey push edilmedi.
+- **Durum:** **Faz 10B tamamlandı; sahibi 2026-11-02'de kesin olarak onayladı** (PER-06, PER-12, örtük tercih öğrenme, DOI koruması, oturumlar arası kalıcılık). Son kodda yeniden koşulmayan regresyonlar önceki commit sonuçlarına dayanıyor (§B.13.4). Faz 10C'den önce sınırlı bir stabilizasyon istendi: [PHASE_10B_STABILIZATION_REPORT.md](PHASE_10B_STABILIZATION_REPORT.md). Faz 10C ve 10D'ye başlanmadı. Proaktif takip etkin değil. Hiçbir şey push edilmedi.
 - **Tarih:** 2026-11-02
 - **Karar kaydı:** [ADR-0022](adr/0022-adaptive-communication-preferences.md), karar 1–10. Modüller: [PERSONALITY_ENGINE.md](PERSONALITY_ENGINE.md) "As built in P10B", [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) Part P10B.
 - **Son kod:** `6531811` (kapanış çalışmaları için §B.13). Aşağıdaki B.1–B.12 bölümleri nihai rapor anındaki `a440a3d` durumunu anlatır. Sahibinin isteğiyle sonuçlar iki ayrı kod için veriliyor:
@@ -712,4 +712,4 @@ Kök neden Faz 10B dışında olduğu için optimizasyon yapılmadı. Teknik bor
 
 `6531811` için `make check` rc 0: core 3236 geçti (3 seçilmedi), arayüz 128 + 1 atlandı, arayüz arka ucu 8 + 3 atlandı, Rust 30 + 9. Raporlar: `evals/reports/phase10/doi_*_{4a6a782,c2b8e09,c449a0d,f4b2c0d,f4b2c0d_attack8,6531811,6531811_attack8}.json`, `adaptation_*_{c2b8e09,c449a0d}_per12.json`, `latency_*_a440a3d.jsonl`, `*_p10b_c2b8e09.json`, `identity_*_p10b_c449a0d.json`.
 
-Faz 10B sahibinin kesin onayını bekliyor. `0008_adaptation` gerçek profile uygulanmadı. Faz 10C'ye başlanmadı. Hiçbir şey push edilmedi.
+Faz 10B sahibi tarafından kesin olarak onaylandı (2026-11-02). `0008_adaptation` gerçek profile uygulanmadı. Faz 10C'ye başlanmadı. Hiçbir şey push edilmedi.

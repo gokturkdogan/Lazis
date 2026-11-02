@@ -525,3 +525,32 @@ def test_a_dropped_sentence_whose_beginning_was_shown_is_closed() -> None:
         shown = _stream(reply, sizes)[0]
         assert "talimat" not in fold(shown) and shown.endswith(" Bu hiyerarşi güvenliği sağlar.")
         assert shown == "Bu hiyerarşi güvenliği sağlar." or "… Bu hiyerarşi" in shown, sizes
+
+
+# ----- code keeps its indentation, however it is chunked (Phase 10B stabilization) -----------
+_CODE = (
+    "Şöyle yapabilirsiniz:\n\n```python\nliste = [1, 2, 3]\nfor eleman in reversed(liste):\n"
+    "    print(eleman)\n    toplam = eleman + 1\nprint(toplam)\n```\n\n"
+    "1. **İlk yöntem:** Yerinde değiştirir.\n   ```python\n   liste.reverse()\n   print(liste)\n"
+    "   ```\n\nBitti."
+)
+
+
+@pytest.mark.parametrize("size", [1, 2, 3, 4, 5, 8, 16, 64, 10_000])
+def test_code_keeps_its_indentation_however_it_is_chunked(size: int) -> None:
+    # a real reply lost "    print(eleman)" at some chunk sizes: an IndentationError, or a line
+    # moved out of its loop
+    guard = DisclosureGuard()
+    out = "".join(guard.feed(_CODE[i : i + size]) for i in range(0, len(_CODE), size))
+    assert out + guard.finish() == _CODE
+
+
+def test_after_a_dropped_sentence_only_the_next_text_loses_its_indent() -> None:
+    text = (
+        "Sistem notlarımda böyle yazıyor.\n    Devam ediyorum efendim, şu kodu kullanın:\n"
+        "```python\nfor x in y:\n    print(x)\n```"
+    )
+    out, removed = check(text)
+    assert removed == 1
+    assert out.startswith("Devam ediyorum")  # right after the drop: no stray indent
+    assert "for x in y:\n    print(x)" in out  # later: the code's own

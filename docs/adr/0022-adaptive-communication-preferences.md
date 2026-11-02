@@ -1,6 +1,6 @@
 # ADR-0022: Adaptive communication preferences (Phase 10B)
 
-- **Status:** Implemented in Phase 10B (2026-10-31; decision 8 added 2026-11-01 after the first real-model run; decision 10, the DOI guard, approved by the owner and added 2026-11-01); final runs on `a440a3d` and, for the DOI guard, `6531811` (2026-11-02); awaiting the owner's approval with [PHASE_10_REPORT.md](../PHASE_10_REPORT.md) Part B. Phases 10C–10D not started.
+- **Status:** Implemented in Phase 10B (2026-10-31; decision 8 added 2026-11-01 after the first real-model run; decision 10, the DOI guard, approved by the owner and added 2026-11-01); final runs on `a440a3d` and, for the DOI guard, `6531811` (2026-11-02); accepted by the owner 2026-11-02 with [PHASE_10_REPORT.md](../PHASE_10_REPORT.md) Part B. Phases 10C–10D not started.
 - **Related:** [ADR-0013](0013-persona-v1-and-instruction-hierarchy.md) (persona, instruction hierarchy), [ADR-0021](0021-memory-and-preference-reliability.md) (independent signals), [PERSONALITY_ENGINE.md](../PERSONALITY_ENGINE.md) §1, §3, [ACCEPTANCE_CRITERIA.md](../ACCEPTANCE_CRITERIA.md) PER-06, PER-07, PER-12.
 
 ## Context
