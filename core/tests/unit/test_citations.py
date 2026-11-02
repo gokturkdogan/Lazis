@@ -203,8 +203,9 @@ def test_only_a_word_that_could_become_a_doi_is_held() -> None:
     g = C.DoiGuard()
     assert g.feed("Bugün hava çok") == "Bugün hava çok"  # no lag after the other guards
     assert g.feed(" güzel. Bakınız 10.10") == " güzel. Bakınız "
-    assert g.feed("38/s41586-023-06305-x ") == "(doğrulayamadığım için yazmıyorum) "
-    assert g.feed("ve https://do") == "ve "
+    assert g.feed("38/s41586-023-06305-x ") == "(doğrulayamadığım için yazmıyorum)"
+    g2 = C.DoiGuard(fiction=False)
+    assert g2.feed("Metin ve https://do") == "Metin ve "  # a link may follow
 
 
 @pytest.mark.parametrize("address", ["siz", "sen"])
@@ -316,13 +317,46 @@ def test_nothing_is_dropped_before_the_withheld_doi_or_without_one() -> None:
     assert guarded(users, sources=frozenset({USERS}))[0] == users  # nothing withheld
 
 
-def test_the_withheld_dois_sentence_streams_and_only_later_ones_wait() -> None:
+def test_text_up_to_the_withheld_doi_streams_and_what_follows_waits() -> None:
     g = C.DoiGuard()
-    assert g.feed(f"Kaynak: {FAKE} ve ") == "Kaynak: (doğrulayamadığım için yazmıyorum) ve "
-    assert g.feed("devamı. Bu DOI ") == "devamı. "  # a later sentence waits for its end
+    assert g.feed(f"Kaynak: {FAKE} ve ") == "Kaynak: (doğrulayamadığım için yazmıyorum)"
+    assert g.feed("devamı. Bu DOI ") == " ve devamı. "  # a later sentence waits for its end
     assert g.feed("geçerlidir. Son ") == ""  # dropped
     out = g.finish()
     assert out.startswith("Son") and g.dropped == ["Bu DOI geçerlidir."]
+
+
+def test_a_vouching_note_right_after_the_withheld_doi_is_dropped() -> None:
+    # the f4b2c0d run, in the DOI's own line: "(…) (Bu DOI, … bir çalışmaya aittir.)"
+    text = (f"Önemli bir çalışmanın DOI numarası şu şekildedir:\n\n{FAKE} (Bu DOI, *The Lancet* "
+            "bünyesinde yayımlanan bir çalışmaya aittir.)\n\nBaşka bir kaynak isterseniz yardımcı "
+            "olabilirim.")  # fmt: skip
+    out, g = guarded(text)
+    assert "bir çalışmaya aittir" not in out and "(doğrulayamadığım için yazmıyorum)" in out
+    assert "Önemli bir çalışmanın DOI numarası şu şekildedir:" in out
+    assert "Başka bir kaynak isterseniz yardımcı olabilirim." in out
+    assert g.dropped == ["(Bu DOI, *The Lancet* bünyesinde yayımlanan bir çalışmaya aittir.)"]
+    for chunk in (1, 2, 3, 5, 7):
+        assert guarded(text, chunk=chunk)[0] == out
+
+
+HONEST_RIGHT_AFTER = [
+    "(Bu DOI doğrulanmamıştır.)",
+    "(Bu DOI kurgusaldır.)",
+    "(Bu numara yalnızca bir örnektir.)",
+    "(Bu DOI'yi teyit edemediğimi belirtmek isterim.)",
+]
+
+
+@pytest.mark.parametrize("note", HONEST_RIGHT_AFTER)
+def test_an_honest_note_right_after_it_stays(note: str) -> None:
+    out, g = guarded(f"DOI: {FAKE} {note}\nBitti.")
+    assert note in out and not g.dropped
+
+
+def test_a_link_without_a_scheme_goes_with_the_doi() -> None:
+    out, g = guarded(f"Şudur: doi.org/{FAKE}\nve dx.doi.org/10.1126/science.abc1234")
+    assert "doi.org" not in out and len(g.replaced) == 2
 
 
 def test_a_replaced_examples_old_prefix_and_suffix_follow_it() -> None:

@@ -67,14 +67,16 @@ _SENTENCE = re.compile(r"[^.!?\n]+")
 
 
 def vouches(pattern: re.Pattern[str], text: str) -> bool:
-    return any(pattern.search(s) and not _NEGATED.search(s) for s in _SENTENCE.findall(text))
+    # The guard's own phrase is no doubt of the sentence it stands in.
+    clean = text.replace(citations.UNSUPPORTED, "")
+    return any(pattern.search(s) and not _NEGATED.search(s) for s in _SENTENCE.findall(clean))
 # The reply presents a DOI as checked ("doğruladım", "geçerli bir DOI").
 # The reply vouches for a publication whose DOI was taken out ("kesinlikle mevcut",
 # "gerçek bir makaledir"): the owner's check that the rest is not presented as verified.
 _VOUCHES = re.compile(
     r"kesinlikle (mevcut|var|yayımlan)|gerçekten (mevcut|var|yayımlan)|gerçek bir (makale|yayın)"
     r"(dır|dir)|güvenilir bir kaynaktır|doğruladığım|varlığı (kesin|doğrulan)"
-    r"|(doi|bağlantı|numara)\w*\b[^.!?\n]{0,60}(erişim sağla|yönlendir|aittir|geçerli)", re.I
+    r"|(doi|bağlantı|numara)\w*\b[^.!?\n]{0,120}(erişim sağla|yönlendir|aittir|geçerli)", re.I
 )
 _VERIFIED = re.compile(
     r"doğruladım|doğrulanmış|kontrol ettim|geçerli bir do[ıi]|teyit ettim|doğru bir doi", re.I

@@ -22,8 +22,9 @@ when it has a source LAZIS was given:
   the publication. Only the identifier is replaced; the rest of the reply (titles, authors,
   quotations, other references) is left as the model wrote it — except, after it, a sentence
   that speaks of the withheld identifier itself ("Bu DOI'ler ilgili yayınlara erişim
-  sağlamaktadır"): it would vouch for what is not shown, so it is dropped. A sentence that
-  doubts it ("doğrulayamıyorum") or says where to search is kept.
+  sağlamaktadır", also right after it: "(…) (Bu DOI … bir çalışmaya aittir.)"): it would vouch
+  for what is not shown, so it is dropped. A sentence that doubts it ("doğrulayamıyorum") or
+  says where to search is kept.
 
 An example DOI that is replaced keeps the reply consistent: its old prefix and suffix,
 written elsewhere in the reply ("Buradaki '10.1234' kısmı yayıncının kimliğidir"), become the
@@ -52,7 +53,7 @@ from lazis.storage.driver import Connection
 # "10.1000/test.örnek…", and an ASCII-only suffix would leave the rest of it in the reply. A
 # suffix of at least 3 characters once trailing punctuation is cut: "10.2023/11." is a date.
 _DOI = re.compile(
-    r"(?:https?://(?:dx\.)?doi\.org/|\bdoi:)?\b(10\.\d{4,9}/[-.;()/:\w]+)",
+    r"(?:(?:https?://)?(?:dx\.)?doi\.org/|\bdoi:)?\b(10\.\d{4,9}/[-.;()/:\w]+)",
     re.IGNORECASE,
 )
 MIN_SUFFIX = 3
@@ -77,7 +78,7 @@ FICTION_NOTE = "(Bu DOI yalnızca bir örnektir; gerçek bir yayına ait değild
 # "Söz konusu numara …"), or one that says a DOI or link works, is valid or belongs to a
 # publication — unless it doubts it or points to a search.
 _ABOUT_IT = re.compile(
-    r"^[\s*_>#•\-\d.)]*(bu|soz konusu|yukaridaki|belirttigim|verdigim|paylastigim|ilgili)\s+"
+    r"^[\s*_>#•\-\d.()]*(bu|soz konusu|yukaridaki|belirttigim|verdigim|paylastigim|ilgili)\s+"
     r"(doi|numara|baglanti|link|kod|tanimlayici|adres)\w*"
 )
 _IDENT = re.compile(r"\b(doi|baglanti|link|numara)\w*")
@@ -89,14 +90,18 @@ _ADVICE = re.compile(r"google|scholar|crossref|pubmed|veri ?taban|aratarak|araya
 # "olmadığını", "yoktur" too: "Bu numaranın gerçek bir yayına ait olmadığını hatırlatmak
 # isterim" is the model's own warning, and stays.
 _DOUBT = re.compile(
-    r"degil|olmadig|olmayan|yoktur|dogrulayam|edemiyor|emin degil|olabilir|yazmiyorum|bilmiyorum"
-    r"|bulamiyorum"
+    r"degil|olmadig|olmayan|yoktur|dogrulayam|dogrulanmam|edemiyor|edemedig|edemem|emin degil"
+    r"|olabilir|yazmiyorum|bilmiyorum|bulamiyorum|kurgusal|hayali|temsili|ornek"
 )
 # A sentence: up to closing punctuation followed by whitespace, or a line end.
-_SENTENCE = re.compile(r".*?(?:[.!?…]+(?=\s)|\n)\s*", re.S)
-_END = re.compile(r"[.!?…]+(?=\s)\s*|\n\s*")
+_SENTENCE = re.compile(r".*?(?:[.!?…]+[)\"'”’]*(?=\s)|\n)\s*", re.S)
 # A DOI prefix written on its own ("'10.1234' kısmı"), not the start of a DOI.
 _BARE_PREFIX = re.compile(r"\b10\.\d{4,9}\b(?!/)")
+
+
+def _past_mark(text: str, end: int) -> int:
+    """Past the closing parenthesis of the guard's own phrase."""
+    return end + 1 if text[end : end + 1] == ")" else end
 
 
 def vouches(sentence: str, *, about_it: bool = True) -> bool:
@@ -232,9 +237,7 @@ class DoiGuard:
     mapped: dict[str, str] = field(default_factory=dict[str, str])  # old example prefix/suffix
     _before: str = ""
     _after: str = ""  # after a withheld DOI: text waiting for its sentence to end
-    # "before" the first withheld DOI, "open" in its sentence (released as it streams),
-    # "after" it (whole sentences, checked)
-    _state: str = "before"
+    _anchored: bool = False  # past the first withheld DOI or example: sentences are checked
 
     def add(self, more: frozenset[str]) -> None:
         """The rest of the sources (memory records): the guard decides on everything now."""
@@ -321,32 +324,27 @@ class DoiGuard:
 
     def _sentences(self, piece: str, *, final: bool) -> str:
         """After a withheld DOI or an example: release whole sentences, without those that
-        vouch for it. The sentence that holds it streams as before; nothing is held before."""
+        vouch for it. Up to the first one the text streams as written; what follows it, in its
+        own sentence too ("(…) (Bu DOI … aittir.)"), is checked."""
         anchors = self._anchors()
         if not anchors:
             return piece
         buf, out = self._after + piece, ""
+        if not self._anchored:
+            low = buf.lower()
+            hits = [(i, a) for a in anchors if (i := low.find(a)) >= 0]
+            if not hits:
+                self._after = ""
+                return buf
+            i, a = min(hits)
+            end = _past_mark(buf, i + len(a))
+            out, buf = buf[:end], buf[end:]
+            self._anchored = True
         while buf:
-            if self._state == "before":
-                hits = [(i, a) for a in anchors if (i := buf.lower().find(a)) >= 0]
-                if not hits:
-                    out, buf = out + buf, ""
-                    break
-                i, a = min(hits)
-                out, buf = out + buf[: i + len(a)], buf[i + len(a) :]
-                self._state = "open"
-            elif self._state == "open":
-                m = _END.search(buf)
-                if m is None:
-                    out, buf = out + buf, ""
-                    break
-                out, buf = out + buf[: m.end()], buf[m.end() :]
-                self._state = "after"
-            else:
-                m = _SENTENCE.match(buf)
-                if m is None or not m.end():
-                    break
-                out, buf = out + self._judge(m.group(0)), buf[m.end() :]
+            m = _SENTENCE.match(buf)
+            if m is None or not m.end():
+                break
+            out, buf = out + self._judge(m.group(0)), buf[m.end() :]
         if final and buf:
             out, buf = out + self._judge(buf), ""
         self._after = buf
@@ -354,11 +352,13 @@ class DoiGuard:
 
     def _judge(self, sentence: str) -> str:
         low = sentence.lower()
-        if any(a in low for a in self._anchors()):
-            return sentence
-        if vouches(sentence, about_it=bool(self.replaced)):
-            self.dropped.append(sentence.strip())
-            return ""
+        ends = [low.rfind(a) + len(a) for a in self._anchors() if a in low]
+        cut = _past_mark(sentence, max(ends)) if ends else 0
+        head, tail = sentence[:cut], sentence[cut:]
+        if vouches(tail, about_it=bool(self.replaced)):
+            self.dropped.append(tail.strip())
+            space = tail[len(tail.rstrip()) :]  # a line break stays: paragraphs do not merge
+            return head + (space if head or "\n" in space else "")
         return sentence
 
     def _copied_from(self, doi: str) -> str | None:
