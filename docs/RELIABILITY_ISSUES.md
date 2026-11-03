@@ -65,7 +65,7 @@ The uncertainty is lost outright in three of seven runs. Memory jobs were still 
 - The original message stays stored in full: history coverage has no gap and nothing was trimmed.
 - In the other five completed runs the active summary at turn 33 holds the line and the answer gives the trip.
 
-**Why the quality score misses it:** the 126/128 measure scores one compaction. This loss appears when a summary is rewritten.
+**What the quality score covers:** the 126/128 measure scores **one compaction only**. It does not cover a summary being rewritten, which is where this loss appears, so 126/128 says nothing about fact retention over several compaction cycles. Before A, B or C can be accepted, retention must be measured over several cycles: see [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md).
 
 **Cause:** not investigated. Neither the rewrite nor recall has been identified as responsible. Seen only at the 6 s gap so far, in three runs at that gap: too few to call it specific to that gap.
 
