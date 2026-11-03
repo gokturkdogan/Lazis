@@ -1,6 +1,6 @@
 # Compaction: fact retention over several cycles (test design)
 
-**Status:** design only. Not built, not run. Required by the owner before changes A, B or C can be accepted (2026-11-03). No product code, summary prompt or memory rule changes for it.
+**Status:** built as `evals/runners/p10p_compaction_cycles.py`; checked on a short trial only (`--gaps smoke`: one dialogue, two summary versions, one question). **The baseline has not been run.** Required by the owner before changes A, B or C can be accepted (2026-11-03). No product code, summary prompt or memory rule changes for it.
 
 ## Why
 
@@ -41,7 +41,7 @@ A cycle in which `compact_now` returns False fails the conversation visibly; it 
 | An old value present as current | Silent loss: fact missing while `dropped_items` is 0 | Whether a memory held it **at that moment** |
 | | Hand-read rendered summaries | Whether recall offered it to the model |
 
-The right column separates a summary loss from a recall failure. The baseline reports only show memories at the end of a run, which is why the cause of REL-002 is still open. Getting the last two fields may need read-only test instrumentation; if it needs a product change, that goes to the owner first.
+**As built:** this runner keeps learning off and writes the history directly, so it reads the summary alone and the memory column does not apply. The daily scenarios (`p10p_daily.py`) learn normally and record, at each question, whether the fact was in the summary, in memory and in the prompt at that moment. Both are needed to tell a summary loss from a recall failure. No product change was needed for this.
 
 **Scoring:** automatic checks count words, and they have missed real faults before, so every rendered summary with a loss and every answer is read by hand. The word check alone also cannot say whether uncertainty is kept, so that column is judged by hand against the dataset.
 
@@ -57,6 +57,8 @@ The right column separates a summary loss from a recall failure. The baseline re
 - An absolute target for retention at version 5. It cannot be set honestly before the baseline is measured.
 
 **Known limit:** two seeds show large effects only. A small difference between code versions cannot be told from model variation with this sample, and the report must say so.
+
+**Seen in the short trial, to read for in the baseline:** the unrelated filler questions appear in the summary under open questions. Whether they push out real facts is unknown.
 
 ## Not in scope
 

@@ -1,6 +1,6 @@
 # Bağlam sıkıştırma: dokuz koşuluk taban çizgisi ve günlük kullanım hedefleri
 
-**Tarih:** 2026-11-03. **Makine:** MacBook Pro M4 Pro, 24 GB. **Önbellek:** 2048 MiB, geçici süreçte. **Durum:** ölçüm raporu, onay bekliyor. Optimizasyon yapılmadı.
+**Tarih:** 2026-11-03. **Makine:** MacBook Pro M4 Pro, 24 GB. **Önbellek:** 2048 MiB, geçici süreçte. **Durum:** ölçüm raporu. Sahibi 2026-11-03'te §8 senaryolarını, §9 hedeflerini ve C → B → A sırasını kabul etti; hedefler kabul kriteridir, doğrulanmış performans değildir. Optimizasyon yapılmadı.
 
 Üç commit (`298ad54`, `75bec72`, `1d98f8a`) arasında ürün kodu ve koşu aracı aynı. Ham veri: `evals/reports/phase10/perf/`.
 
