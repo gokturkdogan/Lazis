@@ -15,7 +15,7 @@ Open faults in what LAZIS stores or says, recorded apart from the phase reports.
 
 **What should be kept:** the trip is a possibility and not settled.
 
-**What was stored** (active memory, origin `stated`, the seven completed baseline runs):
+**What was stored** (active memory, origin `stated`, all nine baseline runs):
 
 | Run | Predicate / value | Content | Uncertainty kept |
 |---|---|---|---|
@@ -26,10 +26,12 @@ Open faults in what LAZIS stores or says, recorded apart from the phase reports.
 | gap 6, run 1 | `plan` / Mehmet de galiba 10 Kasım'da İzmir'e gidecek | Mehmet'in 10 Kasım'da İzmir'e gitme ihtimali bulunuyor. | Yes |
 | gap 6, run 2 | `plan` / Mehmet de galiba 10 Kasım'da İzmir'e gidecek | Mehmet'in 10 Kasım'da İzmir'e gideceği tahmin ediliyor. | Yes |
 | gap 6, run 3 | `plan` / Mehmet de galiba 10 Kasım'da İzmir'e gidecek | Mehmet'in 10 Kasım'da İzmir'e gideceği tahmin ediliyor. | Yes |
+| gap 30, emptier system | `note` / İzmir | Mehmet 10 Kasım'da İzmir'e gidecek. | **No** |
+| gap 60, emptier system | `plan` | Mehmet 10 Kasım'da İzmir'e gidecek. | **No** |
 
-The uncertainty is lost outright in three of seven runs. Memory jobs were still running when the gap 6 run 1 and run 2 reports were written, so those two memory lists may be incomplete; in gap 6 run 3 all jobs finished. The gap 30 run 3 was stopped on critical memory pressure after 17 turns; it wrote no report and is not counted.
+The uncertainty is lost outright in five of nine runs. Memory jobs were still running when the gap 6 run 1 and run 2 reports were written, so those two memory lists may be incomplete; in gap 6 run 3 all jobs finished. The gap 30 run 3 was stopped on critical memory pressure after 17 turns; it wrote no report and is not counted.
 
-**Where it does not appear:** the active summary keeps the uncertainty in the five runs where it still mentions Mehmet. In gap 6 runs 2 and 3 the summary has no Mehmet line; that is a separate fault, [REL-002](#rel-002-a-stored-fact-about-a-person-cannot-be-recalled).
+**Where it does not appear:** the active summary keeps the uncertainty in the seven runs where it still mentions Mehmet. In gap 6 runs 2 and 3 the summary has no Mehmet line; that is a separate fault, [REL-002](#rel-002-a-stored-fact-about-a-person-cannot-be-recalled).
 
 **Related, not the same fault:** in gap 30, runs 1 and 2, the reply to the same message speaks of Mehmet "taşınma" (moving house), which the user did not say.
 
@@ -63,11 +65,13 @@ The uncertainty is lost outright in three of seven runs. Memory jobs were still 
 - Every one of those summaries reports `dropped: 0`, while `kept` falls (run 2: 18 → 16; run 3: 20 → 14). The loss is not reported as a drop.
 - At the end of both runs an active memory about Mehmet's trip exists. The reports do not show whether it existed by turn 33 or whether recall offered it to the model.
 - The original message stays stored in full: history coverage has no gap and nothing was trimmed.
-- In the other five completed runs the active summary at turn 33 holds the line and the answer gives the trip.
+- In the other seven runs the active summary at turn 33 holds the line and the answer gives the trip.
 
 **What the quality score covers:** the 126/128 measure scores **one compaction only**. It does not cover a summary being rewritten, which is where this loss appears, so 126/128 says nothing about fact retention over several compaction cycles. Before A, B or C can be accepted, retention must be measured over several cycles: see [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md).
 
-**Cause:** not investigated. Neither the rewrite nor recall has been identified as responsible. Seen only at the 6 s gap so far, in three runs at that gap: too few to call it specific to that gap.
+**Cause:** not investigated. Neither the rewrite nor recall has been identified as responsible. Seen only at the 6 s gap so far (2 of 3 runs there, 0 of 6 at other gaps): too few to call it specific to that gap.
+
+**Related, not the same fault:** in 2 of 9 runs (gap 6 run 2, gap 60 emptier system) the question about choosing a restaurant is answered without the wife's vegetarian diet. In the gap 60 run the summary and a memory both hold the fact, so this is the reply not using it. Not investigated.
 
 **How this is judged:** no summary or memory rule changes during the compaction latency work. It is a baseline fault, and performance acceptance judges new errors caused by changes A, B or C separately from it. The summary prompt stays unchanged. The fault stays open in the general reliability reporting.
 
