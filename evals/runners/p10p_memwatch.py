@@ -9,6 +9,9 @@ Used by p10p_supervise.py during runs, or alone as above. Files in DIR:
 - ALERTS.txt: the same changes, one readable line each.
 - process_memory.jsonl: footprint and compressed memory per program, every 30 s and on each change.
 
+Each sample also has the swap growth rate and how responsive the machine was: the time to start a
+trivial program, to write and flush a small file, and how late a one-second sleep woke up.
+
 The level is read every second. ``ps`` (RSS) is cheap enough for every sample; ``top`` (footprint and
 compressed memory) takes about a second, so it runs only every 30 s. RSS counts mapped model files and
 shared pages; footprint counts compressed and swapped pages too. Neither alone says what closing a
@@ -20,9 +23,11 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import re
 import subprocess
 import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +97,17 @@ def footprints() -> dict[int, tuple[float, float]]:
     return out
 
 
+def other_programs(run_pgid: int | None = None) -> tuple[int, dict[str, int]]:
+    """Footprint of every process outside the test run: the total, and the largest programs."""
+    tops = footprints()
+    out: dict[str, float] = {}
+    for r in processes():
+        name = program(r["comm"], r["pgid"], run_pgid)
+        if name not in ("Ollama (test runtime)", "Eval runner"):
+            out[name] = out.get(name, 0) + tops.get(r["pid"], (0.0, 0.0))[0]
+    return round(sum(out.values())), rounded_top(out, 20)
+
+
 def physical() -> dict[str, Any]:
     """Machine-wide memory, in MB."""
     text = cmd(["vm_stat"])
@@ -130,10 +146,48 @@ class MemoryLog:
         self.level: int | None = None
         self.level_since = time.monotonic()
         self.worst_since_tick = 0
-        self.seconds_at = {name: 0.0 for name in LEVELS.values()}
-        self.events = 0
         self.last_rss: dict[str, float] = {}
         self.last_full = 0.0
+        self.reset_run()
+
+    def reset_run(self) -> None:
+        """The summary covers one run at a time."""
+        self.level_since = time.monotonic()
+        self.seconds_at = {name: 0.0 for name in LEVELS.values()}
+        self.events = 0
+        self.warning_episodes: list[float] = []
+        self.swap_history: deque[tuple[float, float]] = deque()
+        self.swap_rate_peak = 0.0
+        self.worst = {"start_program_ms": 0.0, "write_flush_ms": 0.0, "sleep_late_ms": 0.0}
+
+    def responsiveness(self, sleep_late_ms: float) -> dict[str, float]:
+        t0 = time.perf_counter()
+        subprocess.run(["/usr/bin/true"], timeout=30)
+        t1 = time.perf_counter()
+        probe = self.dir / ".write_probe"
+        with probe.open("wb") as f:
+            f.write(b"0" * 4096)
+            f.flush()
+            os.fsync(f.fileno())
+        t2 = time.perf_counter()
+        probe.unlink()
+        row = {"start_program_ms": round((t1 - t0) * 1000, 1), "write_flush_ms": round((t2 - t1) * 1000, 1),
+               "sleep_late_ms": round(sleep_late_ms, 1)}  # fmt: skip
+        self.worst = {k: max(self.worst[k], row[k]) for k in row}
+        return row
+
+    def swap_rate(self, swap_used: float) -> float | None:
+        """MB per minute over about the last minute; None until there are 20 s of samples."""
+        now = time.monotonic()
+        self.swap_history.append((now, swap_used))
+        while now - self.swap_history[0][0] > 60:
+            self.swap_history.popleft()
+        then, old = self.swap_history[0]
+        if now - then < 20:
+            return None
+        rate = (swap_used - old) / (now - then) * 60
+        self.swap_rate_peak = max(self.swap_rate_peak, rate)
+        return round(rate)
 
     def stamp(self) -> str:
         return time.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -172,7 +226,9 @@ class MemoryLog:
             row["processes"] += 1
         ranked = sorted(out.items(), key=lambda x: -x[1]["footprint_mb"])
         table = {k: {a: round(b) for a, b in v.items()} for k, v in ranked[:25]}
-        self.append("process_memory.jsonl", {"at": self.stamp(), "trigger": trigger, "programs": table})
+        total = round(sum(v["footprint_mb"] for k, v in out.items() if k not in ("Ollama (test runtime)", "Eval runner")))
+        self.append("process_memory.jsonl", {"at": self.stamp(), "trigger": trigger, "programs": table,
+                                             "all_other_programs_footprint_mb": total, "programs_counted": len(out)})  # fmt: skip
         return table
 
     def check_level(self) -> int:
@@ -183,8 +239,12 @@ class MemoryLog:
             return level
         now = time.monotonic()
         old = self.level
+        held = now - self.level_since
         if old is not None:
-            self.seconds_at[LEVELS.get(old, str(old))] = self.seconds_at.get(LEVELS.get(old, str(old)), 0) + now - self.level_since
+            name = LEVELS.get(old, str(old))
+            self.seconds_at[name] = self.seconds_at.get(name, 0) + held
+            if old == 2:
+                self.warning_episodes.append(held)
         self.level, self.level_since = level, now
         if old is None:
             return level
@@ -192,31 +252,41 @@ class MemoryLog:
         rss, changes = self.rss()
         row: dict[str, Any] = {
             "at": self.stamp(), "from": LEVELS.get(old, old), "to": LEVELS.get(level, level),
+            "seconds_at_previous_level": round(held),
             "physical": physical(), "rss_by_program_mb": rounded_top(rss), "rss_changes_since_last_sample_mb": changes,
         }  # fmt: skip
         with contextlib.suppress(subprocess.TimeoutExpired):  # the record above matters more than this table
             row["footprint_by_program_mb"] = self.full(f"{LEVELS.get(old, old)}->{LEVELS.get(level, level)}")
         self.append("pressure_events.jsonl", row)
         with (self.dir / "ALERTS.txt").open("a") as f:
-            f.write(f"{row['at']} {row['from']} -> {row['to']}: used swap {row['physical']['swap_used']} MB, "
+            f.write(f"{row['at']} {row['from']} -> {row['to']} after {round(held)} s: "
+                    f"used swap {row['physical']['swap_used']} MB, "
                     f"compressor {row['physical']['compressor']} MB, free {row['physical']['free']} MB\n")  # fmt: skip
         return level
 
-    def tick(self) -> dict[str, Any]:
+    def tick(self, sleep_late_ms: float = 0.0) -> dict[str, Any]:
         """One sample: machine, RSS per program, changes since the last one. Full table when due."""
         rss, changes = self.rss()
         worst, self.worst_since_tick = self.worst_since_tick, 0
         if time.monotonic() - self.last_full >= FULL_SNAPSHOT_S:
             self.full("periodic")
-        return {"worst_level_since_last_sample": worst, "physical": physical(), "rss_by_program_mb": rounded_top(rss),
-                "rss_changes_mb": changes}  # fmt: skip
+        machine = physical()
+        return {"worst_level_since_last_sample": worst, "physical": machine, "rss_by_program_mb": rounded_top(rss),
+                "rss_changes_mb": changes, "swap_rate_mb_per_min": self.swap_rate(machine["swap_used"]),
+                "responsiveness": self.responsiveness(sleep_late_ms)}  # fmt: skip
 
     def summary(self) -> dict[str, Any]:
         seconds = dict(self.seconds_at)
         if self.level is not None:
             name = LEVELS.get(self.level, str(self.level))
             seconds[name] = seconds.get(name, 0) + time.monotonic() - self.level_since
-        return {"pressure_changes": self.events, "seconds_at_level": {k: round(v) for k, v in seconds.items()}}
+        episodes = list(self.warning_episodes)
+        if self.level == 2:
+            episodes.append(time.monotonic() - self.level_since)
+        return {"pressure_changes": self.events, "seconds_at_level": {k: round(v) for k, v in seconds.items()},
+                "warning_episodes": len(episodes), "longest_warning_s": round(max(episodes, default=0)),
+                "swap_rate_peak_mb_per_min": round(self.swap_rate_peak),
+                "worst_responsiveness": {k: round(v, 1) for k, v in self.worst.items()}}  # fmt: skip
 
 
 def main() -> None:

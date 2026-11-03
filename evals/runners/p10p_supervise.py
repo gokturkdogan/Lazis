@@ -2,7 +2,8 @@
 
     uv run --project core python evals/runners/p10p_supervise.py --detach --label baseline --run 3
 
-The runner is unchanged, so results stay comparable. This process has its own session and parent
+The runner is unchanged, so results stay comparable. A run starts only when every start condition holds
+for 30 s, and those conditions are kept with it; ``--check`` shows them and starts nothing. This process has its own session and parent
 (launchd), so closing the editor or the assistant does not end it. It starts each missing gap as one
 runner process; a finished report is never run again.
 
@@ -32,13 +33,16 @@ import time
 from pathlib import Path
 from typing import Any
 
-from p10p_memwatch import MemoryLog
+from p10p_memwatch import MemoryLog, other_programs
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 DEFAULT_OUT = REPO / "evals" / "reports" / "phase10" / "perf"
 PORT = 11499
 START_WAIT_S = 900
+START_FOOTPRINT_MB = 10 * 1024  # the owner's limits, 2026-11-03
+START_SWAP_MB = 10752  # 10.5 GB
+START_STABLE_S = 30
 RUN_LIMIT_S = 3 * 3600
 BATTERY_TOLERANCE_S = 60  # a loose cable for a few seconds should not end an hour's run
 SWAP_LIMIT_MB = 24 * 1024  # the machine's physical memory; earlier runs peaked at 19.3 GB
@@ -114,6 +118,7 @@ class Supervisor:
         self.stop_file = self.dir / "STOP"
         self.status: dict[str, Any] = {"state": "starting", "pid": os.getpid(), "label": a.label, "run": a.run}
         self.mem = MemoryLog(self.dir, a.pressure_file)
+        self.last_conditions: dict[str, Any] | None = None
 
     def save(self, **changes: Any) -> None:
         self.status.update(changes, updated_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
@@ -129,38 +134,55 @@ class Supervisor:
         return self.out / f"{self.a.label}_cache{self.a.cache_ram}_gap{gap}_r{self.a.run}.json"
 
     def hashes(self) -> dict[str, str]:
-        files = self.out.glob(f"{self.a.label}_*.json")
+        files = self.out.glob(self.a.keep_glob or f"{self.a.label}_*.json")
         return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(files)}
 
     def port_free(self) -> bool:
         with socket.socket() as s:
             return s.connect_ex(("127.0.0.1", PORT)) != 0
 
-    def not_ready(self) -> str | None:
-        if self.stop_file.exists():
-            return "stopped_by_hand"
-        if cmd(["pgrep", "-x", "LAZIS"]).strip():
-            return "lazis_app_running"
-        if not self.port_free():
-            return "port_in_use"
+    def conditions(self) -> dict[str, Any]:
+        """Every start condition with its value; running this starts nothing."""
         row = sample(None, self.a.pressure_file)
-        if not row["ac_power"]:
-            return "on_battery"
-        if row["pressure_level"] != 1:
-            return "memory_pressure_not_normal"
-        return None
+        total, top = other_programs()
+        lazis = bool(cmd(["pgrep", "-x", "LAZIS"]).strip()) or "LAZIS" in top
+        loaded = cmd(["ollama", "ps"]).strip().splitlines()[1:]  # with none loaded, the runner's unload does nothing
+        checks = {
+            "ac_power": {"value": row["ac_power"], "ok": row["ac_power"]},
+            "lazis_closed": {"value": not lazis, "ok": not lazis},
+            "pressure_normal": {"value": row["pressure_level"], "ok": row["pressure_level"] == 1},
+            "other_programs_footprint_mb": {"value": total, "limit": self.a.start_footprint_mb,
+                                            "ok": total <= self.a.start_footprint_mb},
+            "swap_used_mb": {"value": row["swap_used_mb"], "limit": self.a.start_swap_mb,
+                             "ok": (row["swap_used_mb"] or 0) <= self.a.start_swap_mb},
+            "disk_free_gb": {"value": row["disk_free_gb"], "limit": DISK_FREE_MIN_GB,
+                             "ok": row["disk_free_gb"] >= DISK_FREE_MIN_GB},
+            "test_port_free": {"value": self.port_free(), "ok": self.port_free()},
+            "service_has_no_model_loaded": {"value": len(loaded) == 0, "ok": len(loaded) == 0},
+        }  # fmt: skip
+        return {"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "ok": all(c["ok"] for c in checks.values()),
+                "checks": checks, "largest_programs_mb": top}  # fmt: skip
 
     def wait_until_ready(self) -> str | None:
         t0 = time.monotonic()
+        held_since: float | None = None
+        failed: list[str] = []
         while True:
-            why = self.not_ready()
-            if why is None or why == "stopped_by_hand":
-                return why
-            if time.monotonic() - t0 > self.a.start_wait:
-                return f"not_ready_at_start: {why}"
-            self.save(state="waiting", waiting_for=why, **self.mem.summary())
+            if self.stop_file.exists():
+                return "stopped_by_hand"
+            found = self.conditions()
+            self.last_conditions = found
+            (self.dir / "start_conditions.json").write_text(json.dumps(found, ensure_ascii=False, indent=1) + "\n")
+            now = time.monotonic()
+            failed = [k for k, c in found["checks"].items() if not c["ok"]]
+            held_since = (held_since or now) if not failed else None
+            if held_since is not None and now - held_since >= self.a.start_stable:
+                return None
+            if now - t0 > self.a.start_wait:
+                return f"not_ready_at_start: {', '.join(failed) or 'not stable'}"
+            self.save(state="waiting", waiting_for=failed)
             self.mem.check_level()
-            time.sleep(min(self.a.poll, 15))
+            time.sleep(min(self.a.poll, 10))
 
     def run_gap(self, gap: str) -> str | None:
         turns_path = self.dir / f"gap{gap}.turns.jsonl"
@@ -173,6 +195,7 @@ class Supervisor:
                 cwd=HERE, stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True,
             )  # fmt: skip
             self.mem.run_pgid = proc.pid
+            self.mem.reset_run()
             why = self.watch(proc, gap, turns_path)
         if why is not None:
             self.end_runner(proc)
@@ -191,13 +214,20 @@ class Supervisor:
         n = 0
         while proc.poll() is None:
             end = time.monotonic() + poll
+            late = 0.0
             while time.monotonic() < end and proc.poll() is None and self.mem.check_level() < 4:
-                time.sleep(min(1, poll))
+                early = self.early_stop(turns_path)
+                if early:
+                    return early
+                pause = min(1, poll)
+                before = time.monotonic()
+                time.sleep(pause)
+                late = max(late, (time.monotonic() - before - pause) * 1000)
             if self.stop_file.exists():
                 return "stopped_by_hand"
             try:
                 row = sample(proc.pid, self.a.pressure_file)
-                detail = self.mem.tick()
+                detail = self.mem.tick(late)
             except subprocess.TimeoutExpired:
                 return "system_stalled"
             row["pressure_level"] = max(row["pressure_level"], detail["worst_level_since_last_sample"])
@@ -217,10 +247,15 @@ class Supervisor:
                       swap_used_mb=row["swap_used_mb"], ac_power=row["ac_power"], **self.mem.summary())  # fmt: skip
             if why:
                 return why
-            if self.a.stop_after_turns and done >= self.a.stop_after_turns:
-                return "stop_after_turns"
             if now_m - t0 > self.a.run_limit:
                 return "run_time_limit"
+        return None
+
+    def early_stop(self, turns_path: Path) -> str | None:
+        if self.stop_file.exists():
+            return "stopped_by_hand"
+        if self.a.stop_after_turns and self.turns(turns_path)[0] >= self.a.stop_after_turns:
+            return "stop_after_turns"
         return None
 
     def turns(self, path: Path) -> tuple[int, float | None]:
@@ -254,7 +289,9 @@ class Supervisor:
 
     def record(self, gap: str, started: str, why: str | None, turns_path: Path) -> None:
         row: dict[str, Any] = {"gap": gap, "started": started, "ended": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                               "complete": why is None, "reason": why, "turns_done": self.turns(turns_path)[0]}  # fmt: skip
+                               "complete": why is None, "reason": why, "turns_done": self.turns(turns_path)[0],
+                               "condition": self.a.condition, "start_conditions": self.last_conditions,
+                               "memory_watch": self.mem.summary()}  # fmt: skip
         if why is None:
             d = json.loads(self.report_path(gap).read_text())
             jobs = d.get("memory_jobs", {})
@@ -270,7 +307,8 @@ class Supervisor:
         caffeinate = subprocess.Popen(["caffeinate", "-is", "-w", str(os.getpid())])
         kept = self.hashes()
         (self.dir / "kept_reports.sha256.json").write_text(json.dumps(kept, indent=1) + "\n")
-        self.save(state="starting", gaps=self.a.gaps, kept_reports=len(kept))
+        self.save(state="starting", gaps=self.a.gaps, kept_reports=len(kept), condition=self.a.condition,
+                  limits={"footprint_mb": self.a.start_footprint_mb, "swap_mb": self.a.start_swap_mb})  # fmt: skip
         why = None
         for gap in self.a.gaps.split(","):
             if self.report_path(gap).exists():
@@ -304,6 +342,12 @@ def main() -> int:
     ap.add_argument("--start-wait", type=float, default=START_WAIT_S)
     ap.add_argument("--run-limit", type=float, default=RUN_LIMIT_S)
     ap.add_argument("--stop-after-turns", type=int, help="short trials: stop the run after this many turns")
+    ap.add_argument("--check", action="store_true", help="show the start conditions and start nothing")
+    ap.add_argument("--condition", help="how this system differs from earlier runs; kept with every run")
+    ap.add_argument("--keep-glob", help="reports to fingerprint and protect (default: this label's)")
+    ap.add_argument("--start-footprint-mb", type=int, default=START_FOOTPRINT_MB)
+    ap.add_argument("--start-swap-mb", type=int, default=START_SWAP_MB)
+    ap.add_argument("--start-stable", type=float, default=START_STABLE_S)
     ap.add_argument("--pressure-file", help="tests only: read the pressure level from this file")
     a = ap.parse_args()
     # This process runs from the runners folder; a relative path here would silently mean another place.
@@ -317,8 +361,12 @@ def main() -> int:
         with (progress / "supervisor.txt").open("a") as log:
             p = subprocess.Popen([sys.executable, "-u", __file__, *argv], stdin=subprocess.DEVNULL, stdout=log,
                                  stderr=log, start_new_session=True, cwd=HERE)  # fmt: skip
-        print(p.pid)
+        print(json.dumps({"pid": p.pid, "progress": str(progress), "stop_file": str(progress / "STOP")}))
         return 0
+    if a.check:
+        found = Supervisor(a).conditions()
+        print(json.dumps(found, ensure_ascii=False, indent=1))
+        return 0 if found["ok"] else 3
     return Supervisor(a).run()
 
 
