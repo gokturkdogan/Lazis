@@ -1,0 +1,1439 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "label": "baseline",
+ "code": "298ad54",
+ "manifest": {
+  "captured_at": "2026-11-03T07:39:09+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'Battery Power'",
+   " -InternalBattery-0\t76%; discharging; 5:08 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 3.25,
+   "active_gb": 4.71,
+   "wired_gb": 3.58,
+   "compressed_gb": 3.81,
+   "swap_used_mb": 10102.12,
+   "swapouts": 211552589,
+   "memory_free_percent": 68
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "started_run": 2,
+ "gap_s": 6.0,
+ "cache_ram": 2048,
+ "latency": {
+  "median_s": 5.94,
+  "worst_s": 194.1,
+  "over_15s": 11,
+  "over_15s_max_in_8": 5,
+  "first_token_s": [
+   5.0,
+   0.9,
+   1.0,
+   1.1,
+   1.0,
+   1.0,
+   1.0,
+   0.9,
+   1.1,
+   1.1,
+   1.1,
+   1.1,
+   0.9,
+   0.7,
+   0.7,
+   1.5,
+   1.5,
+   1.4,
+   32.7,
+   10.3,
+   37.2,
+   10.7,
+   46.3,
+   10.4,
+   52.4,
+   10.0,
+   60.8,
+   194.1,
+   0.7,
+   0.8,
+   30.7,
+   6.8,
+   32.1,
+   7.4,
+   31.8,
+   6.9,
+   32.3,
+   7.0,
+   32.6,
+   6.9
+  ]
+ },
+ "turns": [
+  {
+   "user": "Merhaba! Kız kardeşim Ayşe 3 Kasım'da Ankara'ya taşınıyor; ona yardım etmek istiyorum.",
+   "background_at_send": null,
+   "first_delta_ms": 5049,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 5
+   },
+   "total_ms": 7464,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Merhaba efendim, hoş geldiniz. Kız kardeşiniz Ayşe'nin Ankara'ya taşınma sürecinde ona yardımcı olmanız çok ince bir davranış. Nakliye hazırlıkları, eşya ayıklama veya yeni bir şehre yerleşme aşamalarından hangisi hakkında yardıma ihtiyacınız olduğunu belirtirseniz size uygun önerilerde bulunabilirim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 4872.6,
+   "context_prep_ms": 4.0,
+   "runtime_ttft_ms": 4824.9,
+   "prompt_tokens": 1374,
+   "output_tokens": 76
+  },
+  {
+   "user": "Nakliye firması tutmayacağız, eşyaları kendimiz taşıyacağız. Bütçemiz en fazla 20 bin TL.",
+   "background_at_send": null,
+   "first_delta_ms": 948,
+   "stages": {
+    "waiting": 14,
+    "processing_context": 20
+   },
+   "total_ms": 10044,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Nakliye firması kullanmadan kendi imkanlarınızla taşınmak, 20 bin TL'lik bütçeyi çok daha verimli kullanmanıza olanak sağlar. Bu bütçeyle eşya kiralama ( kamyonet, geniş panelvan), yakıt, yol üstü yemek giderleri ve eğer gerekirse profesyonel taşıma ekipmanları veya ekstra yardım için personel maliyetlerini rahatça karşılayabilirsiniz.\n\nTaşınma sürecini planlarken şu noktalara dikkat etmeniz işinizi kolaylaştırabilir:\n\n*   **Eşya Ayıklama:** Kullanmayacağınız eşyaları önceden elden çıkararak hem taşıma yükünü azaltabilir hem de kamyonet maliyetini düşürebilirsiniz.\n*   **Paketleme:** Hassas eşyalar için balonlu naylon ve sağlam koliler kullanarak eşyaların zarar görmesini engelleyebilirsiniz.\n*   **Yol Planı:** Ankara'ya giderken en uygun rota ve mola noktalarını önceden belirlemek zaman kazandırır.\n\nBelirli bir eşya listesi üzerinden mi ilerlemek istersiniz, yoksa araç kiralama ve rota planlaması gibi lojistik detaylara mı odaklanalım?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 691.8,
+   "context_prep_ms": 5.6,
+   "runtime_ttft_ms": 686.2,
+   "prompt_tokens": 1512,
+   "output_tokens": 271
+  },
+  {
+   "user": "Planlama toplantısını önce salıya almıştık ama sonra perşembeye kaydırdık.",
+   "background_at_send": null,
+   "first_delta_ms": 980,
+   "stages": {
+    "waiting": 15,
+    "processing_context": 20
+   },
+   "total_ms": 3864,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Planlama toplantısının perşembeye ertelenmiş olması, hazırlıklar için biraz daha vakit kazanmanızı sağlayacaktır. Bu sürede paketleme malzemelerini temin etmek veya ayıklanacak eşyalar için öncelik sırası belirlemek gibi hazırlıklara odaklanabilirsiniz. Toplantı öncesinde netleştirmek istediğiniz özel bir konu var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 701.5,
+   "context_prep_ms": 5.5,
+   "runtime_ttft_ms": 696.0,
+   "prompt_tokens": 1837,
+   "output_tokens": 85
+  },
+  {
+   "user": "İş arkadaşım Mehmet de galiba 10 Kasım'da İzmir'e gidecek, henüz kesin değil.",
+   "background_at_send": null,
+   "first_delta_ms": 1098,
+   "stages": {
+    "waiting": 20,
+    "processing_context": 26
+   },
+   "total_ms": 3621,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Mehmet'in 10 Kasım'da İzmir'e gitme ihtimali, kendi planlarınızla çakışıp çakışmadığını kontrol etmeniz açısından önemli olabilir. Eğer bu durum taşıma sürecinizi veya çalışma düzeninizi etkileyecekse, netleştiğinde durumu göz önünde bulundurmak iyi olacaktır. Başka odaklanmak istediğiniz bir nokta var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 726.9,
+   "context_prep_ms": 6.0,
+   "runtime_ttft_ms": 720.8,
+   "prompt_tokens": 1979,
+   "output_tokens": 83
+  },
+  {
+   "user": "Komşum Ali'nin Pamuk adında bir kedisi var, tatildeyken ona ben bakacağım.",
+   "background_at_send": null,
+   "first_delta_ms": 1002,
+   "stages": {
+    "waiting": 14,
+    "processing_context": 21
+   },
+   "total_ms": 3243,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Komşunuz Ali'nin kedisi Pamuk'a bakacak olmanız çok nazikçe. Kedi bakımı sürecinde onun beslenme düzenini ve alışkanlıklarını önceden sormanız, tatildeyken onun konforunu sağlamak açısından faydalı olacaktır. Başka yardımcı olmamı istediğiniz bir konu var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 710.6,
+   "context_prep_ms": 6.7,
+   "runtime_ttft_ms": 703.9,
+   "prompt_tokens": 2119,
+   "output_tokens": 74
+  },
+  {
+   "user": "Patronum Ali Bey ile pazartesi saat 9:00'da toplantım var.",
+   "background_at_send": null,
+   "first_delta_ms": 976,
+   "stages": {
+    "waiting": 14,
+    "processing_context": 20
+   },
+   "total_ms": 2243,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Pazartesi sabahı saat 09:00'daki toplantınız için hazırlıklarınız tamam mı, yoksa gündem maddeleri hakkında konuşmak ister misiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 710.9,
+   "context_prep_ms": 6.3,
+   "runtime_ttft_ms": 704.6,
+   "prompt_tokens": 2247,
+   "output_tokens": 44
+  },
+  {
+   "user": "Pardon, toplantı 9:00 değil 9:30'da.",
+   "background_at_send": null,
+   "first_delta_ms": 989,
+   "stages": {
+    "waiting": 15,
+    "processing_context": 21
+   },
+   "total_ms": 2475,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Toplantı saatinin 09:30'a alınması netleştirildi. Hazırlıklarınızı buna göre ayarlayabilirsiniz. Başka yardımcı olabileceğim bir konu var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 727.6,
+   "context_prep_ms": 6.7,
+   "runtime_ttft_ms": 720.9,
+   "prompt_tokens": 2343,
+   "output_tokens": 50
+  },
+  {
+   "user": "Komşum Ali cumartesi dönüyor.",
+   "background_at_send": null,
+   "first_delta_ms": 877,
+   "stages": {
+    "waiting": 15,
+    "processing_context": 20
+   },
+   "total_ms": 2422,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Komşunuz Ali'nin dönüş tarihinin cumartesi olması, Pamuk'a bakacağınız sürenin netleşmesi açısından önemli. Başka üzerinde durmak istediğiniz bir konu var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 616.3,
+   "context_prep_ms": 5.6,
+   "runtime_ttft_ms": 610.6,
+   "prompt_tokens": 2436,
+   "output_tokens": 50
+  },
+  {
+   "user": "Tatil uçuşumuz 14 Haziran sabah 07:45'te, Sabiha Gökçen'den.",
+   "background_at_send": null,
+   "first_delta_ms": 1096,
+   "stages": {
+    "waiting": 12,
+    "processing_context": 18
+   },
+   "total_ms": 4103,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Tatil uçuşunuzun 14 Haziran sabahı 07:45'te Sabiha Gökçen Havalimanı'ndan kalkacak olması, hazırlıklarınızı ve havalimanına varış sürenizi buna göre planlamanız gerektiğini gösteriyor. Bu konuda yardımcı olabileceğim başka bir ayrıntı var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 796.3,
+   "context_prep_ms": 5.5,
+   "runtime_ttft_ms": 790.7,
+   "prompt_tokens": 2548,
+   "output_tokens": 82
+  },
+  {
+   "user": "Önce Antalya demiştik ama sonra Kaş'a karar verdik; otelin adı Mavi Koy.",
+   "background_at_send": null,
+   "first_delta_ms": 1107,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 18
+   },
+   "total_ms": 3757,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Tatil rotanızın Antalya yerine Kaş olarak netleşmesi ve Mavi Koy otelinde kalacak olmanız planınızı somutlaştırmış. Kaş'ın atmosferi oldukça farklı bir deneyim sunacaktır. Bu rota üzerinde yapmak istediğiniz özel bir planlama veya merak ettiğiniz bir detay var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 810.9,
+   "context_prep_ms": 5.0,
+   "runtime_ttft_ms": 805.8,
+   "prompt_tokens": 2685,
+   "output_tokens": 73
+  },
+  {
+   "user": "Araba kiralamayacağız, oraya otobüsle gideceğiz. Toplam bütçemiz 35 bin TL.",
+   "background_at_send": null,
+   "first_delta_ms": 1118,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 18
+   },
+   "total_ms": 4025,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Tatil için araba kiralamayacak olmanız ve ulaşımın otobüsle sağlanacak olması bütçe yönetiminizi kolaylaştıracaktır. Toplam 35 bin TL'lik bütçenizi bu doğrultuda planlamaya devam edebiliriz. Bu konuyla ilgili sormak istediğiniz başka bir detay var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 818.3,
+   "context_prep_ms": 5.1,
+   "runtime_ttft_ms": 813.2,
+   "prompt_tokens": 2819,
+   "output_tokens": 79
+  },
+  {
+   "user": "Eşim Selin vejetaryen, restoran seçerken buna dikkat edelim.",
+   "background_at_send": null,
+   "first_delta_ms": 1050,
+   "stages": {
+    "waiting": 14,
+    "processing_context": 18
+   },
+   "total_ms": 3194,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Anlaşıldı efendim. Eşiniz Selin'in vejetaryen beslenme düzenini göz önünde bulundurarak, gittiğiniz yerlerde uygun seçenekler sunan restoranları önceliklendirebiliriz. Bu konuda başka dikkat etmemi istediğiniz bir tercih var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 769.1,
+   "context_prep_ms": 4.4,
+   "runtime_ttft_ms": 764.7,
+   "prompt_tokens": 2950,
+   "output_tokens": 63
+  },
+  {
+   "user": "Fotosentez nasıl çalışır?",
+   "background_at_send": null,
+   "first_delta_ms": 877,
+   "stages": {
+    "waiting": 15,
+    "processing_context": 21
+   },
+   "total_ms": 15438,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını kullanarak inorganik maddelerden (su ve karbondioksit) organik besinler (glukoz) ve oksijen üretmesi işlemidir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların tilakoid zoklarında gerçekleşir. Klorofilli yapılar güneş enerjisini soğurur. Bu enerji kullanılarak:\n*   Su molekülleri parçalanır (fotoliz) ve açığa oksijen yayılır.\n*   Işık enerjisi, kimyasal enerji içeren ATP ve NADPH moleküllerine dönüştürülür.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve doğrudan ışığa ihtiyaç duymaz; ancak ilk aşamada üretilen ATP ve NADPH'ı kullanır.\n*   Havadan alınan karbondioksit, bu enerjiyi kullanarak organik moleküllere (glukoz vb.) dönüştürülür.\n\n**Genel Denklem:**\n$6CO_2 + 6H_2O + \\text{Işık Enerjisi} \\rightarrow C_6H_{12}O_6 + 6O_2$\n\nÖzetle bitki, güneşten aldığı enerjiyi kimyasal enerjiye çevirerek kendi besinini üretir ve bu sırada atmosfere oksijen salar. Konuyla ilgili daha teknik veya spesifik bir ayrıntı öğrenmek ister misiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 443.7,
+   "context_prep_ms": 5.7,
+   "runtime_ttft_ms": 437.9,
+   "prompt_tokens": 2968,
+   "output_tokens": 367
+  },
+  {
+   "user": "Bulut bilişim nedir?",
+   "background_at_send": null,
+   "first_delta_ms": 677,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 18
+   },
+   "total_ms": 23551,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Bulut bilişim (cloud computing), bilgisayar sistemlerinin, sunucuların, depolama alanlarının, veritabanlarının ve yazılım gibi bilişim hizmetlerinin internet üzerinden (bulut) sunulmasıdır. Kendi yerel sunucularınızı yönetmek yerine, bu kaynaklara ihtiyaç duyduğunuzda internet üzerinden erişmenizi sağlar.\n\nBulut bilişimin temel özellikleri ve çalışma mantığı şu şekildedir:\n\n**1. Temel Modeller (Hizmet Türleri):**\n*   **IaaS (Altyapı Hizmeti):** En temel seviyedir. Kullanıcıya sanal sunucular, depolama ve ağ altyapısı sunulur. (Örn: AWS EC2, Google Compute Engine)\n*   **PaaS (Platform Hizmeti):** Yazılım geliştiriciler için bir platform sunar. Altyapıyla ilgilenmeden sadece uygulama kodunu çalıştırmaya odaklanırlar. (Örn: Google App Engine, Heroku)\n*   **SaaS (Yazılım Hizmeti):** Kullanıcının doğrudan internet üzerinden kullandığı bitmiş uygulamalardır. (Örn: Gmail, Netflix, Google Drive, Microsoft 365)\n\n**2. Dağıtım Modelleri (Kullanım Biçimleri):**\n*   **Genel Bulut (Public Cloud):** Kaynakların internet üzerinden herkesin kullanımına açık olduğu modellerdir. (Örn: Azure, AWS)\n*   **Özel Bulut (Private Cloud):** Sadece belirli bir kuruluşa özel olarak tahsis edilen, özel mülkiyet altındaki altyapıdır.\n*   **Hibrit Bulut (Hybrid Cloud):** Genel ve özel bulutun bir kombinasyonudur; verilerin veya uygulamaların ihtiyaça göre iki ortam arasında taşınmasına olanak tanır.\n\n**3. Temel Avantajları:**\n*   **Maliyet:** Donanım satın alma ve bakım maliyetlerini azaltır; genellikle \"kullandığın kadar öde\" modeliyle çalışır.\n*   **Ölçeklenebilirlik:** İhtiyaç arttığında kapasiteyi anında artırabilir veya talep düştüğünde küçültebilirsiniz.\n*   **Erişilebilirlik:** İnternet olan her yerden, herhangi bir cihazdan verilere ve uygulamalara ulaşabilirsiniz.\n\nÖzetle bulut bilişim, teknolojiyi fiziksel bir ürün satın almak yerine, bir hizmet olarak internet üzerinden \"kiralamak\" prensibi üzerine kuruludur. Bu konuda daha spesifik bir kullanım alanı (örneğin veri depolama veya uygulama geliştirme) hakkında bilgi ister misiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 419.9,
+   "context_prep_ms": 4.8,
+   "runtime_ttft_ms": 415.0,
+   "prompt_tokens": 3374,
+   "output_tokens": 568
+  },
+  {
+   "user": "Enflasyon neden olur?",
+   "background_at_send": null,
+   "first_delta_ms": 732,
+   "stages": {
+    "waiting": 16,
+    "processing_context": 20
+   },
+   "total_ms": 28012,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Enflasyon, bir ekonomide mal ve hizmetlerin genel fiyat seviyesinin sürekli ve hissedilir şekilde artmasıdır. Temelinde, arz edilen ürün miktarı ile bu ürünleri almak isteyenler arasındaki dengenin bozulması yatar. Enflasyonun ana nedenlerini şu başlıklar altında toplayabiliriz:\n\n**1. Talep Enflasyonu (Talep Fazlalığı):**\nEkonomideki toplam talebin, piyasadaki ürün arzından daha hızlı artması durumudur. \"Fazla para, az mal\" ilkesine dayanır.\n*   **Nedenleri:** İnsanların gelirlerinin artması, düşük faiz oranlarının tüketimi teşvik etmesi veya kamu harcamalarının artması talebi yukarı çeker. Talep aşırı arttığında, satıcılar fiyatları artırır.\n\n**2. Maliyet Enflasyonu (Arz Eksikliği/Maliyet Artışı):**\nÜretim sürecindeki maliyetlerin artması sonucu, firmaların ürün fiyatlarına bu artışı yansıtmasıdır.\n*   **Nedenleri:** Hammadde fiyatlarındaki artış, enerji maliyetlerinin yükselmesi, işçi ücretlerindeki artış veya ulaşım maliyetlerinin artması gibi durumlar üretim maliyetini artırır. Üretici maliyeti arttığında, bu maliyet tüketiciye yansır.\n\n**3. Paranın Değer Kaybı (Para Arzı Artışı):**\nMerkez bankalarının piyasaya aşırı miktarda para sürmesi durumudur.\n*   **Nedenleri:** Eğer bir ülkede piyasadaki para miktarı çok hızlı artar ancak bu paranın karşılığı olan üretim veya hizmet miktarı aynı hızda artmazsa, paranın satın alma gücü düşer. Bu durum fiyatların genel olarak yükselmesine neden olur.\n\n**4. Beklentiler ve Psikolojik Faktörler:**\nİnsanlar gelecekte fiyatların artacağına inanırlarsa, bu beklenti davranışlarını değiştirir.\n*   **Nedenleri:** Tüketiciler gelecekte daha pahalı olacağını düşündükleri ürünleri hemen almak için bugünden yoğun talep oluşturabilir; üreticiler ise bu beklenti doğrultusunda fiyatlarını önceden artırabilir. Bu durum \"enflasyon sarmalı\" denilen döngüyü yaratır.\n\n**5. Dışsal Faktörler ve Kur Değişimleri:**\nÖzellikle açık ekonomilerde dış dünyadaki gelişmelere bağlıdır.\n*   **Nedenleri:** İthalat bağımlılığı yüksek olan bir ülkede, yerel para biriminin değer kaybetmesi (kur artışı) ithal edilen malların fiyatını doğrudan yükseltir. Ayrıca küresel tedarik zincirindeki aksamalar veya uluslararası enerji fiyatlarındaki dalgalanmalar da dışsal enflasyon nedenleridir.\n\nÖzetle enflasyon; ya insanların **fazla para harcaması**, ya üreticilerin **maliyetlerinin artması**, ya da paranın kendi değerini kaybetmesi nedeniyle meydana gelir. Bu konuyu belirli bir ülke veya örnek üzerinden daha detaylı incelememi ister misiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 429.6,
+   "context_prep_ms": 3.9,
+   "runtime_ttft_ms": 425.6,
+   "prompt_tokens": 3982,
+   "output_tokens": 681
+  },
+  {
+   "user": "Gökyüzü neden mavidir?",
+   "background_at_send": null,
+   "first_delta_ms": 1548,
+   "stages": {
+    "waiting": 15,
+    "processing_context": 22
+   },
+   "total_ms": 22578,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Gökyüzünün mavi görünmesinin temel nedeni, güneşten gelen beyaz ışığın Dünya'nın atmosferindeki gaz molekülleri ve küçük parçacıklar tarafından farklı renklerde farklı oranlarda saçılmasıdır. Bu olaya **Rayleigh Saçılması** adı verilir.\n\nSüreci şu şekilde detaylandırabiliriz:\n\n**1. Beyaz Işığın Renk Bileşenleri:**\nGüneşten gelen ışık aslında \"beyaz\" görünse de, aslında gökkuşağının tüm renklerini (kırmızı, turuncu, sarı, yeşil, mavi, indigo, mor) içeren bir spektrumdur. Her rengin farklı bir dalga boyu vardır; örneğin kırmızının dalga boyu uzundur, mavinin ve morun dalga boyu ise daha kısadır.\n\n**2. Atmosferle Etkileşim:**\nGüneş ışığı Dünya atmosferine girdiğinde, atmosferdeki azot ve oksijen gibi gaz molekülleriyle çarpışır. Bu çarpışmalar sonucunda ışık her yöne dağılır (saçılır).\n\n**3. Neden Özellikle Mavi?**\nKısa dalga boyuna sahip olan renkler (mavi ve mor), uzun dalga boylu renklere (kırmızı ve sarı) kıyasla çok daha fazla saçılır. Çünkü kısa dalga boylu ışık, atmosfere çarptığında daha kolay ve daha yoğun bir şekilde dağılır.\n\n**4. Peki Neden Mor Değil?**\nMavi ışığın dalga boyu mor ışığa göre biraz daha uzundur ve mor ışık atmosfere göre daha az saçılır. Ayrıca Güneş ışığı spektrumunda mavi ışık, mor ışığa göre çok daha yoğun bir şekilde bulunur. İnsan gözü de maviye karşı daha hassastır. Bu nedenlerle gökyüzü bize mor değil, canlı bir mavi olarak görünür.\n\n**Gün Batımı Örneği:**\nGün batımında güneş ufuk çizgisinin altına yaklaştığında, ışık atmosferin çok daha kalın bir tabakasından geçer. Bu uzun yolculuk sırasında mavi ışık tamamen saçılıp kaybolur, geriye sadece saçılmadan geçebilen uzun dalga boylu renkler (kırmızı, turuncu, pembe) kalır; bu yüzden gökyüzü o renklere bürünür.\n\nBaşka merak ettiğiniz bir doğa olayı var mı?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 1253.4,
+   "context_prep_ms": 7.2,
+   "runtime_ttft_ms": 1246.2,
+   "prompt_tokens": 4705,
+   "output_tokens": 524
+  },
+  {
+   "user": "Stresle başa çıkmak için ne önerirsin?",
+   "background_at_send": null,
+   "first_delta_ms": 1494,
+   "stages": {
+    "waiting": 14,
+    "processing_context": 20
+   },
+   "total_ms": 26135,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Stresle başa çıkmak, hem fiziksel hem de zihinsel sağlığı korumak için önemli bir beceridir. Stresle başa çıkmak için şu yöntemleri deneyebilirsiniz:\n\n**1. Fiziksel Aktiviteler:**\n*   **Egzersiz:** Düzenli yürüyüş, yüzme veya spor yapmak vücutta endorfin (mutluluk hormonu) salgılanmasını sağlar ve stres seviyesini doğrudan düşürür.\n*   **Doğru Nefes Egzersizleri:** Kaygı anında hızlı ve yüzeysel nefes almak yerine, burnunuzdan derin nefes alıp ağzınızdan yavaşça vermek sinir sisteminizi sakinleştirebilir.\n\n**2. Zihinsel ve Duygusal Yaklaşımlar:**\n*   **Önceliklendirme:** Stresin büyük bir kaynağı, her şeyi aynı anda yapmaya çalışmaktır. İşleri önem sırasına koymak ve küçük parçalara bölmek, yönetilemez görünen görevlerin yükünü hafifletir.\n*   **Sınır Çizmek:** Hem iş hem de sosyal hayatta \"hayır\" diyebilmek, kapasitenizi aşan sorumlulukları üzerinizden atmanıza yardımcı olur.\n*   **Farkındalık (Mindfulness):** Geçmişteki pişmanlıklara veya gelecekteki belirsizliklere odaklanmak yerine \"şu ana\" odaklanmak, zihinsel gürültüyü azaltabilir.\n\n**3. Yaşam Tarzı Değişiklikleri:**\n*   **Düzenli Uyku:** Yeterli uyku alamamak stres toleransınızı ciddi şekilde düşürür.\n*   **Beslenme ve Hidrasyon:** Düzenli yemek yemek ve yeterli su içmek, vücudun biyolojik stres dengesini korumasına yardımcı olur.\n*   **Dijital Detoks:** Sosyal medya ve sürekli bildirimlerden uzak kalmak, zihni dinlendirmek için etkili bir yöntemdir.\n\n**4. Sosyal Destek ve Hobiler:**\n*   **İç Dökme:** Güvendiğiniz bir arkadaşınızla veya aile üyenizle konuşmak, duygusal yükü paylaşmanızı sağlar.\n*   **Yaratıcı Aktiviteler:** Resim yapmak, müzik dinlemek veya yazı yazmak gibi sevdiğiniz bir işle uğraşmak zihni stresten uzaklaştırabilir.\n\nEğer stresin günlük yaşamınızı, uykunuzu veya sağlığınızı ciddi şekilde aksattığını düşünüyorsanız, bir uzmandan (psikolog veya psikiyatrist) destek almak her zaman en sağlıklı yoldur. Sizin için şu an en çok hangi durum (iş, özel hayat, günlük yoğunluk vb.) stres kaynağı oluşturuyor?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 1162.1,
+   "context_prep_ms": 6.4,
+   "runtime_ttft_ms": 1155.6,
+   "prompt_tokens": 5276,
+   "output_tokens": 603
+  },
+  {
+   "user": "Kitap okuma alışkanlığı nasıl kazanılır?",
+   "background_at_send": null,
+   "first_delta_ms": 1416,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 18
+   },
+   "total_ms": 25910,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Kitap okuma alışkanlığı kazanmak, bir kası eğitmek gibidir; düzenli ve küçük adımlarla başlandığında zamanla kolaylaşır. Bu alışkanlığı hayatınıza dahil etmek için şu yöntemleri deneyebilirsiniz:\n\n**1. İlgi Alanlarınıza Yönelin:**\nEn büyük hata, \"başucu kitabı\" olması için sevilmeyen veya çok ağır (klasik vb.) eserlerle başlamaktır. Sizi gerçekten meraklandıran; polisiye, bilim kurgu, kişisel gelişim veya sadece eğlenceli bir roman gibi türleri seçin. Sevmediğiniz bir kitabı bitirmek zorunda hissetmek, okumaktan soğumanıza neden olabilir.\n\n**2. Küçük Hedeflerle Başlayın:**\n\"Günde 50 sayfa okuyacağım\" gibi büyük hedefler yerine, daha sürdürülebilir olan \"günde 10 sayfa\" veya \"günde 15 dakika\" gibi hedefler belirleyin. Küçük başarılar, motivasyonunuzu canlı tutar.\n\n**3. Zaman Dilimlerini Sabitleyin:**\nOkumayı, günün rutinindeki sabit bir parçaya dönüştürün. Örneğin; sabah kahve içerken, toplu taşımada veya gece uyumadan hemen önce 15 dakikanızı ayırın. Buin süre zarfında telefonunuzu başka bir odaya bırakmak odaklanmanıza çok yardımcı olur.\n\n**4. Yanınızda Daima Bir Kitap Taşıyın:**\nBeklenmedik boş zamanların (sıra beklerken, doktor randevusunda, yemek sırasında) en iyi okuma fırsatlarıdır. Telefonunuza uzanmak yerine yanınızda taşıdığınız bir kitaptan birkaç sayfa okumak, zihninizi dinlendirir ve alışkanlığı destekler.\n\n**5. Okuma Ortamını Düzenleyin:**\nOkumak istediğinizde karşınıza çıkan engelleri azaltın. Kitabınızı yatağınızın üzerine, çalışma masanıza veya koltuğunuzun yanına önceden bırakın. Rahat bir ışık ve dikkatinizi dağıtmayacak bir ortam oluşturun.\n\n**6. Bir Okuma Takipçisi veya Topluluğu Edinin:**\nOkuduğunuz kitapları bir uygulamaya kaydetmek, bir liste tutmak veya arkadaşlarınızla üzerine konuşmak başarma duygusunu pekiştirir. Ayrıca, okuma kulüplerine katılmak sosyal bir motivasyon sağlar.\n\n**Başlamak için şu soruyu düşünebilirsiniz:** Şu an sizi en çok heyecanlandıran veya merak uyandıran konu nedir? Buna uygun basit bir kitap seçerek bugün ilk 5 sayfanızı okumaya ne dersiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 1118.8,
+   "context_prep_ms": 5.6,
+   "runtime_ttft_ms": 1113.2,
+   "prompt_tokens": 5922,
+   "output_tokens": 590
+  },
+  {
+   "user": "Tasarruf yapmaya nereden başlamalıyım?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 32737,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 6
+   },
+   "total_ms": 64564,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Tasarruf yapmak, sadece harcamaları kısmak değil, paranın nereye gittiğini kontrol altına alıp hedefleriniz doğrultusunda yönetme sanatıdır. Bu alışkanlığı kazanmak için şu adımları izleyebilirsiniz:\n\n**1. Mevcut Durumunuzu Görünür Kılın (Bütçe Analizi):**\nNereye ne kadar harcadığınızı bilmeden tasarruf edemezsiniz. Bir ay boyunca tüm harcamalarınızı (en küçük kahve alışverişinden kira/fatura gibi büyük giderlere kadar) not edin. Bu, \"nereye gidiyor bu para?\" sorusunun cevabını netleştirir.\n\n**2. İhtiyaç ve İstek Arasındaki Çizgiyi Çizin:**\nHarcama yapmadan önce kendinize şu soruyu sorun: \"Buna gerçekten ihtiyacım var mı, yoksa sadece şu an onu mu istiyorum?\" İhtiyaçlar (kira, fatura, temel gıda) önceliklidir; istekler (dışarıda yemek, sürekli yeni kıyafetler) ise bütçenizin durumuna göre planlanmalıdır.\n\n**3. 50/30/20 Kuralını Uygulayın:**\nGelirinizi yönetmek için popüler ve dengeli bir yöntemdir:\n*   **%50 İhtiyaçlar:** Kira, faturalar, market, ulaşım gibi zorunlu giderler.\n*   **%30 İstekler:** Eğlence, dışarıda yemek, hobiler, abonelikler.\n*   **%20 Tasarruf ve Borç Ödeme:** Bu kısım doğrudan birikim veya borç kapatma için ayrılmalıdır.\n\n**4. Sabit Giderlerinizi Gözden Geçirin:**\nFark etmediğiniz küçük sızıntıları kapatın:\n*   Kullanmadığınız dijital platform aboneliklerini iptal edin.\n*   Faturalarda tasarruf sağlayacak yöntemleri araştırın (daha uygun tarifeler, enerji tasarrufu vb.).\n*   Pazarlık yapabileceğiniz noktaları (internet paketi, yıllık aidatlar vb.) belirleyin.\n\n**5. \"Önce Kendine Öde\" Prensibini Benimseyin:**\nMaaşınızı aldığınız an, harcamalara başlamadan önce belirlediğiniz tasarruf tutarını (örneğin %10 veya %20) bir kenara ayırın. Parayı harcayıp kalanı biriktirmeye çalışmak genellikle başarısızlıkla sonuçlanır; çünkü genelde harcama sonrası bir şey kalmaz.\n\n**6. Küçük Adımlarla Başlayın:**\nBirden çok keskin kısıtlamalar yapmak motivasyonunuzu kırabilir. Örneğin, dışarıda kahve içme sıklığınızı haftada 5'ten 3'e indirmek veya markete giderken mutlaka liste yapmak gibi küçük ama sürekli alışkanlıklarla başlayın.\n\n**7. Tasarruf Hedefleri Koyun:**\nSadece \"para biriktirmek\" sıkıcı olabilir. Kendinize somut hedefler koyun: \"Acil durum fonu oluşturmak\", \"Tatil bütçesi\", \"Yeni bir bilgisayar almak\" veya \"Kredi kartı borcunu bitirmek\" gibi hedefler, tasarruf yapma isteğinizi canlı tutar.\n\nTasarrufa başlamak için bugün, son bir ayınızdaki harcamalarınızı genel hatlarıyla (ulaşım, mutfak, eğlence gibi) kategorize ederek ilk adımı atmak ister misiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 32492.3,
+   "context_prep_ms": 4.8,
+   "runtime_ttft_ms": 32487.4,
+   "prompt_tokens": 6557,
+   "output_tokens": 776
+  },
+  {
+   "user": "Yeni bir dil öğrenmeye nasıl başlamalıyım?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 10310,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 7
+   },
+   "total_ms": 39708,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Yeni bir dil öğrenmek uzun ama son derece ödüllendirici bir süreçtir. Bu süreci daha verimli kılmak ve motivasyonunuzu yüksek tutmak için şu adımları izleyebilirsiniz:\n\n**1. \"Neden\"inizi Belirleyin:**\nNeden bu dili öğrenmek istiyorsunuz? (İş için mi, bir kültüre ilgi duyduğunuz için mi, yoksa sadece hobi mi?) Hedefiniz netleştiğinde, çalışma disiplininizi korumanız kolaylaşır. Örneğin, iş için öğreniyorsanız teknik terimlere; kültürel bir ilgi içinse günlük konuşma kalıplarına odaklanmalısınız.\n\n**2. Temel Kelime ve Gramerle Başlayın:**\nHer dildein en çok kullanılan ilk 500-1000 kelimesi, günlük konuşmaların büyük bir kısmını kapsar. İlk aşamada karmaşık gramer kuralları içinde boğulmak yerine, en sık kullanılan kelimelere ve temel cümle yapılarına (tanışma, ihtiyaçlarını belirtme, soru sorma) odaklanın.\n\n**3. Maruz Kalma (Immersion) Yöntemini Kullanın:**\nDili sadece \"çalışmak\" yerine hayatınızın bir parçası haline getirin:\n*   **Telefon Dilini Değiştirin:** Telefonunuzun dilini hedef dile çevirmek sizi sürekli o dile maruz bırakır.\n*   **Müzik ve Podcast:** Anlamasanız bile o dilde müzik dinlemek ve podcast'ler dinlemek, dilin melodisine ve telaffuzuna aşinalık kazandırır.\n*   **Altyazılı İzleme:** Sevdiğiniz dizileri veya filmleri o dilde altyazılı (veya başlangıçta kendi dilinizde altyazılı, ilerledikçe hedef dilde altyazılı) izleyin.\n\n**4. Konuşma Pratiği Yapın (En Önemli Adım):**\nBir dili öğrenmenin en hızlı yolu, onu konuşmaya çalışmaktır. Hata yapmaktan korkmayın; çünkü hata yapmak öğrenmenin en doğal parçasıdır.\n*   **Kendi Kendinize Konuşun:** Gün içinde yaptığınız işleri o dilde anlatın (Örn: \"Şu an kahve içiyorum\").\n*   **Dil Değişim Uygulamaları:** İnternet üzerinden anadili hedef dil olanlarla pratik yapabileceğiniz platformları kullanın.\n\n**5. Düzenli ve Kısa Çalışmalar:**\nHaftada bir gün 5 saat çalışmak yerine, her gün 20-30 dakika çalışmak çok daha etkilidir. Beyin, bilgiyi sürekli tekrar gördüğünde daha kalıcı olarak kodlar.\n\n**6. Görsel ve İşitsel Materyallerden Yararlanın:**\n*   **Kart Sistemleri (Flashcards):** Yeni kelimeleri görsel çizimlerle veya örnek cümlelerle eşleştirerek öğrenin.\n*   **Uygulamalar:** Duolingo, Babbel veya Memrise gibi uygulamalar başlangıç seviyesinde oyunlaştırma ile alışkanlık kazanmanıza yardımcı olabilir.\n\n**İlk adım önerisi:** Hangi dili öğrenmek istediğinizi ve seviyenizi (başlangıç, orta vb.) belirtirseniz, o dile özel kaynaklar veya daha spesifik çalışma planları üzerine konuşabiliriz.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 10188.0,
+   "context_prep_ms": 5.8,
+   "runtime_ttft_ms": 10182.2,
+   "prompt_tokens": 7377,
+   "output_tokens": 726
+  },
+  {
+   "user": "SQL'de JOIN türleri nelerdir?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 37221,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 6
+   },
+   "total_ms": 68794,
+   "timed_out": false,
+   "errors": [],
+   "reply": "SQL'de **JOIN**, farklı tablolardaki verileri ortak bir sütun (genellikle bir birincil anahtar veya yabancı anahtar) üzerinden birleştirmenize olanak tanıyan bir yöntemdir. En yaygın kullanılan JOIN türleri şunlardır:\n\n**1. INNER JOIN (İç Birleştirme):**\nEn çok kullanılan JOIN türüdür. Sadece her iki tabloda da karşılığı olan kayıtları döndürür. Eğer bir kaydın diğer tabloda eşleşen bir karşılığı yoksa, o kayıt sonuç kümesinde yer almaz.\n*   *Örnek:* \"Sadece siparişi olan müşterileri ve bu siparişlerin detaylarını getir.\"\n\n**2. LEFT (OUTER) JOIN (Sol Dış Birleştirme):**\nSoldaki tablonun (birinci tablo) tüm kayıtlarını getirir. Sağdaki tablodaki (ikinci tablo) eşleşen kayıtlar varsa onları da getirir; eşleşen kayıt yoksa sağdaki sütunlar için `NULL` değerini döndürür.\n*   *Örnek:* \"Tüm müşterileri getir, siparişleri varsa yanına ekle (siparişi olmayan müşteriler de listede kalsın).\"\n\n**3. RIGHT (OUTER) JOIN (Sağ Dış Birleştirme):**\nLEFT JOIN'in tersidir. Sağdaki tablonun tüm kayıtlarını getirir. Soldaki tablodaki eşleşen kayıtlar varsa onları getirir; eşleşen kayıt yoksa soldaki sütunlar için `NULL` değerini döndürür.\n*   *Not:* Pratik kullanımda genellikle LEFT JOIN ile aynı sonucu üretmek için tablo sırasını değiştirerek tercih edilir.\n\n**4. FULL (OUTER) JOIN (Tam Dış Birleştirme):**\nHer iki tablodaki tüm kayıtları döndürür. Eğer bir tablodan diğerine eşleşme varsa bunları birleştirir, eşleşme yoksa eksik olan kısımları `NULL` ile doldurur. (Not: Bazı veritabanı sistemlerinde -örneğin MySQL- doğrudan desteklenmeyebilir, bunun yerine bir LEFT JOIN ve bir RIGHT JOIN birleştirilerek yapılır).\n*   *Örnek:* \"Tüm müşterileri ve tüm siparişleri, eşleşme olup olmadığına bakmaksızın listele.\"\n\n**5. CROSS JOIN (Çapraz Birleştirme):**\nTablolardan birindeki her bir satırı, diğer tablodaki her bir satırla eşleştirir (Kartezyen çarpım). Koşul veya ortak sütun içermez.\n*   *Örnek:* \"Elimizdeki tüm renk seçenekleri ile tüm kıyafet modellerini eşleştirerek tüm olası kombinasyonları oluştur.\"\n\n**6. SELF JOIN (Öz Birleştirme):**\nBir tablonun kendisiyle birleştirilmesidir. Aslında bir JOIN türü değil, teknik olarak bir `INNER JOIN` veya `LEFT JOIN` kullanarak tablonun kendi kopyasıyla ilişki kurmaktır.\n*   *Örnek:* \"Çalışanlar tablosunda, her çalışanın yöneticisinin adını (aynı tablodaki başka bir satırda olduğu için) getirmek.\"\n\n**Özet Tablo:**\n\n| JOIN Türü | Sonuçta Neler Görünür? |\n| :--- | :--- |\n| **INNER** | Sadece her iki tabloda ortak olanlar. |\n| **LEFT** | Soldaki her şey + sağdaki eşleşenler. |\n| **RIGHT** | Sağdaki her şey + soldaki eşleşenler. |\n| **FULL** | Her iki tablodaki her şey. |\n| **CROSS** | Tüm kombinasyonlar (A x B). |\n\nHangi veri tabanı yönetim sistemini (MySQL, PostgreSQL, SQL Server vb.) kullandığınızı belirtirseniz, spesifik sözdizimi (syntax) örnekleri de verebilirim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 36961.4,
+   "context_prep_ms": 5.0,
+   "runtime_ttft_ms": 36956.4,
+   "prompt_tokens": 8145,
+   "output_tokens": 859
+  },
+  {
+   "user": "İyi bir özgeçmişte neler olmalı?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 10689,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 6
+   },
+   "total_ms": 45891,
+   "timed_out": false,
+   "errors": [],
+   "reply": "İyi bir özgeçmiş (CV), sadece geçmişte yaptıklarınızın bir listesi değil, işe alım uzmanına \"ben bu iş için uygun ve başarılı adayım\" mesajını veren profesyonel bir pazarlama belgesidir. Etkili bir özgeçmişte bulunması gereken temel bileşenler şunlardır:\n\n**1. İletişim Bilgileri:**\nEn üstte, net ve güncel olmalıdır.\n*   Ad-Soyad, profesyonel bir e-posta adresi (ad.soyad@... gibi), telefon numarası ve bulunduğu şehir.\n*   LinkedIn profil linki (güncelse) ve portfolyo/web sitesi (ilgili sektörler için). *Not: Ev adresi gibi çok özel detayları vermenize gerek yoktur.*\n\n**2. Profesyonel Özet (Profil Özeti):**\nKendinizi 3-4 cümleyle özetlediğiniz, en başa konulan kısımdır.\n*   Kim olduğunuzu, en güçlü yetkinliklerinizi ve kariyer hedefinizi kısa ve öz bir şekilde ifade edin. \"X yıllık deneyime sahip, sonuç odaklı ve ... konusunda uzmanlaşmış bir [Unvan]\" gibi net bir giriş yapın.\n\n**3. İş Deneyimi (Ters Kronolojik Sıra):**\nEn son çalıştığınız işten başlayarak geriye doğru ilerleyin. Sadece görevlerinizi değil, **başarılarınızı** yazın.\n*   **Şirket Adı, Unvan ve Tarih Aralığı.**\n*   **Madde İşaretleri:** \"Satış yaptım\" yerine \"Satış hacmini bir yılda %20 artırdım\" gibi somut, ölçülebilir (sayılar ve veriler içeren) ifadeler kullanın. Eylem fiilleriyle (Yönettim, Geliştirdim, Tasarladım, Çözdüm) başlayın.\n\n**4. Eğitim Bilgileri:**\n*   Mezun olduğunuz üniversite, bölüm ve mezuniyet yılı.\n*   Yeni mezunlar için ilgili projeler, yüksek not ortalaması veya önemli başarılar eklenebilir. Deneyimli adaylar için daha kısa tutulabilir.\n\n**5. Yetkinlikler (Skills):**\nİş tanımındaki anahtar kelimelerle uyumlu olmalıdır.\n*   **Teknik Yetkinlikler (Hard Skills):** SQL, Python, Adobe Photoshop, Proje Yönetimi, Veri Analizi vb.\n*   **Yumuşak Yetkinlikler (Soft Skills):** Problem çözme, liderlik, kriz yönetimi, etkili iletişim (Bunları sadece liste halinde değil, deneyimlerinizin içinde örneklendirerek de sunmak daha etkilidir).\n\n**6. Sertifikalar ve Diller:**\n*   Aldığınız önemli kurslar ve resmi sertifikalar.\n*   Bildiğiniz yabancı diller ve seviyeleri (Başlangıç, Orta, İleri veya C1, B2 gibi standartlar).\n\n**7. Projeler ve Gönüllü Çalışmalar:**\n*   Özellikle iş deneyiminiz kısıtlıysa, üzerinde çalıştığınız projeler veya aktif olduğunuz gönüllü organizasyonlar sizin sorumluluk alma bilginizi ve kişisel ilgi alanlarınızı gösterir.\n\n**İyi Bir Özgeçmiş İçin Altın Kurallar:**\n\n*   **ATS (Aday Takip Sistemi) Uyumluluğu:** Birçok büyük şirket CV'leri önce yazılımlarla tarar. Bu yüzden iş ilanındaki anahtar kelimeleri CV'nize doğal bir şekilde yerleştirin.\n*   **Sayfa Sınırı:** Deneyimli adaylar için genellikle 2 sayfa, yeni mezunlar için 1 sayfa idealdir.\n*   **Okunabilirlik:** Standart yazı tipleri (Arial, Calibri, Roboto) kullanın. Bolca boşluk bırakın ve madde işaretlerinden faydalanın.\n*   **PDF Formatı:** Dosyayı her zaman PDF olarak gönderin; bu sayede formatınızın kaymasını önlemiş olursunuz.\n*   **Hata Kontrolü:** Yazım ve imla hataları profesyonelliği ciddi şekilde zedeler. Birden fazla kez kontrol edin.\n\nBaşvurmak istediğiniz spesifik bir sektör veya pozisyon var mı? İsterseniz o alana özel odak noktaları hakkında daha detaylı bilgi verebilirim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 10428.5,
+   "context_prep_ms": 5.4,
+   "runtime_ttft_ms": 10423.0,
+   "prompt_tokens": 9048,
+   "output_tokens": 961
+  },
+  {
+   "user": "Sabah koşusu mu akşam koşusu mu daha iyi?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 46342,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 5
+   },
+   "total_ms": 73116,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Sabah veya akşam koşusu arasında \"hangisi daha iyi\" sorusunun tek bir cevabı yoktur; bu tamamen sizin yaşam tarzınıza, biyolojik ritminize ve hedeflerinize göre değişir. Her iki zaman diliminin de kendine göre avantajları ve dezavantajları bulunmaktadır:\n\n**Sabah Koşusunun Avantajları:**\n*   **Metabolizma ve Enerji:** Sabah egzersizi metabolizmanızı hızlandırır ve gün boyu daha enerjik hissetmenize yardımcı olabilir.\n*   **Düzenli Alışkanlık:** Sabah yapmak, gün içindeki beklenmedik işlerin veya sosyal etkinliklerin (koşuyu iptal etmenize sebep olacak durumlar) araya girmesini engeller. \"Yapmam lazım\" dediğiniz işi sabah aradan çıkarmış olursunuz.\n*   **Zihinsel Berraklık:** Güne başarıyla bir hedefi tamamlayarak başlamak, özgüveni artırır ve stres seviyesini düşürür.\n*   **Hava Kalitesi ve Sessizlik:** Genellikle trafik ve kalabalık azalmış olduğu için daha huzurlu bir ortamda koşabilirsiniz.\n\n**Sabah Koşusunun Dezavantajları:**\n*   **Vücut Isısı ve Esneklik:** Uyandığınızda vücut ısınız düşüktür ve eklemleriniz daha gergindir; bu nedenle daha uzun ve detaylı bir ısınma süreci gerektirir.\n*   **Uyku Düzeni:** Bazı kişiler için sabah çok erken uyanmak, gece uykusunun kalitesini etkileyebilir.\n\n**Akşam Koşusunun Avantajları:**\n*   **Kas Performansı:** Vücut ısısı gün içinde yükseldiği için kaslar daha esnek ve dayanıklıdır. Bu da genellikle daha yüksek performans ve daha hızlı tempolar için avantaj sağlar.\n*   **Stres Atma:** Günün stresinden ve iş yükünden arınmak için mükemmel bir deşarj yöntemidir.\n*   **Güç Toplamı:** Gün boyu aldığınız besinler sayesinde vücudunuzun glikojen depoları daha dolu olur, bu da özellikle uzun ve yoğun antrenmanlar için daha uygundur.\n\n**Akşam Koşusunun Dezavantajları:**\n*   **Yorgunluk:** İşten veya okuldan sonra fiziksel ve zihinsel olarak bitkin olabilirsiniz, bu da motivasyonunuzu düşürebilir.\n*   **Uykuya Etkisi:** Çok yoğun ve yüksek tempolu bir koşuyu yatmadan hemen önce yapmak, vücut ısısını ve adrenalini yükselttiği için bazı kişilerde uykuya dalmayı zorlaştırabilir.\n\n**Özetle:**\n*   **Hedefiniz disiplin ve zihinsel tazelenme ise:** Sabah koşusu.\n*   **Hedefiniz yüksek performans ve stres atma ise:** Akşam koşusu.\n\nEn iyi zaman dilimi, **sizin istikrarlı olarak yapabildiğiniz zamandır.** Hangi saatte yaparsanız yapın, en önemli faktör düzenli ve güvenli bir şekilde koşmaktır. Denemek için her iki zaman dilimini de bir hafta boyunca deneyip hangisinin ruh halinize ve vücudunuza daha iyi geldiğini gözlemleyebilirsiniz.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 46184.6,
+   "context_prep_ms": 4.3,
+   "runtime_ttft_ms": 46180.2,
+   "prompt_tokens": 10054,
+   "output_tokens": 712
+  },
+  {
+   "user": "Git'te rebase ile merge arasındaki fark ne?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 10364,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 8
+   },
+   "total_ms": 45420,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Git'te hem `merge` hem de `rebase` operasyonları, farklı dallardaki (branch) değişiklikleri birleştirmek için kullanılır; ancak bu birleştirmeyi **tarihsel olarak nasıl kaydettikleri** ve **commit geçmişinin nasıl görüneceği** açısından temelden ayrışırlar.\n\nKısaca özetlemek gerekirse: **Merge** geçmişi olduğu gibi korur, **Rebase** ise geçmişi yeniden yazar.\n\nİşte detaylı karşılaştırmaları:\n\n### 1. Merge (Birleştirme)\n`merge` komutunu kullandığınızda, Git iki dalın uç noktalarını birleştiren yeni bir \"Merge Commit\" oluşturur.\n\n*   **Çalışma Mantığı:** Mevcut dalın tarihini bozmaz, sadece diğer daldaki değişiklikleri mevcut dala ekler.\n*   **Geçmiş (History):** Commit geçmişi doğrusal (linear) değildir; dalların nasıl ayrıldığını ve nerede birleştiğini açıkça gösterir. \"Ağaç\" yapısı korunur.\n*   **Avantajı:** Güvenlidir. Geçmişi değiştirmediği için ortak çalışma alanlarında (shared branches) güvenle kullanılabilir. Değişikliklerin ne zaman ve hangi daldan geldiği net görülür.\n*   **Dezavantajı:** Çok fazla dal açılıp kapatıldığında, commit geçmişi karmaşık ve \"spagetti\" gibi görünebilir. Çok fazla merge commit'i birikir.\n\n### 2. Rebase (Temel Değiştirme)\n`rebase` komutunu kullandığınızda, bir dalın başlangıç noktasını (base) başka bir dalın en son commit'ine taşır.\n\n*   **Çalışma Mantığı:** Git, sizin dalınızdaki commit'leri geçici olarak kenara alır, hedef dalın (örneğin `main`) en son commit'lerini alır ve sizin commit'lerinizi bu yeni temel üzerine sırayla tekrar uygular.\n*   **Geçmiş (History):** Commit geçmişi tamamen doğrusal (linear) görünür. Sanki tüm değişiklikleri en başta tek bir hat üzerinde yapmışsınız gibi durur.\n*   **Avantajı:** Çok temiz ve okunabilir bir commit geçmişi sağlar. \"Merge commit\" kalabalığından kurtarır.\n*   **Dezavantajı:** **Geçmişi yeniden yazar.** Bu nedenle altın kural şudur: *Asla ortak bir daldaki (master, main, develop gibi herkesin kullandığı dallar) commit'leri rebase yapmayın.* Eğer yaparsanız, diğer geliştiricilerin yerel depoları ile sizin uzak depo (remote) geçmişiniz çakışır ve ciddi karmaşaya yol açar.\n\n### Karşılaştırma Özeti\n\n| Özellik | Merge | Rebase |\n| :--- | :--- | :--- |\n| **Commit Geçmişi** | Dallanmaları gösterir (Doğrusal değil). | Tek bir düz hat gibi görünür (Doğrusal). |\n| **Commit Kimliği** | Mevcut commit'leri korur, yeni bir tane ekler. | Commit'leri yeniden oluşturur (Yeni ID'ler verir). |\n| **İzlenebilirlik** | Değişikliklerin kaynağı kolayca görülür. | Değişikliklerin hangi dalda yapıldığı gizlenebilir. |\n| **Güvenlik** | Güvenli; ortak dallarda kullanılabilir. | Riskli; sadece kişisel dallarınızda kullanılmalı. |\n\n### Hangisini Ne Zaman Kullanmalı?\n\n*   **Merge'i şu durumda kullanın:** Bir özelliğin (feature) bitişini ana dala (main/master) dahil ederken. Bu, projenin kronolojik gelişimini ve dalların birleşme noktalarını dökümante eder.\n*   **Rebase'i şu durumda kullanın:** Kendi kişisel dalınızda çalışırken ve ana daldaki güncel değişiklikleri kendi dalınıza dahil etmek istediğinizde. Bu, kendi dalınızı güncel tutar ve ana dala birleştirdiğinizde \"temiz\" bir görüntü sağlar.\n\nÖzetle; **Merge** \"Biz bunu böyle birleştirdik\" der, **Rebase** ise \"Ben sanki en başından beri bu yeni değişiklikler üzerinden çalışıyormuşum gibi yap\" der.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 10084.7,
+   "context_prep_ms": 5.6,
+   "runtime_ttft_ms": 10079.0,
+   "prompt_tokens": 10809,
+   "output_tokens": 945
+  },
+  {
+   "user": "Güneş enerjisi panelleri nasıl elektrik üretir?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 52409,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 6
+   },
+   "total_ms": 76838,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Güneş enerjisi panelleri, güneş ışığını doğrudan elektrik enerjisine dönüştürmek için **fotovoltaik (PV) etki** adı verilen fiziksel bir prensibi kullanır. Bu süreç temel olarak üç aşamada gerçekleşir:\n\n### 1. Işığın Soğurulması (Fotonların Rolü)\nGüneş, Dünya'ya sürekli olarak **foton** adı verilen enerji paketçikleri gönderir. Güneş panelleri, genellikle silisyum gibi yarı iletken malzemelerden oluşur. Bu panellerin yüzeyi, ışığı soğuracak şekilde özel bir yapıya sahiptir. Fotonlar panelin yüzeyine çarptığında, panelin içindeki elektronları harekete geçirecek yeterli enerjiye sahiptirler.\n\n### 2. Elektrik Akımının Oluşturulması (Yarı İletken Yapısı)\nGüneş panelleri genellikle **P-tipi** ve **N-tipi** denilen iki farklı yarı iletken tabakadan oluşur:\n*   **N-tipi (Negatif):** Fazladan elektron içeren tabakadır.\n*   **P-tipi (Pozitif):** Elektron eksikliği (boşluklar) içeren tabakadır.\n\nBu iki tabaka bir araya getirildiğinde, aralarında bir **elektrik alanı** oluşur. Fotonlar panele çarptığında, N-tipi tabakadaki elektronları serbest bırakır. Oluşan bu elektrik alanı, serbest kalan elektronları belirli bir yöne doğru iter. Elektronların bu düzenli akışı **Doğru Akım (DC)** electricity (elektrik) dediğimiz şeyi oluşturur.\n\n### 3. Dönüştürme ve Dağıtım (İnvertörlerin Rolü)\nPanellerden üretilen elektrik **Doğru Akım (DC)** şeklindedir, ancak evlerimizdeki ve iş yerimizdeki cihazlar genellikle **Alternatif Akım (AC)** ile çalışır.\n*   **İnvertör (Evirici):** Panellerden gelen DC elektriği alır ve bunu evlerde kullanılabilecek AC elektriğe dönüştürür.\n*   **Dağıtım:** Dönüştürülen elektrik panonuz aracılığıyla evinize yayılır; kalan fazla enerji ise (sistem izin veriyorsa) şebekeye satılabilir veya bataryalarda depolanabilir.\n\n**Özetle süreç şöyledir:**\nGüneş Işığı (Fotonlar) $\\rightarrow$ Panel Hücreleri (Serbest Elektronlar) $\\rightarrow$ Doğru Akım (DC) $\\rightarrow$ İnvertör $\\rightarrow$ Alternatif Akım (AC) $\\rightarrow$ Kullanım.\n\nBu sistemin en büyük avantajı, güneş ışığına bağlı olarak kendi enerjinizi üretmenizdir ve üretim sırasında herhangi bir yakıt yakılmadığı için karbon salınımı yapmaz. Bu konuda teknik bir detayı (örneğin panel tipleri veya verimlilik oranları gibi) daha detaylı öğrenmek ister misiniz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 52002.5,
+   "context_prep_ms": 4.7,
+   "runtime_ttft_ms": 51997.7,
+   "prompt_tokens": 11802,
+   "output_tokens": 661
+  },
+  {
+   "user": "Depremlere dayanıklı bina nasıl yapılır?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 9953,
+   "stages": {
+    "waiting": 1,
+    "processing_context": 5
+   },
+   "total_ms": 48530,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Depremlere dayanıklı bina inşaatı, yapının deprem enerjisini (sarsıntıyı) tamamen yok etmek yerine, bu enerjiyi güvenli bir şekilde **soğuracak, dağıtacak veya esnetecek** şekilde tasarlanması prensibine dayanır. Bu süreç mühendislik, doğru malzeme seçimi ve titiz bir uygulama birleşimidir.\n\nİşte depreme dayanıklı bir yapının temel yapı taşları:\n\n### 1. Zemin Etüdü ve Yer Seçimi\nHer şey sağlam bir temelden başlar. Bina ne kadar iyi yapılırsa yapılsın, zemin uygun değilse risk devam eder.\n*   **Zemin Analizi:** İnşaat başlamadan önce bölgenin jeolojik yapısı, sıvılaşma riski ve deprem dalgalarının zeminle etkileşimi derin sondajlarla incelenmelidir.\n*   **Zemin İyileştirme:** Eğer zemin zayıfsa (kumlu, dolgu vb.), kazık çakma veya enjeksiyon gibi yöntemlerle zeminin taşıma kapasitesi artırılmalıdır.\n\n### 2. Taşıyıcı Sistem Tasarımı (İskelet)\nBina, deprem yüklerini temele güvenli bir şekilde aktarabilen sağlam bir iskelete sahip olmalıdır.\n*   **Betonarme Yapı:** Kolon ve kirişlerin doğru boyutlandırılması ve aralarındaki mesafenin dengeli olması gerekir. \"Yumuşak kat\" (alt katın çok açık, üst katların çok kapalı olması) gibi hatalardan kaçınılmalıdır.\n*   **Çelik Yapı:** Çelik, betonun aksine esnek bir malzemedir. Deprem dalgaları altında bükülme ve esneme kabiliyeti yüksektir, bu yüzden sarsıntıyı daha iyi karşılar.\n*   **Yığma Yapı:** Eğer taş veya tuğla kullanılacaksa, duvarların sadece perde görevi görmesi değil, aynı zamanda yük taşıyıcı sistemin bir parçası olması gerekir.\n\n### 3. Doğru Malzeme Kalitesi\nMalzemenin sadece \"var olması\" yetmez, standartlara uygun olması gerekir.\n*   **C30 ve Üzeri Beton:** Kullanılan betonun dayanım sınıfı (C30, C35 vb.) ve içindeki demir miktarı/kalitesi (S420 gibi) projenin hesaplamalarına birebir uymalıdır.\n*   **Paslanmazlık:** Donatı demirlerinin korozyona (paslanmaya) karşı korunması, binanın ömrünü ve dayanıklılığını doğrudan etkiler.\n\n### 4. Sismik İzolasyon ve Sönümleme Teknolojileri\nModern mühendislikte kullanılan ileri düzey yöntemlerdir:\n*   **Sismik İzolatörler:** Binanın temeli ile üst yapısı arasına yerleştirilen kauçuk veya çelik damperlerdir. Bina, depremle birlikte yerdeki sarsıntıdan bağımsız olarak \"kayar\" veya \"yüzer\", böylece sarsıntı üst katlara çok daha az iletilir.\n*   **Sönümleyiciler (Damperler):** Arabalardaki amortisörlere benzer mantıkla, binanın belirli noktalarına yerleştirilen bu sistemler deprem enerjisini ısıya dönüştürerek binanın aşırı sallanmasını engeller.\n\n### 5. Uygulama ve İşçilik Kalitesi (En Kritik Nokta)\nEn iyi proje bile yanlış uygulama ile çöker.\n*   **Donatı Düzeni:** Demirlerin birbirine bağlanma noktaları, kırılma riski olan bölgelerdeki yoğunluğu ve doğru açılarla yerleştirilmesi hayati önem taşır.\n*   **Beton Döküm Hatası:** Betonun uygun pompalarla dökülmesi, vibratörle sıkıştırılması ve priz süresine uyulması gerekir. \"Betonun içinde boşluk kalması\" en büyük zafiyetlerden biridir.\n*   **Proje Sadakati:** Mimari ve statik projede belirtilen hiçbir detayın (kolon kesiti, demir çapı vb.) şantiye ortamında \"ekonomiklik\" adına küçültülmemesi gerekir.\n\n**Özetle:** Güvenli bir bina; **doğru zeminde**, **doğru mühendislik hesaplarıyla** tasarlanmış, **kaliteli malzeme** ile ve **hata payı bırakmayan titiz bir işçilikle** inşa edilen yapıdır.\n\nBelli bir yapı türü (konut, okul, hastane vb.) veya teknik bir detay (örneğin \"perde duvar nedir?\") hakkında daha fazla bilgi ister",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 9686.1,
+   "context_prep_ms": 4.2,
+   "runtime_ttft_ms": 9681.8,
+   "prompt_tokens": 12506,
+   "output_tokens": 1024
+  },
+  {
+   "user": "Kahve nasıl kavrulur, kavurma tadı nasıl etkiler?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 60807,
+   "stages": {
+    "waiting": 4,
+    "processing_context": 11
+   },
+   "total_ms": 96156,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Kahve çekirdeği, aslında bitkinin meyvesinden elde edilen ve henüz yeşil (veya sarımtırak) renkte olan bir meyve çekirdeğidir. Bu çekirdekleri içilebilir kahveye dönüştüren en kritik süreç **kavurmadır**. Kavurma işlemi hem çekirdeğin kimyasal yapısını hem de aromatik profilini kökten değiştirir.\n\n### Kahve Nasıl Kavrulur? (Süreç)\n\nKahve kavurma işlemi genellikle bir kavurma makinesinde (drum, hava veya azot gazlı sistemler) kontrol altında yapılır:\n\n1.  **Isınma ve Kurutma:** Çekirdekler makineye girer. İlk aşamada, çekirdeğin içindeki nem buharlaşmaya başlar. Çekirdek rengi hafif sarıya döner.\n2.  **Kimyasal Değişim (Maillard Reaksiyonu):** Isı arttıkça çekirdeklerde proteinler ve şekerler tepkimeye girer. Bu aşamada kahve karakteristik kahve kokusunu ve rengini almaya başlar.\n3.  **Çekirdek Genleşmesi:** Çekirdekler ısındıkça içindeki gazlar genleşir ve fiziksel olarak büyürler. \"Çatlama\" aşamasına gelinir.\n4.  **Çatlama (Cracking):**\n    *   **Hafif Çatlama (First Crack):** Çekirdeklerde patlama benzeri sesler duyulur. Çekirdek içindeki su buharı dışarı çıkmaya çalışırken patlar. Bu nokta, kavurmanın orta aşamasıdır.\n    *   **Ağır Çatlama (Second Crack):** Daha güçlü sesler duyulur ve yağlar çekirdek yüzeyine çıkmaya başlar. Bu, koyu kavurmaya geçişin işaretidir.\n\n### Kavurma Tadını Nasıl Etkiler?\n\nKavurma süresi ve sıcaklığı, kahvenin son ürünündeki **asidite, gövde ve aroma** dengesini belirleyen ana unsurdur:\n\n**1. Hafif Kavurma (Light Roast):**\n*   **Tat Profili:** Çekirdeğin orijinal karakterini (terroir) en iyi koruyan kavurmadır. Daha yüksek asidite, çiçeksi ve meyvemsi notalar ön plandadır.\n*   **Gövde:** Daha ince ve hafif bir içim sunar.\n*   **Kullanım:** Genellikle filtre kahvelerde (V60, Chemex vb.) çekirdeğin farklı aromalarını keşfetmek için tercih edilir.\n\n**2. Orta Kavurma (Medium Roast):**\n*   **Tat Profili:** Asidite biraz azalırken, şekerlerin karamelize olduğu notalar (kuruyemiş, çikolata, baharat) artar. Çekirdeğin karakteri ile kavurma tekniklerinin dengeli bir karışımıdır.\n*   **Gövde:** Dengeli ve orta yoğunlukta bir içim sağlar.\n*   **Kullanım:** Hem filtre kahveler hem de bazı espresso demlemeleri için çok yaygın bir tercihtir.\n\n**3. Koyu Kavurma (Dark Roast):**\n*   **Tat Profili:** Çekirdeğin asiditesi neredeyse tamamen kaybolur. Karamelize şekerler yanarak daha isli, acımtırak ve ağır aromalar oluşturur. Meyvemsi notalar yerini közlenmiş, dumanlı ve yoğun çikolata tadına bırakır.\n*   **Gövde:** En yoğun ve yağlı içimi sağlar.\n*   **Kullanım:** Genellikle espresso bazlı içecekler (latte, cappuccino) ve yoğun aromalı Türk kahveleri için tercih edilir.\n\n**Özetle:**\n*   **Daha kısa kavurma =** Daha parlak, asidik ve meyvemsi tatlar.\n*   **Daha uzun kavurma =** Daha gövdeli, tatlı (karamelize) ve isli tatlar.\n\nKendi kahvenizi evde kavurmayı mı düşünüyorsunuz yoksa satın aldığınız kahvelerin kavurma seviyelerini mi anlamak istiyorsunuz?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 60504.4,
+   "context_prep_ms": 7.5,
+   "runtime_ttft_ms": 60496.9,
+   "prompt_tokens": 13580,
+   "output_tokens": 947
+  },
+  {
+   "user": "Bir bütçe tablosu nasıl hazırlanır?",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 194112,
+   "stages": {
+    "waiting": 2,
+    "compacting": 3,
+    "processing_context": 179431
+   },
+   "total_ms": 224899,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Bütçe tablosu hazırlamak, paranızın nereye gittiğini görmenizi ve hedeflerinize ulaşmanızı sağlayan bir yol haritasıdır. İyi bir bütçe, sadece harcamaları kaydetmek değil, parayı önceliklendirmektir.\n\nBir bütçe tablosunu adım adım şu şekilde oluşturabilirsiniz:\n\n### 1. Gelirlerinizi Belirleyin (Net Kazanç)\nTablonun en üstüne her ay kesin olarak elinize geçen toplam net miktarı yazın.\n*   **Sabit Gelirler:** Maaş, kira geliri vb.\n*   **Değişken Gelirler:** Ek işler, primler, satış gelirleri vb.\n*   *Not: Elinize geçen net tutarı baz alın, brüt rakamları kullanmayın.*\n\n### 2. Sabit Giderleri Listeleme (Zorunluluklar)\nBunlar her ay ödemek zorunda olduğunuz, miktarı genellikle değişmeyen giderlerdir.\n*   Kira/Mortgage\n*   Faturalar (Elektrik, su, internet, telefon)\n*   Sigorta ödemeleri\n*   Toplu taşıma/Akaryakıt giderleri\n*   Kredi ödemeleri\n\n### 3. Değişken Giderleri Tahmin Etme (İhtiyaçlar ve İstekler)\nBunlar yaşam tarzınıza göre değişen harcamalardır. Bu bölümü \"İhtiyaç\" ve \"İstek\" olarak ayırmak bütçe kontrolü için çok kritiktir.\n*   **Gıda/Market:** Aylık ortalama mutfak masrafınız.\n*   **Dışarıda Yemek/Eğlence:** Sosyal hayat harcamalarınız.\n*   **Kişisel Bakım/Sağlık:** Düzenli olarak değişen giderler.\n*   **Alışveriş:** Kıyafet, teknoloji vb.\n\n### 4. Hedeflerinizi ve Birikimlerinizi Ekleyin\nBütçenin \"ödemesi gereken\" bir diğer önemli kalemi kendinizdir. Harcama yapmadan önce bu miktarı ayırmalısınız.\n*   **Acil Durum Fonu:** Beklenmedik durumlar için ayırılan miktar.\n*   **Yatırım/Birikim:** Hisse senedi, altın veya uzun vadeli hedefler.\n*   **Özel Hedefler:** Örneğin \"Tatil bütçesi\" veya \"Yeni bilgisayar\" gibi spesifik birikimler.\n\n### 5. Popüler Bütçe Yöntemlerinden Birini Seçin\nTabloyu doldururken şu yaklaşımlardan birini kullanabilirsiniz:\n*   **50/30/20 Kuralı:** Gelirin %50'si ihtiyaçlara, %30'u isteklere, %20'si borç ödeme veya birikime gider.\n*   **Sıfır Tabanlı Bütçe:** Her ay başı, gelirinize karşılık gelen her kuruşa bir görev tanımlarsınız (Gelir - Gider = 0). Yani para boşta kalmaz, mutlaka bir yere gider.\n\n### 6. Takip ve Revize (En Önemli Adım)\nTabloyu hazırlamak işin sadece %20'sidir. Kalan %80 takip etmektir.\n*   **Haftalık Kontrol:** Haftada bir kez yaptığınız harcamaları tabloya işleyin.\n*   **Ay Sonu Analizi:** Ay sonunda \"Nerede çok harcadım?\", \"Hangi gideri kısabilirim?\" sorularını sorarak bir sonraki ayın tablosunu güncelleyin.\n\n**Hangi araçla hazırlamak istersiniz?** \nBasit bir **Excel/Google E-Tablolar** dosyası, telefonunuzdaki **bütçe uygulamaları** veya tamamen manuel bir **kağıt-kalem** yöntemiyle başlayabilirsiniz. İsterseniz size basit bir tablo şablonu oluşturabilirim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 193791.9,
+   "context_prep_ms": 179429.4,
+   "runtime_ttft_ms": 14358.8,
+   "prompt_tokens": 3991,
+   "output_tokens": 885
+  },
+  {
+   "user": "Python'da liste ile demet arasındaki fark nedir?",
+   "background_at_send": null,
+   "first_delta_ms": 697,
+   "stages": {
+    "waiting": 17,
+    "processing_context": 22
+   },
+   "total_ms": 26017,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Python'da **liste (list)** ve **demet (tuple)** en çok kullanılan iki veri yapısıdır. Temel olarak aralarındaki en büyük fark, listelerin **değiştirilebilir (mutable)**, demetlerin ise **değiştirilemez (immutable)** olmalarıdır.\n\nİşte bu farkların detaylı karşılaştırması:\n\n### 1. Değiştirilebilirlik (Mutability)\n*   **Liste (List):** Elemanları oluşturulduktan sonra değiştirilebilir, eklenebilir veya silinebilir.\n    *   *Örnek:* `liste = [1, 2, 3]` diyerek oluşturduğunuz bir listeyi `liste[0] = 99` şeklinde güncelleyebilirsiniz.\n*   **Demet (Tuple):** Elemanları bir kez oluşturulduktan sonra değiştirilemez. Sabit bir veri yapısıdır.\n    *   *Örnek:* `demet = (1, 2, 3)` şeklindeki bir demette `demet[0] = 99` yapmaya çalışırsanız Python hata verecektir.\n\n### 2. Yazım Farkı (Syntax)\n*   **Liste:** Köşeli parantez `[]` ile tanımlanır.\n*   **Demet:** Normal parantez `()` ile tanımlanır.\n\n### 3. Performans ve Bellek\n*   **Demet:** Değiştirilemez oldukları için Python tarafından daha verimli yönetilirler. Bellekte daha az yer kaplarlar ve listelere göre biraz daha hızlıdırlar.\n*   **Liste:** İçeriği sürekli değişebileceği için Python arkada daha fazla yer ve işlem gücü ayırır.\n\n### 4. Kullanım Amaçları (Ne Zaman Hangisi Seçilmeli?)\n*   **Liste Kullanın:** Eğer elinizdeki veri seti dinamikse, yani programın ilerleyen aşamalarında eleman ekleyecekseniz, silecekseniz veya içeriği güncelleyecekseniz liste en doğru tercihtir. (Örn: Bir alışveriş sepeti, kullanıcı listesi).\n*   **Demet Kullanın:** Eğer verinin değişmemesi gerektiğini garanti etmek istiyorsanız demet kullanmalısınız. Bu, kodunuzda yanlışlıkla veri değiştirilmesini önleyen bir \"güvenlik önlemi\" gibidir. Ayrıca demetler, sözlüklerin (dictionary) anahtarı (key) olarak kullanılabilirken listeler kullanılamaz. (Örn: Bir koordinat sistemi `(enlem, boylam)`, bir kişinin doğum tarihi, sabit ayarlar).\n\n### Özet Tablosu\n\n| Özellik | Liste (List) | Demet (Tuple) |\n| :--- | :--- | :--- |\n| **Değiştirilebilirlik** | Değiştirilebilir (Mutable) | Değiştirilemez (Immutable) |\n| **Parantez Tipi** | Köşeli `[ ]` | Normal `( )` |\n| **Hız** | Daha yavaş | Daha hızlı |\n| **Bellek Kullanımı** | Daha fazla | Daha az |\n| **Metot Sayısı** | Çok (append, remove, sort vb.) | Az (count, index) |\n\nAnlaşıldı efendim. Başka bir teknik sorunuz varsa yardımcı olabilirim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 397.3,
+   "context_prep_ms": 5.6,
+   "runtime_ttft_ms": 391.6,
+   "prompt_tokens": 4920,
+   "output_tokens": 726
+  },
+  {
+   "user": "Uyku düzenini iyileştirmek için neler yapılabilir?",
+   "background_at_send": null,
+   "first_delta_ms": 752,
+   "stages": {
+    "waiting": 16,
+    "processing_context": 22
+   },
+   "total_ms": 31696,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Uyku düzenini iyileştirmek, hem fiziksel sağlığınız hem de zihinsel performansınız için kritik bir öneme sahiptir. Kaliteli bir uyku için vücudun biyolojik saatini (sirkadiyen ritim) düzene sokacak bazı alışkanlıklar edinmeniz gerekir.\n\nİşte uyku kalitenizi artırmak için uygulayabileceğiniz temel yöntemler:\n\n### 1. Düzenli Bir Uyku Çizelgesi Oluşturun\nVücudunuz bir rutini sever. Hafta içi ve hafta sonu dahil olmak üzere her gün aynı saatte yatıp aynı saatte kalkmaya çalışın. Bu, bir süre sonra vücudunuzun uyku hormonlarını (melatonin) otomatik olarak aynı saatlerde salgılamasını sağlar.\n\n### 2. Uyarıcılardan Kaçının ve Beslenmeye Dikkat Edin\n*   **Kafein ve Nikotin:** Uykuya dalmayı zorlaştırdıkları için akşam saatlerinden itibaren (özellikle yatmadan 6-8 saat önce) kafeinli içeceklerden kaçınmalısınız.\n*   **Alkol:** Alkol uykuya dalmayı kolaylaştırsa da uykunun kalitesini bozar ve gece sık sık uyanmanıza neden olur.\n*   **Ağır Yemekler:** Yatmadan hemen önce yemek yemek sindirim sistemini çalıştırarak vücudun dinlenmesini zorlaştırabilir.\n\n### 3. Uyku Ortamını Optimize Edin\nYatak odanızın \"uyku dostu\" bir alana dönüşmesi gerekir:\n*   **Karanlık:** Mümkünse tam karanlık sağlayın. Işık, melatonin hormonunu baskılayabilir.\n*   **Serinlik:** İdeal uyku sıcaklığı genellikle hafif serindir (yaklaşık 18-20 derece).\n*   **Sessizlik:** Gürültü kirliliğini engellemek için gerekirse kulak tıkacı veya \"beyaz gürültü\" (white noise) cihazları kullanabilirsiniz.\n\n### 4. Mavi Işık ve Ekran Kullanımını Sınırlandırın\nAkıllı telefonlar, bilgisayarlar ve televizyonlardan yayılan mavi ışık, beyninize hala gündüz olduğu mesajını verir. Uykudan en az 1 saat önce bu cihazları bırakmak veya \"gece modu\" özelliklerini kullanmak çok etkilidir.\n\n### 5. Gündüz Alışkanlıklarını Düzenleyin\n*   **Gün Işığı:** Sabah uyandığınızda doğal gün ışığına maruz kalmak, biyolojik saatinizi \"başlatır\".\n*   **Egzersiz:** Düzenli fiziksel aktivite derin uykuya yardımcı olur; ancak yatmadan hemen önce yapılan çok ağır egzersizler vücudu aşırı uyarabileceği için dikkatli olunmalıdır.\n*   **Şekerleme (Naps):** Gündüz çok uzun veya geç saatlerde yapılan şekerlemeler, gece uykusunun kalitesini düşürebilir.\n\n### 6. Gevşeme Teknikleri Uygulayın\nZihninizi sakinleştirmek, uykuya geçişi hızlandırır:\n*   **Kitap Okumak:** Ekran yerine fiziksel bir kitap okumak zihni dinlendirir.\n*   **Nefes Egzersizleri:** Derin ve kontrollü nefesler (örneğin 4-7-8 tekniği) sinir sistemini sakinleştirir.\n*   **Ilık Bir Duş:** Yatmadan önce alınan ılık bir duş, vücut ısınızın düşmesine yardımcı olarak uyku hali tetikleyebilir.\n\n**Önemli Not:** Eğer uyku sorunlarınız kronikse, sürekli yorgun hissediyorsanız veya uyku apnesi gibi durumlarınız olduğundan şüpheleniyorsanız, bir uzmana danışmanız en doğrusu olacaktır.\n\nİsterseniz bu yöntemlerden hangilerini uygulamak size daha kolay geliyor, üzerine konuşabiliriz.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 413.5,
+   "context_prep_ms": 6.5,
+   "runtime_ttft_ms": 406.9,
+   "prompt_tokens": 5692,
+   "output_tokens": 867
+  },
+  {
+   "user": "Planlama toplantısı hangi güne kalmıştı? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 30721,
+   "stages": {
+    "waiting": 3,
+    "processing_context": 7
+   },
+   "total_ms": 30936,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Planlama toplantısı perşembeye ertelendi efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 30430.6,
+   "context_prep_ms": 4.4,
+   "runtime_ttft_ms": 30426.2,
+   "prompt_tokens": 6608,
+   "output_tokens": 15
+  },
+  {
+   "user": "Nakliye firması tutmaya karar vermiş miydik? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 6836,
+   "stages": {
+    "waiting": 3,
+    "processing_context": 7
+   },
+   "total_ms": 7619,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Hayır, nakliye firması tutmayacağınız, eşyaları kendiniz taşıyacağınız kararını almıştınız efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 6582.2,
+   "context_prep_ms": 4.1,
+   "runtime_ttft_ms": 6578.0,
+   "prompt_tokens": 6673,
+   "output_tokens": 30
+  },
+  {
+   "user": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 32095,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 7
+   },
+   "total_ms": 32097,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Kayıtlarımda Mehmet isimli birine dair herhangi bir gitme veya seyahat bilgisi bulunmuyor efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 31127.8,
+   "context_prep_ms": 4.3,
+   "runtime_ttft_ms": 31123.5,
+   "prompt_tokens": 6750,
+   "output_tokens": 28
+  },
+  {
+   "user": "Pamuk kimin kedisi? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 7393,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 6
+   },
+   "total_ms": 7630,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Pamuk, komşu Ali'nin kedisidir efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 7076.8,
+   "context_prep_ms": 4.1,
+   "runtime_ttft_ms": 7072.6,
+   "prompt_tokens": 6823,
+   "output_tokens": 15
+  },
+  {
+   "user": "Patronumla toplantım saat kaçta? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 31764,
+   "stages": {
+    "waiting": 3,
+    "processing_context": 8
+   },
+   "total_ms": 32445,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Patronunuz Ali Bey ile toplantınız Pazartesi günü saat 09:30'da efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 31580.7,
+   "context_prep_ms": 5.4,
+   "runtime_ttft_ms": 31575.2,
+   "prompt_tokens": 6886,
+   "output_tokens": 25
+  },
+  {
+   "user": "Komşum Ali ne zaman dönüyor? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 6890,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 5
+   },
+   "total_ms": 7126,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Komşu Ali cumartesi günü dönüyor efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 6649.4,
+   "context_prep_ms": 3.8,
+   "runtime_ttft_ms": 6645.5,
+   "prompt_tokens": 6958,
+   "output_tokens": 13
+  },
+  {
+   "user": "Uçuşumuz ne zaman? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 32309,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 5
+   },
+   "total_ms": 32774,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Uçuşunuz 14 Haziran sabahı 07:45'te efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 32020.8,
+   "context_prep_ms": 3.8,
+   "runtime_ttft_ms": 32017.0,
+   "prompt_tokens": 7016,
+   "output_tokens": 22
+  },
+  {
+   "user": "Antalya'ya mı gidiyoruz? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 6973,
+   "stages": {
+    "waiting": 3,
+    "processing_context": 6
+   },
+   "total_ms": 7082,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Hayır, Kaş'a gidiyorsunuz efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 6611.2,
+   "context_prep_ms": 3.8,
+   "runtime_ttft_ms": 6607.4,
+   "prompt_tokens": 7084,
+   "output_tokens": 14
+  },
+  {
+   "user": "Araba kiralayacak mıyız? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 32586,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 6
+   },
+   "total_ms": 32982,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Hayır, araba kiralamayacak, otobüsle gideceksiniz efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 32224.5,
+   "context_prep_ms": 3.7,
+   "runtime_ttft_ms": 32220.8,
+   "prompt_tokens": 7146,
+   "output_tokens": 22
+  },
+  {
+   "user": "Restoran seçerken neye dikkat etmeliyiz? Kısaca yaz.",
+   "background_at_send": {
+    "kind": "compaction",
+    "age_s": 1.0
+   },
+   "first_delta_ms": 6925,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 6
+   },
+   "total_ms": 7819,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Restoran seçerken menü içerikleri, kullanıcı yorumları, konumun uygunluğu ve fiyat aralığına dikkat etmelisiniz efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "summary_window",
+    "window_start": 51,
+    "summary_to": 50,
+    "uncovered": 0
+   },
+   "ttft_ms": 6671.0,
+   "context_prep_ms": 4.1,
+   "runtime_ttft_ms": 6666.9,
+   "prompt_tokens": 7219,
+   "output_tokens": 33
+  }
+ ],
+ "integrity": {
+  "seq_increasing": true,
+  "each_sent_once": true,
+  "order_kept": true,
+  "each_answered": true,
+  "none_streaming": true,
+  "messages": 80,
+  "summaries": 4
+ },
+ "stored_equals_shown": true,
+ "shown_equals_final": true,
+ "settle": {
+  "settled": false,
+  "s": 300
+ },
+ "history_uncovered_max": 0,
+ "trimmed": false,
+ "compactions": [
+  {
+   "event": "compaction.completed",
+   "conversation_id": "01M6GDA1AE6E3RHDFASR3MJHW6",
+   "summary_version": 3,
+   "to_seq": 50,
+   "chunks": 3,
+   "kept_items": 16,
+   "dropped_items": 0,
+   "tokens_before": 14574,
+   "tokens_after": 4805,
+   "duration_ms": 179425
+  },
+  {
+   "event": "compaction.completed",
+   "conversation_id": "01M6GDA1AE6E3RHDFASR3MJHW6",
+   "summary_version": 4,
+   "to_seq": 58,
+   "chunks": 1,
+   "kept_items": 16,
+   "dropped_items": 0,
+   "tokens_before": 7256,
+   "tokens_after": 4304,
+   "duration_ms": 62521
+  }
+ ],
+ "completed": 2,
+ "failed": 0,
+ "probes": [
+  {
+   "q": "Planlama toplantısı hangi güne kalmıştı? Kısaca yaz.",
+   "answer": "Planlama toplantısı perşembeye ertelendi efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Nakliye firması tutmaya karar vermiş miydik? Kısaca yaz.",
+   "answer": "Hayır, nakliye firması tutmayacağınız, eşyaları kendiniz taşıyacağınız kararını almıştınız efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+   "answer": "Kayıtlarımda Mehmet isimli birine dair herhangi bir gitme veya seyahat bilgisi bulunmuyor efendim.",
+   "pass": false,
+   "any_ok": false,
+   "all_ok": false,
+   "forbidden": []
+  },
+  {
+   "q": "Pamuk kimin kedisi? Kısaca yaz.",
+   "answer": "Pamuk, komşu Ali'nin kedisidir efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Patronumla toplantım saat kaçta? Kısaca yaz.",
+   "answer": "Patronunuz Ali Bey ile toplantınız Pazartesi günü saat 09:30'da efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Komşum Ali ne zaman dönüyor? Kısaca yaz.",
+   "answer": "Komşu Ali cumartesi günü dönüyor efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Uçuşumuz ne zaman? Kısaca yaz.",
+   "answer": "Uçuşunuz 14 Haziran sabahı 07:45'te efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Antalya'ya mı gidiyoruz? Kısaca yaz.",
+   "answer": "Hayır, Kaş'a gidiyorsunuz efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Araba kiralayacak mıyız? Kısaca yaz.",
+   "answer": "Hayır, araba kiralamayacak, otobüsle gideceksiniz efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  },
+  {
+   "q": "Restoran seçerken neye dikkat etmeliyiz? Kısaca yaz.",
+   "answer": "Restoran seçerken menü içerikleri, kullanıcı yorumları, konumun uygunluğu ve fiyat aralığına dikkat etmelisiniz efendim.",
+   "pass": false,
+   "any_ok": false,
+   "all_ok": true,
+   "forbidden": []
+  }
+ ],
+ "probes_passed": 8,
+ "probes_total": 10,
+ "summaries": [
+  {
+   "version": 1,
+   "to_seq": 32,
+   "status": "superseded",
+   "kept": 18,
+   "dropped": 0,
+   "rendered": "Konuşma özeti (#1–#32 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kız kardeşi Ayşe'nin 3 Kasım 2026'daki Ankara taşınmasına yardım etmek. [#1]\nDevam eden konular:\n- Nakliye planı: Nakliye firması tutulmayacak, eşyalar kendisi taşınacak. Bütçe en fazla 20 bin TL. [#3]\n- Planlama toplantısı perşembeye ertelendi. [#5]\n- İş arkadaşı Mehmet'in 10 Kasım'da İzmir'e gitme ihtimali (kesin değil). (belirsiz) [#7]\n- Komşu Ali'nin tatildeyken Pamuk adındaki kedisine bakılacak. [#9]\n- Komşu Ali cumartesi dönüyor. [#15]\n- Patron Ali Bey ile Pazartesi saat 09:30'da toplantı var. [#11, #13]\n- Tatil planı: 14 Haziran sabah 07:45'te Sabiha Gökçen'den Kaş'a uçuş. Mavi Koy otelinde kalınacak. Araba kiralanmayacak, otobüsle gidilecek. Toplam bütçe 35 bin TL. [#17, #19, #21]\n- Eş Selin vejetaryen. [#23]\nKullanıcının kararları (güncel):\n- Taşınma bütçesi: 20 bin TL. [#3]\n- Tatil bütçesi: 35 bin TL. [#21]\n- Tatil rotası: Kaş (Mavi Koy oteli). [#19]\n- Tatil ulaşımı: Otobüs. [#21]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Ayşe: Kullanıcının kız kardeşi [#1]\n- Mehmet: Kullanıcının iş arkadaşı (belirsiz) [#7]\n- Ali: Kullanıcının komşusu [#9]\n- Ali Bey: Kullanıcının patronu [#11]\n- Selin: Kullanıcının eşi [#23]"
+  },
+  {
+   "version": 2,
+   "to_seq": 44,
+   "status": "superseded",
+   "kept": 16,
+   "dropped": 0,
+   "rendered": "Konuşma özeti (#1–#44 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kız kardeşi Ayşe'nin 3 Kasım 2026'daki Ankara taşınmasına yardım etmek. [#1]\nDevam eden konular:\n- Taşınma bütçesi: 20 bin TL. [#3]\n- Tatil bütçesi: 35 bin TL. [#21]\n- Tatil rotası: Kaş (Mavi Koy oteli). [#19]\n- Tatil ulaşımı: Otobüs. [#21]\n- Nakliye planı: Nakliye firması tutulmayacak, eşyalar kendisi taşınacak. Bütçe en fazla 20 bin TL. [#3]\n- Planlama toplantısı perşembeye ertelendi. [#5]\n- Komşu Ali'nin tatildeyken Pamuk adındaki kedisine bakılacak. [#9]\n- Komşu Ali cumartesi dönüyor. [#15]\n- Patron Ali Bey ile Pazartesi saat 09:30'da toplantı var. [#11, #13]\n- Tatil planı: 14 Haziran sabah 07:45'te Sabiha Gökçen'den Kaş'a uçuş. Mavi Koy otelinde kalınacak. Araba kiralanmayacak, otobüsle gidilecek. Toplam bütçe 35 bin TL. [#17, #19, #21]\n- Eş Selin vejetaryen. [#23]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Stresle başa çıkma yöntemleri (egzersiz, nefes, önceliklendirme, sınır çizme, mindfulness, uyku, beslenme, dijital detoks, sosyal destek, yaratıcı aktiviteler). [#34]\n- Kitap okuma alışkanlığı kazanma yöntemleri (ilgi alanına yönelme, küçük hedefler, zaman dilimlerini sabitleme, yanınızda kitap taşıma, ortam düzenleme, takipçisi edinme). [#36]\n- Tasarruf yapma adımları (bütçe analizi, ihtiyaç-istek ayrımı, 50/30/20 kuralı, sabit gider kontrolü, önce kendine öde, küçük adımlar, somut hedefler). [#38]\n- Yeni bir dil öğrenme adımları (neden belirleme, temel kelime/gramer, maruz kalma, konuşma pratiği, düzenli/kısa çalışma, görsel/işitsel materyaller). [#40]"
+  },
+  {
+   "version": 3,
+   "to_seq": 50,
+   "status": "superseded",
+   "kept": 16,
+   "dropped": 0,
+   "rendered": "Konuşma özeti (#1–#50 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kız kardeşi Ayşe'nin 3 Kasım 2026'daki Ankara taşınmasına yardım etmek. [#1]\nDevam eden konular:\n- Taşınma bütçesi: 20 bin TL. [#3]\n- Tatil bütçesi: 35 bin TL. [#21]\n- Tatil rotası: Kaş (Mavi Koy oteli). [#19]\n- Tatil ulaşımı: Otobüs. [#21]\n- Nakliye planı: Nakliye firması tutulmayacak, eşyalar kendisi taşınacak. Bütçe en fazla 20 bin TL. [#3]\n- Planlama toplantısı perşembeye ertelendi. [#5]\n- Komşu Ali'nin tatildeyken Pamuk adındaki kedisine bakılacak. [#9]\n- Komşu Ali cumartesi dönüyor. [#15]\n- Patron Ali Bey ile Pazartesi saat 09:30'da toplantı var. [#11, #13]\n- Tatil planı: 14 Haziran sabah 07:45'te Sabiha Gökçen'den Kaş'a uçuş. Mavi Koy otelinde kalınacak. Araba kiralanmayacak, otobüsle gidilecek. Toplam bütçe 35 bin TL. [#17, #19, #21]\n- Eş Selin vejetaryen. [#23]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Stresle başa çıkma yöntemleri (egzersiz, nefes, önceliklendirme, sınır çizme, mindfulness, uyku, beslenme, dijital detoks, sosyal destek, yaratıcı aktiviteler). [#34]\n- Kitap okuma alışkanlığı kazanma yöntemleri (ilgi alanına yönelme, küçük hedefler, zaman dilimlerini sabitleme, yanınızda kitap taşıma, ortam düzenleme, takipçisi edinme). [#36]\n- Tasarruf yapma adımları (bütçe analizi, ihtiyaç-istek ayrımı, 50/30/20 kuralı, sabit gider kontrolü, önce kendine öde, küçük adımlar, somut hedefler). [#38]\n- Yeni bir dil öğrenme adımları (neden belirleme, temel kelime/gramer, maruz kalma, konuşma pratiği, düzenli/kısa çalışma, görsel/işitsel materyaller). [#40]"
+  },
+  {
+   "version": 4,
+   "to_seq": 58,
+   "status": "active",
+   "kept": 16,
+   "dropped": 0,
+   "rendered": "Konuşma özeti (#1–#58 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kız kardeşi Ayşe'nin 3 Kasım 2026'daki Ankara taşınmasına yardım etmek. [#1]\nDevam eden konular:\n- Taşınma bütçesi: 20 bin TL. [#3]\n- Tatil bütçesi: 35 bin TL. [#21]\n- Tatil rotası: Kaş (Mavi Koy oteli). [#19]\n- Tatil ulaşımı: Otobüs. [#21]\n- Nakliye planı: Nakliye firması tutulmayacak, eşyalar kendisi taşınacak. Bütçe en fazla 20 bin TL. [#3]\n- Planlama toplantısı perşembeye ertelendi. [#5]\n- Komşu Ali'nin tatildeyken Pamuk adındaki kedisine bakılacak. [#9]\n- Komşu Ali cumartesi dönüyor. [#15]\n- Patron Ali Bey ile Pazartesi saat 09:30'da toplantı var. [#11, #13]\n- Tatil planı: 14 Haziran sabah 07:45'te Sabiha Gökçen'den Kaş'a uçuş. Mavi Koy otelinde kalınacak. Araba kiralanmayacak, otobüsle gidilecek. Toplam bütçe 35 bin TL. [#17, #19, #21]\n- Eş Selin vejetaryen. [#23]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Stresle başa çıkma yöntemleri (egzersiz, nefes, önceliklendirme, sınır çizme, mindfulness, uyku, beslenme, dijital detoks, sosyal destek, yaratıcı aktiviteler). [#34]\n- Kitap okuma alışkanlığı kazanma yöntemleri (ilgi alanına yönelme, küçük hedefler, zaman dilimlerini sabitleme, yanınızda kitap taşıma, ortam düzenleme, takipçisi edinme). [#36]\n- Tasarruf yapma adımları (bütçe analizi, ihtiyaç-istek ayrımı, 50/30/20 kuralı, sabit gider kontrolü, önce kendine öde, küçük adımlar, somut hedefler). [#38]\n- Yeni bir dil öğrenme adımları (neden belirleme, temel kelime/gramer, maruz kalma, konuşma pratiği, düzenli/kısa çalışma, görsel/işitsel materyaller). [#40]"
+  }
+ ],
+ "memories": [
+  {
+   "about": "Selin",
+   "relation": "eşi",
+   "predicate": "note",
+   "value": "vejetaryen",
+   "content": "Kullanıcının eşi Selin vejetaryen.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "user",
+   "relation": null,
+   "predicate": "habit",
+   "value": "vejetaryen restoran seçimi",
+   "content": "Kullanıcı restoran seçerken vejetaryenliğe dikkat edecek.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "user",
+   "relation": null,
+   "predicate": "plan",
+   "value": "otobüsle gitmek",
+   "content": "Kullanıcı araba kiralamayıp otobüsle gidecek.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "user",
+   "relation": null,
+   "predicate": "location",
+   "value": "Mavi Koy",
+   "content": "Otel adı Mavi Koy.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "user",
+   "relation": null,
+   "predicate": "event",
+   "value": "09:30",
+   "content": "Toplantı saati 09:30 olarak belirlendi.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "Mehmet",
+   "relation": "iş arkadaşı",
+   "predicate": "plan",
+   "value": "Mehmet de galiba 10 Kasım'da İzmir'e gidecek",
+   "content": "Mehmet'in 10 Kasım'da İzmir'e gideceği tahmin ediliyor.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "user",
+   "relation": null,
+   "predicate": "note",
+   "value": "Perşembe",
+   "content": "Planlama toplantısı perşembeye kaydırıldı.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "user",
+   "relation": null,
+   "predicate": "note",
+   "value": "Nakliye firması tutmayacak",
+   "content": "Nakliye firması tutulmayacak.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "Ayşe",
+   "relation": "kardeş",
+   "predicate": "location",
+   "value": "Ankara",
+   "content": "Ayşe 3 Kasım'da Ankara'ya taşınıyor.",
+   "status": "active",
+   "origin": "stated"
+  }
+ ],
+ "memory_jobs": {
+  "done": 39,
+  "running": 1
+ },
+ "memory_system": {
+  "samples": 351,
+  "runner_rss_peak_mb": 11517,
+  "used_peak_mb": 21692,
+  "compressed_peak_mb": 7071,
+  "pressure_level_max": 2,
+  "pressure_not_normal_samples": 69,
+  "swap_used_start_mb": 8245,
+  "swap_used_peak_mb": 15028,
+  "swapouts_during": 850247
+ }
+}
