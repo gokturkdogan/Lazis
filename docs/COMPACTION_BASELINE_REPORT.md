@@ -117,6 +117,8 @@ Bunlar taban çizgisi hatalarıdır, A/B/C'ye atfedilmez; ayrıntı [RELIABILITY
 | Açık uygulamalar | VS Code, Chrome | + Cursor, Slack, Teams | + Codex, çok sekmeli Chrome |
 | Beklenen program belleği | yaklaşık 10–12 GB | yaklaşık 15–18 GB | 20 GB ve üstü |
 
+**Sahibinin kararı (2026-11-04):** hafif ve orta testler aynı günlük ortamda çalışır: e-posta, 1–2 Chrome sekmesi, Teams, Slack, WhatsApp, Telegram, VS Code, ChatGPT. Tablodaki uygulama satırı ve beklenen bellek bu kararla güncellenir; gerçek toplam ölçülüp kaydedilir. Yoğun test, hafif ve orta sonuçları değerlendirilene kadar çalıştırılmaz.
+
 Ek olarak ölçülür: soğuk model yüklemesi (15 dakikalık aralıktan sonra), LAZIS boştayken tutulan bellek, diğer uygulamaların yanıt verebilirliği.
 
 ## 9. Önerilen günlük kullanım hedefleri

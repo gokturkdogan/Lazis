@@ -12,6 +12,11 @@ Used by p10p_supervise.py during runs, or alone as above. Files in DIR:
 Each sample also has the swap growth rate and how responsive the machine was: the time to start a
 trivial program, to write and flush a small file, and how late a one-second sleep woke up.
 
+- system_flags.jsonl: a long warning, swap growing fast for minutes, a slow response. Also in
+  ALERTS.txt. Only a machine that stays very slow stops a run. Measured on this Mac: loading the
+  model alone grows swap up to 4.6 GB/min and a warning lasted 15 minutes on an emptier system, while
+  programs still started in under 9 ms, so those two are recorded and do not stop anything.
+
 The level is read every second. ``ps`` (RSS) is cheap enough for every sample; ``top`` (footprint and
 compressed memory) takes about a second, so it runs only every 30 s. RSS counts mapped model files and
 shared pages; footprint counts compressed and swapped pages too. Neither alone says what closing a
@@ -34,6 +39,12 @@ from typing import Any
 FULL_SNAPSHOT_S = 30
 CHANGE_MIN_MB = 100
 LEVELS = {1: "normal", 2: "warning", 4: "critical"}
+LONG_WARNING_S = 600
+FAST_SWAP_MB_MIN = 1024
+FAST_SWAP_FOR_S = 180
+SLOW_RESPONSE_MS = 500
+VERY_SLOW_RESPONSE_MS = 5000
+VERY_SLOW_SAMPLES = 3  # in a row: a stop reason
 ALIASES = {"Visual Studio Code": "VS Code", "Microsoft Teams": "Teams", "Microsoft Outlook": "Outlook"}
 UNITS = {"B": 1 / 1024 / 1024, "K": 1 / 1024, "M": 1, "G": 1024, "T": 1024 * 1024}
 SIZE = re.compile(r"^([\d.]+)([BKMGT])[+-]?$")
@@ -159,6 +170,38 @@ class MemoryLog:
         self.swap_history: deque[tuple[float, float]] = deque()
         self.swap_rate_peak = 0.0
         self.worst = {"start_program_ms": 0.0, "write_flush_ms": 0.0, "sleep_late_ms": 0.0}
+        self.flags: dict[str, int] = {}
+        self.warning_flagged = False
+        self.fast_swap_since: float | None = None
+        self.fast_swap_flagged = False
+        self.last_slow_flag = 0.0
+        self.very_slow_samples = 0
+
+    def flag(self, kind: str, **detail: Any) -> None:
+        self.flags[kind] = self.flags.get(kind, 0) + 1
+        row = {"at": self.stamp(), "flag": kind, **detail}
+        self.append("system_flags.jsonl", row)
+        with (self.dir / "ALERTS.txt").open("a") as f:
+            f.write(f"{row['at']} {kind}: {json.dumps(detail, ensure_ascii=False)}\n")
+
+    def check_flags(self, rate: float | None, response: dict[str, float], changes: dict[str, int], now: float) -> None:
+        if self.level == 2 and not self.warning_flagged and now - self.level_since >= LONG_WARNING_S:
+            self.warning_flagged = True
+            self.flag("long_warning", seconds=round(now - self.level_since))
+        elif self.level != 2:
+            self.warning_flagged = False
+        if rate is not None and rate >= FAST_SWAP_MB_MIN:
+            self.fast_swap_since = self.fast_swap_since or now
+            if not self.fast_swap_flagged and now - self.fast_swap_since >= FAST_SWAP_FOR_S:
+                self.fast_swap_flagged = True
+                self.flag("fast_swap", mb_per_min=rate, seconds=round(now - self.fast_swap_since), changes_mb=changes)
+        else:
+            self.fast_swap_since, self.fast_swap_flagged = None, False
+        slowest = max(response["start_program_ms"], response["write_flush_ms"])
+        self.very_slow_samples = self.very_slow_samples + 1 if slowest >= VERY_SLOW_RESPONSE_MS else 0
+        if (slowest >= SLOW_RESPONSE_MS or response["sleep_late_ms"] >= 2 * SLOW_RESPONSE_MS) and now - self.last_slow_flag >= 60:
+            self.last_slow_flag = now
+            self.flag("slow_response", **response, changes_mb=changes)
 
     def responsiveness(self, sleep_late_ms: float) -> dict[str, float]:
         t0 = time.perf_counter()
@@ -271,9 +314,11 @@ class MemoryLog:
         if time.monotonic() - self.last_full >= FULL_SNAPSHOT_S:
             self.full("periodic")
         machine = physical()
+        rate = self.swap_rate(machine["swap_used"])
+        response = self.responsiveness(sleep_late_ms)
+        self.check_flags(rate, response, changes, time.monotonic())
         return {"worst_level_since_last_sample": worst, "physical": machine, "rss_by_program_mb": rounded_top(rss),
-                "rss_changes_mb": changes, "swap_rate_mb_per_min": self.swap_rate(machine["swap_used"]),
-                "responsiveness": self.responsiveness(sleep_late_ms)}  # fmt: skip
+                "rss_changes_mb": changes, "swap_rate_mb_per_min": rate, "responsiveness": response}  # fmt: skip
 
     def summary(self) -> dict[str, Any]:
         seconds = dict(self.seconds_at)
@@ -285,7 +330,7 @@ class MemoryLog:
             episodes.append(time.monotonic() - self.level_since)
         return {"pressure_changes": self.events, "seconds_at_level": {k: round(v) for k, v in seconds.items()},
                 "warning_episodes": len(episodes), "longest_warning_s": round(max(episodes, default=0)),
-                "swap_rate_peak_mb_per_min": round(self.swap_rate_peak),
+                "swap_rate_peak_mb_per_min": round(self.swap_rate_peak), "flags": dict(self.flags),
                 "worst_responsiveness": {k: round(v, 1) for k, v in self.worst.items()}}  # fmt: skip
 
 

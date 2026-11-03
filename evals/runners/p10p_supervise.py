@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from p10p_memwatch import MemoryLog, other_programs
+from p10p_memwatch import VERY_SLOW_SAMPLES, MemoryLog, other_programs, processes, program
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
@@ -146,9 +146,14 @@ class Supervisor:
         row = sample(None, self.a.pressure_file)
         total, top = other_programs()
         lazis = bool(cmd(["pgrep", "-x", "LAZIS"]).strip()) or "LAZIS" in top
+        clamshell = cmd(["ioreg", "-r", "-k", "AppleClamshellState", "-d", "4"])
+        running = {program(r["comm"], r["pgid"]) for r in processes()}
+        wanted = [x.strip() for x in (self.a.expect_apps or "").split(",") if x.strip()]
         loaded = cmd(["ollama", "ps"]).strip().splitlines()[1:]  # with none loaded, the runner's unload does nothing
         checks = {
             "ac_power": {"value": row["ac_power"], "ok": row["ac_power"]},
+            "lid_open": {"value": '"AppleClamshellState" = No' in clamshell,
+                         "ok": '"AppleClamshellState" = No' in clamshell},
             "lazis_closed": {"value": not lazis, "ok": not lazis},
             "pressure_normal": {"value": row["pressure_level"], "ok": row["pressure_level"] == 1},
             "other_programs_footprint_mb": {"value": total, "limit": self.a.start_footprint_mb,
@@ -161,7 +166,8 @@ class Supervisor:
             "service_has_no_model_loaded": {"value": len(loaded) == 0, "ok": len(loaded) == 0},
         }  # fmt: skip
         return {"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "ok": all(c["ok"] for c in checks.values()),
-                "checks": checks, "largest_programs_mb": top}  # fmt: skip
+                "checks": checks, "largest_programs_mb": top, "other_programs_footprint_mb": total,
+                "expected_apps": {x: x in running for x in wanted}}  # fmt: skip
 
     def wait_until_ready(self) -> str | None:
         t0 = time.monotonic()
@@ -232,6 +238,9 @@ class Supervisor:
             except subprocess.TimeoutExpired:
                 return "system_stalled"
             row["pressure_level"] = max(row["pressure_level"], detail["worst_level_since_last_sample"])
+            if self.mem.very_slow_samples >= VERY_SLOW_SAMPLES:
+                self.append("monitor.jsonl", {**row, "gap": gap, **detail})
+                return "machine_very_slow"
             now_w, now_m = time.time(), time.monotonic()
             battery_since = (battery_since or now_m) if not row["ac_power"] else None
             battery_s = now_m - battery_since if battery_since else 0.0
@@ -346,6 +355,7 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="show the start conditions and start nothing")
     ap.add_argument("--condition", help="how this system differs from earlier runs; kept with every run")
     ap.add_argument("--keep-glob", help="reports to fingerprint and protect (default: this label's)")
+    ap.add_argument("--expect-apps", help="comma-separated programs of the planned environment; recorded, not required")
     ap.add_argument("--start-footprint-mb", type=int, default=START_FOOTPRINT_MB)
     ap.add_argument("--start-swap-mb", type=int, default=START_SWAP_MB)
     ap.add_argument("--start-stable", type=float, default=START_STABLE_S)
