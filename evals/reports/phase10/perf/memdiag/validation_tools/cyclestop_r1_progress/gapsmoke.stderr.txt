@@ -1,0 +1,65 @@
+Traceback (most recent call last):
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/runners.py", line 119, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/base_events.py", line 726, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_compaction_cycles.py", line 160, in run
+    rows.append(await one(model, d, seed, plan[1], plan[2], counter))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_compaction_cycles.py", line 114, in one
+    done = await p.engine.compact_now(cid)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/core/src/lazis/conversation/engine.py", line 2094, in compact_now
+    return await self._compact(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/core/src/lazis/conversation/engine.py", line 1977, in _compact
+    async for event in llm.stream(request):
+        if isinstance(event, TextDelta) and event.kind == "content":
+            text += event.text
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_compaction_long.py", line 357, in stream
+    async for ev in super().stream(request):
+        yield ev
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p6_sessions.py", line 67, in stream
+    async for ev in self.inner.stream(request):
+        yield ev
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/core/src/lazis/providers/llm/ollama.py", line 308, in stream
+    async with _until_cancelled(
+               ~~~~~~~~~~~~~~~~^
+        self._client.stream("POST", "/api/chat", json=body, timeout=stream_timeout),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        cancel,
+        ^^^^^^^
+    ) as response:
+    ^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/core/src/lazis/providers/llm/ollama.py", line 443, in _until_cancelled
+    done, _ = await asyncio.wait({enter, stop}, return_when=asyncio.FIRST_COMPLETED)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 460, in wait
+    return await _wait(fs, timeout, return_when, loop)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 544, in _wait
+    await waiter
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_compaction_cycles.py", line 205, in <module>
+    main()
+    ~~~~^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_compaction_cycles.py", line 199, in main
+    report = asyncio.run(run(a.model, a.gaps, a.cache_ram))
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/runners.py", line 196, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/runners.py", line 124, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt

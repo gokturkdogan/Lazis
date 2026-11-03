@@ -193,6 +193,7 @@ class Supervisor:
                 [sys.executable, "-u", self.a.runner, "--model", self.a.model, "--label", self.a.label,
                  "--cache-ram", str(self.a.cache_ram), "--gaps", gap, "--runs", str(self.a.run)],
                 cwd=HERE, stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True,
+                env={**os.environ, "LAZIS_EVAL_OUT": str(self.out)},
             )  # fmt: skip
             self.mem.run_pgid = proc.pid
             self.mem.reset_run()
