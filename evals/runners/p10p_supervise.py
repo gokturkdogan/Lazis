@@ -8,7 +8,8 @@ runner process; a finished report is never run again.
 
 Kept in <out>/<label>_r<run>_progress/: status.json (current state), monitor.jsonl (system samples),
 runs.jsonl (one line per finished or stopped run), gap<g>.turns.jsonl (one line per turn, flushed by
-the runner) and gap<g>.stderr.txt. A stopped run writes no report and counts as incomplete.
+the runner) and gap<g>.stderr.txt, plus the memory files described in p10p_memwatch.py. A stopped run
+writes no report and counts as incomplete. A warning is recorded and does not stop a run.
 
 To stop by hand: touch <progress>/STOP
 """
@@ -30,6 +31,8 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any
+
+from p10p_memwatch import MemoryLog
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
@@ -110,6 +113,7 @@ class Supervisor:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.stop_file = self.dir / "STOP"
         self.status: dict[str, Any] = {"state": "starting", "pid": os.getpid(), "label": a.label, "run": a.run}
+        self.mem = MemoryLog(self.dir, a.pressure_file)
 
     def save(self, **changes: Any) -> None:
         self.status.update(changes, updated_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
@@ -154,7 +158,8 @@ class Supervisor:
                 return why
             if time.monotonic() - t0 > self.a.start_wait:
                 return f"not_ready_at_start: {why}"
-            self.save(state="waiting", waiting_for=why)
+            self.save(state="waiting", waiting_for=why, **self.mem.summary())
+            self.mem.check_level()
             time.sleep(min(self.a.poll, 15))
 
     def run_gap(self, gap: str) -> str | None:
@@ -167,6 +172,7 @@ class Supervisor:
                  "--cache-ram", str(self.a.cache_ram), "--gaps", gap, "--runs", str(self.a.run)],
                 cwd=HERE, stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True,
             )  # fmt: skip
+            self.mem.run_pgid = proc.pid
             why = self.watch(proc, gap, turns_path)
         if why is not None:
             self.end_runner(proc)
@@ -184,13 +190,17 @@ class Supervisor:
         battery_since: float | None = None
         n = 0
         while proc.poll() is None:
-            time.sleep(poll)
+            end = time.monotonic() + poll
+            while time.monotonic() < end and proc.poll() is None and self.mem.check_level() < 4:
+                time.sleep(min(1, poll))
             if self.stop_file.exists():
                 return "stopped_by_hand"
             try:
                 row = sample(proc.pid, self.a.pressure_file)
+                detail = self.mem.tick()
             except subprocess.TimeoutExpired:
                 return "system_stalled"
+            row["pressure_level"] = max(row["pressure_level"], detail["worst_level_since_last_sample"])
             now_w, now_m = time.time(), time.monotonic()
             battery_since = (battery_since or now_m) if not row["ac_power"] else None
             battery_s = now_m - battery_since if battery_since else 0.0
@@ -200,12 +210,15 @@ class Supervisor:
             if n % 12 == 1:
                 row["busiest"] = busiest()
             row["gap"] = gap
+            row.update(detail)
             self.append("monitor.jsonl", row)
             done, last = self.turns(turns_path)
             self.save(state="running", gap=gap, turns_done=done, last_first_token_s=last, pressure=row["pressure_level"],
-                      swap_used_mb=row["swap_used_mb"], ac_power=row["ac_power"])  # fmt: skip
+                      swap_used_mb=row["swap_used_mb"], ac_power=row["ac_power"], **self.mem.summary())  # fmt: skip
             if why:
                 return why
+            if self.a.stop_after_turns and done >= self.a.stop_after_turns:
+                return "stop_after_turns"
             if now_m - t0 > self.a.run_limit:
                 return "run_time_limit"
         return None
@@ -273,7 +286,7 @@ class Supervisor:
         if changed:
             self.save(state="failed", reason=f"kept reports changed: {changed}")
             return 1
-        self.save(state="stopped" if why else "done", reason=why, port_free=self.port_free())
+        self.save(state="stopped" if why else "done", reason=why, port_free=self.port_free(), **self.mem.summary())
         return 0 if why is None else 2
 
 
@@ -290,12 +303,17 @@ def main() -> int:
     ap.add_argument("--poll", type=float, default=5)
     ap.add_argument("--start-wait", type=float, default=START_WAIT_S)
     ap.add_argument("--run-limit", type=float, default=RUN_LIMIT_S)
+    ap.add_argument("--stop-after-turns", type=int, help="short trials: stop the run after this many turns")
     ap.add_argument("--pressure-file", help="tests only: read the pressure level from this file")
     a = ap.parse_args()
+    # This process runs from the runners folder; a relative path here would silently mean another place.
+    a.out, a.runner = str(Path(a.out).resolve()), str(Path(a.runner).resolve())
+    a.pressure_file = str(Path(a.pressure_file).resolve()) if a.pressure_file else None
     if a.detach:
         progress = Path(a.out) / f"{a.label}_r{a.run}_progress"
         progress.mkdir(parents=True, exist_ok=True)
-        argv = [x for x in sys.argv[1:] if x != "--detach"]
+        argv = [x for x in sys.argv[1:] if x != "--detach"] + ["--out", a.out, "--runner", a.runner]
+        argv += ["--pressure-file", a.pressure_file] if a.pressure_file else []
         with (progress / "supervisor.txt").open("a") as log:
             p = subprocess.Popen([sys.executable, "-u", __file__, *argv], stdin=subprocess.DEVNULL, stdout=log,
                                  stderr=log, start_new_session=True, cwd=HERE)  # fmt: skip
