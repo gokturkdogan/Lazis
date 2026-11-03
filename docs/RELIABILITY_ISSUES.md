@@ -73,6 +73,21 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **Related, not the same fault:** in 2 of 9 runs (gap 6 run 2, gap 60 emptier system) the question about choosing a restaurant is answered without the wife's vegetarian diet. In the gap 60 run the summary and a memory both hold the fact, so this is the reply not using it. Not investigated.
 
+**Measured over several compactions (multi-cycle test, 2026-11-04, code `703941c`, 10 conversations, five summary versions, learning off):**
+
+| Summary version | Facts missing of 64 | Conversations with a loss since an earlier version |
+|---|---|---|
+| 1 | 2 | 0 |
+| 2 | 3 | 1 |
+| 3 | 5 | 3 |
+| 4 | 5 | 3 |
+| 5 | 8 | 4 |
+
+- Six facts were lost at a rewrite: `vejetaryen`, `cuma`, `8 bin`, `Kaş`, `Mavi Koy`, `35 bin`. Every one of these losses reports `dropped: 0`. The other two, `Kuzey` and `15 Aralık`, were never in the first summary; they are the same two missing from the 126/128 measure.
+- This test has no interruptions, no user traffic and no memory pressure. So the loss does not need any of them.
+- The Mehmet line survived all five versions in both seeds here, so the specific case above was not reproduced.
+- Limit: the filler is one fixed text repeated, far more repetitive than a real conversation, and it fills the summary. This may overstate the loss. Word checks only; two seeds.
+
 **How this is judged:** no summary or memory rule changes during the compaction latency work. It is a baseline fault, and performance acceptance judges new errors caused by changes A, B or C separately from it. The summary prompt stays unchanged. The fault stays open in the general reliability reporting.
 
 **Evidence:** `evals/reports/phase10/perf/baseline_cache2048_gap6_r2.json` and `..._gap6_r3.json`, fields `turns[32]`, `summaries`, `memories`.

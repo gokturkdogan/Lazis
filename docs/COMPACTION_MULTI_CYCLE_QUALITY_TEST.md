@@ -1,6 +1,6 @@
 # Compaction: fact retention over several cycles (test design)
 
-**Status:** built as `evals/runners/p10p_compaction_cycles.py`; checked on a short trial only (`--gaps smoke`: one dialogue, two summary versions, one question). **The baseline has not been run.** Required by the owner before changes A, B or C can be accepted (2026-11-03). No product code, summary prompt or memory rule changes for it.
+**Status:** built as `evals/runners/p10p_compaction_cycles.py`; checked on a short trial only (`--gaps smoke`: one dialogue, two summary versions, one question). **Baseline run 2026-11-04 on `703941c` (results below).** Required by the owner before changes A, B or C can be accepted (2026-11-03). No product code, summary prompt or memory rule changes for it.
 
 ## Why
 
@@ -59,6 +59,23 @@ A cycle in which `compact_now` returns False fails the conversation visibly; it 
 **Known limit:** two seeds show large effects only. A small difference between code versions cannot be told from model variation with this sample, and the report must say so.
 
 **Seen in the short trial, to read for in the baseline:** the unrelated filler questions appear in the summary under open questions. Whether they push out real facts is unknown.
+
+## Baseline result (2026-11-04)
+
+Report: `evals/reports/phase10/perf/cycles/cycles_cache2048_gapall_r1.json`. 50 compactions in 46 minutes, none failed. Pressure normal throughout, swap flat at 0.6 GB, other programs 9.7–11.5 GB.
+
+| Version | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| Facts kept of 64 | 62 | 61 | 59 | 59 | 56 |
+
+Seed 7 lost 1 fact, seed 11 lost 7. Answers: 28 of 32 passed. Three misses are real (two restaurant answers without the vegetarian diet, one "no information" on the destination); "Araba kiralama planınız şu an için geçerli değil" may be a checker miss.
+
+**Read by hand:**
+- The old values flagged read as past, not current ("React yerine Vue", "09:00 olarak planlanmıştı").
+- The word count understates one loss. In D5 seed 11, version 5 lost the whole lines for the route, transport and budget, so "otobüs" went too, and no word in the check covers it.
+- In D5 seed 11 the summary still holds "Selin, vejetaryen" and the restaurant answer still leaves it out: the reply not using a fact, as noted under REL-002.
+- The filler fills the summaries: up to 10 lines of repeated questions and up to 117 message citations. Whether real conversations do this is what the daily scenarios show.
+- Many compactions took a nearly constant 60–64 s. That may be the output limit (`summary_max_tokens` 1200), but this runner does not record output tokens. `p10p_daily.py` does, so check it there before planning C.
 
 ## Not in scope
 
