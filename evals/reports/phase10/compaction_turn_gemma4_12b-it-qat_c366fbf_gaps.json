@@ -1,0 +1,632 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "manifest": {
+  "captured_at": "2026-11-03T03:06:52+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 1.48,
+   "active_gb": 5.04,
+   "wired_gb": 10.78,
+   "compressed_gb": 0.97,
+   "swap_used_mb": 11339.0,
+   "swapouts": 209715558,
+   "memory_free_percent": 49
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "rows": [
+  {
+   "scenario": "writer30",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 19942,
+     "stages": {
+      "waiting": 26,
+      "processing_context": 28
+     },
+     "total_ms": 29275,
+     "timed_out": false,
+     "errors": [],
+     "words": 115,
+     "reply": "Fotosentez, bitki ve bazı diğer organizmaların güneş enerjisini kullanarak inorganik maddelerden (karbondioksit ve su) organik besinler (glikoz) üretme sürecidir. Bu süreç, bitkinin kloroplast organelleri içerisinde gerçekleşir.\n\nFotosentez genel olarak iki ana aşamadan oluşur:\n\n1. **Işığa Bağımlı Reaksiyonlar:** Bu aşamada klorofiller güneş ışığını soğurur. Işık enerjisi kullanılarak su molekülleri parçalanır ve ATP ile NADPH gibi enerji taşıyıcı moleküller üretilir. Bu aşamanın yan ürünü olarak oksijen açığa çıkar.\n\n2. **Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):** Işığa doğrudan ihtiyaç duyulmayan bu aşamada, ilk aşamada üretilen ATP ve NADPH ile atmosferden alınan karbondioksit birleştirilir. Bu döngü sonucunda bitkinin temel enerji kaynağı olan glikoz sentezlenir.\n\nÖzetle bitki; ışık, su ve karbondioksiti kullanarak kendi gıdasını üretirken, atmosfere oksijen salarak yaşamın devamını sağlar.",
+     "ttft_ms": 19668.1,
+     "context_prep_ms": 2.6,
+     "runtime_ttft_ms": 19660.3,
+     "prompt_tokens": 6220
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 24175,
+     "stages": {
+      "waiting": 9,
+      "processing_context": 14
+     },
+     "total_ms": 37599,
+     "timed_out": false,
+     "errors": [],
+     "words": 161,
+     "reply": "Bulut bilişim, verilerin ve uygulamaların fiziksel donanımlara (sunucu, depolama birimleri vb.) bağımlı olmak yerine, internet üzerinden merkezi bir havuzda barındırılıp kullanılmasıdır. Kendi bilgisayarınızda veya yerel ağınızda büyük kapasiteli bir işlem gücü kurmak yerine, servis sağlayıcıların sunduğu dijital altyapıyı ihtiyacınız olduğu kadar kullanmanıza imkan tanır.\n\nBulut bilişimin temel özellikleri şunlardır:\n\n*   **Erişilebilirlik:** İnternet bağlantısı olan her yerden, farklı cihazlardan (telefon, tablet, bilgisayar) dosyalara ve uygulamalara ulaşılabilir.\n*   **Ölçeklenebilirlik:** İhtiyaç arttığında kaynaklar (depolama alanı, işlem gücü) hızla artırılabilir; ihtiyaç azaldığında ise kapasite düşürülebilir.\n*   **Maliyet:** Şirketlerin veya bireylerin büyük sunucu yatırımları yapması yerine, sadece kullandıkları kadar ödeme yapmaları sağlanır.\n*   **Güncellik:** Yazılım ve güvenlik güncellemeleri servis sağlayıcı tarafından otomatik olarak yapılır, kullanıcıların manuel müdahalesine gerek kalmaz.\n\nBulut bilişim hizmetleri genellikle üç modele ayrılır:\n1.  **IaaS (Altyapı Hizmeti):** Sunucu ve depolama gibi temel altyapıların kiralanması.\n2.  **PaaS (Platform Hizmeti):** Yazılım geliştiricilerin uygulama oluşturmak için kullandığı hazır platformlar.\n3.  **SaaS (Yazılım Hizmeti):** Doğrudan internet üzerinden kullanılan hazır yazılımlar (örneğin, e-posta servisleri veya online doküman düzenleyiciler).",
+     "ttft_ms": 23918.3,
+     "context_prep_ms": 5.8,
+     "runtime_ttft_ms": 23912.5,
+     "prompt_tokens": 6532
+    },
+    {
+     "user": "Enflasyon neden olur?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 25718,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 14
+     },
+     "total_ms": 42646,
+     "timed_out": false,
+     "errors": [],
+     "words": 220,
+     "reply": "Enflasyon, genel fiyat düzeyinin belirli bir süre içinde sürekli ve hissedilir şekilde artmasıdır. Bu durum, paranın satın alma gücünün azalması anlamına gelir. Enflasyonun temel nedenlerini birkaç ana başlıkta toplayabiliriz:\n\n**1. Talep Enflasyonu (Talep Aşımı):**\nEkonomideki toplam talebin, arz edilen mal ve hizmet miktarından fazla olması durumudur. İnsanlar daha fazla tüketmek istediğinde ancak piyasada yeterli ürün bulunmadığında, satıcılar fiyatları yükseltir. \"Çok para, az mal\" durumu enflasyonu tetikler.\n\n**2. Maliyet Enflasyonu (Arz Şoku):**\nÜretim maliyetlerindeki artışların nihai ürün fiyatlarına yansıtılmasıdır. Örneğin; ham madde fiyatlarının (petrol, doğalgaz, tahıl vb.), işçilik maliyetlerinin veya nakliye giderlerinin artması, üreticilerin daha yüksek fiyatlarla satış yapmasına neden olur.\n\n**3. Para Arzının Artması (Para Arzı Enflasyonu):**\nMerkez bankalarının ekonomiye aşırı miktarda para sürmesi durumudur. Piyasadaki para miktarı hızla artar ancak karşılığında üretilen mal ve hizmet miktarı aynı hızla artmazsa, paranın değeri düşer ve fiyatlar yükselir. Genellikle yüksek devlet borçlanmaları veya kontrolsüz para basımı bu duruma yol açar.\n\n**4. Beklentiler ve Psikolojik Faktörler:**\nBireyler ve işletmeler gelecekte fiyatların artacağını öngörürse, bu beklenti bir \"kendi kendini gerçekleştiren kehanete\" dönüşebilir. İşletmeler gelecekteki maliyet artışlarını şimdiden fiyatlara yansıtır, tüketiciler ise fiyatlar daha da artmadan mal satın almaya çalışır. Bu da fiyat artışını hızlandırır.\n\n**5. Döviz Kurlarındaki Değişimler:**\nBir ülkenin para birimi karşısında değer kaybederse, ithal edilen ürünlerin (teknoloji, ilaç, hammadde vb.) maliyeti artar. Bu durum yerel piyasadaki fiyatların genel olarak yükselmesine neden olur.",
+     "ttft_ms": 25493.7,
+     "context_prep_ms": 5.7,
+     "runtime_ttft_ms": 25488.0,
+     "prompt_tokens": 6959
+    },
+    {
+     "user": "Gökyüzü neden mavidir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 27820,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 16
+     },
+     "total_ms": 46357,
+     "timed_out": false,
+     "errors": [],
+     "words": 252,
+     "reply": "Gökyüzünün mavi görünmesinin temel nedeni, güneş ışığının Dünya'nın atmosferindeki gaz molekülleri ve küçük parçacıklar tarafından saçılmasıdır. Bu olay bilimsel olarak **Rayleigh Saçılması** olarak adlandırılır.\n\nSüreç şu şekilde işler:\n\n1.  **Güneş Işığının Yapısı:** Güneşten gelen ışık aslında \"beyaz\" görünse de, aslında tüm görünür renklerin (kırmızı, turuncu, sarı, yeşil, mavi, lacivert, menekşe) birleşimidir. Her rengin farklı bir dalga boyu vardır; kırmızı ışığın dalga boyu uzunken, mavi ışığın dalga boyu daha kısadır.\n2.  **Atmosferle Etkileşim:** Güneş ışığı Dünya atmosferine girdiğinde, havadaki azot ve oksijen gibi gaz molekülleriyle çarpışır.\n3.  **Seçici Saçılma:** Kısa dalga boyuna sahip olan renkler (özellikle mavi ve menekşe), uzun dalga boylu renklere (kırmızı ve sarı) göre atmosferdeki moleküller tarafından çok daha fazla ve her yöne doğru saçılır.\n4.  **Gözümüzün Algısı:** Saçılan bu mavi ışık, gökyüzünün her yanından gözümüze ulaştığı için gökyüzü mavi görünür.\n\n**Peki neden mor değil?**\nTeorik olarak menekşe ışığı, maviden de kısa bir dalga boyuna sahip olduğu için daha fazla saçılmalıdır. Ancak gökyüzünü mor değil mavi görmemizin iki temel sebebi vardır:\n*   **Güneş Işığı:** Güneş spektrumunda mavi ışık, menekşe ışığa göre çok daha yoğun bir şekilde bulunur.\n*   **İnsan Gözü:** İnsan gözü mavi renge karşı, menekşe rengine göre çok daha hassastır. Bu nedenle beynimiz gökyüzünü baskın olarak mavi olarak algılar.\n\n**Gün Batımında Neden Kırmızı?**\nGün batımında güneş ufka yaklaştığı için ışık çok daha uzun bir yol kat eder. Bu yol boyunca kısa dalga boylu mavi ışıkin neredeyse tamamı atmosfer tarafından saçılıp yok olur. Gözümüze ulaşan sadece dalga boyu uzun olan kırmızı ve turuncu ışıklar kaldığı için gökyüzü bu renklerde görünür.",
+     "ttft_ms": 27557.0,
+     "context_prep_ms": 5.9,
+     "runtime_ttft_ms": 27551.1,
+     "prompt_tokens": 7484
+    },
+    {
+     "user": "Stresle başa çıkmak için ne önerirsin?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 30101,
+     "stages": {
+      "waiting": 14,
+      "processing_context": 18
+     },
+     "total_ms": 52144,
+     "timed_out": false,
+     "errors": [],
+     "words": 274,
+     "reply": "Stres, vücudun bir uyaran karşısında verdiği doğal bir tepkidir; ancak bu durumun kronikleşmesi hem fiziksel hem de zihinsel sağlığı olumsuz etkileyebilir. Stresi yönetmek için günlük hayatınıza dahil edebileceğiniz bazı yöntemler şunlardır:\n\n**1. Fiziksel Aktivite:**\nDüzenli egzersiz, vücutta endorfin ve serotonin gibi \"mutluluk hormonlarının\" salgılanmasını sağlar. Ağır sporlar yapmak zorunda değilsiniz; her gün yapılan 20-30 dakikalık tempolu bir yürüyüş bile stres seviyenizi önemli ölçüde düşürebilir.\n\n**2. Nefes Egzersizleri ve Meditasyon:**\nNefesinizi kontrol etmek, sinir sisteminize \"güvendeyiz\" mesajı gönderir. Özellikle \"4-7-8 tekniği\" (4 saniye nefes al, 7 saniye tut, 8 saniye ver) gibi basit yöntemler, ani stres anlarında vücudu sakinleştirmeye yardımcı olur. Meditasyon ise zihni \"anda\" tutarak gelecek kaygısını veya geçmiş pişmanlıklarını azaltabilir.\n\n**3. Uyku ve Beslenme Düzeni:**\nYetersiz uyku, stres toleransınızı doğrudan düşürür. Mümkünse her gün benzer saatlerde uyuyup uyanmaya çalışın. Ayrıca aşırı kafein ve şeker tüketimi, vücutta yapay bir heyecan hali yaratarak anksiyeteyi tetikleyebilir; bu konuda dengeli bir beslenme düzeni kurmak önemlidir.\n\n**4. Zaman Yönetimi ve Önceliklendirme:**\nBazen stres, üzerinde biriken ve bitmek bilmeyen iş yükünden kaynaklanır. Yapılacaklar listenizi parçalara bölün ve en önemli olanlardan başlayarak küçük adımlarla ilerleyin. \"Her şeyi aynı anda bitirme\" baskısını üzerinizden atmak, kontrol duygusunu geri kazandırır.\n\n**5. Sosyal Destek ve Hobiler:**\nGüvendiğiniz kişilerle duygularınızı paylaşmak, üzerinizdeki yükü hafifletir. Aynı zamanda, günlük hayatın sorumluluklarından tamamen uzaklaşabileceğiniz bir hobiye (resim, müzik, kitap okuma gibi) vakit ayırmak zihnin dinlenmesini sağlar.\n\n**6. \"Hayır\" Demeyi Öğrenmek:**\nKapasitenizden fazla sorumluluk almak stresin en büyük kaynağıdır. Kendi sınırlarınızı belirlemek ve size uygun olmayan taleplere nazikçe \"hayır\" diyebilmek, ruhsal sağlığınız için kritik bir öneme sahiptir.\n\n*Not: Eğer stres günlük yaşamınızı, işlevselliğinizi ve fiziksel sağlığınızı ciddi şekilde etkiliyorsa, bir uzmandan (psikolog veya psikiyatrist) destek almak en sağlıklı adımdır.*",
+     "ttft_ms": 29837.5,
+     "context_prep_ms": 4.7,
+     "runtime_ttft_ms": 29832.7,
+     "prompt_tokens": 8058
+    },
+    {
+     "user": "Kitap okuma alışkanlığı nasıl kazanılır?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 32853,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 17
+     },
+     "total_ms": 59266,
+     "timed_out": false,
+     "errors": [],
+     "words": 324,
+     "reply": "Kitap okuma alışkanlığı kazanmak, bir kası eğitmek gibidir; başlangıçta zorlayıcı görünebilir ancak düzenli pratikle zamanla doğal bir sürece dönüşür. Bu alışkanlığı oluşturmak için şu stratejileri izleyebilirsiniz:\n\n**1. İlgi Alanlarınıza Odaklanın:**\nÇoğu kişi \"klasik\" veya \"ağır\" kitaplarla başlamaya çalıştığı için hevesini kaybeder. Başlangıçta sizi gerçekten merak ettiren, merak uyandıran ve sürükleyici konulara yönelin. Polisiye, kişisel gelişim, biyografi ya da sadece eğlence amaçlı kurgu kitaplar; ne okursanız okuyun, önemli olan hikayenin sizi içine çekmesidir.\n\n**2. Küçük Hedeflerle Başlayın:**\n\"Günde 50 sayfa okuyacağım\" gibi büyük hedefler yerine, \"Günde sadece 10 dakika\" veya \"Günde 5 sayfa\" gibi ulaşılması çok kolay hedefler koyun. Bu, zihninizin \"bu çok kolay, yapabilirim\" demesini sağlar. Hedefler küçük olduğunda, okumayı başlatmak için harcayacağınız irade gücü azalır.\n\n**3. Belirli Bir Zaman ve Mekan Belirleyin:**\nOkumayı günün rastgele bir anına bırakmak yerine onu bir rutine bağlayın. Örneğin; kahvaltı sonrası, öğle molasında veya uyumadan hemen öncein 15 dakikasını sadece kitaplara ayırın. Belirli bir koltuk veya sakin bir köşe, zihninizin \"şu an dinlenme ve okuma zamanı\" sinyalini almasını sağlar.\n\n**4. Yanınızda Her Zaman Kitap Taşıyın:**\nBoş geçen küçük zaman dilimlerini (otobüs beklerken, sırada dururken, arkadaşınızı beklerken) değerlendirmek için yanınızda fiziksel bir kitap veya e-kitap bulundurun. Sosyal medyanın doğal akışında kaybolmak yerine bu küçük boşluklarda bir iki sayfa okumak, bir süre sonra büyük bir okuma süresine dönüşür.\n\n**5. Ortamı Hazırlayın:**\nOdaklanmanızı engelleyecek unsurları (özellikle telefon bildirimlerini) ortadan kaldırın. Telefonu başka bir odaya koymak veya \"Rahatsız Etmeyin\" moduna almak, derinlemesine okuma yapmanızı kolaylaştırır. Ayrıca, okumayı sevdiğiniz bir içecek veya konforlu bir ışıkla eşleştirmek, okuma eylemini bir \"ödül\" haline getirir.\n\n**6. Kendinizi Zorlamayın ve Yarım Bırakmaktan Çekinmeyin:**\nOkuduğunuz kitap sizi sarmıyorsa veya ilginizi çekmiyorsa bitirmek zorunda değilsiniz. Bir kitabı yarıda bırakmak başarısızlık değil, zamanınızı doğru yönetmektir. İlginizi çekmeyen bir kitabı bitirmeye çalışmak, okuma alışkanlığından soğumanıza neden olabilir.\n\n**7. Okuma Topluluklarına Katılın:**\nOkuduğunuz kitaplar hakkında konuşmak, yorum yapmak veya dijital platformlardaki kitap kulüplerine katılmak motivasyonunuzu artırır. Başkalarının önerilerini görmek ve kendi deneyimlerinizi paylaşmak, okuma sürecini daha sosyal ve keyifli bir hale getirir.",
+     "ttft_ms": 32590.3,
+     "context_prep_ms": 7.2,
+     "runtime_ttft_ms": 32583.0,
+     "prompt_tokens": 8726
+    },
+    {
+     "user": "Tasarruf yapmaya nereden başlamalıyım?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 35998,
+     "stages": {
+      "waiting": 7,
+      "processing_context": 14
+     },
+     "total_ms": 64817,
+     "timed_out": false,
+     "errors": [],
+     "words": 362,
+     "reply": "Tasarruf yapmak, sadece harcamayı kesmek değil, paranızı kontrol altına alma ve önceliklerinizi belirleme disiplinidir. Bu süreci sağlam bir temele oturtmak için şu adımları izleyebilirsiniz:\n\n**1. Mevcut Durumun Fotoğrafını Çekin:**\nNereye ne kadar harcadığınızı bilmeden tasarruf yapmak zordur. Bir ay boyunca tüm harcamalarınızı (en küçük kahve alımından kira ödemesine kadar) kategorize ederek not edin. Mobil bankacılık uygulamaları veya basit bir Excel tablosu kullanabilirsiniz. Bu, \"gizli kaçakları\" görmenizi sağlar.\n\n**2. Bütçe Planı Oluşturun (50/30/20 Kuralı):**\nGelirinizi yönetmek için yaygın olarak kullanılan bir yöntemdir:\n*   **%50 İhtiyaçlar:** Kira, fatura, mutfak masrafı, ulaşım gibi zorunlu giderler.\n*   **%30 İstekler:** Dışarıda yemek, sinema, abonelikler gibi keyfi harcamalar.\n*   **%20 Tasarruf ve Borç Ödeme:** Bu kısım doğrudan birikim veya mevcut borçların kapatılmasına gider.\nEğer \"İstekler\" kısmınız çok yüksekse, tasarrufa başlamak için önce buradaki payı kısmanız gerekir.\n\n**3. Acil Durum Fonu Oluşturun:**\nTasarrufa başlarken ilk hedefiniz, beklenmedik durumlar (işsizlik, sağlık sorunu, cihaz bozulması vb.) için bir \"güvenlik filesi\" oluşturmak olmalıdır. Aylık giderinizin 3 ila 6 katı kadar bir tutarı bir kenara ayırmak, stresinizi azaltır ve sizi borçlanmaktan korur.\n\n**4. Sabit Giderleri Optimize Edin:**\nHer ay otomatik olarak çekilen ödemeleri gözden geçirin:\n*   Kullanmadığınız veya nadir kullandığınız dijital platform üyeliklerini iptal edin.\n*   Faturayı daha uygun paket sunan operatörleri veya elektrik/doğalgaz tasarruf yöntemlerini araştırın.\n*   Market alışverişlerinde marka sadakati yerine indirim ve listeye bağlı alışverişi tercih edin.\n\n**5. \"İstek mi, İhtiyaç mı?\" Sorusu:**\nBir şey satın almadan önce kendinize 24 saat veya 48 saat bekletme kuralı koyun. Genellikle anlık dürtüsel harcamaların çoğu bu süre zarfında önemini kaybeder. Bir ürünü almadan önce şu üç soruyu sorun:\n*   Buna gerçekten ihtiyacım var mı?\n*   Bunu şu an satın almazsam ne kaybederim?\n*   Bu parayı başka bir hedefim (örneğin tatil veya yatırım) için kullanmak daha mı mantıklı?\n\n**6. Otomatik Tasarruf Sistemini Kurun:**\nTasarrufu ay sonundaki \"artana\" para olarak görürseniz genellikle bir şey kalmaz. Bunun yerine, maaşınız yatar yatmaz belirlediğiniz bir miktarı otomatik olarak başka bir hesaba (birikim hesabı vb.) aktarın. Önce kendinize (gelecekteki halinize) ödeme yapın, kalan parayı harcayın.\n\n**7. Küçük Alışkanlıkları Değiştirin:**\nDışarıda içilen kahveler, sürekli sipariş edilen yemekler veya çok sık yapılan küçük alışverişler birleştiğinde büyük bir meblağ oluşturur. Bunları evde hazırlayarak veya daha uygun yöntemlerle yaparak farkı hemen hissetmeye başlayabilirsiniz.",
+     "ttft_ms": 35773.5,
+     "context_prep_ms": 7.2,
+     "runtime_ttft_ms": 35766.3,
+     "prompt_tokens": 9514
+    },
+    {
+     "user": "Yeni bir dil öğrenmeye nasıl başlamalıyım?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 39292,
+     "stages": {
+      "waiting": 7,
+      "processing_context": 14
+     },
+     "total_ms": 72621,
+     "timed_out": false,
+     "errors": [],
+     "words": 401,
+     "reply": "Yeni bir dil öğrenmek, beyninizi yeniden kablolayan uzun ama ödüllendirici bir süreçtir. Bu süreci daha verimli, sürdürülebilir ve keyifli hale getirmek için şu stratejileri izleyebilirsiniz:\n\n**1. \"Neden\"inizi Belirleyin ve Hedef Koyun:**\nNeden öğrenmek istediğinizi bilmek (kariyer, kültürel ilgi, seyahat vb.), motivasyonunuzun düştüğü anlarda sizi ayakta tutacaktır. Ardından \"Akıcı konuşacağım\" gibi belirsiz hedefler yerine, \"3 ay içinde temel seviyede kendimi tanıtabileceğim\" veya \"İzlediğim bir diziyi altyazısız anlayacağım\" gibi ölçülebilir, kısa vadeli hedefler koyun.\n\n**2. Maruz Kalma (Immersion) Yöntemini Uygulayın:**\nDili sadece ders çalışarak değil, hayatınızın bir parçası yaparak öğrenmelisiniz.\n*   **Cihaz Dilini Değiştirin:** Telefonunuzu ve sosyal medya hesaplarınızı hedef dile çevirin.\n*   **Müzik ve Podcast:** Anlamasanız bile sürekli o dile maruz kalmak, beyninizin o dilin ritmine, vurgularına ve seslerine alışmasını sağlar.\n*   **Dizi ve Film:** Başlangıçta Türkçe altyazılı, biraz ilerleyince hedef dilin altyazılı, sonra ise tamamen altyazısız izlemeye çalışın.\n\n**3. Kelime Dağarcığını İnşa Edin (En Sık Kullanılanlar):**\nBir dildeki tüm kelimeleri öğrenmek imkansızdır. Başlangıçta dilin %80'ini kapsayan en yaygın 1000-2000 kelimeye odaklanın.\n*   **Anki veya Quizlet:** Aralıklı tekrarlama (Spaced Repetition System - SRS) yöntemini kullanan bu tür uygulamalar, kelimeleri unutmaya başladığınız an hatırlatarak kalıcı öğrenmeyi sağlar.\n*   **Bağlam İçinde Öğrenin:** Kelimeleri tek başına ezberlemek yerine cümle içinde öğrenmeye çalışın. Bu, kelimenin nasıl kullanıldığını anlamanızı sağlar.\n\n**4. Konuşma Pratiği Yapın (Erken Başlayın):**\nDil öğrenimindeki en büyük hata, \"tam öğrenince konuşacağım\" demektir. Konuşmak için hata yapmanız gerekir.\n*   **Kendi Kendinize Konuşun:** Günlük aktivitelerinizi o dilde anlatın. (Örneğin: \"Şu an kahve yapıyorum\", \"Bugün çok yorgunum\").\n*   **Dil Değişim Uygulamaları:** HelloTalk veya Tandem gibi uygulamalarla ana dili sizin öğrendiğiniz dil olan kişilerle mesajlaşabilir veya konuşabilirsiniz.\n*   **Gölge Etme (Shadowing):** Bir konuşmacıyı dinlerken onu eş zamanlı olarak (mümkünse taklit ederek) tekrar edin. Bu, telaffuz ve vurgu için mükemmel bir yöntemdir.\n\n**5. Düzenli ve Küçük Adımlar Atın:**\nHaftada bir gün 5 saat çalışmak yerine, her gün 20-30 dakika çalışmak çok daha etkilidir. Beyin, düzenli tekrarlarla bilgiyi uzun süreli hafızaya aktarır. Bir alışkanlık oluşturun; örneğin her sabah kahve içerken 10 kelime öğrenin veya her gece uyumadan önce 15 dakika bir podcast dinleyin.\n\n**6. Yazma Pratiği Yapın:**\nGünün sonunda o gün yaptıklarınızı 3-5 cümleyle hedef dilde yazmaya çalışın. Bu, cümle yapısını (gramerini) oturtmanıza ve öğrendiğiniz kelimeleri aktif kullanmanıza yardımcı olur.\n\n**7. Hata Yapmaktan Korkmayın:**\nDil öğreniminde en büyük engel \"rezil olurum\" düşüncesidir. Unutmayın ki amaç kusursuzluk değil, iletişimdir. Yanlış gramerle kendinizi ifade edebiliyorsanız, doğru olan zamanla yerine oturacaktır. Kendinize karşı nazik olun ve her gün bir adım ileri gittiğinizi hatırlayın.",
+     "ttft_ms": 39175.5,
+     "context_prep_ms": 7.0,
+     "runtime_ttft_ms": 39168.5,
+     "prompt_tokens": 10364
+    },
+    {
+     "user": "SQL'de JOIN türleri nelerdir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 43597,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 17
+     },
+     "total_ms": 73134,
+     "timed_out": false,
+     "errors": [],
+     "words": 383,
+     "reply": "SQL'de **JOIN** işlemi, iki veya daha fazla tablo arasındaki ortak sütunlar (genellikle birincil ve yabancı anahtar) üzerinden ilişkili verileri birleştirerek tek bir sonuç kümesi oluşturmak için kullanılır.\n\nEn yaygın kullanılan JOIN türleri şunlardır:\n\n### 1. INNER JOIN\nEn çok kullanılan JOIN türüdür. Her iki tabloda da eşleşen karşılığı olan satırları getirir. Eğer bir tablodaki veri diğerinde karşılık bulmuyorsa, o satır sonuç kümesine dahil edilmez.\n*   **Örnek:** *Müşteriler* ve *Siparişler* tablolarını birleştirirken, sadece sipariş vermiş müşterileri listeler.\n\n### 2. LEFT (OUTER) JOIN\nSol tablodaki (ilk yazılan tablo) tüm kayıtları ve sağ tablodaki eşleşen kayıtları getirir. Sağ tablodaki karşılık bulunamazsa, o kısımlar **NULL** olarak görünür.\n*   **Örnek:** *Müşteriler* ve *Siparişler* tablolarını birleştirirken, sipariş vermemiş müşteriler de dahil olmak üzere tüm müşterileri ve varsa siparişlerini listeler.\n\n### 3. RIGHT (OUTER) JOIN\nSağ tablodaki (ikinci yazılan tablo) tüm kayıtları ve sol tablodaki eşleşen kayıtları getirir. Sol tablodaki karşılık bulunamazsa, o kısımlar **NULL** olarak görünür.\n*   **Örnek:** *Siparişler* ve *Müşteriler* tablolarını birleştirirken, sistemde kayıtlı ancak müşteri bilgisi eksik olan siparişleri de dahil etmek için kullanılır (pratikte LEFT JOIN ile aynı sonucu genellikle farklı tablo sırasıyla verir).\n\n### 4. FULL (OUTER) JOIN\nHer iki tablodaki tüm kayıtları getirir. Eşleşen kayıtlar yan yana getirilir; eşleşmeyen kısımlar ise her iki tablo için de **NULL** olarak gösterilir. Yani \"Left Join\" ve \"Right Join\"in birleşimi gibidir.\n*   *Not: Bazı veritabanı sistemlerinde (örneğin MySQL) doğrudan FULL JOIN desteği olmayabilir, bunun yerine UNION ile LEFT ve RIGHT JOIN birleştirilerek yapılır.*\n\n### 5. CROSS JOIN\nİki tablo arasındaki her bir satırı, diğer tablodaki her bir satırla eşleştirir. Yani \"Kartezyen Çarpım\" yapar. Hiçbir filtreleme veya \"ON\" koşulu içermez.\n*   **Örnek:** 3 farklı renk ve 3 farklı beden seçeneği varsa, CROSS JOIN bunları birleştirerek 9 farklı ürün varyasyonu oluşturur.\n\n### 6. SELF JOIN\nBir tablonun kendisiyle birleştirilmesidir. Genellikle bir tablo içindeki hiyerarşik verileri (örneğin her çalışanın bir yöneticisi varsa ve yöneticiler de aynı tabloda çalışansa) çekmek için kullanılır.\n*   **Örnek:** *Çalışanlar* tablosunda `YoneticiID` sütununun yine aynı tablodaki `CalisanID` sütununa bağlanması.\n\n**Özet Tablo:**\n\n| JOIN Türü | Ne Getirir? |\n| :--- | :--- |\n| **INNER** | Sadece eşleşenleri. |\n| **LEFT** | Soldakilerin hepsini + eşleşen sağdakileri. |\n| **RIGHT** | Sağdakilerin hepsini + eşleşen soldakileri. |\n| **FULL** | Her iki tablodaki her şeyi (eşleşmese de). |\n| **CROSS** | Her şeyin her şeyiyle kombinasyonunu. |",
+     "ttft_ms": 43293.4,
+     "context_prep_ms": 6.9,
+     "runtime_ttft_ms": 43286.5,
+     "prompt_tokens": 11328
+    },
+    {
+     "user": "İyi bir özgeçmişte neler olmalı?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 47226,
+     "stages": {
+      "waiting": 11,
+      "processing_context": 18
+     },
+     "total_ms": 84250,
+     "timed_out": false,
+     "errors": [],
+     "words": 436,
+     "reply": "İyi bir özgeçmiş (CV), işe alım uzmanının veya sistemin (ATS - Aday Takip Sistemi) saniyeler içinde potansiyel aday hakkında net bir fikir sahibi olmasını sağlamalıdır. Özgeçmişiniz bir \"başarı hikayesi\" özetidir; sadece yaptığınız işleri değil, bu işlerden ne elde ettiğinizi anlatmalıdır.\n\nEtkili bir özgeçmişte bulunması gereken temel bileşenler şunlardır:\n\n### 1. İletişim Bilgileri ve Profil Özeti\n*   **Net İletişim:** Ad-soyad, profesyonel bir telefon numarası, aktif kullanılan bir e-posta adresi ve LinkedIn profil linki. (Adres için tam açık yerine şehir/ilendirme yeterlidir).\n*   **Profesyonel Özet (Summary):** CV'nizin en başında yer alan 3-4 cümlelik bölümdür. Kim olduğunuzu, en büyük başarınızı ve ne katabileğinizi özetler. \"Deneyimli bir Yazılım Geliştiriciyim\" demek yerine, \"5 yıllık deneyimiyle yüksek trafikli e-ticaret sistemleri kurgulamış, Java uzmanı bir Yazılım Geliştiriciyim\" demek çok daha etkilidir.\n\n### 2. İş Deneyimi (Kronolojik Sıra)\nEn son işinizden başlayarak geriye doğru gidin. Her deneyim için şu yapıyı kullanın:\n*   **Şirket Adı, Pozisyon ve Tarihler.**\n*   **Başarı Odaklı Görev Tanımları:** Sadece \"X işini yaptım\" demeyin. \"X işini yaparak Y sonucunu elde ettim\" formülünü kullanın.\n    *   *Zayıf:* \"Sosyal medya hesaplarını yönettim.\"\n    *   *Güçlü:* \"Sosyal medya stratejisini değiştirerek 6 ay içinde etkileşim oranını %40 artırdım.\"\n*   **Sayısal Veriler:** Mümkünse her başarıyı rakamlarla destekleyin (Bütçe tasarrufu, satış artışı, ekip büyüklüğü, tamamlanan proje sayısı vb.).\n\n### 3. Eğitim Bilgileri\n*   Mezun olunan okul, bölüm, mezuniyet tarihi ve (varsa) yüksek not ortalaması.\n*   Yeni mezunsanız, iş deneyiminden daha önemli olabilir; bu durumda projelerinize ve stajlarınıza ağırlık verin.\n\n### 4. Yetkinlikler (Skills)\n*   **Hard Skills (Teknik Yetkinlikler):** Kullandığınız programlar, diller, teknik araçlar (Örn: Python, SQL, Adobe Photoshop, Excel, Proje Yönetimi Metodolojileri).\n*   **Soft Skills (Sosyal Yetkinlikler):** Bunları sadece liste olarak yazmak yerine iş deneyimi içinde kanıtlayın. (Örn: \"Liderlik\" demek yerine, \"5 kişilik bir ekibi yönettim\" demek daha güçlüdür).\n\n### 5. Sertifikalar, Projeler ve Diller\n*   **Sertifikalar:** Sektörle ilgili güncel eğitimleri ve başarı belgelerini ekleyin.\n*   **Projeler:** Özellikle portfolyo gerektiren alanlarda (yazılım, tasarım, mimarlık) yaptığınız önemli projelerin kısa özetleri veya linkleri.\n*   **Diller:** Seviyelerinizi net belirtin (Örn: İngilizce - İleri Seviye/C1).\n\n### İyi Bir Özgeçmiş İçin Altın Kurallar:\n*   **ATS Dostu Tasarım:** Çok karmaşık grafikler, tablolar veya karmaşık sütunlar kullanmaktan kaçının. Şirketlerin kullandığı otomatik tarama sistemleri (ATS) basit metin yapısını daha iyi okur.\n*   **Anahtar Kelime Kullanımı:** İş ilanındaki açıklamaları dikkatlice okuyun. İlanda geçen ve sizin sahip olduğunuz kritik becerileri (örneğin \"Agile yönetimi\", \"Veri analitiği\") özgeçmişinizde uygun yerlerde mutlaka geçirin.\n*   **Uzunluk:** Deneyiminize göre 1 ile 2 sayfa arasında olmalı. Gereksiz detaylardan kaçının.\n*   **Dosya Formatı:** Aksi belirtilmedikçe her zaman **PDF** formatında gönderin; bu, tasarımın ve yazı tipinin bozulmamasını sağlar.\n*   **Yazım Kuralları:** İmla hatası barındıran bir özgeçmiş, profesyonellikten uzak bir imaj çizer. Göndermeden önce mutlaka birkaç kez kontrol edin.",
+     "ttft_ms": 46959.0,
+     "context_prep_ms": 6.5,
+     "runtime_ttft_ms": 46952.4,
+     "prompt_tokens": 12190
+    },
+    {
+     "user": "Sabah koşusu mu akşam koşusu mu daha iyi?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 51927,
+     "stages": {
+      "waiting": 13,
+      "processing_context": 20
+     },
+     "total_ms": 82210,
+     "timed_out": false,
+     "errors": [],
+     "words": 392,
+     "reply": "Sabah ve akşam koşusu arasında \"hangisi daha iyi\" sorusunun cevabı, tamamen sizin yaşam tarzınıza, biyolojik saatinize ve hedeflerinizle doğrudan ilişkilidir. Her iki zaman diliminin de kendine özgü avantajları ve dezavantajları bulunmaktadır:\n\n### Sabah Koşusunun Avantajları\n*   **Metabolizmayı Canlandırır:** Sabah yapılan egzersiz, vücudun metabolizma hızını artırarak gün boyu daha fazla kalori yakmanıza yardımcı olabilir.\n*   **Zihinsel Netlik ve Disiplin:** Güne sporla başlamak, dopamin ve endorfin salgısını tetikleyerek zihni açar, odaklanmayı artırır ve günün geri kalanı için motivasyon sağlar. \"Yapıldı\" hissi, günün geri kalanındaki stresle başa çıkmayı kolaylaştırır.\n*   **Düzenli Rutin:** Sabah saatlerinde dışarıdan gelen başka iş veya sosyal planlar daha az olduğu için, spor yapma ihtimalinin kaçması daha düşüktür.\n*   **Temiz Hava ve Sessizlik:** Sabah saatleri genellikle trafik ve gürültü açısından daha sakin olduğundan, daha huzurlu bir ortamda koşabilirsiniz.\n\n**Dezavantajı:** Vücut sabahları daha \"soğuk\" ve eklemler daha sert durumdadır. Bu nedenle sabah koşusunda ısınma süresini daha uzun tutmak sakatlık riskini azaltmak için kritiktir.\n\n### Akşam Koşusunun Avantajları\n*   **Performans ve Güç:** Vücut sıcaklığı akşam saatlerine doğru yükselir ve kaslar daha esnek hale gelir. Bu durum, daha yüksek tempo ve daha yüksek güç performansı göstermenizi sağlayabilir.\n*   **Stres Atma:** Yoğun bir iş gününün ardından koşu yapmak, günün stresinden arınmanın ve zihni boşaltmanın harika bir yoludur.\n*   **Daha Az Sakatlık Riski:** Kaslar ve eklemler gün boyu hareket ettiği için akşam saatlerinde daha \"hazır\" durumdadır.\n*   **Daha İyi Uyku:** Bazı kişiler için akşam sporu vücut ısısını düzenleyerek gece daha kaliteli bir uyku çekmelerine yardımcı olabilir (ancak uykudan hemen önceki çok yoğun egzersiz tam tersi etki yapabilir).\n\n**Dezavantajı:** Akşam saatlerinde iş çıkışı yorgunluğu, sosyal planlar veya ev işleri gibi \"erteleme\" bahaneleri daha fazladır. Ayrıca çok geç saatte yapılan yoğun egzersiz, bazı kişilerde adrenalin artışı nedeniyle uykuya dalmayı zorlaştırabilir.\n\n### Hangisini Seçmelisiniz?\nEn iyi koşu zamanı, **tutarlı bir şekilde sürdürebildiğiniz zamandır.**\n\n1.  **Hedefiniz Yağ Yakımı ve Disiplinse:** Sabah koşusu size zihinsel bir üstünlük ve metabolik bir avantaj sağlayabilir.\n2.  **Hedefiniz Performans ve Güçse:** Akşam saatleri, vücudun fiziksel olarak daha hazırlı olduğu bir zamandır.\n3.  **En Önemli Kriter:** Hayatınızın akışına hangisi daha kolay entegre oluyor? Eğer sabah yapmak sizi çok zorluyor ve sürekli erteliyorsanız, akşam yapmak sizin için \"daha iyi\" olan tercihtir.\n\n**Küçük Bir İpucu:** Eğer sabah koşusunu seçerseniz, yatmadan önce kıyafetlerinizi hazırlamak ve hafif bir kahvaltı (veya sadece su) yapmak süreci kolaylaştırır. Akşam seçiyorsanız, işten eve geldiğinizde doğrudan dışarı çıkacak şekilde plan yapmak (dinlenmeye uzanmadan önce) sürekliliği sağlar.",
+     "ttft_ms": 51765.6,
+     "context_prep_ms": 7.5,
+     "runtime_ttft_ms": 51758.0,
+     "prompt_tokens": 13252
+    },
+    {
+     "user": "Git'te rebase ile merge arasındaki fark ne?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 162647,
+     "stages": {
+      "waiting": 8,
+      "compacting": 9,
+      "processing_context": 148337
+     },
+     "total_ms": 194235,
+     "timed_out": false,
+     "errors": [],
+     "words": 427,
+     "reply": "Git'te hem `merge` hem de `rebase` komutları, farklı dallardaki (branch) çalışmaları birleştirmek için kullanılır ancak bu birleştirmeyi **geçmişe (history) nasıl işledikleri** konusunda temelden farklılık gösterirler.\n\nEn kısa özetle: **Merge** mevcut geçmişi olduğu gibi korur ve yeni bir birleştirme noktası ekler; **Rebase** ise bir dalın başlangıç noktasını değiştirerek geçmişi yeniden yazar.\n\nİşte teknik detaylarıyla farkları:\n\n### 1. Merge (Birleştirme)\n`merge` komutunu kullandığınızda, Git iki dalın uç noktalarını alır ve bunları birleştiren yeni bir **\"merge commit\"** oluşturur.\n\n*   **Geçmiş:** Mevcut dalın ve birleştirilen dalın geçmişi tamamen korunur. Hangi dalın ne zaman birleştirildiği net bir şekilde görülür.\n*   **Görünüm:** Git ağacı (graph) üzerinde karmaşık bir ağaç yapısı oluşur. Birçok paralel dalın bir noktada birleştiği \"düğümler\" görülür.\n*   **Güvenlik:** Mevcut commit'ler değiştirilmez. Bu nedenle ortak çalışan (shared) dallarda (örneğin `main` veya `develop`) her zaman güvenli yöntemdir.\n*   **Ne zaman kullanılır?** Bir özelliğin (feature) tamamlandığı ve ana dala dahil edildiği noktada, \"bu iş bitti ve ana dala eklendi\" bilgisini açıkça görmek istediğinizde.\n\n### 2. Rebase (Yeniden Temellendirme)\n`rebase` komutunu kullandığınızda, bir dalın üzerine uygulanan commit'leri alır ve hedef dalın en son commit'inin üzerine **yeniden uygular.**\n\n*   **Geçmiş:** Git, sanki siz çalışmaya en son commit'in üzerinden başlamışsınız gibi geçmişi yeniden yazar. Commit'lerin \"ebeveyn\" (parent) adresleri değiştiği için teknik olarak yeni commit'ler oluşur.\n*   **Görünüm:** Git ağacı dümdüz ve lineer (doğrusal) bir hat gibi görünür. Karmaşık dallanmalar ve birleştirme commit'leri gizlenir.\n*   **Güvenlik:** Mevcut commit'lerin ID'lerini değiştirdiği için **ortak dallarda asla kullanılmamalıdır.** Eğer başkasının üzerinde çalıştığı bir dala rebase yaparsanız, diğer kişilerin geçmişi bozulur ve ciddi çatışmalara yol açar.\n*   **Ne zaman kullanılır?** Kendi yerel dalınızda çalışırken, ana daldaki en son değişiklikleri kendi dalınıza dahil etmek ve temiz bir geçmiş (linear history) oluşturmak için kullanılır.\n\n---\n\n### Karşılaştırma Özeti\n\n| Özellik | Merge | Rebase |\n| :--- | :--- | :--- |\n| **Geçmiş Yapısı** | Dallanmış ve karmaşık ama dürüst. | Doğrusal ve temiz ama \"yeni yazılmış\". |\n| **Commit Kaydı** | Yeni bir \"Merge Commit\" ekler. | Yeni bir merge commit eklemez, geçmişi taşır. |\n| **Takip Edilebilirlik** | Ne zaman birleştiği kolayca görülür. | Ne zaman birleştiği (rebase ile) ayırt edilemez. |\n| **Güvenlik** | Güvenli (Paylaşılan dallarda ideal). | Tehlikeli (Yalnızca yerel dallarda önerilir). |\n\n### Hangisini Seçmelisiniz?\n\nGenel kabul görmüş en iyi pratik şudur:\n1.  **Yerel Çalışmalarınızda:** Kendi dalınızda çalışırken ana daldaki güncel değişiklikleri almak için `rebase` kullanın. Bu, çalışmanızı her zaman en güncel kodun üzerine kurmanızı sağlar ve temiz bir geçmiş sunar.\n2.  **Takım Çalışmalarında / Paylaşılan Dallarda:** Bir özelliği tamamlayıp ana dala (main/master) gönderirken `merge` kullanın. Bu, ekibin ortak geçmişini bozmadan güvenli bir şekilde birleştirme sağlar.",
+     "ttft_ms": 162395.9,
+     "context_prep_ms": 148329.8,
+     "runtime_ttft_ms": 14058.0,
+     "prompt_tokens": 3937
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 46,
+    "summaries": 3
+   },
+   "settle": {
+    "settled": true,
+    "s": 19.7
+   },
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6FKQWW1PA72VTXFXFEGNYSW",
+     "summary_version": 3,
+     "to_seq": 40,
+     "chunks": 3,
+     "kept_items": 10,
+     "dropped_items": 2,
+     "tokens_before": 14128,
+     "tokens_after": 4882,
+     "duration_ms": 148325
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "writer60",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23074,
+     "stages": {
+      "waiting": 11,
+      "processing_context": 14
+     },
+     "total_ms": 33952,
+     "timed_out": false,
+     "errors": [],
+     "words": 132,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş enerjisini kullanarak karbondioksit ve suyu şeker gibi kimyasal enerjiye dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**Işık Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların içindeki tilakoid zarlarda gerçekleşir. Işık enerjisi, klorofil molekülleri tarafından emilir ve su moleküllerini parçalayarak oksijen açığa çıkarır. Bu sırada üretilen ATP ve NADPH molekülleri, bir sonraki aşama için enerji kaynağı olarak kullanılır.\n\n**Işık Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve ışığa doğrudan ihtiyaç duymaz. Işık bağımlı reaksiyonlardan gelen ATP ve NADPH kullanılarak, atmosferden alınan karbondioksit (CO2) döngüye sokulur ve glikoz gibi organik bileşikler sentezlenir.\n\n**Temel Denklem:**\n6CO2 + 6H2O + Işık Enerjisi → C6H12O6 (Glikoz) + 6O2\n\nÖzetle; bitki güneşten aldığı enerjiyi kullanarak su ve karbondioksiti besin maddesine dönüştürürken, yan ürün olarak atmosfere oksijen salar.",
+     "ttft_ms": 22709.1,
+     "context_prep_ms": 3.5,
+     "runtime_ttft_ms": 22705.6,
+     "prompt_tokens": 6220
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "prewarm",
+      "age_s": 10.2
+     },
+     "first_delta_ms": 1081,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 514
+     },
+     "total_ms": 13977,
+     "timed_out": false,
+     "errors": [],
+     "words": 158,
+     "reply": "Bulut bilişim, bilgisayar kaynaklarının (sunucu, depolama, veritabanı, yazılım vb.) internet üzerinden, fiziksel olarak kullanıcıya ait olmayan merkezi sistemlerden talep üzerine kiralanması veya paylaşılarak kullanılmasıdır. Kendi bilgisayarınızda veya yerel sunucunuzda barındırmak yerine, hizmet sağlayıcıların sunduğu geniş altyapıyı kullanmanıza olanak tanır.\n\nBulut bilişimin temel özellikleri şunlardır:\n\n*   **Ölçeklenebilirlik:** İhtiyaca göre kaynak kapasitesini (örneğin depolama alanını veya işlemci gücünü) anında artırabilir veya azaltabilirsiniz.\n*   **Erişilebilirlik:** İnternet bağlantısı olan her cihazdan (telefon, tablet, bilgisayar) verilere ve uygulamalara ulaşabilirsiniz.\n*   **Maliyet Avantajı:** Donanım satın alma ve bakım maliyetlerini ortadan kaldırarak, genellikle \"kullandığın kadar öde\" modeliyle çalışır.\n*   **Bakım Kolaylığı:** Yazılım güncellemeleri, güvenlik yamaları ve altyapı yönetimi hizmet sağlayıcı tarafından gerçekleştirilir.\n\nYaygın olarak kullanılan üç temel servis modeli bulunmaktadır:\n\n1.  **IaaS (Infrastructure as a Service):** Temel altyapı (sunucu, depolama, ağ) kiralama.\n2.  **PaaS (Platform as a Service):** Yazılım geliştiricilerin uygulama oluşturup çalıştırabileceği platformlar.\n3.  **SaaS (Software as a Service):** Doğrudan son kullanıcının internet üzerinden kullandığı hazır yazılımlar (örneğin e-posta servisleri veya çevrimiçi doküman araçları).",
+     "ttft_ms": 829.7,
+     "context_prep_ms": 506.3,
+     "runtime_ttft_ms": 323.3,
+     "prompt_tokens": 3056
+    },
+    {
+     "user": "Enflasyon neden olur?",
+     "background_at_send": null,
+     "first_delta_ms": 633,
+     "stages": {
+      "waiting": 20,
+      "processing_context": 26
+     },
+     "total_ms": 16147,
+     "timed_out": false,
+     "errors": [],
+     "words": 218,
+     "reply": "Enflasyon, mal ve hizmetlerin fiyatlarındaki genel ve sürekli artış, buna bağlı olarak ise paranın satın alma gücünün azalmasıdır. Ekonomistler enflasyonun nedenlerini genellikle şu temel başlıklar altında toplar:\n\n**1. Talep Enflasyonu:**\nToplumun tüketim talebinin, piyasadaki ürün arzından daha hızlı artması durumudur. \"Çok fazla para, çok az mal\" prensibiyle, insanlar aynı ürün için daha fazla ödeme yapmaya hazır olduğunda fiyatlar yükselir. Bu durum genellikle ekonomik büyüme dönemlerinde veya piyasaya fazla para arzı girdiğinde görülür.\n\n**2. Maliyet Enflasyonu:**\nÜretim maliyetlerindeki artışların ürün fiyatlarına yansıtılmasıdır. Örneğin; ham madde fiyatlarının, enerji (elektrik, doğalgaz) maliyetlerinin veya işçilik giderlerinin artması, üreticinin ürünü daha pahalıya satmasına neden olur. Bu durumda enflasyon, arz tarafındaki bir zorunluluktan kaynaklanır.\n\n**3. Para Arzı ve Para Politikası:**\nMerkez bankalarının piyasaya çok fazla para sürdüğünde, paranın değeri düşer. Eğer bir ekonomide dolaşımdaki para miktarı, üretilen mal ve hizmet miktarından çok daha hızlı artarsa, paranın satın alma gücü azalır ve fiyatlar yukarı yönlü hareket eder.\n\n**4. Beklenti Enflasyonu:**\nİnsanların ve işletmelerin gelecekte fiyatların artacağına dair inancıdır. Eğer herkes yarın fiyatların artacağını öngörürse, bugünden daha fazla fiyat artırır veya zam yapar. Bu durum bir döngüye dönüşerek enflasyonu besleyen bir \"kendini gerçekleştiren kehanet\"e dönüşebilir.\n\n**5. Döviz Kurlarındaki Değişim:**\nİthalat bağımlılığı yüksek olan bir ekonomide, yerel paritenin değer kaybetmesi (kur artışı) ithal edilen ürünlerin fiyatını doğrudan yükseltir. Bu da iç piyasadaki genel fiyat seviyelerini yukarı çeker.",
+     "ttft_ms": 406.2,
+     "context_prep_ms": 6.4,
+     "runtime_ttft_ms": 399.7,
+     "prompt_tokens": 3476
+    },
+    {
+     "user": "Gökyüzü neden mavidir?",
+     "background_at_send": null,
+     "first_delta_ms": 661,
+     "stages": {
+      "waiting": 20,
+      "processing_context": 27
+     },
+     "total_ms": 12215,
+     "timed_out": false,
+     "errors": [],
+     "words": 177,
+     "reply": "Gökyüzünün mavi görünmesinin temel nedeni, **Rayleigh Saçılması** adı verilen fiziksel bir olaydır.\n\nGüneşten gelen ışık aslında bir gökkuşağı gibi tüm renkleri (dalga boylarını) içerir. Bu ışık Dünya'nın atmosferine girdiğinde, atmosferdeki gaz molekülleri (özellikle azot ve oksijen) ve küçük hava parçacıklarıyla etkileşime girer.\n\nBu süreç şu şekilde işler:\n\n*   **Saçılma Farklılığı:** Işığın her rengi aynı şekilde saçılmaz. Kısa dalga boyuna sahip renkler (mavi ve mor), uzun dalga boyuna sahip renklere (kırmızı ve turuncu) göre atmosferdeki moleküllere çarptığında çok daha fazla ve daha yoğun bir şekilde her yöne saçılır.\n*   **Neden Mor Değil?** Işık tayfında mor, maviden daha kısa dalga boyuna sahip olsa da gökyüzü mor görünmez. Bunun iki ana sebebi vardır: Birincisi, Güneş'ten gelen ışığın mor renk oranının maviye göre daha düşük olması; ikincisi ise insan gözünün mavi renge karşı çok daha hassas olmasıdır.\n\n**Gün batımında neden kırmızıdır?**\nGüneş batarken ışık atmosferde çok daha uzun bir yol kateder. Bu uzun yol boyunca kısa dalga boylu mavi ışık neredeyse tamamen saçılıp yok olur ve gözümüze sadece saçılmaya karşı daha dirençli olan uzun dalga boylu kırmızı ve turuncu ışıklar ulaşır.",
+     "ttft_ms": 396.3,
+     "context_prep_ms": 7.1,
+     "runtime_ttft_ms": 389.1,
+     "prompt_tokens": 3972
+    },
+    {
+     "user": "Stresle başa çıkmak için ne önerirsin?",
+     "background_at_send": null,
+     "first_delta_ms": 691,
+     "stages": {
+      "waiting": 21,
+      "processing_context": 28
+     },
+     "total_ms": 18548,
+     "timed_out": false,
+     "errors": [],
+     "words": 209,
+     "reply": "Stresle başa çıkmak için uygulayabileceğiniz, bilimsel olarak desteklenen bazı yöntemler bulunmaktadır. İhtiyacınıza göre şu yaklaşımları değerlendirebilirsiniz:\n\n**Fiziksel ve Biyolojik Yaklaşımlar:**\n*   **Düzenli Egzersiz:** Fiziksel aktivite, vücutta endorfin ve serotonin gibi \"mutluluk hormonu\" olarak bilinen kimyasalların salgılanmasını sağlar. Günlük kısa yürüyüşler bile sinir sistemini sakinleştirebilir.\n*   **Nefes Egzersizleri:** \"4-7-8 tekniği\" gibi derin nefes alma yöntemleri, vücudun \"savaş ya da kaç\" tepkisini dindirerek parasempatik sinir sistemini aktive eder.\n*   **Uyku Düzeni:** Yetersiz uyku, stres toleransını düşürür. Düzenli bir uyku programı, zihnin gün içindeki stresörlerle daha sağlıklı başa çıkmasına yardımcı olur.\n\n**Zihinsel ve Psikolojik Yaklaşımlar:**\n*   **Farkındalık (Mindfulness):** O anki ana odaklanmak ve olayları yargılamadan gözlemlemek, geçmişe dair pişmanlıkları veya geleceğe dair kaygıları azaltabilir.\n*   **Zaman Yönetimi ve Önceliklendirme:** Bazen stresin kaynağı üzerinizdeki aşırı yük olabilir. İşlerinizi önem sırasına göre listelemek ve \"hayır\" diyebilmeyi öğrenmek, yönetilebilir bir plan sunar.\n*   **Dijital Detoks:** Sürekli bilgi akışı ve sosyal medya kullanımı, farkında olmadan stres seviyesini tetikleyebilir. Belirli saatlerde teknolojiden uzaklaşmak zihni dinlendirir.\n\n**Yaşam Tarzı ve Sosyal Destek:**\n*   **Hobiler:** Yaratıcı faaliyetlerle uğraşmak (resim, enstrüman, bahçe işleri vb.) zihni stres kaynağından uzaklaştırıp \"akış\" haline girmeyi sağlar.\n*   **Sosyal Destek:** Güvendiğiniz kişilerle duygularınızı paylaşmak, yükünüzün hafiflemesine yardımcı olabilir.\n\n*Not: Eğer stres günlük hayatınızı sürdürmenizi engelleyecek düzeyde kronikleşirse, bir uzmandan profesyonel destek almak en sağlıklı adım olacaktır.*",
+     "ttft_ms": 426.3,
+     "context_prep_ms": 7.5,
+     "runtime_ttft_ms": 418.8,
+     "prompt_tokens": 4359
+    },
+    {
+     "user": "Kitap okuma alışkanlığı nasıl kazanılır?",
+     "background_at_send": null,
+     "first_delta_ms": 704,
+     "stages": {
+      "waiting": 27,
+      "processing_context": 34
+     },
+     "total_ms": 18966,
+     "timed_out": false,
+     "errors": [],
+     "words": 238,
+     "reply": "Kitap okuma alışkanlığı kazanmak, zihni bu yeni eyleme alıştırmak için küçük ve sürdürülebilir adımlarla başlamayı gerektirir. Şu yöntemleri deneyebilirsiniz:\n\n**1. İlgi Alanlarınıza Odaklanın:**\nBaşlangıçta \"okunması gereken\" ağır klasikler yerine, gerçekten merak ettiğiniz veya günlük hayatınızla ilgili konuları seçin. Sevdiğiniz bir türde (polisiye, biyografi, kişisel gelişim vb.) kitap seçmek, okuma motivasyonunu doğrudan artırır.\n\n**2. Küçük Hedeflerle Başlayın:**\nKendinize çok büyük hedefler koymak (örneğin \"günde 50 sayfa\") yerine, küçük ve başarıldıkça motivasyonunuzu besleyecek hedefler belirleyin. Günde sadece 10 sayfa okumak veya günde 15 dakika ayırmak bile bir süre sonra alışkanlığın yerleşmesini sağlar.\n\n**3. Ortam ve Zamanı Planlayın:**\nOkuma eylemi için kendinize özel bir alan ve zaman dilimi belirleyin. Bu, yatmadan önce 20 dakika veya kahvaltı sonrası gibi belirli bir rutin olabilir. Rahat bir koltuk ve sessiz bir ortam, zihninizin kitaba odaklanmasını kolaylaştırır.\n\n**4. Yanınızda Her Zaman Kitap Taşıyın:**\nBeklenmedik boşlukları (otobüs sırası, kantin bekleyişi, asansör sırası vb.) değerlendirmek için yanınızda mutlaka bir kitap veya e-kitap bulundurun. Bu küçük anların birikimi, günlük okuma miktarınızı fark etmeden artıracaktır.\n\n**5. Odaklanmayı Kolaylaştırın:**\nOkuma sırasında telefon bildirimleri gibi dikkat dağıtıcı unsurları uzaklaştırın. İlk birkaç hafta zihniniz dağılabilir; bu durumda okumayı kısa süreli seanslara bölmek (örneğin 25 dakika okuyup 5 dakika mola vermek) odaklanmanıza yardımcı olabilir.\n\n**6. Çeşitlilikden Korkmayın:**\nEğer bir kitap sizi içine çekmiyorsa, kendinizi bitirmek için zorlamak zorunda değilsiniz. İlginizi çekmeyen bir kitabı yarıda bırakmak, yeni bir kitaba geçmek için bir fırsattır. Okuma sürecini bir görevden ziyade bir keyif süreci olarak görmeye çalışın.",
+     "ttft_ms": 428.7,
+     "context_prep_ms": 7.1,
+     "runtime_ttft_ms": 421.6,
+     "prompt_tokens": 4923
+    },
+    {
+     "user": "Tasarruf yapmaya nereden başlamalıyım?",
+     "background_at_send": null,
+     "first_delta_ms": 646,
+     "stages": {
+      "waiting": 20,
+      "processing_context": 28
+     },
+     "total_ms": 25946,
+     "timed_out": false,
+     "errors": [],
+     "words": 310,
+     "reply": "Tasarruf yapmak, sadece harcamaları kısmak değil, aynı zamanda kaynaklarınızı daha bilinçli yönetme alışkanlığı kazanmaktır. Bu süreci sistematik hale getirmek için şu adımları izleyebilirsiniz:\n\n**1. Mevcut Durumunuzu Analiz Edin:**\nNereye ne kadar harcadığınızı bilmeden tasarruf yapmak zordur. Bir ay boyunca tüm harcamalarınızı (kira, faturalar, dışarıda yemek, abonelikler, ulaşım vb.) kategorize ederek kaydedin. Bu, \"gizli harcamalarınızı\" ve tasarruf potansiyelinizin yüksek olduğu alanları görmenizi sağlar.\n\n**2. Bütçe Planı Oluşturun:**\nGelirinizi üç ana kategoriye ayırabileceğiniz yaygın bir yöntem olan **50/30/20 kuralını** değerlendirebilirsiniz:\n*   **%50 Temel İhtiyaçlar:** Kira, faturalar, gıda gibi zorunlu giderler.\n*   **%30 İstekler:** Sosyal hayat, eğlence, hobiler gibi keyfi harcamalar.\n*   **%20 Tasarruf ve Borç Ödeme:** Gelecek için birikim veya mevcut borçların kapatılması.\n\n**3. Sabit Giderleri Optimize Edin:**\nEn kolay tasarruf, sürekli tekrarlayan giderleri azaltmaktır:\n*   **Abonelikler:** Kullanmadığınız veya nadir kullandığınız dijital platform, spor salonu gibi üyelikleri iptal edin.\n*   **Faturalar:** Enerji tasarrufu yöntemleri deneyin ve operatörünüzle görüşerek daha uygun paketleri değerlendirin.\n*   **Pazarlık:** Mümkün olan hizmetlerde (internet, sigorta vb.) farklı teklifleri karşılaştırarak daha uygun fiyatları seçin.\n\n**4. \"Önce Kendine Öde\" İlkesini Uygulayın:**\nMaaşınız veya gelirinizi aldığınız an, harcamalara başlamadan önce belirlediğiniz tasarruf tutarını (örneğin küçük bir miktar bile olsa) ayrı bir hesaba aktarın. Kalan parayı harcamak, parayı harcayıp sonra \"artarsa biriktiririm\" mantığından çok daha etkilidir.\n\n**5. Farkındalık Yaratın ve Küçük Adımlarla Başlayın:**\n*   **İstek vs. İhtiyaç Ayrımı:** Bir şey satın almadan önce kendinize \"Buna gerçekten ihtiyacım var mı yoksa sadece şu an mı istiyorum?\" diye sorun. 24 saat kuralını uygulayarak (bir şeyi hemen almak yerine 1 gün beklemek) dürtüsel alışverişleri azaltabilirsiniz.\n*   **Dışarıda Yemek/Kahve:** Bu kalemler genellikle küçük göründüğü için fark edilmez ancak ay sonunda büyük bir toplam oluşturabilir. Evde hazırlamak önemli bir tasarruf kalemidir.\n\n**6. Acil Durum Fonu Oluşturun:**\nTasarrufa başlarken ilk hedefiniz, beklenmedik masraflar (sağlık, tamirat vb.) için 3 ila 6 aylık temel giderinizi karşılayacak bir \"acil durum fonu\" oluşturmak olmalıdır. Bu fon, sizi plansız harcamalardan ve borçlanmaktan korur.",
+     "ttft_ms": 414.9,
+     "context_prep_ms": 8.2,
+     "runtime_ttft_ms": 406.7,
+     "prompt_tokens": 5499
+    },
+    {
+     "user": "Yeni bir dil öğrenmeye nasıl başlamalıyım?",
+     "background_at_send": {
+      "kind": "prewarm",
+      "age_s": 0.5
+     },
+     "first_delta_ms": 13807,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 13363
+     },
+     "total_ms": 40492,
+     "timed_out": false,
+     "errors": [],
+     "words": 331,
+     "reply": "Yeni bir dil öğrenmek sabır ve süreklilik isteyen bir süreçtir. Başlangıç aşamasında zihninizi yeni seslere ve yapılara hazırlamak için şu stratejileri izleyebilirsiniz:\n\n**1. \"Neden\"inizi Belirleyin ve Hedef Koyun:**\nÖğrenme motivasyonunuzu canlı tutacak somut bir sebep seçin (iş fırsatı, akademik amaç, kültürel merak veya sadece hobi). Bu nedene bağlı olarak gerçekçi hedefler koyun; örneğin, \"altı ay içinde temel düzeyde sohbet edebilmek\" gibi ölçülebilir hedefler motivasyonunuzu korur.\n\n**2. Temel Yapıları ve En Sık Kullanılan Kelimeleri Öğrenin:**\nDilin gramer kuralları içinde boğulmak yerine, günlük konuşmada en çok kullanılan 500-1000 kelimeye ve temel cümle yapılarına odaklanın. Dilin mantığını (özne-yüklem dizilimi gibi) anlamak, kelimeleri bir araya getirmenizi kolaylaştıracaktır.\n\n**3. Maruz Kalma (Immersion) Yöntemini Kullanın:**\nÖğrendiğiniz dili hayatınızın içine dahil edin. Bu, aktif çalışmanın ötesinde \"pasif öğrenme\" sağlar:\n*   **Dizi ve Filmler:** Altyazılı (başta kendi dilinizde, ilerledikçe hedef dilde) içerikler izleyin.\n*   **Müzik ve Podcast:** Hedef dilde müzikler dinleyin ve yolda podcastler takip edin. Bu, kulağınızın o dilin ritmine alışmasını sağlar.\n*   **Telefon Dili:** Telefonunuzun arayüz dilini öğrenmeye çalıştığınız dile çevirmek, teknik terimleri fark etmeden öğrenmenize yardımcı olur.\n\n**4. Konuşma Pratiğine Erken Başlayın:**\nAnlamak ile konuşmak farklı becerilerdir. Hata yapmaktan korkmadan konuşmaya çalışın:\n*   **Kendi Kendinize Konuşun:** Gün içinde yaptığınız işleri veya düşüncelerinizi basit cümlelerle hedef dilde sesli olarak ifade edin.\n*   **Dil Değişim Uygulamaları:** Karşılıklı konuşabileceğiniz partnerler bulabileceğiniz platformları kullanın.\n*   **Gölge Etme (Shadowing):** Bir konuşmacıyı dinlerken onun tonlamasını, vurgusunu ve hızını aynı anda taklit ederek yüksek sesle tekrarlayın.\n\n**5. Düzenli ve Kısa Seanslar Planlayın:**\nGünde 3 saat çalışıp haftanın geri kalanında hiçbir şey yapmamaktansa, her gün 20-30 dakika çalışmak çok daha etkilidir. Beyin, düzenli tekrarla bilgiyi kalıcı hafızaya daha iyi aktarır.\n\n**6. Kaynak Çeşitliliği Sağlayın:**\nTek bir kitaba veya uygulamaya bağlı kalmayın. Bir mobil uygulama (Duolingo, Babbel vb.), bir YouTube kanalı, bir dil öğrenme platformu ve bir fiziksel çalışma kitabı kombinasyonu, farklı öğrenme stillerinize hitap edecektir.\n\n*Küçük bir tavsiye: İlk haftalarda yapboz parçalarını birleştirmeye çalışıyormuş gibi hissetmek normaldir. Süreç doğrusal ilerlemez; bazen çok hızlı ilerlediğinizi, bazen ise yerinizde saydığınızı hissedebilirsiniz. İstikrarlı olduğunuz sürece gelişim kaçınılmazdır.*",
+     "ttft_ms": 13698.1,
+     "context_prep_ms": 13359.7,
+     "runtime_ttft_ms": 336.3,
+     "prompt_tokens": 3880
+    },
+    {
+     "user": "SQL'de JOIN türleri nelerdir?",
+     "background_at_send": null,
+     "first_delta_ms": 729,
+     "stages": {
+      "waiting": 15,
+      "processing_context": 22
+     },
+     "total_ms": 29417,
+     "timed_out": false,
+     "errors": [],
+     "words": 336,
+     "reply": "SQL'de `JOIN` ifadesi, iki veya daha fazla tablo arasındaki ilişkili sütunlar üzerinden verileri birleştirerek tek bir sonuç kümesi oluşturmak için kullanılır. Temel JOIN türlerini şu şekilde kategorize edebiliriz:\n\n**1. INNER JOIN (İç Birleştirme):**\nEn yaygın kullanılan join türüdür. Her iki tabloda da eşleşen kayıtları döndürür. Eğer bir satırın diğer tabloda karşılığı yoksa, o satır sonuç kümesinde yer almaz.\n*   *Örnek:* Sadece siparişi olan müşterileri listelemek.\n\n**2. LEFT (OUTER) JOIN (Sol Dış Birleştirme):**\nSol tablodaki (ilk belirtilen tablo) tüm kayıtları ve sağ tablodaki eşleşen kayıtları döndürür. Sağ tabloda eşleşen kayıt yoksa, o kısımlar için `NULL` değerleri görüntülenir.\n*   *Örnek:* Tüm müşterileri ve varsa verdikleri siparişleri listelemek (siparişi olmayanlar da listede görünür).\n\n**3. RIGHT (OUTER) JOIN (Sağ Dış Birleştirme):**\nSağ tablodaki (ikinci belirtilen tablo) tüm kayıtları ve sol tablodaki eşleşen kayıtları döndürür. Sol tabloda eşleşen kayıt yoksa, o kısımlar için `NULL` değerleri görüntülenir.\n*   *Örnek:* Tüm siparişleri ve varsa bu siparişleri veren müşterileri listelemek (müşteri bilgisi olmayan siparişler de görünür).\n\n**4. FULL (OUTER) JOIN (Tam Dış Birleştirme):**\nHer iki tablodaki tüm kayıtları döndürür. Eğer eşleşme varsa satırları birleştirir; eşleşme yoksa eksik olan kısımları `NULL` olarak doldurur. (Not: Bazı veritabanı sistemlerinde, örneğin MySQL'de doğrudan desteklenmez; yerine `LEFT JOIN` ve `RIGHT JOIN` birleşimi kullanılır).\n*   *Örnek:* Hem siparişi olan müşterileri hem de hiç siparişi olmayan müşterileri, hem de müşteri kaydı olmayan hayalet siparişleri tek bir listede görmek.\n\n**5. CROSS JOIN (ÇAPRAZ Birleştirme):**\nİki tablo arasındaki her bir satırın, diğer tablodaki her bir satırla eşleştiği \"Kartezyen Çarpım\"ı oluşturur. Bu join türünde bir `ON` koşulu (eşleme kriteri) kullanılmaz.\n*   *Örnek:* Bir \"Renkler\" tablosu ile \"Bedenler\" tablosunu birleştirerek tüm olası ürün kombinasyonlarını (Kırmızı-S, Kırmızı-M, Mavi-S vb.) üretmek.\n\n**Özet Karşılaştırma Tablosu:**\n\n| JOIN Türü | Sonuç Kümesi |\n| :--- | :--- |\n| **INNER** | Sadece her iki tabloda ortak olanlar. |\n| **LEFT** | Sol tablonun tamamı + Sağdan eşleşenler. |\n| **RIGHT** | Sağ tablonun tamamı + Soldan eşleşenler. |\n| **FULL** | Her iki tablonun tamamı (eşleşmeyenler NULL). |\n| **CROSS** | Tablo A x Tablo B (Tüm kombinasyonlar). |",
+     "ttft_ms": 398.6,
+     "context_prep_ms": 7.3,
+     "runtime_ttft_ms": 391.3,
+     "prompt_tokens": 4688
+    },
+    {
+     "user": "İyi bir özgeçmişte neler olmalı?",
+     "background_at_send": null,
+     "first_delta_ms": 670,
+     "stages": {
+      "waiting": 16,
+      "processing_context": 21
+     },
+     "total_ms": 31330,
+     "timed_out": false,
+     "errors": [],
+     "words": 359,
+     "reply": "İyi bir özgeçmiş (CV), sadece geçmişte yaptıklarınızın bir listesi değil, hedeflediğiniz pozisyon için neden en uygun aday olduğunuzu kanıtlayan stratejik bir belgedir. Etkili bir özgeçmişte bulunması gereken temel bölümler şunlardır:\n\n**1. İletişim Bilgileri:**\nEn üstte, kolayca bulunabilir olmalıdır.\n*   Ad Soyad, telefon numarası, profesyonel bir e-posta adresi (örneğin: ad.soyad@email.com).\n*   LinkedIn profil linki ve varsa profesyonel portfolyo/GitHub linki.\n*   *Not: Genellikle açık adres yazılmasına gerek yoktur, sadece şehir/ilçe yeterlidir.*\n\n**2. Profesyonel Özet (Profil Özeti):**\nİş deneyiminizden ve yetkinliklerinizden saniyeler içinde haberdar eden 3-4 cümlelik bir giriş bölümüdür. \"Ne istediğinizi\" değil, \"ne sunabildiğinizi\" vurgulayın.\n*   *Örnek:* \"X sektöründe 5 yıllık deneyime sahip, veri analitiği ve ekip yönetimi konularında uzman, şirketin verimliliğini %20 artıran projeler yürütmüş bir profesyonel.\"\n\n**3. İş Deneyimi (Ters Kronolojik Sıra):**\nEn güncel işiniz en üstte yer almalıdır. Sadece görevlerinizi yazmak yerine, **başarılarınızı** vurgulayın.\n*   **Eylem Fiilleri Kullanın:** \"Sorumluydu\" yerine \"Yönetti\", \"Geliştirdi\", \"Çözdü\", \"Artırdı\" gibi ifadeler seçin.\n*   **Nicel Veriler Ekleyin:** \"Satışları artırdım\" yerine \"Yıllık satış hacmini %15 oranında artırarak hedeflerin üzerine çıktım\" demek çok daha etkileyicidir.\n\n**4. Eğitim Bilgileri:**\nMezun olduğunuz okullar, bölümler ve mezuniyet yılları. Eğer yeni mezunsanız veya deneyiminiz azsa bu bölümü daha detaylı (ilgili dersler, projeler) yazabilirsiniz.\n\n**5. Yetkinlikler (Skills):**\n*   **Teknik Yetkinlikler (Hard Skills):** Kullandığınız yazılımlar, programlama dilleri, araçlar veya sertifikalar.\n*   **Sosyal Yetkinlikler (Soft Skills):** İletişim becerileri, liderlik, kriz yönetimi gibi özellikler; ancak bunları sadece kelime olarak yazmak yerine deneyimlerinizin içinde örneklendirmeniz daha güçlü olur.\n\n**6. Sertifikalar, Projeler ve Gönüllülük Çalışmaları:**\nİşle ilgili olmayan ancak disiplinli olduğunuzu veya bir beceriyi kanıtladığınızı gösteren ek bilgilerdir. Özellikle yeni mezunlar için projeler ve stajlar kritik önem taşır.\n\n**İyi Bir Özgeçmiş İçin Altın Kurallar:**\n\n*   **ATS (Aday Takip Sistemi) Uyumluluğu:** Birçok şirket CV'leri önce yazılımla tarar. Bu nedenle iş ilanındaki anahtar kelimeleri (ilanın istediği teknik beceriler gibi) özgeçmişinizde uygun yerlere yerleştirin.\n*   **Okunabilirlik ve Düzen:** Karmaşık grafiklerden kaçının. Sade, temiz bir font kullanın ve bolca beyaz boşluk bırakarak gözün yorulmamasını sağlayın.\n*   **Sayfa Uzunluğu:** Genel kural olarak, deneyiminize göre 1 veya 2 sayfayı geçmemelidir.\n*   **PDF Formatı:** Dosyanızı her zaman PDF olarak kaydedin; böylece formatın farklı cihazlarda bozulmamasını sağlarsınız.\n*   **Özelleştirme:** Her iş ilanı için özgeçmişinizde küçük düzenlemeler yapın. İlanın tam olarak aradığı özelliklere vurgu yapın.",
+     "ttft_ms": 407.9,
+     "context_prep_ms": 5.1,
+     "runtime_ttft_ms": 402.8,
+     "prompt_tokens": 5482
+    },
+    {
+     "user": "Sabah koşusu mu akşam koşusu mu daha iyi?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 55.0
+     },
+     "first_delta_ms": 23772,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 15
+     },
+     "total_ms": 47886,
+     "timed_out": false,
+     "errors": [],
+     "words": 315,
+     "reply": "Sabah ve akşam koşusu arasında \"hangisi daha iyi\" sorusunun tek bir cevabı yoktur; bu tamamen sizin biyolojik saatinize, günlük programınıza ve koşudan beklentinize göre değişir. Her iki zaman diliminin de kendine özgü avantajları şunlardır:\n\n**Sabah Koşusunun Avantajları:**\n*   **Rutin Oluşturma:** Sabah sporu, güne disiplinli bir başlangıç yapmanızı sağlar ve günün geri kalanındaki motivasyonunuzu olumlu etkileyebilir.\n*   **Metabolizmayı Hızlandırma:** Güne aktif başlamak metabolizmanızı hemen harekete geçirir ve yağ yakım sürecini destekleyebilir.\n*   **Zihinsel Berraklık:** Sabah sessizliğinde koşmak, günün stresine girmeden önce zihni boşaltmak ve odaklanmak için harika bir fırsattır.\n*   **Daha Az Engel:** Sabah saatlerinde trafik, gürültü veya çevredeki diğer insanların dikkatini dağıtma ihtimali genellikle daha düşüktür.\n\n**Akşam Koşusunun Avantajları:**\n*   **Performans ve Güç:** Vücut ısısı akşam saatlerine doğru yükselir ve kaslar daha \"ısınmış\" durumdadır. Bu nedenle, daha yüksek yoğunluklu veya hızlı koşular için akşam saatleri fiziksel olarak daha verimli olabilir.\n*   **Günlük Stresin Atılması:** İş veya okul gününün ardından koşu yapmak, biriken stresin ve gerginliğin fiziksel olarak dışarı atılmasını sağlar (bir tür \"boşalma\" etkisi).\n*   **Esneklik:** Sabah uyanmakta zorlananlar için akşam saatleri, gün içindeki işlerin arasına daha kolay yerleştirilebilir bir zaman dilimidir.\n*   **Uyku Kalitesi:** Hafif ve orta tempolu bir akşam koşusu, bazı kişilerde akşamları daha rahat uykuya dalmaya yardımcı olabilir (ancak yatmadan hemen önce yapılan çok yoğun egzersizler uykuyu kaçırabilir).\n\n**Hangisini Seçmelisiniz?**\n\n*   **Hedefiniz disiplin ve zihinsel hazırlıksa:** Sabah koşusu sizin için daha uygun olabilir.\n*   **Hedefiniz maksimum performans veya günün stresini atmaksa:** Akşam koşusu daha avantajlı olabilir.\n*   **En önemli kural: Sürdürülebilirlik.** Sizin için \"en iyi\" zaman, düzenli olarak yapabildiğiniz zamandır. Eğer sabahları uyanmak sizi çok zorluyor ve antrenmanınızı aksatıyorsa akşam koşusu sizin için daha iyidir. Eğer akşamları çok yorgun olduğunuz için sürekli erteliyorsanız sabah koşusu daha etkilidir.\n\n**Önemli İpucu:** Akşam koşusu yapacaksanız, uyku kalitenizi etkilememesi için yatmadan en az 2-3 saat önce bitirmiş olmaya özen gösterin. Sabah koşusu yapacaksanız, koşu sonrası vücudunuzu soğutmak ve toparlamak için kısa bir esneme rutini eklemeyi unutmayın.",
+     "ttft_ms": 23622.1,
+     "context_prep_ms": 6.7,
+     "runtime_ttft_ms": 23615.4,
+     "prompt_tokens": 6406
+    },
+    {
+     "user": "Git'te rebase ile merge arasındaki fark ne?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 55.0
+     },
+     "first_delta_ms": 30067,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 15
+     },
+     "total_ms": 62387,
+     "timed_out": false,
+     "errors": [],
+     "words": 415,
+     "reply": "Git'te `merge` ve `rebase` her ikisi de farklı branch'lerdeki (dalpublic) değişiklikleri ana bir branch'e birleştirmek için kullanılır, ancak bunu yapma yöntemleri ve sonuçtaki **commit geçmişinin (history)** görünümü açısından birbirlerinden temel farklarla ayrılırlar.\n\n### 1. Merge (Birleştirme)\n`merge`, iki branch'in uç noktalarını birleştirerek yeni bir **\"Merge Commit\"** oluşturur.\n\n*   **Nasıl Çalışır:** Git, iki branch'in ayrıştığı noktadan itibaren her iki koldaki değişiklikleri alır ve bunları birleştirip tek bir yeni commit yaratır.\n*   **Geçmiş (History):** Commit geçmişi doğrusal değildir; branch'lerin ne zaman ayrıldığını ve ne zaman birleştiğini gösteren bir \"ağaç\" yapısı oluşturur.\n*   **Avantajı:** Geçmişi asla değiştirmez, dürüst ve orijinal bir kayıt sunar. Hangi değişikliğin hangi branch'te yapıldığını net bir şekilde görmek isteyen takımlar için idealdir.\n*   **Dezavantajı:** Çok sık yapılan merge işlemleri, commit geçmişini \"karmaşık\" ve \"gürültülü\" hale getirebilir (birçok merge commit'i birikir).\n\n### 2. Rebase (Temel Değiştirme)\n`rebase`, bir branch'in başlangıç noktasını (base) başka bir branch'in en son commit'ine taşır.\n\n*   **Nasıl Çalışır:** Bir branch'teki commit'leri alır, bunları geçici olarak kenara koyar, ana branch'teki son güncellemeleri uygular ve ardından kendi commit'lerini bu yeni son noktanın üzerine **tek tek yeniden uygular.**\n*   **Geçmiş (History):** Commit geçmişini doğrusal (lineer) ve temiz hale getirir. Sanki tüm çalışmalar tek bir çizgi üzerinde, arka arkaya yapılmış gibi görünür.\n*   **Avantajı:** Çok temiz bir geçmiş sağlar. \"Merge commit\" kalabalığını ortadan kaldırır. Kodun takibini kolaylaştırır.\n*   **Dezavantajı:** Mevcut commit'leri aslında yeniden yazar (yeni hash değerleri oluşturur). Bu durum, başkalarıyla paylaştığınız (push ettiğiniz) bir branch üzerinde `rebase` yaparsanız ciddi çakışmalara ve sorunlara yol açar.\n\n---\n\n### Özet Karşılaştırma Tablosu\n\n| Özellik | Merge | Rebase |\n| :--- | :--- | :--- |\n| **Commit Geçmişi** | Karmaşık ama dürüst (Ağaç yapısı). | Temiz ve doğrusal (Tek bir çizgi). |\n| **Commit Yapısı** | Yeni bir \"Merge Commit\" oluşturur. | Mevcut commit'leri yeni bir bazın üzerine taşır. |\n| **Güvenlik** | Güvenlidir; orijinal geçmişi değiştirmez. | Riskli olabilir; paylaşılan branch'lerde kullanılmamalıdır. |\n| **Kullanım Amacı** | Farklı özellikleri birleştirmek. | Kendi yerel çalışmalarını ana branch ile senkronize etmek. |\n\n### Altın Kurallar (Ne Zaman Hangisini Kullanmalı?)\n\n1.  **Rebase'i yerelinizde kullanın:** Kendi bilgisayarınızda çalışırken, henüz kimseyle paylaşmadığınız bir branch'te (örneğin `feature-x`) en güncel `main` değişikliklerini almak için `rebase` kullanın. Bu, commit'lerinizin her zaman güncel ve temiz kalmasını sağlar.\n2.  **Merge'i paylaşım için kullanın:** Bir özelliği bitirip ana branch'e (`main` veya `develop`) dahil ederken `merge` kullanın. Bu, ekibin kod geçmişini takip etmesini kolaylaştırır ve çalışmanın ne zaman tamamlandığını net bir şekilde kaydeder.\n\n**Kısaca:** `Merge` \"İki yolu birleştir\" derken; `Rebase` \"Benim yolumu, diğer yolun sonuna ekle\" der.",
+     "ttft_ms": 29772.3,
+     "context_prep_ms": 6.4,
+     "runtime_ttft_ms": 29765.8,
+     "prompt_tokens": 7136
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 46,
+    "summaries": 3
+   },
+   "settle": {
+    "settled": true,
+    "s": 34.1
+   },
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6FMXCD6CX0X3CB20N0KEV55",
+     "summary_version": 1,
+     "to_seq": 18,
+     "chunks": 1,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6544,
+     "tokens_after": 4344,
+     "duration_ms": 44801
+    },
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6FMXCD6CX0X3CB20N0KEV55",
+     "summary_version": 2,
+     "to_seq": 30,
+     "chunks": 1,
+     "kept_items": 14,
+     "dropped_items": 1,
+     "tokens_before": 6228,
+     "tokens_after": 4675,
+     "duration_ms": 54456
+    },
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6FMXCD6CX0X3CB20N0KEV55",
+     "summary_version": 3,
+     "to_seq": 42,
+     "chunks": 1,
+     "kept_items": 10,
+     "dropped_items": 1,
+     "tokens_before": 8037,
+     "tokens_after": 4494,
+     "duration_ms": 64782
+    }
+   ],
+   "completed": 3
+  }
+ ]
+}

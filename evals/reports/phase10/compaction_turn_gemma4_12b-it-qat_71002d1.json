@@ -1,0 +1,1809 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "manifest": {
+  "captured_at": "2026-11-02T19:28:35+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 1.36,
+   "active_gb": 5.17,
+   "wired_gb": 10.76,
+   "compressed_gb": 0.84,
+   "swap_used_mb": 10826.38,
+   "swapouts": 208375376,
+   "memory_free_percent": 50
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_k                          64\ntop_p                          0.95\ntemperature                    1",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "rows": [
+  {
+   "scenario": "baseline",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 20162,
+     "stages": {
+      "waiting": 23,
+      "processing_context": 26
+     },
+     "total_ms": 31382,
+     "timed_out": false,
+     "errors": [],
+     "words": 129,
+     "reply": "Fotosentez, bitki, alg ve bazı bakterilerin ışık enerjisini kullanarak karbondioksit ve suyu kimyasal enerjiye (şekere) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastlardaki tilakoit zarlarda meydana gelir. Güneş ışığı, klorofildeki pigmentler tarafından emilir. Bu enerji, su moleküllerini parçalayarak oksijen (yan ürün olarak dışarı salınır), ATP ve NADPH (enerji taşıyıcı moleküller) üretir.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu süreç kloroplastın stromasında gerçekleşir ve ışığa doğrudan ihtiyaç duymaz. Işığa bağımlı reaksiyonlarda üretilen ATP ve NADPH kullanılarak, atmosferden alınan karbondioksit (CO2)inyonları birleştirilir ve glikoz gibi organik moleküller sentezlenir.\n\n**Genel Denklem:**\n6CO2 + 6H2O + Işık Enerjisi → C6H12O6 (Glikoz) + 6O2\n\nÖzetle; bitkiler güneşten aldığı enerjiyi kullanarak besin üretir ve bu süreç sırasında atmosfere oksijen salarak yaşamın devamlılığına katkı sağlar.",
+     "ttft_ms": 19855.2,
+     "context_prep_ms": 2.7,
+     "runtime_ttft_ms": 19849.1,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": null,
+     "first_delta_ms": 1814,
+     "stages": {
+      "waiting": 5,
+      "processing_context": 10
+     },
+     "total_ms": 15836,
+     "timed_out": false,
+     "errors": [],
+     "words": 168,
+     "reply": "Bulut bilişim (cloud computing), bilgisayar sistemlerinin, veri tabanlarının, depolama alanlarının ve yazılımların internet üzerinden kullanıcılara bir hizmet olarak sunulmasıdır. Geleneksel yöntemlerde veriler yerel sunucularda veya kişisel bilgisayarlarda tutulurken, bulut bilişimde bu kaynaklar uzak sunucularda barındırılır ve ihtiyaç duyulduğunda internet aracılığıyla erişilir.\n\nBu sistemin temel özelliklerini şu başlıklarla özetleyebilirim:\n\n*   **Ölçeklenebilirlik:** İhtiyacınıza göre depolama kapasitesini veya işlem gücünü anında artırabilir veya azaltabilirsiniz.\n*   **Maliyet Verimliliği:** Donanım satın alma ve bakım maliyetleri yerine, genellikle sadece kullandığınız kadar ödeme yaptığınız (Pay-as-you-go) bir model üzerine kuruludur.\n*   **Erişilebilirlik:** İnternet bağlantınız olduğu sürece dünyanın herhangi bir yerinden verilerinize ve uygulamalarınıza ulaşabilirsiniz.\n*   **Güncellik:** Yazılım güncellemeleri ve güvenlik yamaları hizmet sağlayıcı tarafından otomatik olarak yapılır, bu da kullanıcının teknik yükünü azaltır.\n\n**Yaygın Hizmet Modelleri:**\n1.  **IaaS (Altyapı Hizmeti):** Sunucu, depolama ve ağ gibi temel donanım kaynaklarının kiralandığı modeldir (Örn: Amazon EC2).\n2.  **PaaS (Platform Hizmeti):** Yazılım geliştiricilerin uygulama geliştirebileceği hazır bir platform sunulur (Örn: Google App Engine).\n3.  **SaaS (Yazılım Hizmeti):** Kullanıcının doğrudan internet üzerinden bir uygulamayı kullandığı modeldir (Örn: Google Drive, Microsoft 365).",
+     "ttft_ms": 1595.0,
+     "context_prep_ms": 4.9,
+     "runtime_ttft_ms": 1590.1,
+     "prompt_tokens": 6586
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.3
+   }
+  },
+  {
+   "scenario": "during_1s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23091,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 13
+     },
+     "total_ms": 35086,
+     "timed_out": false,
+     "errors": [],
+     "words": 140,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını, su ve karbondioksiti kullanarak kimyasal enerjiye (şeker/glikoz) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastlardaki tilakoid zarlarda gerçekleşir. Bitki, klorofil pigmentleri aracılığıyla güneş enerjisini soğurur. Bu enerji kullanılarak su molekülleri (H2O) parçalanır; bu sırada açığa çıkan oksijen (O2) atmosfere salınır. Süreç sonucunda, bir sonraki aşamada kullanılmak üzere ATP ve NADPH adı verilen enerji taşıyıcı moleküller üretilir.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve doğrudan ışığa ihtiyaç duymaz ancak ışığa bağımlı reaksiyonlardan gelen enerjiyi kullanır. Atmosferden alınan karbondioksit (CO2), ATP ve NADPH yardımıyla işlenerek glikoz gibi organik moleküllere dönüştürülür.\n\n**Özet Denklem:**\n6CO2 + 6H2O + Işık Enerjisi $\\rightarrow$ C6H12O6 (Glikoz) + 6O2\n\nBu süreç sayesinde bitkiler hem kendi besinlerini üretir hem de dünya atmosferindeki oksijen dengesini sağlar.",
+     "ttft_ms": 22726.8,
+     "context_prep_ms": 3.2,
+     "runtime_ttft_ms": 22723.5,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 4711,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 19705,
+     "timed_out": false,
+     "errors": [],
+     "words": 191,
+     "reply": "Bulut bilişim, bilgisayar kaynaklarının (sunucular, depolama alanı, veritabanları, yazılım ve ağ servisleri gibi) internet üzerinden kullanıcılara sunulmasıdır. Kısacası, verilerin ve uygulamaların fiziksel olarak kendi bilgisayarınızda veya yerel bir sunucuda bulunması yerine, internete bağlı uzak veri merkezlerinde barındırılması ve ihtiyaç duyulduğunda erişilmesi prensibine dayanır.\n\nBulut bilişimin temel özellikleri şunlardır:\n\n*   **Ölçeklenebilirlik:** İhtiyacınıza göre kaynakları artırabilir veya azaltabilirsiniz. Örneğin, bir web sitesine gelen trafik arttığında anında daha fazla işlemci gücü satın alabilirsiniz.\n*   **Erişilebilirlik:** İnternet bağlantısı olan herhangi bir cihazdan (telefon, tablet, bilgisayar) verilere ve uygulamalara ulaşabilirsiniz.\n*   **Maliyet Avantajı:** Donanım satın almak, bakımını yapmak ve sunucu kurmak yerine, sadece kullandığınız kadar ödeme yaptığınız (pay-as-you-go) modelleri kullanmanıza olanak tanır.\n*   **Güncellik:** Yazılım güncellemeleri ve güvenlik yamaları genellikle bulut sağlayıcısı tarafından otomatik olarak yapılır, bu da sizinle ilgilenmeniz gereken teknik yükü azaltır.\n\n**Bulut Bilişim Modelleri:**\n\n1.  **SaaS (Software as a Service):** Kullanıcıya doğrudan bir uygulama sunulur (Örn: Google Drive, Dropbox, Netflix).\n2.  **PaaS (Platform as a Service):** Yazılım geliştiricilerin uygulama oluşturmak için kullanabilecekleri bir çalışma ortamı sunulur (Örn: Google App Engine, Heroku).\n3.  **IaaS (Infrastructure as a Service):** Temel bilişim altyapısının (sanal makineler, depolama, ağ) kiralanmasıdır (Örn: Amazon Web Services - AWS, Microsoft Azure).",
+     "ttft_ms": 4458.3,
+     "context_prep_ms": 6.9,
+     "runtime_ttft_ms": 4451.4,
+     "prompt_tokens": 6612
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.6
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6EQDVRXDPZQDH39NJ68XGZE",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 7047,
+     "tokens_after": 4136,
+     "duration_ms": 79920
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "during_10s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23076,
+     "stages": {
+      "waiting": 12,
+      "processing_context": 15
+     },
+     "total_ms": 34148,
+     "timed_out": false,
+     "errors": [],
+     "words": 131,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını kullanarak karbondioksit ve suyu glikoza (şekere) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç iki ana aşamada gerçekleşir:\n\n**Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların tiroitkoid (grana) yapılarında gerçekleşir. Işık enerjisi, klorofil pigmentleri tarafından soğurulur ve elektronları aktive eder. Bu enerjiyle su molekülleri parçalanır (fotoliz), açığa çıkan oksijen atmosfere verilir. Aynı zamanda, sonraki aşamada kullanılacak olan ATP ve NADPH molekülleri üretilir.\n\n**Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve doğrudan ışığa ihtiyaç duymaz; ancak ışığa bağımlı aşamada üretilen ATP ve NADPH'ı kullanır. Atmosferden alınan karbondioksit (CO2), bir dizi kimyasal tepkimeyle şeker moleküllerine dönüştürülür.\n\nÖzetle formül şu şekildedir:\n**Karbondioksit + Su + Işık Enerjisi $\\rightarrow$ Glikoz + Oksijen**\n\nBitkiler bu süreçle hem kendi besinlerini üretir hem de yaşam için elzem olan oksijeni atmosfere salarlar.",
+     "ttft_ms": 22711.5,
+     "context_prep_ms": 3.1,
+     "runtime_ttft_ms": 22708.3,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 10.0
+     },
+     "first_delta_ms": 4503,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 13
+     },
+     "total_ms": 16378,
+     "timed_out": false,
+     "errors": [],
+     "words": 152,
+     "reply": "Bulut bilişim, bilgisayar kaynaklarının (sunucular, depolama birimleri, veritabanları, ağ hizmetleri, yazılım vb.) internet üzerinden ihtiyaç duyulduğunda üçüncü taraf sağlayıcılar tarafından sunulmasıdır. Kendi donanımınızı satın almak veya fiziksel olarak barındırmak yerine, bu kaynaklara internet üzerinden erişerek kullanırsınız.\n\nBulut bilişimi temel olarak üç ana hizmet modeliyle tanımlayabiliriz:\n\n*   **IaaS (Altyapı Hizmeti):** Kullanıcıya sanal sunucular, depolama ve ağ gibi temel bilişim altyapısını sunar. Kullanıcı bu altyapı üzerinde işletim sistemini ve uygulamalarını kendisi yönetir (Örn: Amazon Web Services, Microsoft Azure).\n*   **PaaS (Platform Hizmeti):** Yazılım geliştirmek için gerekli olan platformu sağlar. Geliştiriciler, donanım veya sunucu yönetimiyle uğraşmadan sadece uygulamalarını oluşturmaya ve çalıştırmaya odaklanırlar (Örn: Google App Engine).\n*   **SaaS (Yazılım Hizmeti):** Kullanıcının doğrudan internet üzerinden erişebildiği, kurulum veya bakım gerektirmeyen hazır yazılımlardır. Günlük hayatta en sık karşılaşılan modeldir (Örn: Gmail, Netflix, Dropbox, Slack).\n\nBulut bilişimin temel avantajları arasında maliyet tasarrufu (sadece kullandığınız kadar ödeme), ölçeklenebilirlik (ihtiyaca göre kapasite artırıp azaltabilme) ve her yerden erişilebilirlik yer alır.",
+     "ttft_ms": 4246.0,
+     "context_prep_ms": 5.8,
+     "runtime_ttft_ms": 4240.2,
+     "prompt_tokens": 6586
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 105.5
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6EQK8ZVMN4HBPVNKGYK2H9J",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6933,
+     "tokens_after": 4022,
+     "duration_ms": 79570
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "during_25s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 22910,
+     "stages": {
+      "waiting": 13,
+      "processing_context": 17
+     },
+     "total_ms": 33413,
+     "timed_out": false,
+     "errors": [],
+     "words": 132,
+     "reply": "Fotosentez, bitki ve bazı diğer organizmaların güneş ışığını, suyu ve karbondioksiti kullanarak kendi besinlerini (glikoz) üretme sürecidir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**Işık Bağımlı Reaksiyonlar:**\nBitkilerin yapraklarında bulunan kloroplastlardaki klorofil pigmentleri güneş enerjisini yakalar. Bu enerji, suyu (H2O) parçalayarak oksijen (O2) açığa çıkarır ve bir sonraki aşama için gerekli olan ATP ve NADPH moleküllerini üretir. Bu aşamada güneş enerjisi kimyasal enerjiye dönüştürülür.\n\n**Işık Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşamada güneş ışığına doğrudan ihtiyaç duyulmaz; ışık bağımlı reaksiyonlarda üretilen enerji kullanılır. Bitki, atmosferden aldığı karbondioksiti (CO2) kullanarak bu enerjiyle şeker molekülleri (glikoz) sentezler. Bu döngü sonucunda bitki büyümesi için gerekli olan karbonhidratları üretir.\n\nÖzetle; bitkiler güneşten enerji alır, suyu ve karbondioksiti bu enerjiyle birleştirerek besin üretir ve yan ürün olarak atmosfere oksijen salarlar. Bu süreç yeryüzündeki yaşamın temel enerji kaynağıdır.",
+     "ttft_ms": 22648.4,
+     "context_prep_ms": 3.6,
+     "runtime_ttft_ms": 22644.7,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 24375,
+     "stages": {
+      "waiting": 12,
+      "processing_context": 19
+     },
+     "total_ms": 38470,
+     "timed_out": false,
+     "errors": [],
+     "words": 175,
+     "reply": "Bulut bilişim (cloud computing), bilgisayar hizmetlerinin (sunucu, depolama, veritabanı, yazılım vb.) internet üzerinden, kullanıcıların kendi yerel donanımlarında barındırmak yerine sağlayıcılar tarafından sunulan altyapılar üzerinden erişilmesi ve kullanılmasıdır.\n\nTemel özelliklerini şu başlıklarla özetleyebilirim:\n\n*   **İstek Üzerine Hizmet:** Kaynaklara ihtiyaç duyduğunuzda (örneğin daha fazla depolama alanı veya işlem gücü) hızlıca erişebilir ve kullanabilirsiniz.\n*   **Ölçeklenebilirlik:** İş yükünüz arttığında sistemi kolayca büyütebilir, azaldığında ise kaynak kullanımını düşürerek maliyet tasarrufu sağlayabilirsiniz.\n*   **Maliyet Verimliliği:** Donanım satın alma, bakım ve fiziksel altyapı kurma maliyetlerini ortadan kaldırarak, genellikle sadece kullandığınız kadar ödeme yaptığınız bir model sunar.\n*   **Erişilebilirlik:** İnternet bağlantısı olan her yerden, herhangi bir cihaz üzerinden verilere ve uygulamalara ulaşabilmenize olanak tanır.\n\nBulut bilişim genellikle üç temel hizmet modeliyle sınıflandırılır:\n\n1.  **IaaS (Altyapı Hizmeti):** Kullanıcıya sanal sunucular, depolama ve ağ gibi temel bilişim bileşenleri sunar (Örn: Amazon EC2).\n2.  **PaaS (Platform Hizmeti):** Yazılım geliştiricilerin uygulama geliştirmek, test etmek ve çalıştırmak için kullanabileceği bir platform sunar (Örn: Google App Engine).\n3.  **SaaS (Hizmet Olarak Yazılım):** Kullanıcıların doğrudan internet üzerinden kullandığı, kurulum gerektirmeyen hazır yazılımlardır (Örn: Google Drive, Dropbox veya Microsoft 365).",
+     "ttft_ms": 24149.9,
+     "context_prep_ms": 7.4,
+     "runtime_ttft_ms": 24142.5,
+     "prompt_tokens": 6567
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 105.8
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6EQRSV0KX42M9D1N5PZ4K4G",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6977,
+     "tokens_after": 4066,
+     "duration_ms": 79389
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "baseline",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 22915,
+     "stages": {
+      "waiting": 11,
+      "processing_context": 15
+     },
+     "total_ms": 33353,
+     "timed_out": false,
+     "errors": [],
+     "words": 134,
+     "reply": "Fotosentez, bitki ve diğer bazı canlıların güneş enerjisini kullanarak kendi besinlerini üretme sürecidir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**Işık Bağımlı Reaksiyonlar:**\nBu aşama kloroplastlardaki tilakoid zarlarda gerçekleşir. Bitki, güneşten gelen ışığı soğurur ve bu enerji ile suyu (H2O) parçalar. Bu parçalama sonucunda oksijen (O2) yan ürün olarak açığa çıkar; enerji ise bir sonraki aşamada kullanılmak üzere ATP ve NADPH molekülleri şeklinde depolanır.\n\n**Işık Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve doğrudan ışık gerektirmez ancak ilk aşamada üretilen enerjiyi kullanır. Bitki, atmosferden aldığı karbondioksiti (CO2) kullanarak, ilk aşamadan gelen ATP ve NADPH enerjisiyle organik bileşikler (glikoz gibi şekerler) sentezler.\n\n**Temel Denklem:**\nKarbondioksit + Su + Işık Enerjisi $\\rightarrow$ Glikoz + Oksijen\n\nÖzetle; bitkiler güneş enerjisini kimyasal enerjiye dönüştürerek yaşamlarını sürdürmek için gerekli olan besini üretir ve atmosfere oksijen salarlar.",
+     "ttft_ms": 22655.5,
+     "context_prep_ms": 3.8,
+     "runtime_ttft_ms": 22651.7,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": null,
+     "first_delta_ms": 3421,
+     "stages": {
+      "waiting": 7,
+      "processing_context": 13
+     },
+     "total_ms": 15397,
+     "timed_out": false,
+     "errors": [],
+     "words": 167,
+     "reply": "Bulut bilişim, bilgi işlem kaynaklarının (sunucular, depolama alanları, veritabanları, ağ servisleri ve yazılımlar) internet üzerinden, kullanıcıların fiziksel olarak sahip olmadığı bir altyapı üzerinden sunulmasıdır. Kısacası, verilerin ve uygulamaların kendi bilgisayarınızda veya yerel sunucunuzda değil, internete bağlı uzak veri merkezlerinde barındırılması ve kullanılmasıdır.\n\nBulut bilişimi daha iyi anlamak için temel özelliklerini şu şekilde sıralayabilirim:\n\n*   **Ölçeklenebilirlik:** İhtiyacınız arttıkça kapasiteyi kolayca artırabilir, işleriniz azaldığında ise kaynağı küçültebilirsiniz.\n*   **Maliyet Avantajı:** Donanım satın alma, bakım ve enerji maliyetlerini ortadan kaldırarak, genellikle sadece kullandığınız kadar ödediğiniz bir model sunar.\n*   **Erişilebilirlik:** İnternet bağlantısı olduğu sürece, dünyanın herhangi bir yerinden dosyalarınıza veya uygulamalarınıza ulaşabilirsiniz.\n*   **Güvenlik ve Yedekleme:** Büyük bulut sağlayıcıları, verileri korumak ve olası veri kayıplarına karşı otomatik yedeklemek için gelişmiş sistemler sunar.\n\n**Yaygın Bulut Modelleri:**\n*   **SaaS (Software as a Service):** Yazılımın bulut üzerinden kullanılması (Örn: Google Dokümanlar, Netflix, Spotify).\n*   **PaaS (Platform as a Service):** Yazılım geliştiricilerin uygulama oluşturmak için kullandığı araçlar ve platformlar.\n*   **IaaS (Infrastructure as a Service):** Temel bilişim altyapısının (sanal sunucular, depolama vb.) kiralandığı model.",
+     "ttft_ms": 1472.4,
+     "context_prep_ms": 5.7,
+     "runtime_ttft_ms": 1466.7,
+     "prompt_tokens": 6565
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.0
+   }
+  },
+  {
+   "scenario": "during_1s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 22987,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 13
+     },
+     "total_ms": 32326,
+     "timed_out": false,
+     "errors": [],
+     "words": 115,
+     "reply": "Fotosentez, bitki ve bazı diğer organizmaların güneş ışığını kullanarak karbon dioksit ve suyu şeker (glikoz) gibi besin maddelerine dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki aşamada gerçekleşir:\n\n**Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların tiroit zarlarında gerçekleşir. Bitkiler, klorofilleri aracılığıyla güneş enerjisini soğurur. Bu enerji, su moleküllerini parçalayarak oksijen açığa çıkarır ve ilerleyen aşama için gerekli olan ATP ve NADPH moleküllerini üretir.\n\n**Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve ışığa doğrudan ihtiyaç duymaz. Bitki, atmosferden aldığı karbon dioksiti kullanır. Işığa bağımlı reaksiyonlarda üretilen ATP ve NADPH enerjisini kullanarak karbon dioksitiin kimyasal yapısını değiştirir ve glikoz üretir.\n\nÖzetle bitki; güneş enerjisini, su ve karbondioksiti kullanarak kendi besinini sentezlerken atmosfere oksijen salar.",
+     "ttft_ms": 22728.5,
+     "context_prep_ms": 3.4,
+     "runtime_ttft_ms": 22725.0,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 5341,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 9
+     },
+     "total_ms": 18407,
+     "timed_out": false,
+     "errors": [],
+     "words": 175,
+     "reply": "Bulut bilişim, bilgi teknolojisi kaynaklarının (sunucu, depolama, veritabanı, ağ, yazılım gibi) internet üzerinden kullanıcılara sunulduğu bir hizmet modelidir. Verilerin ve uygulamaların yerel bir bilgisayarda veya özel bir sunucuda tutulması yerine, uzaktaki merkezi sunucularda barındırılması esasına dayanır.\n\nBulut bilişimin temel özellikleri şunlardır:\n\n**1. Esneklik ve Ölçeklenebilirlik:** İhtiyaç duyduğunuz kaynağı (örneğin depolama alanını) anlık olarak artırabilir veya kullanmadığınızda azaltabilirsiniz.\n**2. Uzaktan Erişim:** İnternet bağlantısı olan herhangi bir cihazdan, dünyanın her yerinden verilere ve uygulamalara ulaşabilirsiniz.\n**3. Maliyet Avantajı:** Donanım satın alma, bakım ve altyapı maliyetlerini ortadan kaldırarak genellikle \"kullandığın kadar öde\" modeliyle çalışır.\n**4. Güncellik:** Yazılım güncellemeleri ve güvenlik yamaları servis sağlayıcı tarafından otomatik olarak yapılır; sizin ekstra bir işlem yapmanıza gerek kalmaz.\n\n**Bulut Modelleri:**\n*   **IaaS (Altyapı Hizmeti):** Sanal sunucular, depolama ve ağ gibi temel yapı taşlarını kiralamanızı sağlar.\n*   **PaaS (Platform Hizmeti):** Yazılım geliştirmek için gerekli ortamı (işletim sistemi, veri tabanı vb.) sağlar.\n*   **SaaS (Yazılım Hizmeti):** Doğrudan internet üzerinden çalışan bitmiş uygulamalardır (Örn: Google Drive, Spotify veya Microsoft 365).\n\nKısacası bulut bilişim, teknolojik altyapıyı \"sahip olduğunuz\" bir araçtan, internet üzerinden \"kiraladığınız\" bir hizmete dönüştürür.",
+     "ttft_ms": 3884.3,
+     "context_prep_ms": 6.4,
+     "runtime_ttft_ms": 3877.8,
+     "prompt_tokens": 6533
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.1
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ER4FDD4DYGYMYWDP0DPBG8",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6948,
+     "tokens_after": 4037,
+     "duration_ms": 79502
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "during_10s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 22961,
+     "stages": {
+      "waiting": 11,
+      "processing_context": 15
+     },
+     "total_ms": 31680,
+     "timed_out": false,
+     "errors": [],
+     "words": 115,
+     "reply": "Fotosentez, bitki gibi bazı organizmaların güneş ışığını kullanarak karbondioksit ve suyu şeker (glikoz) gibi besin maddelerine dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki aşamada gerçekleşir:\n\n1. **Işığa Bağımlı Reaksiyonlar:** Kloroplastlardaki klorofiller güneş enerjisini soğurur. Bu enerji, suyu parçalayarak oksijen açığa çıkarır ve bir sonraki aşama için gerekli olan ATP ve NADPH moleküllerini üretir. Bu aşama ışık olmadan gerçekleşemez.\n\n2. **Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):** Bu aşamada güneş ışığı doğrudan kullanılmaz; ancak ilk aşamada üretilen ATP ve NADPH ile atmosferden alınan karbondioksit birleştirilerek glikoz üretilir.\n\nÖzetle; bitki güneş enerjisini kimyasal enerjiye dönüştürürken yan ürün olarak atmosfere oksijen salar. Bu süreç, yaşam için gerekli olan temel enerji kaynağını ve oksijeni sağladığı için hayati önem taşır.",
+     "ttft_ms": 22702.5,
+     "context_prep_ms": 4.2,
+     "runtime_ttft_ms": 22698.3,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 10.0
+     },
+     "first_delta_ms": 4267,
+     "stages": {
+      "waiting": 7,
+      "processing_context": 13
+     },
+     "total_ms": 13795,
+     "timed_out": false,
+     "errors": [],
+     "words": 124,
+     "reply": "Bulut bilişim, bilgisayar sistemlerinin, depolama alanlarının, veritabanlarının ve yazılımların internet üzerinden fiziksel donanımlara sahip olmadan, ihtiyaç duyulduğu kadar kullanılarak erişilmesi ve yönetilmesi hizmetidir. Veriler ve uygulamalar, yerel bilgisayarlarınız yerine uzaktaki güçlü sunucularda tutulur.\n\nTemel olarak şu avantajları sağlar:\n\n*   **Erişilebilirlik:** İnternet bağlantısı olan her yerden cihaz bağımsız olarak verilere ulaşılabilir.\n*   **Maliyet:** Donanım satın alma ve bakım maliyetlerini azaltarak \"kullandıkça öde\" modeliyle ekonomik çözüm sunar.\n*   **Ölçeklenebilirlik:** İş yükü arttığında kaynaklar hızlıca artırılabilir, azaldığında ise düşürülebilir.\n*   **Güncellik:** Yazılım ve güvenlik yamaları sağlayıcı tarafından merkezi olarak yönetilir, kullanıcı sürekli güncel sürüme sahip olur.\n\nHizmet modelleri açısından ise; Yazılım Hizmeti (SaaS - örneğin Google Drive, Netflix), Platform Hizmeti (PaaS - yazılım geliştirme ortamları) ve Altyapı Hizmeti (IaaS - sanal sunucular ve depolama) gibi kategorilere ayrılır.",
+     "ttft_ms": 3975.9,
+     "context_prep_ms": 5.7,
+     "runtime_ttft_ms": 3970.2,
+     "prompt_tokens": 6516
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 1
+   },
+   "settle": {
+    "settled": true,
+    "s": 72.7
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ER9R69VCJ6FQPREF8M0HCG",
+     "summary_version": 1,
+     "to_seq": 18,
+     "chunks": 1,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6798,
+     "tokens_after": 4599,
+     "duration_ms": 45017
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "during_25s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23030,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 13
+     },
+     "total_ms": 31174,
+     "timed_out": false,
+     "errors": [],
+     "words": 98,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını kullanarak karbondioksit ve suyu kimyasal enerjiye (glikoz) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki aşamada gerçekleşir:\n\n1. **Işığa Bağımlı Reaksiyonlar:** Kloroplastlardaki tilakoit zarlarda gerçekleşir. Işık enerjisi, klorofil tarafından yakalanır ve suyu parçalayarak oksijen açığa çıkarır. Bu aşamada üretilen ATP ve NADPH molekülleri, bir sonraki aşama için enerji kaynağı olarak kullanılır.\n2. **Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):** Kloroplastın stromasında gerçekleşir. Atmosferden alınan karbondioksit, önceki aşamada üretilen ATP ve NADPH kullanılarak şeker moleküllerine (glikoz) dönüştürülür.\n\nSonuç olarak bitki, hayatta kalmak ve büyümek için ihtiyaç duyduğu besini üretirken dışarıya oksijen salar.",
+     "ttft_ms": 22667.2,
+     "context_prep_ms": 3.2,
+     "runtime_ttft_ms": 22663.9,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 23976,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 14
+     },
+     "total_ms": 34563,
+     "timed_out": false,
+     "errors": [],
+     "words": 125,
+     "reply": "Bulut bilişim, bilişim hizmetlerinin (sunucu, depolama, veritabanı, yazılım vb.) fiziksel donanımlar yerine internet üzerinden dijital olarak sunulması ve kullanıcılara \"abonelik\" veya \"kullanım başına ödeme\" gibi modellerle sağlanmasıdır.\n\nTemel özelliklerini şu şekilde özetleyebilirim:\n\n*   **Erişilebilirlik:** İnternet bağlantısı olan her cihazdan (bilgisayar, telefon, tablet) dünyanın her yerinden verilere ulaşılabilir.\n*   **Ölçeklenebilirlik:** İhtiyaç arttığında kaynaklar (örneğin depolama alanı) hızlıca artırılabilir, ihtiyaç azaldığında ise düşürülebilir.\n*   **Maliyet Avantajı:** Şirketlerin veya kişilerin kendi fiziksel sunucularını kurma, bakımını yapma ve soğutma gibi yüksek başlangıç maliyetlerinden kurtulmasını sağlar.\n*   **Güvenlik ve Yedekleme:** Verilerin fiziksel cihazlarda değil, merkezi ve genellikle çok katmanlı güvenlik önlemleriyle korunan sunucularda saklanmasını sağlar.\n\nEn yaygın modelleri ise **IaaS** (Altyapı Hizmeti), **PaaS** (Platform Hizmeti) ve **SaaS** (Yazılım Hizmeti) olarak kategorize edilir. Örneğin; Google Drive veya Dropbox birer SaaS örneğidir.",
+     "ttft_ms": 23720.2,
+     "context_prep_ms": 6.2,
+     "runtime_ttft_ms": 23714.0,
+     "prompt_tokens": 6503
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 105.3
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ERE40B73D45DGXQR20A6E0",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6815,
+     "tokens_after": 3904,
+     "duration_ms": 79412
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "baseline",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23071,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 12
+     },
+     "total_ms": 32787,
+     "timed_out": false,
+     "errors": [],
+     "words": 117,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını, suyu ve karbondioksidi kullanarak kimyasal enerjiye (glikoz) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamadan oluşur:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların tilakoid zarlarında gerçekleşir. Işık enerjisi, klorofil molekülleri tarafından emilir ve su moleküllerini parçalayarak oksijen açığa çıkarır. Bu sırada ATP ve NADPH adı verilen enerji taşıyıcı moleküller üretilir.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve doğrudan ışığa ihtiyaç duymaz. Işığa bağımlı reaksiyonlarda üretilen ATP ve NADPH kullanılarak, atmosferden alınan karbondioksit döngüye dahil edilir. Bu döngü sonucunda bitkinin besin kaynağı olan glikoz (şeker) üretilir.\n\nÖzetle bitki; su ve karbondioksiti kullanarak, güneş enerjisi yardımıyla kendi besinini üretir ve atmosfere oksijen salar.",
+     "ttft_ms": 22709.9,
+     "context_prep_ms": 3.8,
+     "runtime_ttft_ms": 22706.1,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": null,
+     "first_delta_ms": 1810,
+     "stages": {
+      "waiting": 11,
+      "processing_context": 15
+     },
+     "total_ms": 13877,
+     "timed_out": false,
+     "errors": [],
+     "words": 152,
+     "reply": "Bulut bilişim, verilerin, uygulamaların ve diğer dijital kaynakların kullanıcının yerel cihazında veya sunucusunda fiziksel olarak barındırılmak yerine, internet üzerinden üçüncü taraf sağlayıcıların veri merkezleri aracılığıyla sunulmasıdır.\n\nBu sistemin temel özelliklerini şu başlıklarla özetleyebilirim:\n\n**1. Uzaktan Erişim:** İnternet bağlantısı olan her yerden, herhangi bir cihaz üzerinden verilere ve yazılımlara ulaşmanıza olanak tanır.\n**2. Ölçeklenebilirlik:** İhtiyaç duyduğunuzda kaynak kapasitesini (depolama, işlem gücü vb.) hızla artırabilir veya kullanım durumunuza göre azaltabilirsiniz.\n**3. Maliyet Verimliliği:** Donanım satın alma ve bakım maliyetlerini düşürür; genellikle \"kullandığın kadar öde\" modeli üzerine kuruludur.\n**4. Esneklik ve İşbirliği:** Ekip üyelerinin aynı projeler üzerinde, farklı konumlardan eş zamanlı olarak çalışmasını kolaylaştırır.\n\nYaygın olarak kullanılan üç ana bulut servis modeli vardır:\n*   **IaaS (Altyapı Hizmeti):** Sunucular ve depolama gibi temel sanal altyapının kiralanması.\n*   **PaaS (Platform Hizmeti):** Yazılım geliştiricilerin uygulama oluşturmak için kullandığı çalışma ortamlarının sunulması.\n*   **SaaS (Yazılım Hizmeti):** Doğrudan internet üzerinden kullanılan hazır uygulamalar (örneğin, e-posta servisleri veya çevrimiçi ofis araçları).",
+     "ttft_ms": 1516.7,
+     "context_prep_ms": 4.9,
+     "runtime_ttft_ms": 1511.8,
+     "prompt_tokens": 6546
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 105.8
+   }
+  },
+  {
+   "scenario": "during_1s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23062,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 13
+     },
+     "total_ms": 33104,
+     "timed_out": false,
+     "errors": [],
+     "words": 133,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin ışık enerjisini kullanarak karbondioksit ve suyu şeker (glikoz) gibi kimyasal enerjiye dönüştürdüğü biyokimyasal bir süreçtir. Bu işlem temel olarak iki ana aşamada gerçekleşir:\n\n**Işık Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların içindeki tilakoit zarlarda gerçekleşir. Bitkiler güneş ışığını klorofili pigmentler aracılığıyla yakalar. Bu enerji, su moleküllerini parçalayarak oksijen açığa çıkarır ve bir sonraki aşama için gerekli olan ATP ve NADPH moleküllerini üretir.\n\n**Işık Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu süreç kloroplastın stromasında meydana gelir ve doğrudan ışığa ihtiyaç duymaz. Işık bağımlı reaksiyonlarda üretilen ATP ve NADPH kullanılarak, atmosferden alınan karbondioksit döngüye sokulur. Bu döngü sonucunda bitki için temel enerji kaynağı olan glikoz üretilir.\n\nÖzetle bitki; ışık, su ve karbondioksit kullanarak kendi besinini üretir ve yan ürün olarak atmosfere oksijen salar. Bu süreç, dünyadaki yaşam için temel enerji ve oksijen kaynağıdır.",
+     "ttft_ms": 22698.2,
+     "context_prep_ms": 3.3,
+     "runtime_ttft_ms": 22694.8,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 4245,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 18636,
+     "timed_out": false,
+     "errors": [],
+     "words": 171,
+     "reply": "Bulut bilişim, bilgisayar hizmetlerinin (sunucular, depolama, veritabanları, yazılım vb.) internet üzerinden, fiziksel bir donanıma sahip olma zorunluluğu duymadan erişilmesini sağlayan bir teknolojidir. Kullanıcılar, kendi bilgisayarlarında yerel olarak barındırmak yerine bu kaynaklara internet üzerinden bağlanarak ihtiyaç duydukları zamanda ve miktarda ulaşırlar.\n\nTemel özellikleri ve modelleri şunlardır:\n\n**Hizmet Modelleri:**\n*   **IaaS (Altyapı Hizmeti):** Temel hesaplama kaynaklarının (sanal makineler, depolama) kiralandığı modeldir.\n*   **PaaS (Platform Hizmeti):** Yazılım geliştiricilerin uygulama geliştirmeleri için gerekli olan platformların (işletim sistemi, programlama dilleri) sunulduğu modeldir.\n*   **SaaS (Yazılım Hizmeti):** Kullanıcının doğrudan internet üzerinden kullandığı hazır yazılımlardır (örneğin; e-posta servisleri, çevrimiçi ofis programları).\n\n**Dağıtım Modelleri:**\n*   **Genel Bulut (Public Cloud):** Hizmetlerin internet üzerinden herkese açık olarak sunulduğu modeldir (AWS, Google Cloud, Microsoft Azure gibi).\n*   **Özel Bulut (Private Cloud):** Hizmetlerin yalnızca tek bir kuruma veya şirkete özel olarak tahsis edildiği modeldir.\n*   **Hibrit Bulut:** Şirketlerin bazı verilerini yerel sunucularda, bazılarını ise genel bulut sistemlerinde tutarak her iki yapıyı birleştirdiği modeldir.\n\nBulut bilişimin en büyük avantajları; maliyetin düşük olması (donanım yatırımından kaçınılması), ölçeklenebilirlik (ihtiyaç arttıkça kaynak artırılabilmesi) ve her yerden erişilebilirliktir.",
+     "ttft_ms": 3993.3,
+     "context_prep_ms": 7.4,
+     "runtime_ttft_ms": 3985.9,
+     "prompt_tokens": 6557
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.0
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ERSGSVXATPRJP7FC53RFRG",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6975,
+     "tokens_after": 4064,
+     "duration_ms": 79570
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "during_10s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23143,
+     "stages": {
+      "waiting": 16,
+      "processing_context": 20
+     },
+     "total_ms": 31941,
+     "timed_out": false,
+     "errors": [],
+     "words": 113,
+     "reply": "Fotosentez,bitkilerin,alglerin ve bazı bakterilerin güneş ışığını kullanarak karbondioksit ve suyu şeker gibi organik maddelere dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki aşamadan oluşur:\n\n1. **Işığa Bağımlı Reaksiyonlar:** Kloroplastlardaki tilakoit zarlarda gerçekleşir. Güneş enerjisi, klorofilin yardımıyla emilir ve su moleküllerini parçalayarak ATP ve NADPH adı verilen enerji molekülleri üretir. Bu aşamada yan ürün olarak oksijen açığa çıkar.\n\n2. **Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):** Stroma adı verilen kısımda gerçekleşir. Işığa doğrudan ihtiyaç duymaz; ilk aşamada üretilen ATP ve NADPH ile karbondioksiti kullanarak glikoz (şeker) sentezler.\n\nÖzetle bitki; güneş enerjisi, su ve karbondioksit kullanarak kendi besinini üretirken, atmosfere oksijen salar. Bu süreç, dünyadaki yaşamın temel enerji kaynağı ve oksijen dengesi için kritik öneme sahiptir.",
+     "ttft_ms": 22773.0,
+     "context_prep_ms": 3.8,
+     "runtime_ttft_ms": 22769.2,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 10.0
+     },
+     "first_delta_ms": 4321,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 15
+     },
+     "total_ms": 14593,
+     "timed_out": false,
+     "errors": [],
+     "words": 120,
+     "reply": "Bulut bilişim (cloud computing), bilgisayar hizmetlerinin (sunucular, depolama, veritabanları, yazılım, ağ vb.) internet üzerinden, kullanıcıların kendi yerel altyapılarını yönetmek yerine ihtiyaç duydukları ölçüde kiraladıkları bir modeldir. \n\nTemel özelliklerini şu şekilde özetleyebilirim:\n\n*   **Ölçeklenebilirlik:** İhtiyaç arttığında kaynakları (örneğin depolama alanı veya işlem gücü) hızlıca artırabilir, ihtiyaç azaldığında düşürebilirsiniz.\n*   **Maliyet Verimliliği:** Donanım satın alma, bakım ve enerji maliyetlerini ortadan kaldırarak \"kullandığın kadar öde\" modelini sağlar.\n*   **Erişilebilirlik:** İnternet bağlantısı olan herhangi bir cihazdan verilere veya uygulamalara ulaşabilme imkanı sunar.\n*   **Model Türleri:** Genellikle **IaaS** (Altyapı hizmeti), **PaaS** (Platform hizmeti) ve **SaaS** (Yazılım hizmeti) olarak üç ana kategoriye ayrılır.\n\nÖrneğin; Google Drive veya Dropbox gibi platformlar birer SaaS örneğiyken, bir şirketin tüm sunucu altyapısını AWS veya Azure gibi sağlayıcılardan kiralaması IaaS örneğidir.",
+     "ttft_ms": 4100.4,
+     "context_prep_ms": 7.1,
+     "runtime_ttft_ms": 4093.2,
+     "prompt_tokens": 6521
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 105.5
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ERYTHJ3NDBJ2PGVG2W17GA",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6822,
+     "tokens_after": 3911,
+     "duration_ms": 79485
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "during_25s",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23150,
+     "stages": {
+      "waiting": 12,
+      "processing_context": 15
+     },
+     "total_ms": 34467,
+     "timed_out": false,
+     "errors": [],
+     "words": 130,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin ışık enerjisini kullanarak karbondioksit ve suyu kimyasal enerjiye (glikoz gibi organik bileşiklere) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**Işık Bağımlı Reaksiyonlar:**\nBu aşama kloroplastlardaki tilakoit zarlarda meydana gelir. Işık enerjisi, klorofili diğer pigmentlerle birlikte yakalayarak suyu parçalar (fotoliz). Bu parçalanma sonucunda oksijen açığa çıkar. Aynı zamanda, bu süreçte üretilen ATP ve NADPH molekülleri bir sonraki aşama için enerji sağlayıcı olarak kullanılır.\n\n**Işık Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nIşığa doğrudan ihtiyaç duyulmayan bu aşama, kloroplastın stromasında gerçekleşir. Atmosferden alınan karbondioksit, ışığa bağımlı reaksiyonlarda üretilen ATP ve NADPH kullanılarak şeker moleküllerine dönüştürülür.\n\n**Genel Formül:**\n$6CO_2 + 6H_2O + \\text{Işık Enerjisi} \\rightarrow C_6H_{12}O_6 \\text{ (Glikoz)} + 6O_2$\n\nBu süreçle bitkiler sadece kendi besinlerini üretmekle kalmaz, aynı zamanda atmosferdeki oksijen dengesini de sağlar.",
+     "ttft_ms": 22783.8,
+     "context_prep_ms": 2.8,
+     "runtime_ttft_ms": 22781.0,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 25.0
+     },
+     "first_delta_ms": 24244,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 16
+     },
+     "total_ms": 35336,
+     "timed_out": false,
+     "errors": [],
+     "words": 132,
+     "reply": "Bulut bilişim, bilgisayar hizmetlerinin (sunucu, depolama, veritabanı, ağ, yazılım gibi) internet üzerinden, fiziksel bir donanıma sahip olma zorunluluğu duymadan \"kiralama\" veya \"paylaşımlı kullanım\" modeliyle sunulmasıdır.\n\nTemel özellikleri şunlardır:\n\n*   **Uzaktan Erişim:** Verilere ve uygulamalara internet bağlantısı olan her yerden ulaşılabilir.\n*   **Ölçeklenebilirlik:** Kullanım ihtiyacına göre kaynaklar (örneğin depolama alanı veya işlem gücü) anında artırılabilir veya azaltılabilir.\n*   **Maliyet Verimliliği:** Şirketlerin kendi sunucularını kurup bakımını yapma yerine, kullandıkları kadar ödeme yaptıkları bir sistem sunar.\n*   **Esneklik:** Farklı cihazlar (telefon, tablet, laptop) üzerinden eşzamanlı çalışma imkanı sağlar.\n\n**Yaygın Modeller:**\n*   **SaaS (Yazılım Hizmeti):** Doğrudan internet üzerinden kullanılan yazılımlardır (Örn: Google Drive, Netflix, Microsoft 365).\n*   **PaaS (Platform Hizmeti):** Yazılım geliştirmek için gereken ortamı sağlar (Örn: Google App Engine).\n*   **IaaS (Altyapı Hizmeti):** Sanal sunucu ve depolama gibi temel donanım kaynaklarını sağlar (Örn: AWS, Azure).",
+     "ttft_ms": 23985.4,
+     "context_prep_ms": 6.2,
+     "runtime_ttft_ms": 23979.3,
+     "prompt_tokens": 6592
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 105.8
+   },
+   "compaction_started": true,
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ES47FXXGGHBH6ZSZJJSFEZ",
+     "summary_version": 2,
+     "to_seq": 20,
+     "chunks": 2,
+     "kept_items": 11,
+     "dropped_items": 0,
+     "tokens_before": 6918,
+     "tokens_after": 4007,
+     "duration_ms": 79730
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "second",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 22954,
+     "stages": {
+      "waiting": 12,
+      "processing_context": 15
+     },
+     "total_ms": 34698,
+     "timed_out": false,
+     "errors": [],
+     "words": 131,
+     "reply": "Fotosentez, bitki、alg ve bazı bakterilerin güneş ışığını, suyu ve karbondioksidi kullanarak kimyasal enerjiye (glikoz/şeker) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki aşamada gerçekleşir:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastlardaki tilakoit zarlarda gerçekleşir. Bitki, klorofilin yardımıyla güneşten gelen ışık enerjisini soğurur. Bu enerji kullanılarak su (H2O) molekülleri parçalanır; bu sırada açığa çıkan oksijen (O2) atmosfere verilir. Elde edilen enerji, bir sonraki aşama için ATP ve NADPH moleküllerine dönüştürülür.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu süreç kloroplastın stromasında gerçekleşir ve doğrudan ışığa ihtiyaç duymaz. Atmosferden alınan karbondioksit (CO2), ışığa bağımlı reaksiyonlardan gelen ATP ve NADPH enerjisini kullanarak organik bileşiklere (glikoz) dönüştürülür.\n\n**Genel Denklem:**\n6CO2 + 6H2O + Işık Enerjisi → C6H12O6 (Glikoz) + 6O2\n\nÖzetle bitkiler; ışık enerjisini kullanarak inorganik maddelerden kendileri için besin ve yaşam için oksijen üretirler.",
+     "ttft_ms": 22658.1,
+     "context_prep_ms": 3.8,
+     "runtime_ttft_ms": 22654.3,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": null,
+     "first_delta_ms": 1822,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 14
+     },
+     "total_ms": 21594,
+     "timed_out": false,
+     "errors": [],
+     "words": 254,
+     "reply": "Bulut bilişim (cloud computing), bilgisayar hizmetlerinin (sunucu, depolama, veritabanı, ağ, yazılım vb.) internet üzerinden fiziksel donanımlara sahip olmadan, ihtiyaç duyulduğunda erişilebilir ve kullanılabilir olmasıdır. Kısaca, verilerin ve uygulamaların kendi yerel bilgisayarınızda veya özel bir sunucuda değil, internet üzerindeki devasa veri merkezlerinde barındırılmasıdır.\n\nBulut bilişim sistemlerini birkaç temel hizmet modeli ve kullanım türüne göre sınıflandırabiliriz:\n\n**Hizmet Modelleri:**\n\n*   **IaaS (Infrastructure as a Service - Altyapı Servisi):** Kullanıcıya sanal sunucular, depolama ve ağ kaynakları sağlar. Kullanıcı, işletim sisteminden uygulamalara kadar her şeyi kendisi yönetir (Örn: AWS EC2, Google Compute Engine).\n*   **PaaS (Platform as a Service - Platform Servisi):** Yazılım geliştirmek için gerekli ortamı sağlar. Geliştiriciler, sunucu yönetimiyle uğraşmadan doğrudan kodlarını çalıştırabilirler (Örn: Heroku, Google App Engine).\n*   **SaaS (Software as a Service - Yazılım Servisi):** Kullanıcının doğrudan internet tarayıcısı üzerinden kullandığı hazır yazılımlardır. Kurulum veya yönetim gerektirmez (Örn: Google Drive, Microsoft 365, Netflix).\n\n**Kullanım Türleri:**\n\n*   **Genel (Public) Bulut:** Kaynaklar geniş halka açık internet üzerinden farklı kullanıcılarla paylaşılır (Örn: Google Cloud, Microsoft Azure).\n*   **Özel (Private) Bulut:** Kaynaklar sadece belirli bir kurumun veya kişinin kullanımına ayrılır; daha yüksek güvenlik ve kontrol sağlar.\n*   **Hibrit Bulut:** Genel ve özel bulut sistemlerinin birlikte kullanıldığı, verilerin ihtiyaca göre iki sistem arasında taşınabildiği yapıdır.\n\n**Temel Avantajları:**\n\n*   **Ölçeklenebilirlik:** İhtiyaç arttığında kaynaklar (depolama, işlem gücü) anında artırılabilir.\n*   **Maliyet Tasarrufu:** Donanım satın alma ve bakım maliyetlerini ortadan kaldırır; genellikle \"kullandığın kadar öde\" modeliyle çalışır.\n*   **Erişilebilirlik:** İnternet bağlantısı olan her yerden verilere ve uygulamalara erişim sağlar.\n*   **Felaket Kurtarma:** Veriler farklı coğrafyalardaki sunucularda yedeklendiği için veri kaybı riskini minimize eder.",
+     "ttft_ms": 1600.8,
+     "context_prep_ms": 5.4,
+     "runtime_ttft_ms": 1595.4,
+     "prompt_tokens": 6603
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.6
+   },
+   "second_refused": true
+  },
+  {
+   "scenario": "close",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23072,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 13
+     },
+     "total_ms": 33363,
+     "timed_out": false,
+     "errors": [],
+     "words": 126,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş enerjisini kullanarak inorganik maddelerden (karbondioksit ve su) organik besin (glikoz) ve oksijen üretmesi sürecidir. Bu süreç temel olarak iki ana aşamada gerçekleşir:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların tilakoit zarlarında gerçekleşir. Klorofiller güneş ışığını soğurur ve bu enerji kullanılarak su molekülleri parçalanır (fotoliz). Bu parçalama sonucunda serbest kalan oksijen atmosfere salınır. Ayrıca, bir sonraki aşamada kullanılmak üzere ATP ve NADPH molekülleri üretilir.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve ışığa doğrudan ihtiyaç duymaz ancak ışığa bağımlı reaksiyonlardan gelen ATP ve NADPH'ı kullanır. Havadan alınan karbondioksit, bu moleküllerin yardımıyla kimyasal olarak işlenerek glikoz gibi basit şekerlere dönüştürülür.\n\nÖzetle bitkiler, güneş enerjisini kimyasal enerjiye dönüştürerek hem kendi yaşamlarını sürdürürler hem de dünyadaki oksijen dengesini sağlarlar.",
+     "ttft_ms": 22707.5,
+     "context_prep_ms": 3.7,
+     "runtime_ttft_ms": 22703.8,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": null,
+     "first_delta_ms": 3858,
+     "stages": {
+      "waiting": 5,
+      "processing_context": 8
+     },
+     "total_ms": 21631,
+     "timed_out": false,
+     "errors": [],
+     "words": 217,
+     "reply": "Bulut bilişim, bilgisayar sistemlerinin, depolama alanlarının, veritabanlarının ve yazılımların internet üzerinden fiziksel sunucular yerine sanal bir ağ üzerinden sunulması ve kullanıcılar tarafından talep edildiği anda erişilebilir hale getirilmesidir. Kısacası, verilerin veya uygulamaların kendi yerel bilgisayarınızda veya şirketinizin sunucularında değil, uzaktaki büyük veri merkezlerinde barındırılmasıdır.\n\nBulut bilişimin sağladığı temel avantajlar şunlardır:\n\n**1. Maliyet Verimliliği:**\nDonanım satın alma, bakım ve elektrik gibi yüksek ilk yatırım maliyetleri ortadan kalkar. Bunun yerine, sadece kullanılan kaynak kadar ödeme yapılan (pay-as-you-go) modeller yaygındır.\n\n**2. Ölçeklenebilirlik:**\nİş yükünüz arttığında kaynakları (örneğin depolama alanını veya işlemci gücünü) saniyeler içinde artırabilir veya iş yükü azaldığında bunları kısaltabilirsiniz. Bu, özellikle hızla büyüyen veya dalgalı trafik alan işletmeler için kritiktir.\n\n**3. Uzaktan Erişim ve İş Birliği:**\nİnternet bağlantısı olan her yerden dosyalara ve uygulamalara erişilebilmesi, ekiplerin dünyanın farklı noktalarından aynı veriler üzerinde eş zamanlı çalışmasına olanak tanır.\n\n**4. Veri Yedekleme ve Güvenlik:**\nVerileriniz, fiziksel bir arızaya veya hırsızlığa karşı korunmuş, profesyonelce yönetilen veri merkezlerinde saklanır. Çoğu bulut sağlayıcısı, otomatik yedekleme ve gelişmiş güvenlik katmanları sunar.\n\n**Yaygın Bulut Modelleri:**\n*   **IaaS (Altyapı Hizmeti):** Sanal sunucular, depolama ve ağ gibi temel altyapı bileşenlerinin kiralanması.\n*   **PaaS (Platform Hizmeti):** Yazılım geliştiricilerin uygulama geliştirmek için gerekli araçların (işletim sistemi, veritabanı vb.) hazır sunulduğu model.\n*   **SaaS (Yazılım Hizmeti):** Doğrudan son kullanıcının erişebileceği, tarayıcı üzerinden çalışan hazır uygulamalar (Örn: Google Drive, Microsoft 365).",
+     "ttft_ms": 3556.3,
+     "context_prep_ms": 3.3,
+     "runtime_ttft_ms": 3553.0,
+     "prompt_tokens": 6564
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 26,
+    "summaries": 2
+   },
+   "settle": {
+    "settled": true,
+    "s": 106.0
+   },
+   "closed_s": 0.0,
+   "compaction_started": true
+  },
+  {
+   "scenario": "writer",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23027,
+     "stages": {
+      "waiting": 11,
+      "processing_context": 15
+     },
+     "total_ms": 33910,
+     "timed_out": false,
+     "errors": [],
+     "words": 131,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını kullanarak suyu ve karbondioksiti besine dönüştürdüğü kimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamadan oluşur:\n\n1. **Işığa Bağımlı Tepkimeler:** Kloroplastlardaki tilakoit zarlarda gerçekleşir. Bitkiler, klorofilleri aracılığıyla güneş ışığını soğurur ve bu enerjiyi kullanarak suyu (H2O) parçalar. Bu parçalama sonucunda oksijen (O2) açığa çıkar ve bitkinin bir sonraki aşama için kullanacağı ATP ve NADPH molekülleri üretilir.\n\n2. **Işıktan Bağımsız Tepkimeler (Calvin Döngüsü):** Kloroplastın stromasında gerçekleşir. Bu aşamada doğrudan ışık kullanılmaz; ancak ilk aşamada üretilen ATP ve NADPH enerjisi harcanır. Bitki, atmosferden aldığı karbondioksiti (CO2) kullanarak bunları şeker moleküllerine (glikoz) dönüştürür.\n\n**Genel Denklem:**\n6CO2 + 6H2O + Işık Enerjisi $\\rightarrow$ C6H12O6 (Glikoz) + 6O2\n\nÖzetle bitki; enerjiyi güneşten alır, yapı malzemesi ve besin olarak karbonu kullanır, yan ürün olarak ise atmosfere oksijen verir.",
+     "ttft_ms": 22662.0,
+     "context_prep_ms": 3.6,
+     "runtime_ttft_ms": 22658.4,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 4349,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 19735,
+     "timed_out": false,
+     "errors": [],
+     "words": 198,
+     "reply": "Bulut bilişim, bilgisayar kaynaklarının (sunucu, depolama, veritabanı, yazılım gibi) internet üzerinden, fiziksel olarak cihazlara sahip olmadan talep üzerine kullanılmasıdır. Veriler ve uygulamalar yerel bir disk yerine uzak veri merkezlerindeki devasa sunucularda barındırılır.\n\nBulut bilişimi temel olarak şu özellikler tanımlar:\n\n*   **Ölçeklenebilirlik:** İhtiyaç duydukça kaynak kapasitesini (örneğin daha fazla depolama alanı veya işlem gücü) hızla artırabilir veya azaltabilirsiniz.\n*   **Erişilebilirlik:** İnternet bağlantısı olan her yerden, farklı cihazlar (telefon, tablet, bilgisayar) üzerinden verilere ulaşmanıza olanak tanır.\n*   **Maliyet Verimliliği:** Donanım satın alma, bakım ve yönetim maliyetlerini ortadan kaldırarak genellikle \"kullandığın kadar öde\" modelini esas alır.\n*   **Güncellik:** Yazılım güncellemeleri ve güvenlik yamaları bulut sağlayıcısı tarafından otomatik olarak yapılır, bu sayede her zaman en güncel sürümü kullanırsınız.\n\n**Yaygın Bulut Hizmeti Modelleri:**\n\n1.  **IaaS (Infrastructure as a Service):** Temel altyapı (sunucular, ağlar, depolama) kiralama. (Örn: AWS EC2, Google Compute Engine)\n2.  **PaaS (Platform as a Service):** Yazılım geliştirmek için gerekli olan çalışma ortamının ve araçların sağlanması. (Örn: Google App Engine, Heroku)\n3.  **SaaS (Software as a Service):** Doğrudan son kullanıcıya yönelik, internet üzerinden çalışan hazır yazılımlar. (Örn: Google Drive, Microsoft 365, Zoom)\n\nKısacası bulut bilişim, dijital kaynakların fiziksel sınırları aşarak her yerden ulaşılabilir ve esnek bir şekilde kullanılmasını sağlayan bir teknoloji altyapısıdır.",
+     "ttft_ms": 4097.1,
+     "context_prep_ms": 7.7,
+     "runtime_ttft_ms": 4089.4,
+     "prompt_tokens": 6581
+    },
+    {
+     "user": "Enflasyon neden olur?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 4943,
+     "stages": {
+      "waiting": 2,
+      "processing_context": 9
+     },
+     "total_ms": 26685,
+     "timed_out": false,
+     "errors": [],
+     "words": 288,
+     "reply": "Enflasyon, bir ekonomide mal ve hizmetlerin genel fiyat düzeyinin sürekli ve sistematik olarak artmasıdır. Bu durum, paranın satın alma gücünün azalması anlamına gelir. Enflasyonun ortaya çıkmasının temel nedenlerini birkaç ana başlıkta toplayabiliriz:\n\n**1. Talebin Artması (Talep Enflasyonu):**\nEkonomide bir mal veya hizmete 대한 talep, üretim kapasitesinden daha hızlı arttığında fiyatlar yükselir. Eğer insanlar daha fazla para harcıyor ancak piyasadaki ürün miktarı aynı kalıyorsa, fiyatlar yukarı yönlü hareket eder. Bu durum genellikle düşük faiz oranları, geniş para arzı veya aşırı harcama eğilimi gibi nedenlerle tetiklenir.\n\n**2. Maliyetlerin Artması (Maliyet Enflasyonu):**\nÜretim sürecinde kullanılan girdilerin maliyetleri arttığında, üreticiler bu maliyeti tüketiciye yansıtır. Örneğin:\n*   Enerji fiyatlarının (petrol, doğalgaz) artması.\n*   Hammadde fiyatlarındaki yükselişler.\n*   Asgari ücret veya işçi maliyetlerindeki artışlar.\nBu tür durumlarda arzın maliyeti yükseldiği için fiyatlar genel olarak artış gösterir.\n\n**3. Para Arzının Artması:**\nBir devlet veya merkez bankası, piyasaya aşırı miktarda para sürdüğünde, paranın değeri düşer. Piyasadaki para miktarı ürün miktarından çok daha hızlı artarsa, her bir birim paranın satın alabildiği ürün miktarı azalır ve fiyatlar yükselir. Bu, genellikle aşırı borçlanma veya düşük faiz politikaları sonucunda oluşabilir.\n\n**4. Döviz Kurlarındaki Değişimler (İthalat Enflasyonu):**\nBir ülke kendi para birimiyle başka bir ülkenin para birimine karşı değer kaybederse, ithal edilen ürünlerin (teknoloji, hammadde, yakıt vb.) fiyatı artar. Bu artış, yurt içindeki üretim maliyetlerini ve tüketici fiyatlarını doğrudan etkileyerek genel enflasyonu tetikler.\n\n**5. Beklentiler ve Psikolojik Faktörler:**\nEğer tüketiciler ve üreticiler gelecekte fiyatların artacağına inanırlarsa, bu beklenti bir \"kendi kendini gerçekleştiren kehanet\"e dönüşebilir. İşletmeler stok maliyetlerini korumak için bugünden fiyat artışı yapabilir, tüketiciler ise fiyatlar daha da artmadan alışverişe yönelir. Bu döngü enflasyonu besleyen güçlü bir faktördür.\n\n**Özetle;** enflasyon tek bir nedene bağlı kalmak yerine genellikle bu faktörlerin (fazla para arzı, artan üretim maliyetleri ve yüksek talep) birleşmesiyle ortaya çıkar.",
+     "ttft_ms": 4689.2,
+     "context_prep_ms": 6.5,
+     "runtime_ttft_ms": 4682.7,
+     "prompt_tokens": 7064
+    },
+    {
+     "user": "Gökyüzü neden mavidir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 31247,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 9
+     },
+     "total_ms": 50826,
+     "timed_out": false,
+     "errors": [],
+     "words": 266,
+     "reply": "Gökyüzünün mavi görünmesinin temel nedeni, güneş ışığının atmosferdeki gaz molekülleri ve parçacıklarla etkileşime girmesi sırasında oluşan **Rayleigh Saçılması** olayıdır.\n\nSüreci şu şekilde adım adım açıklayabilirim:\n\n**1. Güneş Işığının Bileşimi:**\nGüneşten gelen ışık beyaz görünse de aslında tüm gözle görünen renklerin (kırmız_ı, turuncu, sarı, yeşil, mavi, lacivert, mor) karışımından oluşur. Her rengin farklı bir dalga boyu vardır; örneğin kırmızı ışığın dalga boyu uzundur, mor ve mavi ışığın dalga boyu ise daha kısadır.\n\n**2. Atmosferle Etkileşim:**\nDünya atmosferi, azot, oksijen ve diğer gaz molekülleri ile toz parçacıkları gibi küçük maddelerle doludur. Güneş ışığı atmosfere girdiğinde bu moleküllere çarpar.\n\n**3. Rayleigh Saçılması:**\nKısa dalga boylu ışıklar (mavi ve mor), uzun dalga boylu ışıklara (kırmızı ve turuncu) göre atmosferdeki moleküllere çok daha kolay çarpar ve her yöne dağılır (saçılır). Çünkü dalga boyları kısadır, bu yüzden moleküllerle daha fazla etkileşime girerler.\n\n**4. Neden Mor Değil de Mavi?**\nTeorik olarak mor ışık, mavi ışığa göre daha kısa dalga boyuna sahiptir ve aslında daha fazla saçılması gerekir. Ancak gökyüzünü mor değil de mavi görmemizin iki sebebi vardır:\n*   **Güneş Işığı:** Güneş spektrumunda mavi ışık, mor ışığa göre çok daha yoğun bir şekilde bulunur.\n*   **İnsan Gözü:** İnsan gözü mavi renge karşı mor rengden çok daha hassastır. Beynimiz atmosfere çarpan ve her yöne dağılan bu karmaşık ışık karışımını ağırlıklı olarak \"açık mavi\" olarak algılar.\n\n**Gün Batımında Ne Olur?**\nGüneş ufka yaklaştığında ışık atmosferde çok daha uzun bir mesafe kateder. Bu uzun yol boyunca kısa dalga boylu mavi ışıkın neredeyse tamamı saçılıp yok olur. Geriye sadece atmosferden kolayca geçen uzun dalga boylu ışıklar (kırmızı, turuncu ve sarı) ulaşır; bu yüzden gün batımı bu renklerde görünür.",
+     "ttft_ms": 30991.1,
+     "context_prep_ms": 7.1,
+     "runtime_ttft_ms": 30983.9,
+     "prompt_tokens": 7726
+    },
+    {
+     "user": "Stresle başa çıkmak için ne önerirsin?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 5452,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 26273,
+     "timed_out": false,
+     "errors": [],
+     "words": 243,
+     "reply": "Stresle başa çıkmak için biyolojik, zihinsel ve yaşam tarzı odaklı birkaç farklı yöntemden yararlanabilirsiniz. İşte sakinleşmenize yardımcı olabilecek bazı yaklaşımlar:\n\n**1. Fizyolojik Rahatlama Teknikleri:**\n*   **Derin Nefes Egzersizleri:** Stres anında vücut \"savaş ya da kaç\" tepkisi verir. Diyafram nefesi (burnundan derin nefes alıp karnını şişirerek, ağzından yavaşça vererek) parasempatik sinir sistemini aktive ederek vücudun sakinleşmesini sağlar.\n*   **Progressif Kas Gevşetme:** Vücudunuzdaki kas gruplarını sırayla (ayaklardan başlayıp yüze kadar) 5 saniye sıkıp sonra aniden serbest bırakmak, fiziksel gerilimi azaltabilir.\n\n**2. Zihinsel ve Duygusal Yaklaşımlar:**\n*   **Farkındalık (Mindfulness):** O anki düşüncelerinize kapılmadan, sadece \"şu an\"a odaklanmaya çalışın. Çevrenizdeki beş sesi duymak, dokunduğunuz üç dokuyu hissetmek veya gördüğünüz dört rengi fark etmek gibi topraklama teknikleri zihni sakinleştirir.\n*   **Düşünce Sorgulama:** Kendinizi strese sokan düşüncelerin ne kadarının gerçeklikle örtüştüğünü sorgulayın. \"Şu anki endişem bir gerçek mi yoksa sadece bir ihtimal mi?\" sorusu, kaygıyı yönetmenize yardımcı olabilir.\n\n**3. Yaşam Tarzı Değişiklikleri:**\n*   **Düzenli Fiziksel Aktivite:** Egzersiz sırasında salgılanan endorfin ve dopamin hormonları, doğal bir \"mutluluk kaynağı\" görevi görerek stres seviyesini düşürür.\n*   **Uyku ve Beslenme Düzeni:** Yetersiz uyku, stres toleransınızı doğrudan azaltır. Düzenli uyku ve dengeli beslenme, vücudun stresle mücadele mekanizmasını güçlendirir.\n*   **Sınır Çizmek:** Bazen stresin kaynağı aşırı yüklenmedir. \"Hayır\" demeyi öğrenmek ve günlük görevlerinizi öncelik sırasına koymak (en önemliden başlayarak küçük adımlar atmak) üzerinizdeki baskıyı azaltabilir.\n\n**Önemli Not:** Eğer stres günlük hayatınızı işlevsiz hale getirecek kadar şiddetliyse, sürekli bir kaygı hali yaratıyorsa veya kontrolünüz dışında gelişiyorsa, bir uzmandan destek almak en sağlıklı ve kalıcı çözüm olacaktır.",
+     "ttft_ms": 5198.0,
+     "context_prep_ms": 7.5,
+     "runtime_ttft_ms": 5190.5,
+     "prompt_tokens": 8330
+    },
+    {
+     "user": "Kitap okuma alışkanlığı nasıl kazanılır?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 36394,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 11
+     },
+     "total_ms": 59885,
+     "timed_out": false,
+     "errors": [],
+     "words": 284,
+     "reply": "Kitap okuma alışkanlığı kazanmak, bir kası geliştirmek gibidir; düzenli ve küçük adımlarla başlandığında zamanla güçlenir. Bu süreci kolaylaştırmak için şu yöntemleri deneyebilirsiniz:\n\n**1. İlgi Alanlarınıza Yönelin:**\nBaşlangıçta \"klasik\" veya \"çok satan\" dediğiniz ağır eserleri okuma zorunluluğu hissetmeyin. İlgi duyduğunuz konularda (bilim kurgu, biyografi, kişisel gelişim, suç romanı vb.) seçtiğiniz, sizi içine çekecek kitaplarla başlamak en önemli adımdır.\n\n**2. Küçük ve Gerçekçi Hedefler Belirleyin:**\n\"Günde bir kitap bitireceğim\" gibi büyük hedefler başlangıçta yorucu olabilir. Bunun yerine:\n*   Günde sadece 10-15 sayfa okuma hedefi koyun.\n*   Veya \"Günde 20 dakika okuma\" kuralını uygulayın.\nHedef küçük olduğunda, beyniniz bunu bir \"yük\" olarak değil, kolayca tamamlanabilir bir görev olarak algılar.\n\n**3. Uygun Ortamı ve Zamanı Oluşturun:**\n*   **Tetikleyiciler:** Kitabı her zaman görebileceğiniz bir yere koyun (komodin, çanta, mutfak masası).\n*   **Rutin:** Sabah kahvesiyle, akşam uyumadan önce veya toplu taşımada gibi sabit bir zaman dilimi belirleyin.\n*   **Dijital Detoks:** Okuma yapacağınız süre boyunca telefonunuzu başka bir odaya bırakmak veya bildirimleri kapatmak odaklanmanızı kolaylaştırır.\n\n**4. Teknikleri Kullanın:**\n*   **Sesli Kitaplar:** Özellikle yolculuklarda veya odaklanmanın zor olduğu anlarda sesli kitaplar, okuma alışkanlığına giriş yapmak için harika bir köprüdür.\n*   **E-Kitaplar ve Uygulamalar:** Telefonunuza kitap yükleyip kısa aralarda (örneğin sırada beklerken) birkaç sayfa okumak, okuma alışkanlığını hayatın içine yedirir.\n\n**5. Kendinize İzin Verin (Yarım Bırakma Hakkı):**\nBir kitabı okurken akıcı gelmiyorsa veya sizi sarmıyorsa bitirmek için kendinizi zorlamayın. İlginizi çekmeyen bir kitabı yarıda bırakmak, diğer kitaplara ayıracağınız zamanı ve enerjiyi korur.\n\n**6. Sosyal Destek ve Takip:**\nOkuduğunuz kitaplar hakkında yorum yapmak, bir arkadaşınızla paylaşmak veya Goodreads gibi platformlarda takip yapmak motivasyonunuzu canlı tutar.\n\nUnutmayın, önemli olan ne kadar hızlı okuduğunuz değil, ne kadar düzenli okuma yaptığınızdır. Küçük adımlarla başlamak sabır gerektirir; ancak bir süre sonra kitapların dünyasına dalmak kendiliğinden bir keyfe dönüşecektir.",
+     "ttft_ms": 36138.7,
+     "context_prep_ms": 7.7,
+     "runtime_ttft_ms": 36130.9,
+     "prompt_tokens": 8961
+    },
+    {
+     "user": "Tasarruf yapmaya nereden başlamalıyım?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 5926,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 34600,
+     "timed_out": false,
+     "errors": [],
+     "words": 338,
+     "reply": "Tasarruf yapmak, sadece harcamayı kısmak değil, aynı zamanda parayı daha bilinçli yönetme sanatıdır. Bu sürece sağlam bir temel atmak için şu adımları izleyebilirsiniz:\n\n**1. Mevcut Durumunuzu Analiz Edin (Net Görünürlük):**\nNereye ne kadar harcadığınızı bilmeden tasarruf yapamazsınız. Bir ay boyunca tüm harcamalarınızı (en küçük kahve veya abonelik ücreti dahil) not edin. Harcamalarınızı şu kategorilere ayırın:\n*   **Sabit Giderler:** Kira, faturalar, abonelikler, borç ödemeleri.\n*   **Değişken Giderler:** Mutfak alışverişi, dışarıda yemek, giyim.\n*   **Lüks/İstek Giderleri:** Eğlence, hobi, dışarıdaki kahveler.\n\n**2. Bütçe Planı Oluşturun (50/30/20 Kuralı):**\nGelirinizi yönetmek için popüler ve dengeli bir yöntem olan 50/30/20 kuralını uygulayabilirsiniz:\n*   **%50 Temel İhtiyaçlar:** Barınma, fatura, mutfak gibi hayatta kalmak için zorunlu giderler.\n*   **%30 İsteğe Bağlı Harcamalar:** Sosyal hayat, hobiler, dışarıda yemek gibi keyifli aktiviteler.\n*   **%20 Tasarruf ve Borç Ödeme:** Gelecek için birikim, yatırım veya varsa borçların erken kapatılması.\n\n**3. Gereksiz Abonelikleri ve \"Sızıntı\" Giderleri Temizleyin:**\nKullanmadığınız spor salonu üyelikleri, izlemediğiniz dijital platform abonelikleri veya her ay otomatik çekilen küçük meblağlar birikir. Bu kalemleri gözden geçirip ihtiyacınız olmayanları iptal etmek, en hızlı tasarruf yöntemlerinden biridir.\n\n**4. \"İstek\" ve \"İhtiyaç\" Ayrımı Yapın:**\nBir şey satın almadan önce kendinize şu soruları sorun:\n*   \"Buna gerçekten ihtiyacım var mı?\"\n*   \"Bunu satın almazsam hayatımda bir engel çıkar mı?\"\n*   \"Bunu hemen şimdi mi almalıyım yoksa bir gün bekleyebilir miyim?\" (24 saat kuralı: Bir şeyi çok istediğinizde sepetten çıkarmak için kendinize 24 saat süre tanıyın; çoğu zaman o istekin geçtiğini fark edeceksiniz.)\n\n**5. Otomatik Tasarruf Sistemi Kurun:**\nMaaşınızı veya gelirinizi alır almaz, belirlediğiniz bir miktarı (küçük de olsa) hemen ayrı bir birikim hesabına aktarın. Parayı \"harcamayı planlayıp artanı biriktirmek\" yerine, \"biriktirmeyi planlayıp kalanı harcamak\" çok daha etkili bir yöntemdir.\n\n**6. Mutfak ve Market Alışverişinde Strateji Geliştirin:**\nDışarıda yemek yemek yerine evde yemek pişirmek en büyük tasarruf kalemlerinden biridir. Market alışverişine mutlaka bir liste ile gidin ve aç karnına alışveriş yapmaktan kaçının; bu, dürtüsel satın alımları ciddi oranda azaltır.\n\nTasarruf bir maratonbenchmark yolculuğudur; amacınız kendinizi sürekli mahrum bırakmak değil, hedeflerinize (ev almak, seyahat etmek, emeklilik vb.) daha güvenli bir şekilde ulaşmak için bütçenizi optimize etmektir.",
+     "ttft_ms": 5705.9,
+     "context_prep_ms": 7.4,
+     "runtime_ttft_ms": 5698.5,
+     "prompt_tokens": 9667
+    },
+    {
+     "user": "Yeni bir dil öğrenmeye nasıl başlamalıyım?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 42478,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 71852,
+     "timed_out": false,
+     "errors": [],
+     "words": 373,
+     "reply": "Yeni bir dil öğrenmek, sadece kelime ezberlemek değil, yeni bir düşünme biçimi edinme sürecidir. Bu süreci verimli ve kalıcı kılmak için şu stratejileri izleyebilirsiniz:\n\n**1. \"Neden\"inizi Belirleyin ve Hedef Koyun:**\nÖğrenmeye başlamadan önce motivasyonunuzun ne olduğunu netleştirin (İş için mi, kültürel merak mı, seyahat mi?). Hedefinize göre öğrenme odak noktanız değişmelidir. Örneğin, sadece seyahat için öğreniyorsanız günlük konuşma kalıplarına; akademik bir hedefiniz varsa dil bilgisine daha çok ağırlık verebilirsiniz.\n\n**2. Temel Kelime Dağarcığı ve Yaygın Kalıplar:**\nDilin en çok kullanılan ilk 500-1000 kelimesine odaklanmak, günlük konuşmaların büyük bir kısmını anlamanızı sağlar. Kelimeleri tek başlarına değil, cümle içindeki kullanımlarıyla (collocations) öğrenin. \"Apple\" kelimesini tek başına bilmek yerine \"Eat an apple\" (Bir elma yemek) kalıbıyla öğrenmek daha kalıcıdır.\n\n**3. Maruz Kalma (Immersion) Yöntemini Uygulayın:**\nDili hayatınızın bir parçası haline getirin. Başlangıçta anlamasanız bile şu adımları izleyin:\n*   **Telefon Dilini Değiştirin:** Telefonunuzu veya sosyal medya hesaplarınızı öğrenmek istediğiniz dile çevirin.\n*   **Dizi ve Film İzleyin:** Önce kendi dilinizde alt yazılı, sonra hedef dilde alt yazılı, en son alt yazısız şekilde izleyin.\n*   **Podcast ve Müzik:** Yolda veya evde çalışırken sürekli o dile maruz kalın. Bu, beyninizin o dilin ritmine ve vurgusuna alışmasını sağlar.\n\n**4. Aktif Pratik Yapın (Konuşma ve Yazma):**\nPasif öğrenme (dinleme/okuma) sizi bir noktaya kadar taşır, ancak aktif pratik (konuşma/yazma) diliin \"size ait\" olmasını sağlar.\n*   **Kendi Kendinize Konuşun:** Gün içindeki hareketlerinizi o dilde anlatın (Örn: \"Şu an kahve yapıyorum\").\n*   **Yazın:** Günlük tutun veya sosyal medyada o dilde küçük notlar paylaşın.\n*   **Konuşma Ortakları:** Online platformlar üzerinden veya karşınıza çıkan fırsatlarla gerçek insanlarla konuşmaya çalışın. Hata yapmaktan korkmayın; hata yapmak öğrenmenin en hızlı yoludur.\n\n**5. Düzenli ve Küçük Adımlarla İlerleyin (Mikro Öğrenme):**\nGünde 5 saat çalışıp haftanın geri kalanında hiçbir şey yapmamaktansa, her gün 20-30 dakika çalışmak çok daha etkilidir. Beyin, düzenli tekrarla bilgiyi kısa süreli bellekten uzun süreli belleğe taşır.\n\n**6. Gölge Etme (Shadowing) Tekniğini Kullanın:**\nBir ses kaydını veya konuşmacıyı dinlerken, onlar söyledikleri anda hemen arkalarından, aynı vurgu ve tonlama ile tekrar edin. Bu teknik, telaffuzunuzu ve konuşma hızınızı doğal bir şekilde geliştirmek için çok güçlüdür.\n\n**Özetle;** öğrenme sürecini bir okul dersi gibi değil, bir yaşam tarzı değişikliği gibi kurgulayın. Sabırlı olun; dil öğrenmek doğrusal bir grafik değil, bazen yerinizde sayıyormuş gibi hissettiğiniz ama aslında temelin sağlamlaştığı inişli çıkışlı bir süreçtir.",
+     "ttft_ms": 42365.3,
+     "context_prep_ms": 7.5,
+     "runtime_ttft_ms": 42357.8,
+     "prompt_tokens": 10513
+    },
+    {
+     "user": "SQL'de JOIN türleri nelerdir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 6677,
+     "stages": {
+      "waiting": 2,
+      "processing_context": 7
+     },
+     "total_ms": 36608,
+     "timed_out": false,
+     "errors": [],
+     "words": 377,
+     "reply": "SQL'de `JOIN` ifadeleri, iki veya daha fazla tablo arasındaki ilişkili sütunlar üzerinden veri çekmek için kullanılır. Verilerin tablolar arasında nasıl eşleştiğine göre kullanılan temel JOIN türleri şunlardır:\n\n**1. INNER JOIN (İç Birleştirme):**\nEn yaygın kullanılan JOIN türüdür. Sadece her iki tabloda da eşleşen kayıtları döndürür. Eğer bir satırın karşılığı diğer tabloda yoksa, o satır sonuç kümesine dahil edilmez.\n*   *Örnek:* \"Sadece siparişi olan müşterileri listele.\"\n\n**2. LEFT (OUTER) JOIN (Sol Dış Birleştirme):**\nSoldaki tablonun (ilk belirtilen tablo) tamamını ve sağdaki tabloda eşleşen kayıtları döndürür. Eğer sağdaki tabloda eşleşen bir kayıt yoksa, o kısımlar `NULL` olarak görünür.\n*   *Örnek:* \"Tüm müşterileri ve varsa siparişlerini listele (siparişi olmayanlar da listede görünsün).\"\n\n**3. RIGHT (OUTER) JOIN (Sağ Dış Birleştirme):**\nSağdaki tablonun (ikinci belirtilen tablo) tamamını ve soldaki tabloda eşleşen kayıtları döndürür. Eğer soldaki tabloda eşleşen bir kayıt yoksa, o kısımlar `NULL` olarak görünür. (Genellikle `LEFT JOIN` ile aynı sonucu verir ancak tablo öncelikleri farklıdır.)\n*   *Örnek:* \"Tüm siparişleri ve varsa bu siparişi veren müşterileri listele.\"\n\n**4. FULL (OUTER) JOIN (Tam Dış Birleştirme):**\nHer iki tablodaki tüm kayıtları döndürür. Eğer bir tabloda eşleşme varsa yan yana getirir; eşleşme yoksa eksik olan kısımları `NULL` olarak doldurur. (Not: Bazı veritabanı sistemlerinde, örneğin MySQL'de doğrudan desteklenmez, `UNION` kullanılarak simüle edilir.)\n*   *Örnek:* \"Hem siparişi olan müşterileri hem de hiç sipariş vermemiş müşterileri, hem de müşteri kaydı olmayan siparişleri listele.\"\n\n**5. CROSS JOIN (Çapraz Birleştirme):**\nİki tablo arasındaki tüm olası eşleşmelerin (Kartezyen çarpım) kombinasyonunu döndürür. Herhangi bir `ON` (bağlantı) koşulu kullanmaz; birinci tablodaki her satırı, ikinci tablodaki her satırla birleştirir.\n*   *Örnek:* \"Tüm renk seçenekleri ile tüm beden seçeneklerinin tüm kombinasyonlarını oluştur.\"\n\n**6. SELF JOIN (Öz Birleştirme):**\nBir tablonun kendisiyle birleştirilmesidir. Aslında bir JOIN türü değil, bir JOIN kullanım tekniğidir. Genellikle bir tabloda hiyerarşik bir yapı (örneğin; \"Çalışanlar\" tablosunda hem çalışanların hem de yöneticilerin aynı sütunda olduğu durumlar) varken kullanılır.\n*   *Örnek:* \"Her çalışanın bağlı olduğu yöneticinin adını aynı tablo üzerinden çek.\"\n\n**Özet Tablo:**\n\n| JOIN Türü | Hangi Kayıtları Getirir? |\n| :--- | :--- |\n| **INNER** | Sadece her iki tabloda ortak olanlar |\n| **LEFT** | Sol tablonun tamamı + Sağdaki eşleşenler |\n| **RIGHT** | Sağ tablonun tamamı + Soldaki eşleşenler |\n| **FULL** | Her iki tablodaki tüm kayıtlar |\n| **CROSS** | Tüm olasılıkların kombinasyonu (Kartezyen Çarpım) |",
+     "ttft_ms": 6347.7,
+     "context_prep_ms": 6.0,
+     "runtime_ttft_ms": 6341.7,
+     "prompt_tokens": 11369
+    },
+    {
+     "user": "İyi bir özgeçmişte neler olmalı?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 50029,
+     "stages": {
+      "waiting": 4,
+      "processing_context": 11
+     },
+     "total_ms": 86823,
+     "timed_out": false,
+     "errors": [],
+     "words": 417,
+     "reply": "İyi bir özgeçmiş (CV), sadece geçmişteki işlerin bir listesi değil, potansiyel işverene \"Ben bu iş için en doğru adayım\" mesajını veren stratejik bir pazarlama dokümanıdır. Profesyonel ve etkileyici bir özgeçmişte bulunması gereken temel bileşenler şunlardır:\n\n**1. İletişim Bilgileri ve Başlık:**\n*   **Ad Soyad:** Net ve okunabilir olmalı.\n*   **Profesyonel Unvan:** İsim kısmının hemen altına başvurduğunuz pozisyonla uyumlu bir başlık ekleyin (Örn: Kıdemli Yazılım Geliştirici).\n*   **Telefon ve E-posta:** Profesyonel bir e-posta adresi kullanın (isim.soyisim@domain.com gibi).\n*   **LinkedIn ve Portfolyo:** Güncel LinkedIn profil linkiniz ve varsa (tasarım, yazılım vb. için) portfolyo linkleriniz mutlaka yer almalı.\n*   **Konum:** Tam adres yerine sadece şehir ve ilçe bilgisi yeterlidir.\n\n**2. Profesyonel Özet (Profil Özeti):**\nÖzgeçmişin en başında yer alan 3-4 cümlelik kısımdır. Kim olduğunuzu, en güçlü yetkinliklerinizi ve şirkete ne katabileceğinizi özetler. Klasik \"Eski bir çalışan arıyorum\" ifadesinden kaçınıp; başarı odaklı, net ve sektörel terimlerle zenginleştirilmiş bir giriş yapın.\n\n**3. İş Deneyimi (Ters Kronolojik Sıra):**\nEn son işiniz en üstte olmalıdır. Sadece görevlerinizi değil, **başarılarınızı** yazmalısınız.\n*   **Madde İşaretleri Kullanın:** Uzun paragraflar yerine okunabilir maddeler seçin.\n*   **Veriye Dayalı Başarılar:** \"Satışları artırdım\" yerine \"Stratejik pazarlama çalışmalarıyla satışları 6 ayda %20 artırdım\" gibi somut rakamlar ve veriler kullanın.\n*   **Aksiyon Fiilleri:** \"Sorumluydu\", \"Yapıldı\" yerine \"Yönettim\", \"Geliştirdim\", \"Optimize ettim\" gibi güçlü eylemlerle başlayın.\n\n**4. Eğitim Bilgileri:**\n*   Mezun olduğunuz okullar, bölümler ve mezuniyet tarihleri.\n*   Eğer yeni mezunsanız, ilgili dersler, yüksek not ortalaması veya projeleriniz bu bölümü detaylandırabilir.\n\n**5. Yetkinlikler (Skills):**\nBurası İnsan Kaynakları (İK) sistemlerinin ve yöneticilerin hızlıca göz attığı bölümdür.\n*   **Teknik Yetkinlikler (Hard Skills):** Programlama dilleri, araçlar, teknik sertifikalar, yabancı diller.\n*   **Sosyal Yetkinlikler (Soft Skills):** Liderlik, kriz yönetimi, etkili iletişim gibi becerileri sadece listelemek yerine, iş deneyimi içinde örneklendirerek vermek daha etkilidir.\n\n**6. Sertifikalar, Projeler ve Gönüllü Çalışmalar:**\n*   Aldığınız güncel sertifikalar, üzerinde çalıştığınız önemli projeler (özellikle açık kaynak veya bireysel projeler) ve sosyal sorumluluk faaliyetleriniz özgeçmişinizi kişiselleştirir ve derinlik katar.\n\n**İyi Bir Özgeçmiş İçin Kritik İpuçları:**\n\n*   **ATS Dostu Olun:** Birçok şirket, CV'leri otomatik tarayan yazılımlar (ATS) kullanır. Bu yüzden ilan metnindeki anahtar kelimeleri (örneğin \"Proje Yönetimi\", \"Python\", \"Bütçe Planlama\") özgeçmişinize doğal bir şekilde yerleştirin.\n*   **Görsel Sadezza:** Karmaşık grafiklerden, ilerleme çubuklarından (örneğin %80 İngilizce gibi) ve çok fazla renkten kaçının. Sade, temiz ve profesyonel bir font kullanın.\n*   **Sayfa Düzeni:** Deneyiminize göre 1 veya maksimum 2 sayfa idealdir. Gereksiz detaylardan kaçının.\n*   **PDF Formatı:** Dosyayı her zaman PDF olarak gönderin; bu, düzenin her cihazda aynı kalmasını sağlar.\n*   **Özelleştirme:** Her iş başvurusu için özgeçmişinizde küçük dokunuşlar yapın. İlana özel vurgular eklemek, sizin o pozisyonu gerçekten istediğinizi gösterir.",
+     "ttft_ms": 49766.5,
+     "context_prep_ms": 7.0,
+     "runtime_ttft_ms": 49759.5,
+     "prompt_tokens": 12243
+    },
+    {
+     "user": "Sabah koşusu mu akşam koşusu mu daha iyi?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 7769,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 11
+     },
+     "total_ms": 34471,
+     "timed_out": false,
+     "errors": [],
+     "words": 317,
+     "reply": "Sabah ve akşam koşusu arasında \"kesinlikle şu daha iyidir\" demek yerine, hangi amacınız doğrultusunda daha iyi sonuç vereceğine bakmak daha doğru olur. Her iki zaman diliminin de kendine has avantajları ve dezavantajları vardır:\n\n**Sabah Koşusunun Avantajları:**\n*   **Rutin ve Disiplin:** Sabah koşturmak, günün geri kalanında yapmanız gereken işler birikmeden bitirmenizi sağlar. Günün stresine girmeden yapılacak bir aktivite olarak alışkanlık kazanması daha kolaydır.\n*   **Metabolizma ve Enerji:** Sabah egzersizi metabolizmanızı hızlandırır ve güne daha zinde, uyanık başlamanızı sağlar. Endorfin salgısı sayesinde odaklanma becerinizi artırabilir.\n*   **Süreklilik:** Gün içindeki beklenmedik işler, sosyal etkinlikler veya yorgunluk gibi faktörler sabah sizi engellemez; planınız sabittir.\n\n**Sabah Koşusunun Dezavantajları:**\n*   **Vücut Hazırlığı:** Uyandığınızda kaslarınız ve eklemleriniz henüz soğuk olabilir, bu da daha iyi bir ısınma süreci gerektirir.\n*   **Uyku Düzeni:** Çok erken kalkmak, bazı kişiler için uzun vadede uyku döngüsünü bozabilir.\n\n**Akşam Koşusunun Avantajları:**\n*   **Vücut Sıcaklığı ve Performans:** Vücut ısısı akşam saatlerinde daha yüksektir. Kaslar daha esnek, eklemler daha ısındığı için genellikle daha yüksek performans ve daha hızlı koşu imkanı sunar.\n*   **Stres Atma:** Gün boyu biriken iş stresini ve zihinsel yorgunluğu atmak için harika bir yöntemdir. Akşam koşusu, \"günlük deşarj\" mekanizması olarak işlev görür.\n*   **Güç ve Dayanıklılık:** Akşamları daha ağır antrenmanlar veya uzun mesafe koşuları için vücudun fiziksel olarak hazır olması bir avantaj olabilir.\n\n**Akşam Koşusunun Dezavantajları:**\n*   **Yorgunluk Faktörü:** Gün boyu çalışan birinin akşam saatlerinde fiziksel ve zihinsel yorgunluk nedeniyle antrenman motivasyonu düşük olabilir.\n*   **Uykuya Etkisi:** Çok geç saatte yapılan ağır egzersizler, vücut ısısını ve nabzı yükselterek bazı kişilerde uykuya dalmayı zorlaştırabilir (koşudan sonra sakinleşmek için zaman bırakılmalıdır).\n\n**Hangisini Seçmelisiniz?**\n*   **Hedefiniz \"Zinde Uyanmak\" ve \"Disiplin\" ise:** Sabah koşusu sizin için daha uygundur.\n*   **Hedefiniz \"Performans Artışı\" ve \"Stres Atmak\" ise:** Akşam koşusu size daha çok yardımcı olabilir.\n\n**Özetle:** En iyi koşu, **tutarlı olarak yapabildiğiniz** koşudur. Eğer sabahları uyanmak sizi çok zorluyorsa akşamı; akşamları yorgunluktan koltuktan kalkamıyorsanız sabahı tercih etmelisiniz. Önemli olan haftalık toplam hacminizi ve sürekliliğinizi korumaktır.",
+     "ttft_ms": 7618.5,
+     "context_prep_ms": 8.7,
+     "runtime_ttft_ms": 7609.8,
+     "prompt_tokens": 13295
+    },
+    {
+     "user": "Git'te rebase ile merge arasındaki fark ne?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 181589,
+     "stages": {
+      "waiting": 3,
+      "compacting": 5,
+      "processing_context": 167407
+     },
+     "total_ms": 211041,
+     "timed_out": false,
+     "errors": [],
+     "words": 400,
+     "reply": "Git'te hem `merge` hem de `rebase` komutları, farklı dallardaki (branch) değişiklikleri birleştirmek için kullanılır; ancak bu birleştirmeyi **geçmişe (history)** nasıl işledikleri konusunda temel farklara sahiptirler.\n\nKısa özetle: **Merge** mevcut geçmişi korur ve yeni bir \"birleştirme noktası\" oluşturur; **Rebase** ise bir dalın başlangıç noktasını başka bir dalın sonuna taşıyarak doğrusal bir geçmiş oluşturur.\n\nDetaylı farklar şöyledir:\n\n### 1. Merge (Birleştirme)\n`merge` komutunu kullandığınızda, Git iki dalın uç noktalarını alır ve bunları birleştiren yeni bir **\"merge commit\"** oluşturur.\n\n*   **Geçmiş (History):** Özgün dalın geçmişi tamamen korunur. Hangi dalın ne zaman birleştiğini gösteren bir iz bırakır.\n*   **Yapı:** Dalların birleştiği noktada \"network graph\" (ağ yapısı) karmaşıklaşabilir; birçok farklı dalın birleştiği bir örümcek ağına benzeyebilir.\n*   **Güvenlik:** Mevcut commit'lerin içeriğini değiştirmez. Bu yüzden ortak kullanılan (public) dallarda güvenlidir.\n*   **Ne zaman kullanılır?** Bir özelliğin (feature) tamamlandığı ve ana dala (main/master) dahil edildiği noktada, tüm süreci kayıt altında tutmak için tercih edilir.\n\n### 2. Rebase (Yeniden Temel Atma)\n`rebase` komutunu kullandığınızda, bir dalın üzerine eklenen commit'leri alır ve bunları başka bir dalın (örneğin `main` dalının) en güncel ucuna \"yeniden yazar\" gibi ekler.\n\n*   **Geçmiş (History):** Geçmişi **doğrusal (linear)** hale getirir. Sanki tüm çalışmalarınız en baştan, `main` dalının en güncel halinden itibaren tek bir hat üzerinde yapılmış gibi görünür.\n*   **Yapı:** Görsel olarak çok temiz bir geçmiş sunar. Karmaşık dallanmalar ve \"Merge branch 'x' into 'y'\" gibi gereksiz commit mesajları oluşmaz.\n*   **Risk:** Rebase işlemi, commit'lerin özgün ID'lerini (hash) değiştirir; yani commit'leri aslında yeniden oluşturur. Bu nedenle **başkalarıyla paylaştığınız (pushladığınız) dallarda asla rebase yapmamalısınız.**\n*   **Ne zaman kullanılır?** Kendi yerel dalınızda çalışırken, ana daldaki son değişiklikleri kendi dalınıza dahil etmek ve temiz bir geçmiş sağlamak için kullanılır.\n\n### Karşılaştırma Tablosu\n\n| Özellik | Merge | Rebase |\n| :--- | :--- | :--- |\n| **Geçmiş Yapısı** | Dallanmış ve karmaşık (non-linear) | Doğrusal ve temiz (linear) |\n| **Commitler** | Orijinal commitler korunur | Commitler yeni ID'lerle yeniden yazılır |\n| **Merge Commit** | Yeni bir birleştirme commit'i oluşturur | Yeni bir commit oluşturmaz |\n| **Takip Kolaylığı** | Hangi özelliğin ne zaman bittiği kolay görülür | Çalışmaların sırası net görünür ama dalın kaynağı kaybolabilir |\n| **Güvenlik** | Güvenli (Public dallar için uygun) | Tehlikeli (Sadece yerel/izole dallar için uygun) |\n\n**Altın Kural:** \n- Eğer başkalarının üzerinde çalıştığı ortak bir daldaysanız her zaman `merge` kullanın.\n- Eğer sadece kendi bilgisayarınızda üzerinde çalıştığınız bir dalı güncel tutmak istiyorsanız ve temiz bir geçmiş istiyorsanız `rebase` kullanabilirsiniz.",
+     "ttft_ms": 181341.0,
+     "context_prep_ms": 167403.9,
+     "runtime_ttft_ms": 13935.1,
+     "prompt_tokens": 3924
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 46,
+    "summaries": 3
+   },
+   "settle": {
+    "settled": true,
+    "s": 43.8
+   },
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ESNKTM6DRHA1Y59W529CTD",
+     "summary_version": 3,
+     "to_seq": 40,
+     "chunks": 3,
+     "kept_items": 10,
+     "dropped_items": 1,
+     "tokens_before": 14075,
+     "tokens_after": 4855,
+     "duration_ms": 167395
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "writer",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23299,
+     "stages": {
+      "waiting": 14,
+      "processing_context": 17
+     },
+     "total_ms": 35871,
+     "timed_out": false,
+     "errors": [],
+     "words": 156,
+     "reply": "Fotosentez, bitkilerin, alglerin ve bazı bakterilerin güneş ışığını kullanarak karbondioksit ve suyu kimyasal enerjiye, yani glikoza (şekere) dönüştürdüğü biyokimyasal bir süreçtir. Bu süreç temel olarak iki ana aşamadan oluşur:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastın tiroit kısmında gerçekleşir. Klorofili içeren kloroplastlar güneş enerjisini yakalar. Bu enerji kullanılarak su (H2O) molekülleri parçalanır ve açığa elektron, hidrojen iyonu (proton) ve oksijen (O2) çıkar. Bu aşamada üretilen enerji (ATP ve NADPH), bir sonraki aşama için kullanılır. Yan ürün olarak atmosfere oksijen salınır.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşama kloroplastın stromasında gerçekleşir ve doğrudan ışığa ihtiyaç duymaz, ancak ışığa bağımlı reaksiyonlardan gelen ATP ve NADPH'ı kullanır. Atmosferden alınan karbondioksit (CO2), bu döngü içerisinde karbon atomlarının birleşmesiyle işlenir. Sonuç olarak bitkinin büyümesi ve beslenmesi için gerekli olan glikoz gibi organik bileşikler sentezlenir.\n\nÖzetle denklem şöyledir:\n**Karbondioksit + Su + Işık Enerjisi $\\rightarrow$ Glikoz + Oksijen**\n\nBu süreç sayesinde bitkiler kendi besinlerini üretirken, dünya atmosferindeki oksijen dengesini de sağlar.",
+     "ttft_ms": 22930.7,
+     "context_prep_ms": 3.3,
+     "runtime_ttft_ms": 22927.4,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 4602,
+     "stages": {
+      "waiting": 2,
+      "processing_context": 9
+     },
+     "total_ms": 23594,
+     "timed_out": false,
+     "errors": [],
+     "words": 243,
+     "reply": "Bulut bilişim (cloud computing), bilgisayar hizmetlerinin (sunucular, depolama, veritabanları, ağ, yazılım vb.) internet üzerinden, ihtiyaç duyulan miktarda ve genellikle kullandıkça ödeyeceğiniz bir modelle sunulmasıdır. Kısacası, verilerin veya uygulamaların kendi yerel cihazlarınızda (hard disk gibi) veya fiziksel sunucularda tutulmak yerine, internet üzerinden erişilen uzaktaki sunucularda barındırılmasıdır.\n\nBulut bilişimin temel özellikleri şunlardır:\n\n**1. Ölçeklenebilirlik:** İhtiyaç duyduğunuzda kapasiteyi (depolama alanı veya işlem gücü gibi) kolayca artırabilir veya azaltabilirsiniz. Örneğin, bir web sitesine aniden çok fazla ziyaretçi geldiğinde bulut sistemi otomatik olarak kaynak ekleyebilir.\n\n**2. Maliyet Verimliliği:** Kendi sunucularınızı satın almak, bakımını yapmak ve soğutma gibi donanım maliyetleriyle uğraşmak yerine, sadece kullandığınız kaynak kadar ödeme yaparsınız. Bu, özellikle küçük işletmeler ve geliştiriciler için büyük bir avantajdır.\n\n**3. Erişilebilirlik:** İnternet bağlantısı olan her yerden; telefon, tablet veya bilgisayar aracılığıyla verilerinize ve uygulamalarınıza ulaşabilirsiniz.\n\n**4. Güncellik ve Güvenlik:** Yazılım güncellemeleri ve güvenlik yamaları genellikle servis sağlayıcı tarafından otomatik olarak yapılır. Ayrıca, verileriniz genellikle yedekli sistemlerde saklandığı için fiziksel bir arıza durumunda veri kaybı riski azalır.\n\n**Yaygın Bulut Modelleri:**\n\n*   **IaaS (Altyapı Hizmeti):** Sanal sunucular, depolama ve ağ gibi temel altyapı bileşenlerini kiralamanızı sağlar. (Örn: Amazon Web Services - AWS)\n*   **PaaS (Platform Hizmeti):** Yazılım geliştirmek için gerekli olan araçların, kütüphanelerin ve işletim sistemlerinin hazır sunulduğu platformlardır. (Örn: Google App Engine)\n*   **SaaS (Yazılım Hizmeti):** Kullanıcıların doğrudan internet üzerinden kullandığı hazır uygulamalardır. (Örn: Google Drive, Netflix, Microsoft 365)\n\nÖzetle bulut bilişim; teknolojiyi fiziksel bir sınırlamadan kurtarıp, internet üzerinden her an ulaşılabilir, esnek ve ekonomik hale getiren modern bir altyapı modelidir.",
+     "ttft_ms": 4387.5,
+     "context_prep_ms": 6.6,
+     "runtime_ttft_ms": 4380.9,
+     "prompt_tokens": 6628
+    },
+    {
+     "user": "Enflasyon neden olur?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 5603,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 27209,
+     "timed_out": false,
+     "errors": [],
+     "words": 292,
+     "reply": "Enflasyon, bir ekonomide mal ve hizmetlerin genel fiyat düzeyinin sürekli ve hissedilir şekilde artması, buna bağlı olarak da paranın satın alma gücünün azalmasıdır. Enflasyonun temel nedenleri genellikle karmaşık olsa da, ekonomik teorilerde şu ana başlıklar altında toplanır:\n\n**1. Talep Enflasyonu (Arzın Yetersizliği):**\nEkonomideki toplam talebin, piyasadaki ürün ve hizmet arzından daha fazla olması durumudur. Basitçe \"çok fazla paraın çok az mala hücum etmesi\" olarak özetlenebilir. İnsanların gelirleri arttığında veya piyasaya daha fazla para sürüldüğünde, tüketiciler daha fazla mal almaya çalışır. Üretim bu talebi karşılayamadığında fiyatlar yükselir.\n\n**2. Maliyet Enflasyonu (Arz Şokları):**\nÜretim sürecinde kullanılan girdi maliyetlerinin artması durumudur. Örneğin; enerji fiyatlarının (petrol, doğalgaz), hammadde fiyatlarının veya işçilik maliyetlerinin yükselmesi, üreticilerin ürün fiyatlarına bu maliyet artışını yansıtmasına neden olur. Bu durum, arzın kısıtlı olduğu durumlarda (örneğin bir savaş veya doğal afet nedeniyle ürünlerin taşınamaması) çok hızlı fiyat artışlarına yol açabilir.\n\n**3. Para Arzının Artışı:**\nEkonomi biliminde en temel nedenlerden biri olarak kabul edilir. Merkez bankaları piyasaya aşırı miktarda para sürdüğünde, dolaşımdaki para miktarı artar ancak mal miktarı aynı hızda artmazsa, paranın değeri düşer. Bu da fiyatların genel olarak yükselmesine neden olur.\n\n**4. Beklentisel Enflasyon:**\nEğer toplum, işverenler ve tüketiciler gelecekte fiyatların artacağını beklerlerse, bu beklenti kendi kendini gerçekleştiren bir döngüye dönüşebilir. İşverenler maliyetlerin artacağını öngörerek önceden zam yapar, işçiler de fiyatların artacağını düşünerek daha yüksek maaş talep eder. Bu durum, henüz bir değişim yaşanmasa bile fiyatların hızla yükselmesine zemin hazırlar.\n\n**5. Döviz Kurları ve Dış Ticaret:**\nBir ülkenin kendi para birimi karşısında değer kaybetmesi (devalüasyon), ithal edilen ürünlerin fiyatlarını doğrudan artırır. Özellikle enerji ve teknoloji gibi ithalata bağımlı kalemlerde yaşanan döviz kuru artışları, iç piyasadaki genel fiyatlar üzerinde baskı kurar.\n\n**Özetle:** Enflasyon sadece bir fiyat artışı değil; para arzı, üretim kapasitesi, tüketim alışkanlıkları ve dışsal ekonomik faktörlerin birbirini etkilediği çok boyutlu bir süreçtir.",
+     "ttft_ms": 5349.9,
+     "context_prep_ms": 7.4,
+     "runtime_ttft_ms": 5342.5,
+     "prompt_tokens": 7211
+    },
+    {
+     "user": "Gökyüzü neden mavidir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 31770,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 9
+     },
+     "total_ms": 48787,
+     "timed_out": false,
+     "errors": [],
+     "words": 232,
+     "reply": "Gökyüzünün mavi görünmesinin temel nedeni, güneş ışığının Dünya atmosferine girdiğinde çarpışarak her yöne dağılmasıdır; bu olaya **Rayleigh Saçılması** denir.\n\nSüreç şu şekilde işler:\n\n**1. Beyaz Işığın Renkleri:**\nGüneşten gelen ışık aslında \"beyaz\" görünse de, aslında gökkuşağının tüm renklerinden (kırmızı, turuncu, sarı, yeşil, mavi, lacivert, mor) oluşur. Her rengin dalga boyu farklıdır; kırmızı ışığın dalga boyu uzundur, mavi ve morun ise kısadır.\n\n**2. Atmosfer ve Gaz Molekülleri:**\nDünya atmosferi azot, oksijen ve diğer gaz moleküllerinden oluşur. Güneş ışığı atmosfere girdiğinde bu küçük gaz moleküllerine ve parçacıklara çarpar.\n\n**3. Seçici Saçılma:**\nKısa dalga boyuna sahip olan renkler (mavi ve mor), uzun dalga boyuna sahip olanlara (kırmızı ve sarı) göre çok daha kolay ve yoğun bir şekilde saçılır. Işık moleküllere çarptığında, mavi ışık her yöne doğru hızla dağılır. Bu yüzden baktığımız her yöne saçılmış mavi ışık gördüğümüz için gökyüzü mavi görünür.\n\n**Neden Mor Değil?**\nAslında mor ışığın dalga boyu maviden de kısa olduğu için gökyüzünün mor görünmesi gerekirdi. Ancak gökyüzünün mavi görünmesinin iki sebebi vardır:\n*   Güneş ışığında mavi ışığın yoğunluğu, mor ışığa göre çok daha fazladır.\n*   İnsan gözü, mavi renge mor renge göre çok daha hassastır.\n\n**Gün Batımında Neden Kırmızı?**\nGüneş batarken ışık, atmosferin çok daha kalın bir tabakasından geçer. Bu uzun yolculuk sırasında mavi ışığın neredeyse tamamı saçılıp yok olur. Geriye sadece saçılmaya karşı daha dayanıklı olan uzun dalga boylu kırmızı ve turuncu renkler kalır, bu yüzden gün batımını bu renklerde görürüz.",
+     "ttft_ms": 31518.3,
+     "context_prep_ms": 6.9,
+     "runtime_ttft_ms": 31511.3,
+     "prompt_tokens": 7870
+    },
+    {
+     "user": "Stresle başa çıkmak için ne önerirsin?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 5204,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 24662,
+     "timed_out": false,
+     "errors": [],
+     "words": 242,
+     "reply": "Stres, vücudun herhangi bir baskı veya zorluk karşısında verdiği doğal bir tepkidir; ancak bunun yönetilebilir olması yaşam kaliteniz için oldukça önemlidir. Stresle başa çıkmak için şu yöntemleri deneyebilirsiniz:\n\n**1. Fiziksel Aktivite ve Hareket:**\nDüzenli egzersiz, vücudun doğal olarak endorfin (mutluluk hormonu) salgılamasını sağlar. Zorunlu değilseniz bile her gün yapacağınız 20-30 dakikalık bir yürüyüş, zihni boşaltmak ve kas gerginliğini azaltmak için etkili bir yoldur.\n\n**2. Doğru Nefes ve Farkındalık (Mindfulness):**\nStres anında nefesimiz genellikle sığ ve hızlı olur. Derin karın nefesi egzersizleri, vücudun \"savaş ya da kaç\" modundan çıkıp sakinleşmesini sağlar. Sadece o anki ana odaklanmak ve düşüncelerinizi yargılamadan gözlemlemek, zihinsel yükü hafifletebilir.\n\n**3. Uyku Düzeni ve Beslenme:**\nYetersiz uyku, stresle başa çıkma kapasitenizi doğrudan düşürür. Düzenli ve kaliteli uyku almak, duygusal dayanıklılığınızı artırır. Ayrıca aşırı kafein tüketimi, vücuttaki stres hormonlarını tetikleyebileceği için miktarını gözden geçirmek faydalı olabilir.\n\n**4. Zaman Yönetimi ve Önceliklendirme:**\nBazen stresin kaynağı, üzerinde biriken görevlerin belirsizliğidir. Yapılacak işleri küçük parçalara bölmek ve \"en önemli\" olanlardan başlayarak bir plan oluşturmak, kontrol hissini geri kazanmanıza yardımcı olur.\n\n**5. Sosyal Destek ve Sınırlar:**\nGüvendiğiniz biriyle konuşmak, duyguları paylaşmak stresin ağırlığını azaltabilir. Aynı zamanda, sizi sürekli tüketen durumlara veya kişilere karşı sağlıklı sınırlar çizmek, enerjinizi korumanız açısından önemlidir.\n\n**6. Hobiler ve Dinlenme:**\nZihni meşgul eden rutinlerden kaçmak için sevdiğiniz bir uğraşa zaman ayırmak (kitap okumak, müzik dinlemek, yemek yapmak vb.) zihinsel bir mola sağlar.\n\n*Not: Eğer stres günlük hayatınızı sürdürmenizi engelleyecek düzeyde kronikleşirse, bir uzmandan profesyonel destek almak en sağlıklı ve güvenli adımdır.*",
+     "ttft_ms": 4950.8,
+     "context_prep_ms": 7.5,
+     "runtime_ttft_ms": 4943.3,
+     "prompt_tokens": 8402
+    },
+    {
+     "user": "Kitap okuma alışkanlığı nasıl kazanılır?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 36420,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 57358,
+     "timed_out": false,
+     "errors": [],
+     "words": 263,
+     "reply": "Kitap okuma alışkanlığı kazanmak, bir kası eğitmek gibidir; başlangıçta zor gelse de düzenli pratikle kolaylaşır. Bu alışkanlığı sürdürülebilir kılmak için şu adımları izleyebilirsiniz:\n\n**1. Küçük Hedeflerle Başlayın:**\nEn sık yapılan hata, hemen ağır ve uzun kitaplarla başlamaktır. İlk aşamada \"günde 10 sayfa\" veya \"günde 15 dakika\" gibi küçük ve başarılması kolay hedefler koyun. Bu, beyninizin direnç göstermesini engeller ve başarı hissi yaratarak motivasyonunuzu artırır.\n\n**2. İlgi Alanlarınıza Yönelin:**\nOkuma alışkanlığı kazanmanın en etkili yolu, okuduğunuz şeyi gerçekten merak etmenizdir. Eğer amacınız sadece \"kitap okumak\" ise, sevdiğiniz konuları (bilim kurgu, tarih, biyografi, kişisel gelişim vb.) seçmeyerek sıkılabilirsiniz. İlgi duyduğunuz bir konuda okumak, merak duygunuzu tetikler.\n\n**3. Doğru Kitap Seçimi Yapın:**\nBaşlangıçta akıcı, sürükleyici ve çok ağır olmayan kitapları tercih edin. Eğer bir kitap sizi ilk 30-50 sayfa içinde içine çekmiyorsa, kendinizi zorlamak zorunda değilsiniz; kitabı bırakıp başkasına geçebilirsiniz.\n\n**4. \"Okuma Zamanı\" Oluşturun:**\nKitap okumayı günün belli bir saatine (örneğin uyumadan hemen önce, kahve içerken veya işe giderken) sabitleyin. Bu, bir süre sonra zihninizin otomatik olarak o saatte kitap okumaya hazırlanmasını sağlar.\n\n**5. Dijital Uyarıcıları Azaltın:**\nOkuma yaparken telefonunuzun bildirimlerini kapatmak veya telefonu başka bir odaya bırakmak, odaklanma sürenizi önemli ölçüde artırır. Sosyal medya gibi sürekli uyaranlar, derinlemesine okuma yapmanızı zorlaştırır.\n\n**6. Yanınızda Her Zaman Kitap Taşıyın:**\nBoş kaldığınız anlarda (otobüs beklerken, sırada dururken vb.) telefon yerine elinizdeki kitabı açmak, farkında olmadan okuma sürenizi artırır. E-kitap veya sesli kitap uygulamalarını kullanmak da bu konuda büyük kolaylık sağlayabilir.\n\n**7. İlerleme Takibi Yapın:**\nOkuduğunuz kitapları bir listede işaretlemek veya okuma sürenizi takip etmek, görsel bir başarı hissi verir. Bu tür küçük başarılar, alışkanlığın kalıcı hale gelmesini destekler.",
+     "ttft_ms": 36164.6,
+     "context_prep_ms": 7.2,
+     "runtime_ttft_ms": 36157.4,
+     "prompt_tokens": 8998
+    },
+    {
+     "user": "Tasarruf yapmaya nereden başlamalıyım?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 5734,
+     "stages": {
+      "waiting": 8,
+      "processing_context": 17
+     },
+     "total_ms": 33017,
+     "timed_out": false,
+     "errors": [],
+     "words": 329,
+     "reply": "Tasarruf yapmak, sadece harcamaları kısmak değil, kaynaklarınızı önceliklerinize göre yönetme disiplinidir. Bu alışkanlığı sağlıklı bir şekilde başlatmak için şu adımları izleyebilirsiniz:\n\n**1. Mevcut Durumunuzu Analiz Edin (Gelir-Gider Tablosu):**\nNereye ne kadar harcadığınızı bilmeden tasarruf yapmak zordur. Bir ay boyunca tüm harcamalarınızı (kira, faturalar, gıda, dışarıda yemek, abonelikler vb.) kategorize ederek not edin. Bu, \"nereye gidiyor bu para?\" sorusuna net bir cevap verecek ve gereksiz harcamaları görmenizi sağlayacaktır.\n\n**2. Sabit Giderleri Gözden Geçirin:**\nHer ay düzenli ödenen ve aslında pek kullanmadığınız abonelikleri (dergiler, spor salonu üyelikleri, izlemediğiniz platformlar vb.) iptal edin. Faturaları karşılaştırarak daha ekonomik paketlere geçiş yapmayı değerlendirin.\n\n**3. \"İhtiyaç\" ve \"İstek\" Ayrımı Yapın:**\nBir şeyi satın almadan önce kendinize şu soruyu sorun: *\"Buna gerçekten ihtiyacım var mı, yoksa sadece şu an mı istiyorum?\"* Bir ürünü almadan önce 24 saat (veya daha uzun) beklemek, anlık satın alma dürtüsünün yarattığı pişmanlıkları ve gereksiz harcamaları büyük oranda azaltır.\n\n**4. Bütçe Planlaması Yapın (50/30/20 Kuralı):**\nGelirinizi planlı bir şekilde bölmek kontrolü elinizde tutmanızı sağlar. Popüler bir yöntem olan 50/30/20 kuralını kullanabilirsiniz:\n*   **%50 İhtiyaçlar:** Kira, fatura, temel gıda gibi zorunlu giderler.\n*   **%30 İstekler:** Sosyal aktiviteler, hobiler, dışarıda yemek gibi keyfi harcamalar.\n*   **%20 Tasarruf ve Borç Ödeme:** Bu kısım doğrudan birikiminiz veya borç kapatma hedefinize gider.\n\n**5. Otomatik Birikim Sistemi Kurun:**\nTasarrufu ay sonundaki \"artan parayı kenara koymak\" yerine, maaşın veya gelirin yattığı gün belirli bir miktarı otomatik olarak ayrı bir hesaba aktarın. Parayı görmeden biriktirmek, onu harcama eğilimini kırar.\n\n**6. Dışarıda Yemek ve Alışveriş Sınırları Koyun:**\nDışarıda yemek yemek, tasarruf planlarını en hızlı bozan kalemlerden biridir. Haftalık bir dışarıda yemek bütçesi belirleyin veya evde yemek yapmayı (hazırlık yaparak zaman kazanabilirsiniz) bir alışkanlık haline getirin.\n\n**7. Belirgin Hedefler Koyun:**\n\"Para biriktirmek\" genel ve motivasyon düşürücü bir hedeftir. Bunun yerine somut hedefler koyun: \"Acil durum fonu oluşturmak\", \"tatil için birikim yapmak\" veya \"belirli bir borcu kapatmak\". Hedefin net olması, birikim yapma motivasyonunu canlı tutar.\n\nBaşlangıçta çok küçük meblağlarla bile olsa sistem kurmak, zamanla disiplininizi güçlendirecek ve tasarruf miktarınızın doğal olarak artmasını sağlayacaktır.",
+     "ttft_ms": 5512.1,
+     "context_prep_ms": 9.1,
+     "runtime_ttft_ms": 5503.0,
+     "prompt_tokens": 9633
+    },
+    {
+     "user": "Yeni bir dil öğrenmeye nasıl başlamalıyım?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 42537,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 11
+     },
+     "total_ms": 71954,
+     "timed_out": false,
+     "errors": [],
+     "words": 363,
+     "reply": "Yeni bir dil öğrenmek, sadece kelime ezberlemek değil, yeni bir düşünme biçimi ve kültür edinme sürecidir. Bu süreci verimli ve sürdürülebilir kılmak için şu adımları izleyebilirsiniz:\n\n**1. \"Neden\"inizi Belirleyin ve Hedef Koyun:**\nNeden öğrenmek istediğinizi bilmek (iş, seyahat, hobi veya sadece kişisel gelişim), motivasyonunuzun düştüğü anlarda size güç verir. Hedeflerinizi \"akıcı konuşmak\" gibi genel ifadeler yerine \"3 ay sonra kendi başıma bir restoranda sipariş verebilmek\" veya \"en sevdiğim diziyi altyazısız izlemek\" gibi somut ve ulaşılabilir parçalara bölün.\n\n**2. Temel Kelime ve Yapılarla Başlayın:**\nDilin en sık kullanılan %1000 kelimesi, günlük konuşmaların büyük bir kısmını kapsar. İlk aşamada karmaşık gramer kurallarına boğulmak yerine; selamlaşma, kendini tanıtma, temel ihtiyaçları ifade etme ve günlük hayatta en çok karşınıza çıkacak basit cümle kalıplarına odaklanın.\n\n**3. Maruz Kalma (Immersion) Yöntemini Uygulayın:**\nDili sadece \"ders çalışarak\" değil, hayatınızın bir parçası haline getirerek öğrenin.\n*   **Telefon Dilini Değiştirin:** Telefonunuzun dilini hedef dile çevirmek, sürekli yeni kelimelerle karşılaşmanızı sağlar.\n*   **Müzik ve Podcast:** Anlamasanız bile o dilde müzik dinlemek ve podcast'ler takip etmek, dilin ritmine ve tonlamasına aşina olmanızı sağlar.\n*   **Altyazılı İzleme:** Başlangıçta kendi dilinizde altyazı, orta seviyede hedef dilde altyazı, ileri seviyede ise altyazısız izleme stratejisini izleyin.\n\n**4. Konuşma Pratiğini Erken Başlatın:**\nÇoğu kişi \"yeterince öğrenince konuşmaya başlayacağım\" hatasına düşer. Oysa konuşmak, bir yetenektir ve pratikle gelişir.\n*   Kendi kendinize gününüzü anlatın (örneğin mutfakta yemek yaparken ne yaptığınızı o dilde sesli söyleyin).\n*   Hata yapmaktan korkmayın; hata yapmak dil öğrenmenin doğal ve gerekli bir parçasıdır.\n*   Dil değişim uygulamaları (Tandem, HelloTalk vb.) üzerinden ana dili o olan kişilerle konuşmaya çalışın.\n\n**5. Aktif Çalışma ve Tekrar:**\nYeni öğrendiğiniz kelimeleri sadece okumak yetmez, onları kullanmanız gerekir.\n*   **Flashcard (Kelime Kartları):** Anki veya Quizlet gibi uygulamalarla \"Aralıklı Tekrar\" (Spaced Repetition) sistemini kullanarak kelimeleri uzun süreli hafızanıza atın.\n*   **Yazma Egzersizleri:** Günlük tutun veya sosyal medyada öğrendiğiniz yeni kelimeleri içeren kısa cümleler yazın.\n\n**6. Tutarlılık Her Şeydir:**\nGünde 5 saat çalışıp haftanın geri kalanında hiçbir şey yapmamaktansa, her gün sadece 20-30 dakika ayırmak çok daha etkili sonuçlar verir. Dil öğrenimi bir sprint değil, maratondur.\n\n**Özetle:** Bir miktar içerik tüketimi (dinleme/okuma) ile başlayıp, bunu hızla aktif üretimle (konuşma/yazma) dengelemeniz ve her gün az da olsa o dile maruz kalmanız başarıya ulaşmanın en sağlam yoludur.",
+     "ttft_ms": 42424.2,
+     "context_prep_ms": 8.4,
+     "runtime_ttft_ms": 42415.8,
+     "prompt_tokens": 10441
+    },
+    {
+     "user": "SQL'de JOIN türleri nelerdir?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 6644,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 33081,
+     "timed_out": false,
+     "errors": [],
+     "words": 328,
+     "reply": "SQL'de **JOIN**, iki veya daha fazla tabloyu ortak bir sütun (genellikle birincil anahtar ve yabancı anahtar ilişkisi) üzerinden birleştirerek tek bir sonuç kümesi oluşturmanızı sağlayan bir operatördür.\n\nEn yaygın kullanılan JOIN türleri şunlardır:\n\n**1. INNER JOIN:**\nİki tabloda da eşleşen kayıtların döndüğü join türüdür. Eğer bir satırın karşılığı diğer tabloda yoksa, o satır sonuç kümesine dahil edilmez.\n*   *Özetle:* Sadece ortak olanları getirir.\n\n**2. LEFT (OUTER) JOIN:**\nSoldaki tablonun (ilk yazılan tablo) tüm kayıtlarını getirir. Sağdaki tabloda eşleşen kayıt varsa onları yanına ekler; eşleşen kayıt yoksa sağ taraftaki alanları `NULL` olarak gösterir.\n*   *Özetle:* Soldakinin tamamını, sağdakinin sadece eşleşenlerini getirir.\n\n**3. RIGHT (OUTER) JOIN:**\nLEFT JOIN'in tam tersidir. Sağdaki tablonun (ikinci yazılan tablo) tüm kayıtlarını getirir. Soldaki tabloda eşleşen kayıt varsa onları yanına ekler; eşleşen kayıt yoksa soldaki alanları `NULL` olarak gösterir.\n*   *Özetle:* Sağdakinin tamamını, soldakinin sadece eşleşenlerini getirir.\n\n**4. FULL (OUTER) JOIN:**\nHer iki tablodaki tüm kayıtları getirir. Kayıtlar eşleşiyorsa yan yana birleştirir; eşleşmeyen taraflarda ise karşılık gelmeyen alanları `NULL` olarak gösterir. (Not: MySQL gibi bazı veritabanı sistemlerinde doğrudan desteklenmez, `LEFT JOIN` ve `RIGHT JOIN` birleşiminden (UNION) oluşturulur.)\n*   *Özetle:* İki tablodaki her şeyi getirir.\n\n**5. CROSS JOIN:**\nİki tablo arasındaki her bir satırı, diğer tablodaki her bir satırla birleştirir (Kartezyen çarpım). Hiçbir eşleşme şartı (ON koşulu) aranmaz. Tablo A'da 3, Tablo B'de 4 satır varsa sonuç 12 satır olur.\n*   *Özetle:* Tüm olasılıkları birleştirir.\n\n**6. SELF JOIN:**\nBir tablonun kendisiyle join yapılmasıdır. Genellikle aynı tablo içindeki farklı satırları birbirine bağlamak için kullanılır (örneğin, bir \"Çalışanlar\" tablosunda her çalışanın yöneticisinin ID'sinin aynı tabloda bulunduğu durumlar).\n*   *Özetle:* Tabloyu kendi içinde birleştirir.\n\n**Kısaca Karşılaştırma Tablosu:**\n\n| JOIN Türü | Sonuçta Neler Görünür? |\n| :--- | :--- |\n| **INNER** | Sadece her iki tabloda da bulunanlar. |\n| **LEFT** | Soldaki her şey + sağdaki eşleşenler. |\n| **RIGHT** | Sağdaki her şey + soldaki eşleşenler. |\n| **FULL** | Her iki tablodaki her şey (eşleşmeyenler NULL). |\n| **CROSS** | Tüm satırların birbiriyle kombinasyonu. |",
+     "ttft_ms": 6384.1,
+     "context_prep_ms": 7.3,
+     "runtime_ttft_ms": 6376.8,
+     "prompt_tokens": 11298
+    },
+    {
+     "user": "İyi bir özgeçmişte neler olmalı?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 49575,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 11
+     },
+     "total_ms": 82818,
+     "timed_out": false,
+     "errors": [],
+     "words": 387,
+     "reply": "İyi bir özgeçmiş (CV), sadece geçmişte yaptıklarınızın listesi değil, aynı zamanda başvurduğunuz pozisyon için neden en uygun aday olduğunuzu kanıtlayan bir pazarlama aracıdır. Etkili bir özgeçmişte bulunması gereken temel unsurlar şunlardır:\n\n**1. İletişim Bilgileri:**\nSayfanın en başında, net ve güncel olmalıdır.\n*   Ad-Soyad ve profesyonel bir başlık (Örn: Kıdemli Yazılım Geliştirici).\n*   Profesyonel bir e-posta adresi (ad.soyad@... formatında).\n*   Telefon numarası.\n*   LinkedIn profili linki ve varsa portfolyo/GitHub gibi çalışmalarınızı içeren bağlantılar.\n*   Konum (Genellikle şehir ve ülke yeterlidir, tam açık adres gerekmez).\n\n**2. Özet Bilgi / Kariyer Özeti (Profil):**\nÖzgeçmişin en üst kısmında yer alan 3-4 cümlelik kısa bir paragraftır. Kim olduğunuzu, en güçlü yetkinliklerinizi ve ne hedeflediğinizi özetler. \"Deneyimli satış yöneticisi olarak %20 ciro artışı sağladım, şu an liderlik rollerinde uzmanlaşmak istiyorum\" gibi somut ifadeler kullanın.\n\n**3. İş Deneyimi (Ters Kronolojik Sıra):**\nEn güncel işinizden başlayarak geriye doğru sıralanmalıdır. Her iş deneyimi için şu detaylar bulunmalıdır:\n*   Şirket adı, unvanınız ve çalışma tarihleri.\n*   **Görevler yerine Başarılar:** Sadece \"satış yaptım\" demek yerine, \"belirlenen yıllık satış hedefini %15 aşarak bölge birincisi oldum\" gibi ölçülebilir (sayısal veriler içeren) başarıları vurgulayın.\n*   Kullandığınız teknolojileri veya yöntemleri belirtin.\n\n**4. Eğitim Bilgileri:**\n*   Mezun olduğunuz veya devam ettiğiniz okullar, bölümler ve mezuniyet tarihleri.\n*   Varsa yüksek not ortalaması, önemli projeler veya ilgili sertifikalar.\n\n**5. Yetkinlikler (Skills):**\nİş ilanındaki anahtar kelimelerle uyumlu olmalıdır.\n*   **Teknik Yetkinlikler (Hard Skills):** Yazılım dilleri, araçlar, yabancı diller, teknik analiz vb.\n*   **Sosyal Yetkinlikler (Soft Skills):** Liderlik, kriz yönetimi, etkili iletişim gibi kavramları, bunları iş deneyimi içinde örnekleyerek de verebilirsiniz.\n\n**6. Sertifikalar ve Projeler:**\n*   Aldığınız ilgili eğitimlerin sertifikaları.\n*   İş dışı veya iş kapsamında geliştirdiğiniz, yetkinliğinizi kanıtlayan projeler (Örn: Gönüllü çalışmalar, açık kaynak kod projeleri, akademik yayınlar).\n\n**İyi Bir Özgeçmiş İçin Kritik İpuçları:**\n\n*   **ATS Uyumluluğu:** Birçok büyük şirket özgeçmişleri önce yapay zeka sistemleriyle (ATS) tarar. Bu yüzden karmaşık grafiklerden kaçınmalı, düzgün başlıklar ve standart yazı tipleri kullanmalısınız.\n*   **Anahtar Kelime Optimizasyonu:** İlan metninde geçen önemli kelimeleri (örneğin \"Proje Yönetimi\", \"Python\", \"Bütçe Planlama\") kendi deneyimlerinizin içine doğal bir şekilde yerleştirin.\n*   **Kısalık ve Netlik:** Mümkünse 1-2 sayfa ile sınırlı kalın. Gereksiz detaylardan kaçının; her deneyim sadece başvurduğunuz pozisyonla ilgiliyse yer almalıdır.\n*   **Dosya Formatı:** Gönderilmediği sürece her zaman PDF formatını tercih edin; bu, düzenin bozulmamasını sağlar.\n*   **Yazım Kuralları:** Yazım ve imla hatası içeren bir özgeçmiş, dikkatsizlik olarak algılanır ve profesyonelliği zedeler. Mutlaka kontrol edin.",
+     "ttft_ms": 49317.7,
+     "context_prep_ms": 8.2,
+     "runtime_ttft_ms": 49309.4,
+     "prompt_tokens": 12075
+    },
+    {
+     "user": "Sabah koşusu mu akşam koşusu mu daha iyi?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 7167,
+     "stages": {
+      "waiting": 3,
+      "processing_context": 10
+     },
+     "total_ms": 31710,
+     "timed_out": false,
+     "errors": [],
+     "words": 310,
+     "reply": "Sabah ve akşam koşusu arasındaki seçim, tamamen kişisel hedeflerinize, biyolojik saatinize ve yaşam tarzınıza bağlıdır. Her iki zaman diliminin de kendine özgü avantajları ve dezavantajları bulunmaktadır:\n\n**Sabah Koşusunun Avantajları:**\n*   **Metabolizma ve Enerji:** Sabah yapılan egzersiz, metabolizmanızı hızlandırır ve gün boyu daha enerjik hissetmenize yardımcı olabilir.\n*   **Disiplin ve İstikrar:** Günün geri kalanındaki yoğun iş ve sosyal aktiviteler başlamadan önce koşmak, antrenmanı aksatma ihtimalini azaltır. \"Zaman bulamıyorum\" bahanesini ortadan kaldırır.\n*   **Zihinsel Netlik:** Sabah sporu, kortizol seviyelerini düzenleyerek güne daha odaklanmış ve stresten arınmış bir başlangıç yapmanızı sağlar.\n*   **Daha Az Trafik ve Kalabalık:** Genellikle parklar ve yollar daha sakin olur, bu da daha huzurlu bir deneyim sunar.\n\n**Sabah Koşusunun Dezavantajları:**\n*   **Vücut Isısının Düşüklüğü:** Sabah saatlerinde kaslar daha soğuk ve eklemler daha sert olabilir; bu nedenle daha uzun bir ısınma süreci gerektirir.\n*   **Uyku Düzeni:** Çok erken kalkmak, bazı kişilerde uyku düzenini bozabilir veya sabah yorgunluğu hissedilmesine neden olabilir.\n\n**Akşam Koşusunun Avantajları:**\n*   **Yüksek Performans:** Vücut ısısı akşam saatlerinde zirveye ulaşır, bu da kasların daha esnek ve güçlü olmasını sağlar. Birçok atlet, güç gerektiren antrenmanları akşam yapmayı tercih eder.\n*   **Stres Atma:** Günün stresini boşaltmak için harika bir yoldur. Akşam koşusu, zihni boşaltarak daha rahat uyumanıza yardımcı olabilir.\n*   **Esneklik:** İş veya okul çıkışında yapılabileceği için günlük programa dahil edilmesi genellikle daha kolaydır.\n\n**Akşam Koşusunun Dezavantajları:**\n*   **Yorgunluk Faktörü:** Gün boyu çalışmaktan dolayı fiziksel ve zihinsel olarak yorgun olabilirsiniz, bu da antrenman kalitesini düşürebilir.\n*   **Uykuya Etki:** Çok geç saatte yapılan yoğun egzersizler, adrenalin artışı nedeniyle bazı kişilerde uykuya dalmayı zorlaştırabilir.\n\n**Hangisi sizin için daha iyi?**\n*   Eğer amacınız **disiplin kazanmak ve güne zinde başlamaksa** sabah koşusu idealdir.\n*   Eğer amacınız **maksimum performans sergilemek ve günlük stresi atmaksa** akşam koşusu daha uygun olabilir.\n\nEn iyi zaman, sizin düzenli olarak devam ettirebileceğiniz zamandır. Her ikisini de bir hafta boyunca deneyip vücudunuzun ve ruh halinizin hangisine daha iyi tepki verdiğini gözlemleyebilirsiniz.",
+     "ttft_ms": 7017.0,
+     "context_prep_ms": 7.9,
+     "runtime_ttft_ms": 7009.1,
+     "prompt_tokens": 13035
+    },
+    {
+     "user": "Git'te rebase ile merge arasındaki fark ne?",
+     "background_at_send": {
+      "kind": "compaction",
+      "age_s": 1.0
+     },
+     "first_delta_ms": 180738,
+     "stages": {
+      "waiting": 4,
+      "compacting": 7,
+      "processing_context": 167524
+     },
+     "total_ms": 211533,
+     "timed_out": false,
+     "errors": [],
+     "words": 418,
+     "reply": "Git'te hem `merge` hem de `rebase` komutları, farklı dallardaki (branch) değişiklikleri birleştirmek için kullanılır. Ancak, bu değişiklikleri **geçmişe (history) nasıl işledikleri** konusunda temel bir fark vardır.\n\nKısa özetle; **Merge** mevcut geçmişi korur ve birleştirme noktası ekler; **Rebase** ise geçmişi yeniden yazar ve doğrusal bir akış oluşturur.\n\nİşte detaylı karşılaştırmaları:\n\n### 1. Merge (Birleştirme)\nBir dalın (örneğin `feature`) diğerine (örneğin `main`) birleştirilmesi sırasında, Git bu iki dalın ortak atalarından itibaren yapılan tüm değişiklikleri alır ve yeni bir **\"Merge Commit\"** oluşturur.\n\n*   **Geçmiş (History):** Gerçekleşen her şeyi olduğu gibi saklar. Hangi dalın ne zaman ayrıldığını ve ne zaman birleştiğini açıkça gösterir. \"Dallanmış\" (non-linear) bir yapı oluşturur.\n*   **Avantajı:** Güvenlidir; orijinal geçmişi asla değiştirmez veya silmez. Takım çalışmalarında hangi özelliğin ne zaman sisteme dahil edildiğini görmek için uygundur.\n*   **Dezavantajı:** Çok fazla küçük özellik dalı (feature branch) kullanıldığında, geçmiş \"karışık\" ve karmaşık bir ağ gibi görünebilir.\n\n### 2. Rebase (Yeniden Temellendirme)\n`Rebase` işlemi, bir dalın başlangıç noktasını (base) başka bir dalın en güncel noktasına taşır. Yani `feature` dalındaki değişikliklerinizi alır ve sanki o işe en baştan `main` dalının en son hali üzerinden başlamışsınız gibi geçmişi yeniden yazar.\n\n*   **Geçmiş (History):** Geçmişi \"temizler\" ve doğrusal (linear) hale getirir. Bir dallanma görünmez; tüm değişiklikler sanki ana dalın üzerinde sırayla yapılmış gibi dizilir.\n*   **Avantajı:** Çok temiz, okunabilir ve düz bir geçmiş sunar. Proje geçmişini incelemek (örneğin `git log` ile) çok daha kolaydır.\n*   **Dezavantajı:** Geçmişi değiştirdiği için tehlikelidir. Eğer paylaşılan (public) bir dalda `rebase` yaparsanız, diğer ekip üyelerinin yerel geçmişi ile sizin yeni yazdığınız geçmiş çakışır ve ciddi sorunlara yol açar.\n\n### Karşılaştırma Tablosu\n\n| Özellik | Merge | Rebase |\n| :--- | :--- | :--- |\n| **Geçmiş Yapısı** | Dallanmış, karmaşık ama doğru | Doğrusal, temiz ve basit |\n| **Commitler** | Orijinal commitler korunur + 1 Merge commit | Commitlerin ID'leri değişir (Yeniden yazılır) |\n| **Güvenlik** | Güvenli (Geçmişi değiştirmez) | Riskli (Public dallarda yapılmamalı) |\n| **Kullanım Amacı** | Dalları birleştirirken geçmişi kaydetmek | Çalışma dalını güncel tutmak ve geçmişi temizlemek |\n\n### Ne Zaman Hangisini Kullanmalısınız?\n\n*   **Rebase'i şu durumda kullanın:** Kendi yerelinizde çalışırken, `main` dalındaki son değişiklikleri kendi `feature` dalınıza dahil etmek için. Bu, sizin dalınızın her zaman güncel kalmasını ve birleştirme aşamasında sorun çıkmamasını sağlar.\n*   **Merge'i şu durumda kullanın:** Kendi özelliğiniz bittiğinde onu `main` dalına kalıcı olarak aktarırken veya başkalarıyla paylaştığınız ortak bir dal üzerinde çalışırken.\n\n**Altın Kural:** Paylaşılan (başkasının da üzerinde çalıştığı veya ortak kullanılan) bir dalda asla `rebase` yapmayın. Kendi özel çalışma dalınızda (local feature branch) temizlik yapmak için özgürce kullanabilirsiniz.",
+     "ttft_ms": 180490.9,
+     "context_prep_ms": 167519.9,
+     "runtime_ttft_ms": 12961.0,
+     "prompt_tokens": 3627
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 46,
+    "summaries": 3
+   },
+   "settle": {
+    "settled": true,
+    "s": 43.5
+   },
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6ETEK651GRTGMT8KW3530VH",
+     "summary_version": 3,
+     "to_seq": 40,
+     "chunks": 3,
+     "kept_items": 10,
+     "dropped_items": 1,
+     "tokens_before": 13759,
+     "tokens_after": 4555,
+     "duration_ms": 167513
+    }
+   ],
+   "completed": 1
+  },
+  {
+   "scenario": "fast",
+   "turns": [
+    {
+     "user": "Fotosentez nasıl çalışır?",
+     "background_at_send": null,
+     "first_delta_ms": 23174,
+     "stages": {
+      "waiting": 10,
+      "processing_context": 14
+     },
+     "total_ms": 32993,
+     "timed_out": false,
+     "errors": [],
+     "words": 123,
+     "reply": "Fotosentez, bitki ve bazı diğer canlıların güneş ışığını kullanarak inorganik maddelerden organik maddeler (glikoz) ve oksijen üretmesi sürecidir. Bu süreç temel olarak iki ana aşamadan oluşur:\n\n**1. Işığa Bağımlı Reaksiyonlar:**\nBu aşama kloroplastların tiroitkoid sistemlerinde gerçekleşir ve güneş enerjisi kullanılır. Işık enerjisi, su moleküllerini parçalayarak oksijen açığa çıkarır. Bu sırada ATP ve NADPH adı verilen enerji taşıyıcı moleküller üretilir.\n\n**2. Işıktan Bağımsız Reaksiyonlar (Calvin Döngüsü):**\nBu aşamada doğrudan ışığa ihtiyaç duyulmaz ancak ışığa bağımlı aşamada üretilen ATP ve NADPH kullanılır. Atmosferden alınan karbondioksit (CO2), bu enerji molekülleri aracılığıyla şeker (glikoz) moleküllerine dönüştürülür.\n\nKısaca formülize edersek:\n**Karbondioksit + Su + Işık Enerjisi → Glikoz + Oksijen**\n\nBu süreç, atmosferdeki oksijen dengesi ve besin zincirinin temel taşını oluşturur. Başka bir teknik ayrıntıyı merak ediyor musunuz?",
+     "ttft_ms": 22918.3,
+     "context_prep_ms": 3.4,
+     "runtime_ttft_ms": 22914.9,
+     "prompt_tokens": 6221
+    },
+    {
+     "user": "Bulut bilişim nedir?",
+     "background_at_send": null,
+     "first_delta_ms": 1817,
+     "stages": {
+      "waiting": 20,
+      "processing_context": 28
+     },
+     "total_ms": 17796,
+     "timed_out": false,
+     "errors": [],
+     "words": 197,
+     "reply": "Bulut bilişim, verilerin, uygulamaların ve diğer dijital kaynakların internet üzerinden, fiziksel bir sunucu veya yerel depolama alanı yerine uzaktaki bir veri merkezinde barındırılıp yönetilmesi teknolojisidir. Kullanıcılar bu kaynaklara ihtiyaç duydukları her an, internet bağlantısı aracılığıyla erişebilirler.\n\nTemel çalışma prensipleri ve bileşenleri şunlardır:\n\n**1. Hizmet Modelleri:**\n*   **IaaS (Altyapı Hizmeti):** Sanallaştırılmış sunucular, depolama ve ağ gibi temel donanım kaynaklarının kiralandığı modeldir.\n*   **PaaS (Platform Hizmeti):** Uygulama geliştiricilerin kod yazmak ve uygulamalarını yayına almak için hazır ortamlar (işletim sistemi, veritabanı vb.) sunduğu modeldir.\n*   **SaaS (Yazılım Hizmeti):** Kullanıcıların doğrudan internet üzerinden kullandıkları, kurulum gerektirmeyen uygulamalardır (örneğin e-posta servisleri veya çevrimiçi döküman düzenleyiciler).\n\n**2. Dağıtım Modelleri:**\n*   **Genel (Public) Bulut:** Kaynakların internet üzerinden geniş bir kullanıcı kitlesine sunulması (Örn: Google Cloud, AWS).\n*   **Özel (Private) Bulut:** Kaynakların sadece tek bir kuruluş veya kurum tarafından kullanılması için ayrılması.\n*   **Hibrit Bulut:** Şirketlerin hem genel hem de özel bulut çözümlerini bir arada, farklı amaçlar için kullanması.\n\n**Avantajları:**\nBulut bilişimin en büyük avantajları maliyet tasarrufu (donanım satın alma ihtiyacını azaltır), ölçeklenebilirlik (ihtiyaç arttıkça kapasiteyi anında artırabilme) ve erişilebilirliktir.\n\nAncak, internete bağımlı olması ve veri güvenliği gibi konularda dikkatli yönetilmesi gereken kritik noktalar barındırır. Belirli bir kullanım senaryosu hakkında daha detaylı bilgi ister misiniz?",
+     "ttft_ms": 1514.1,
+     "context_prep_ms": 7.6,
+     "runtime_ttft_ms": 1506.5,
+     "prompt_tokens": 6548
+    },
+    {
+     "user": "Enflasyon neden olur?",
+     "background_at_send": null,
+     "first_delta_ms": 2468,
+     "stages": {
+      "waiting": 23,
+      "processing_context": 31
+     },
+     "total_ms": 21988,
+     "timed_out": false,
+     "errors": [],
+     "words": 261,
+     "reply": "Enflasyon, bir ekonomide mal ve hizmetlerin genel fiyat seviyesinin sürekli olarak artması ve buna bağlı olarak paranın satın alma gücünün düşmesi durumudur. Enflasyonun birçok farklı nedeni olabilir, ancak temel nedenler genellikle şu başlıklar altında toplanır:\n\n**1. Talep Enflasyonu (Çok Fazla Para, Az Mal):**\nEkonomideki toplam talebin, arz edilen mal ve hizmet miktarından daha hızlı artması durumudur. İnsanların elinde çok fazla para olması veya insanların harcama eğiliminin artması, ürünlere olan talebi yükseltir. Arz sabit kalırken talep arttığında fiyatlar yukarı çekilir.\n\n**2. Maliyet Enflasyonu (Üretim Maliyetlerindeki Artış):**\nÜretim sürecinde kullanılan girdi maliyetlerinin artmasıdır. Örneğin; enerji fiyatlarının (petrol, doğalgaz), ham madde fiyatlarının veya işçilik maliyetlerinin yükselmesi, üreticilerin ürün fiyatlarına bu artışları yansıtmasına neden olur. Bu durumda fiyat artışı, doğrudan tüketim talebinden değil, üretim maliyetinden kaynaklanır.\n\n**3. Para Arzındaki Artış (Para Politikası):**\nBir ülkedeki merkez bankasının piyasaya aşırı miktarda para sürmesi, paranın değerini düşürür. Arzdan fazla para dolaşıma girdiğinde, birim paranın alım gücü azalır ve bu durum genel bir fiyat artışına yol açar.\n\n**4. Beklenti Enflasyonu:**\nİnsanların ve şirketlerin gelecekte fiyatların artacağına inanmasıdır. Eğer tüketiciler yarın fiyatların yükseleceğini beklerse, bugünden alışveriş yapmaya başlarlar; bu da talebi hızla artırır. Şirketler de gelecekteki maliyet artışlarını öngörerek şimdiden fiyatlarını artırabilirler. Bu durum, enflasyonu kendi kendini gerçekleştiren bir döngüye sokabilir.\n\n**5. Döviz Kuru Etkileri:**\nBir ülkenin kendi para biriminin yabancı paralar (örneğin Dolar veya Euro) karşısında değer kaybetmesi, ithal edilen ürünlerin fiyatlarını artırır. Bu da iç piyasadaki genel fiyat seviyesini yukarı çeker.\n\nÖzetle enflasyon; **talep, maliyet, para arzı ve döviz kurları** gibi faktörlerin karmaşık bir etkileşimi sonucunda ortaya çıkar. Merak ettiğiniz spesifik bir ekonomi türü veya olay var mı?",
+     "ttft_ms": 2196.8,
+     "context_prep_ms": 7.4,
+     "runtime_ttft_ms": 2189.4,
+     "prompt_tokens": 7047
+    },
+    {
+     "user": "Gökyüzü neden mavidir?",
+     "background_at_send": null,
+     "first_delta_ms": 2887,
+     "stages": {
+      "waiting": 22,
+      "processing_context": 29
+     },
+     "total_ms": 20327,
+     "timed_out": false,
+     "errors": [],
+     "words": 252,
+     "reply": "Gökyüzünün mavi görünmesinin temel nedeni, **Rayleigh Saçılması** adı verilen fiziksel bir olaydır. Bu süreci adım adım şöyle açıklayabilirim:\n\n**1. Güneş Işığının Yapısı:**\nGüneşten gelen ışık aslında \"beyaz\" görünür, ancak bu ışık aslında gökkuşağının tüm renklerini (kırmızı, turuncu, sarı, yeşil, mavi, lacivert ve mor) içeren bir karmaşıktır. Her renk, farklı bir dalga boyuna sahiptir; örneğin kırmızı ışığın dalga boyu uzundur, mavi ışığın ise kısadır.\n\n**2. Atmosferin Rolü:**\nDünyamızın etrafını saran atmosfer; azot, oksijen ve diğer gazlar ile toz, su buharı gibi küçük parçacıklarla doludur. Güneş ışığı atmosfere girdiğinde bu moleküllere çarpar ve her yöne dağılır (saçılır).\n\n**3. Dalga Boyu ve Saçılma:**\nIşığın dalga boyu ne kadar kısaysa, atmosferdeki moleküller tarafından o kadar çok saçılır. Mavi ışık, kırmızı veya sarı ışığa göre çok daha kısa dalga boyuna sahip olduğu için atmosferde çok daha yoğun bir şekilde her yöne dağılır. Gözümüz bu her yönden gelen saçılan mavi ışığı algılar ve gökyüzünün mavi olduğunu görür.\n\n**Neden Mor Değil?**\nFiziksel olarak mor ışığın dalga boyu maviden de kısa olduğu için aslında gökyüzünün mor olması gerekirdi. Ancak iki temel neden nedeniyle bunu görmüyoruz:\n*   Güneş ışığı içinde mor rengin oranı, maviye göre daha azdır.\n*   İnsan gözü mavi renge karşı çok daha hassastır; yani gözümüz morü seçmek yerine maviyi daha baskın algılar.\n\n**Gün batımında neden kırmızıdır?**\nGüneş batarken ışık atmosferde çok daha uzun bir yol kat eder. Bu uzun yol boyunca kısa dalga boylu mavi ışık tamamen saçılıp kaybolurken, sadece uzun dalga boylu kırmızı ve turuncu ışıklar gözümüze ulaşmayı başarır.\n\nBaşka bir doğa olayını merak ediyor musunuz efendim?",
+     "ttft_ms": 2614.4,
+     "context_prep_ms": 7.3,
+     "runtime_ttft_ms": 2607.0,
+     "prompt_tokens": 7647
+    },
+    {
+     "user": "Stresle başa çıkmak için ne önerirsin?",
+     "background_at_send": null,
+     "first_delta_ms": 2781,
+     "stages": {
+      "waiting": 19,
+      "processing_context": 26
+     },
+     "total_ms": 19328,
+     "timed_out": false,
+     "errors": [],
+     "words": 210,
+     "reply": "Stresle başa çıkmak için uygulanabilecek bazı yöntemler şunlardır:\n\n**1. Nefes ve Gevşeme Egzersizleri:**\nNefesinizi kontrol etmek, vücudun \"savaş ya da kaç\" tepkisini sakinleştirebilir. Örneğin; 4 saniye boyunca burnunuzdan derin bir nefes alıp, 4 saniye tuttuğunuz ve 4 saniye boyunca ağzınızdan yavaşça verdiğiniz \"kutu nefesi\" tekniği kısa süreli stres anlarında etkili olabilir.\n\n**2. Fiziksel Aktivite:**\nEgzersiz yapmak, vücutta mutluluk hormonu olarak bilinen endorfin salgılanmasını sağlar. Düzenli yürüyüşler, yüzme veya yoga gibi aktiviteler hem fiziksel hem de zihinsel yorgunluğu atmaya yardımcı olur.\n\n**3. Zaman Yönetimi ve Önceliklendirme:**\nBazen stresin kaynağı kontrol edemediğimiz iş yükü olabilir. Yapılacak işleri küçük, yönetilebilir parçalara bölmek ve \"en önemli\" olandan başlayarak bir plan oluşturmak, üzerinde hissettiğiniz baskıyı azaltabilir.\n\n**4. Uyku ve Beslenme Düzeni:**\nYetersiz uyku, stresle başa çıkma kapasitesini önemli ölçüde düşürür. Düzenli uyku uyumak ve kafein gibi uyarıcıları kontrol altında tutmak, sinir sisteminin daha dengeli çalışmasını sağlar.\n\n**5. Dijital Detoks ve Hobi:**\nSürekli bilgi akışına (sosyal medya vb.) maruz kalmak zihinsel yorgunluğu artırır. Günün belirli saatlerinde ekranlardan uzaklaşmak ve sizi rahatlatan bir hobiyle (kitap okumak, resim yapmak, müzik dinlemek gibi) ilgilenmek zihni dinlendirir.\n\n**Önemli Not:** Eğer stres seviyeniz günlük yaşamınızı, uyku düzeninizi veya sağlığınızı ciddi şekilde etkilemeye başlarsa, bir uzmandan destek almak en sağlıklı ve etkili adımdır.\n\nSizi özellikle zorlayan belirli bir durum mu var efendim?",
+     "ttft_ms": 2513.1,
+     "context_prep_ms": 7.2,
+     "runtime_ttft_ms": 2505.9,
+     "prompt_tokens": 8192
+    },
+    {
+     "user": "Kitap okuma alışkanlığı nasıl kazanılır?",
+     "background_at_send": null,
+     "first_delta_ms": 2646,
+     "stages": {
+      "waiting": 21,
+      "processing_context": 27
+     },
+     "total_ms": 23588,
+     "timed_out": false,
+     "errors": [],
+     "words": 262,
+     "reply": "Kitap okuma alışkanlığı kazanmak, bir kası eğitmek gibidir; düzenli pratikle zamanla kolaylaşır. Bu süreci daha sürdürülebilir kılmak için şu yöntemleri deneyebilirsiniz:\n\n**1. İlgi Alanlarınıza Odaklanın:**\nOkuma alışkanlığı kazanmanın en hızlı yolu, gerçekten merak ettiğiniz konularla başlamaktır. Sizi heyecanlandırmayan, \"ağır\" veya \"klasik\" kabul edilen kitaplarla başlamak yerine; sürükleyici bir roman, biyografi veya ilgi duyduğunuz bir hobinin teknik kitabı seçebilirsiniz.\n\n**2. Küçük Hedeflerle Başlayın:**\nKendinize büyük hedefler (örneğin \"günde 50 sayfa okuyacağım\") koymak yerine, çok daha küçük ve ulaşılabilir hedefler belirleyin. \"Günde sadece 10 sayfa\" veya \"günde 15 dakika\" okumak, alışkanlık oluşturmanın ilk ve en kritik aşamasıdır. Başardığınızı görmek motivasyonunuzu artıracaktır.\n\n**3. Okuma Ortamı ve Zamanı Oluşturun:**\nOkumayı günün belirli bir saatiyle ilişkilendirin. Örneğin; sabah kahvesi eşliğinde veya gece uyumadan önce 15 dakika. Telefonunuzu uzaktaki bir odaya koymak veya \"Rahatsız Etmeyin\" moduna almak, dikkatinizin dağılmasını önleyerek odaklanmanızı kolaylaştırır.\n\n**4. Taşınabilir Kitaplar Kullanın:**\nFırsat bulduğunuz her anı (otobüs beklerken, sırada dururken, öğle arasında) değerlendirmek için yanınızda her zaman bir kitap veya e-kitap bulundurun. Küçük bir kitap taşımak, yoğun günlerde bile okumayı mümkün kılar.\n\n**5. Bitiremediğiniz Kitapları Bırakmaktan Çekinmeyin:**\nBir kitabı okumak zorunda değilsiniz. Eğer bir kitap sizi içine çekmiyorsa veya çok sıkıcı geliyorsa, onu zorla bitirmeye çalışmak okuma isteğinizi kırabilir. Arada bir mola vermek ya da kitabı bırakıp başka birine devretmek veya başka bir kitaba geçmek süreci daha keyifli kılar.\n\n**6. Bir Okuma Günlüğü Tutun:**\nOkuduğunuz kitapları ve aldığınız notları takip etmek, ilerlemenizi görmenizi sağlar. Bitirdiğiniz kitapların kapaklarını biriktirmek veya internet üzerindeki platformlarda (Goodreads gibi) kayıt tutmak da başarı hissini pekiştirir.\n\nİlginizi çeken özel bir tür var mı efendim? Ona göre ilk kitap önerisinde bulunabilirim.",
+     "ttft_ms": 2372.3,
+     "context_prep_ms": 6.1,
+     "runtime_ttft_ms": 2366.2,
+     "prompt_tokens": 8708
+    },
+    {
+     "user": "Tasarruf yapmaya nereden başlamalıyım?",
+     "background_at_send": null,
+     "first_delta_ms": 3183,
+     "stages": {
+      "waiting": 21,
+      "processing_context": 28
+     },
+     "total_ms": 24996,
+     "timed_out": false,
+     "errors": [],
+     "words": 264,
+     "reply": "Tasarruf yapmak, sadece az harcamak değil, parayı bilinçli yönetmekle ilgilidir. Bu süreci sürdürülebilir kılmak için şu adımları izleyebilirsiniz:\n\n**1. Mevcut Durumunuzu Analiz Edin:**\nNereye gittiğinizi bilmeden nereye varacağınızı planlayamazsınız. Bir ay boyunca tüm harcamalarınızı (en küçük kahveye kadar) not edin. Bu, paranın nereye \"sızdığını\" görmenizi sağlar.\n\n**2. İhtiyaç ve İstek Ayrımı Yapın:**\nHer harcama yapmadan önce kendinize şu soruyu sorun: \"Buna gerçekten ihtiyacım var mı, yoksa sadece şu an mı istiyorum?\" Bir şeyi satın almadan önce 24 saat beklemek, dürtüsel alışverişlerin önüne geçmek için etkili bir yöntemdir.\n\n**3. Bütçe Planı Oluşturun (50/30/20 Kuralı):**\nGelirinizi belirli kategorilere ayırmak kontrolü elinize verir. Yaygın kullanılan bir yöntem şudur:\n*   **%50 İhtiyaçlar:** Kira, faturalar, mutfak alışverişi, ulaşım.\n*   **%30 İstekler:** Dışarıda yemek, abonelikler, hobiler.\n*   **%20 Tasarruf ve Borç Ödeme:** Bu kısım doğrudan birikim için ayrılmalıdır.\n\n**4. \"Önce Kendine Öde\" Prensibini Uygulayın:**\nMaaşınız yattığında, önce tasarruf edeceğiniz miktarı belirlediğiniz bir hesaba aktarın, kalan parayla ayı geçirin. Ay sonunda \"artarsa kenara koyarım\" düşüncesi genellikle başarısızlıkla sonuçlanır çünkü genelde bir şey artmaz.\n\n**5. Sabit Giderleri Optimize Edin:**\n*   **Abonelikler:** Kullanmadığınız dijital platformları veya spor salonu üyeliklerini iptal edin.\n*   **Faturalar:** Enerji tasarrufu yöntemleri veya daha uygun fiyatlı mobil paketleri araştırın.\n*   **Mutfak:** Dışarıdan yemek söylemek yerine haftalık yemek planı yapmak ve toplu alışveriş yapmak bütçeyi ciddi oranda rahatlatır.\n\n**6. Küçük Adımlarla Başlayın:**\nHemen devasa miktarlar biriktirmeye çalışmak yerine, her ay küçük ama sabit bir tutarla başlamak disiplin kazanmanızı sağlar. Biriktirme alışkanlığı kazandıkça bu miktarı kademeli olarak artırabilirsiniz.\n\nTasarruf amacınız belirli bir hedef mi (örneğin bir tatil, yeni bir eşya veya acil durum fonu), yoksa genel bir birikim mi hedefliyorsunuz efendim?",
+     "ttft_ms": 2943.8,
+     "context_prep_ms": 7.9,
+     "runtime_ttft_ms": 2935.8,
+     "prompt_tokens": 9345
+    },
+    {
+     "user": "Yeni bir dil öğrenmeye nasıl başlamalıyım?",
+     "background_at_send": null,
+     "first_delta_ms": 3141,
+     "stages": {
+      "waiting": 22,
+      "processing_context": 30
+     },
+     "total_ms": 27043,
+     "timed_out": false,
+     "errors": [],
+     "words": 310,
+     "reply": "Yeni bir dil öğrenmek, sabır ve doğru strateji gerektiren uzun soluklu bir süreçtir. Başarılı ve kalıcı bir öğrenme süreci için şu adımları izleyebilirsiniz:\n\n**1. Hedefinizi ve Motivasyonunuzu Belirleyin:**\nNeden bu dili öğrenmek istiyorsunuz? (İş için mi, seyahat için mi, sadece merak mı?) Hedefiniz net olursa, odaklanmanız kolaylaşır. Örneğin, \"akıcı konuşmak\" yerine \"bu dilde film izleyebilecek seviyeye gelmek\" gibi daha somut ve ulaşılabilir hedefler koymak motivasyonu korur.\n\n**2. Temel Kelime Haznesi ve En Çok Kullanılan Kalıplar:**\nDilin gramerine boğulmadan önce, günlük hayatta en çok kullanılan 500-1000 kelimeyi öğrenmeye odaklanın. \"Merhaba\", \"Nasılsın?\", \"Lütfen\", \"Teşekkür ederim\" gibi temel ifadeleri ve en sık kullanılan fiilleri hızlıca öğrenmek, kendinizi ifade etmeye başlamanızı sağlar.\n\n**3. Dile Maruz Kalma (Immersion) Yöntemi:**\nÖğrendiğiniz dili günlük hayatınıza dahil edin. Bu, fiziksel olarak o ülkeye gitmek demek değildir:\n*   **Telefon dilini değiştirin:** Telefonunuzu hedef dilde kullanmak sürekli teknik terimlerle karşılaşmanızı sağlar.\n*   **İç sesinizi çevirin:** Gün içinde kendi kendinize konuştuğunuz cümleleri hedef dilde kurmaya çalışın.\n*   **Müzik ve Podcast:** Anlamasanız bile o dilin melodisine, vurgularına ve konuşma hızına aşina olmak için sürekli arka planda dinleyin.\n\n**4. Aktif Pratik Yapın:**\nSadece pasif olarak dinlemek veya okumak yeterli değildir. Öğrendiklerinizi mutlaka kullanmalısınız:\n*   **Konuşma Pratiği:** Dudak kaslarınızın o dile alışması gerekir. Kendi kendinize konuşun veya online platformlar üzerinden ana dili o olan kişilerle pratik yapın.\n*   **Yazma:** Günlük tutun veya kısa notlar alın. Yazmak, gramer yapılarının zihinde pekişmesine yardımcı olur.\n\n**5. Düzenli ve Küçük Adımlar (Mikro Öğrenme):**\nGünde 5 saat çalışıp haftanın geri kalanında hiç bakmamaktansa, her gün sadece 20-30 dakika çalışmak çok daha etkilidir. Beyin, tekrar edilen bilgiyi daha kolay kalıcı hafızaya atar.\n\n**6. Hata Yapmaktan Korkmayın:**\nDil öğrenmenin en büyük engeli \"yanlış yapma korkusudur\". Bebeklerin bir dili öğrenirken binlerce kez yanlış cümle kurduğunu ve bunun doğal olduğunu unutmayın. Hata yaptıkça beyin doğruyu daha hızlı öğrenir.\n\nHangi dili öğrenmeyi planlıyorsunuz efendim? İsterseniz o dile özel kaynak veya yöntemler konusunda da konuşabiliriz.",
+     "ttft_ms": 3011.0,
+     "context_prep_ms": 8.9,
+     "runtime_ttft_ms": 3002.0,
+     "prompt_tokens": 10003
+    },
+    {
+     "user": "SQL'de JOIN türleri nelerdir?",
+     "background_at_send": null,
+     "first_delta_ms": 3665,
+     "stages": {
+      "waiting": 22,
+      "processing_context": 31
+     },
+     "total_ms": 30513,
+     "timed_out": false,
+     "errors": [],
+     "words": 367,
+     "reply": "SQL'de **JOIN** işlemleri, iki veya daha fazla tabloyu aralarındaki ortak sütunlar (genellikle birincil ve yabancı anahtarlar) üzerinden birleştirerek tek bir veri kümesi oluşturmak için kullanılır.\n\nİşte en yaygın kullanılan JOIN türleri:\n\n**1. INNER JOIN:**\nEn çok kullanılan JOIN türüdür. Sadece her iki tabloda da eşleşen kayıtları döndürür. Eğer bir satırın diğer tabloda karşılığı yoksa, o satır sonuç kümesinde yer almaz.\n*   *Örnek:* \"Sadece siparişi olan müşterileri listele.\"\n\n**2. LEFT (OUTER) JOIN:**\nSol tablodaki tüm kayıtları ve sağ tablodaki eşleşen kayıtları döndürür. Eğer sağ tabloda eşleşen bir kayıt yoksa, sağ tablo için ilgili sütunlar `NULL` olarak görünür.\n*   *Örnek:* \"Tüm müşterileri listele, sipariş verdilerse sipariş bilgilerini de yanına ekle (sipariş vermeyenlerin sipariş kısmı boş kalsın).\"\n\n**3. RIGHT (OUTER) JOIN:**\nSağ tablodaki tüm kayıtları ve sol tablodaki eşleşen kayıtları döndürür. Eğer sol tabloda eşleşen bir kayıt yoksa, sol tablo için ilgili sütunlar `NULL` olarak görünür. (LEFT JOIN'in tam tersidir, ancak pratikte genellikle LEFT JOIN tercih edilir.)\n*   *Örnek:* \"Tüm ürünleri listele, satış geçmişi varsa müşteri bilgilerini de yanına ekle.\"\n\n**4. FULL (OUTER) JOIN:**\nHer iki tablodaki tüm kayıtları döndürür. Her iki tabloda eşleşme varsa bunları yan yana getirir; eşleşme olmayan taraflarda ise `NULL` değerleri gösterir.\n*   *Örnek:* \"Hem siparişi olan müşterileri hem de hiç sipariş vermemiş müşterileri, hem siparişi olan ürünleri hem de hiç satılmamış ürünleri tek listede getir.\"\n\n**5. CROSS JOIN:**\nİki tablo arasındaki tüm olası kombinasyonları oluşturur (Cartesian Product). Bu JOIN türünde herhangi bir eşleşme kriteri (`ON` ifadesi) kullanılmaz. Tablo A'daki her satır, Tablo B'deki her satırla eşleştirilir.\n*   *Örnek:* \"Bir mağazadaki tüm renk seçenekleri ile tüm beden seçeneklerinin tüm kombinasyonlarını listele.\"\n\n**6. SELF JOIN:**\nBir tablonun kendisiyle JOIN işlemidir. Genellikle aynı tablo içinde hiyerarşik bir yapı (örneğin; çalışkanlar ve yöneticileri aynı tabloda) olduğunda kullanılır. Yazım olarak standart bir JOIN gibidir ancak tablo ismi takma adlar (alias) kullanılarak iki kez çağrılır.\n\n**Özet Tablo:**\n\n| JOIN Türü | Sonuçta Ne Görünür? |\n| :--- | :--- |\n| **INNER** | Sadece ortak olanlar. |\n| **LEFT** | Solun tamamı + sağdaki ortaklar. |\n| **RIGHT** | Sağın tamamı + soldaki ortaklar. |\n| **FULL** | Her iki tablonun tamamı. |\n| **CROSS** | Tüm kombinasyonlar. |\n\nAnlamayı kolaylaştırmak için bir örnek senaryo üzerinde kod yazmamı ister misiniz efendim?",
+     "ttft_ms": 3316.4,
+     "context_prep_ms": 8.3,
+     "runtime_ttft_ms": 3308.0,
+     "prompt_tokens": 10711
+    },
+    {
+     "user": "İyi bir özgeçmişte neler olmalı?",
+     "background_at_send": null,
+     "first_delta_ms": 3912,
+     "stages": {
+      "waiting": 22,
+      "processing_context": 37
+     },
+     "total_ms": 35675,
+     "timed_out": false,
+     "errors": [],
+     "words": 385,
+     "reply": "İyi bir özgeçmiş (CV), işe alım uzmanının sizin hakkınızda bilgi sahibi olmasını sağlayan, net, profesyonel ve başarı odaklı bir belgedir. Bir özgeçmişin etkili olması için şu temel bölümleri ve özellikleri içermesi gerekir:\n\n**1. İletişim Bilgileri:**\nEn üstte yer almalı ve kolayca bulunabilir olmalıdır.\n*   Adınız ve soyadınız (Büyük ve belirgin).\n*   Profesyonel bir e-posta adresi.\n*   Telefon numaranız.\n*   LinkedIn profil linkiniz ve varsa portfolyo adresiniz.\n*   *Not:* Ev adresi gibi detaylı özel bilgileri (açık adres vb.) güvenlik nedeniyle eklemenize gerek yoktur, şehir ve il yeterlidir.\n\n**2. Profesyonel Özet veya Kariyer Hedefi:**\nCV'nin girişindeki 3-4 cümlelik bölümdür. Kim olduğunuzu, en önemli uzmanlığınızı ve ne hedeflediğinizi kısaca özetler. Deneyimli adaylar \"Özet\", yeni mezunlar ise \"Hedef\" odaklı bir giriş yapmalıdır.\n\n**3. İş Deneyimi (Ters Kronolojik Sıra):**\nEn güncel işinizden başlayarak geçmişe doğru sıralayın. Sadece görevlerinizi listelemek yerine **başarılarınızı** vurgulayın.\n*   Şirket adı, unvanınız ve çalışma tarihleri.\n*   **Başarı odaklı maddeler:** \"Satışları %20 artırdım\" veya \"Şu süreci otomatize ederek haftalık 10 saat tasarruf sağladım\" gibi somut ve ölçülebilir veriler kullanın.\n*   *İpucu:* İş tanımından ziyade, o işi yaparken kattığınız değeri anlatın.\n\n**4. Eğitim Bilgileri:**\nEn güncel eğitiminizden başlayarak ekleyin.\n*   Okul adı, bölüm, mezuniyet (veya beklenen) tarihi.\n*   Not ortalaması (eğer yüksekse), önemli projeler veya burslar.\n\n**5. Yetkinlikler (Skills):**\nBu bölümü ikiye ayırabilirsiniz:\n*   **Teknik Yetkinlikler (Hard Skills):** Bildiğiniz yazılımlar (SQL, Python, Photoshop), diller, sertifikalar veya sektörel araçlar.\n*   **Sosyal Yetkinlikler (Soft Skills):** Problem çözme, liderlik, kriz yönetimi gibi beceriler (Bunları sadece listelemek yerine deneyimleriniz içinde örnekleyerek göstermek daha etkilidir).\n\n**6. Sertifikalar ve Projeler:**\nAldığınız profesyonel eğitimler, gönüllü çalışmalar veya kişisel projeleriniz (GitHub, tasarım dosyaları vb.) sizi diğer adayların önüne geçirebilir.\n\n**İyi Bir Özgeçmiş İçin Altın Kurallar:**\n\n*   **ATS Uyumluluğu:** Birçok şirket otomatik tarama sistemleri (ATS) kullanır. Bu nedenle, ilgili anahtar kelimeleri iş ilanındaki tanımara göre CV'nize dahil edin.\n*   **Okunabilirlik:** Sade bir tasarım seçin. Karmaşık grafikler yerine düzgün başlıklar, madde işaretleri ve standart yazı tipleri kullanın.\n*   **Sayfa Düzeni:** Yeni mezunlar için genellikle 1 sayfa, çok deneyimli profesyoneller için 2 sayfa idealdir.\n*   **Dosya Formatı:** Göndermediğiniz sürece düzenin bozulmaması için mutlaka **PDF** formatında kaydedin.\n*   **Özelleştirme:** Her iş başvurusu için CV'nizi küçük dokunuşlarla o ilana uygun hale getirin. Genel bir CV yerine, ilanda istenen kriterleri vurgulayan bir CV her zaman daha güçlüdür.\n\nBaşvuracağınız özel bir sektör veya pozisyon var mı efendim? Ona göre daha spesifik ipuçları verebilirim.",
+     "ttft_ms": 3635.3,
+     "context_prep_ms": 14.4,
+     "runtime_ttft_ms": 3620.9,
+     "prompt_tokens": 11505
+    },
+    {
+     "user": "Sabah koşusu mu akşam koşusu mu daha iyi?",
+     "background_at_send": null,
+     "first_delta_ms": 4407,
+     "stages": {
+      "waiting": 22,
+      "processing_context": 32
+     },
+     "total_ms": 27347,
+     "timed_out": false,
+     "errors": [],
+     "words": 283,
+     "reply": "Sabah ve akşam koşusu arasındaki seçim, tamamen sizin kişisel hedefleriniz, yaşam tarzınız ve vücudunuzun nasıl tepki verdiğine bağlıdır. Her iki zaman diliminin de kendine özgü avantajları ve dezavantajları bulunmaktadır:\n\n**Sabah Koşusunun Avantajları:**\n*   **Metabolizma ve Enerji:** Sabah egzersizi metabolizmayı hızlandırır ve gün boyu daha enerjik hissetmenizi sağlayabilir.\n*   **Disiplin ve İstikrar:** Sabah erken saatlerde gün içindeki iş yoğunluğu veya beklenmedik sosyal etkinlikler sizi yarı yolda bırakamaz; bu da alışkanlık kazanmayı kolaylaştırır.\n*   **Temiz Hava ve Sessizlik:** Genellikle trafik ve gürültü daha az olduğu için daha huzurlu bir ortamda odaklanabilirsiniz.\n*   **Zihinsel Hazırlık:** Güne başarıyla başlamış olmanın verdiği başarma hissi, günün geri kalanındaki stres seviyesini azaltabilir.\n\n**Akşam Koşusunun Avantajları:**\n*   **Vücut Isısı ve Esneklik:** Vücut ısısı akşam saatlerinde daha yüksektir, bu da kasların daha esnek olmasını sağlar ve sakatlık riskini bir miktar azaltabilir.\n*   **Stres Atma:** Gün boyu biriken zihinsel yorgunluğu ve stresi boşaltmak için mükemmel bir yoldur.\n*   **Güç ve Performans:** Bazı çalışmalar, vücudun sıcaklığının ve kas gücünün akşamüstü/akşam başlarında zirve yaptığını ve bu yüzden daha yüksek performans sergileyebileceğinizi göstermektedir.\n*   **Esneklik:** İş veya okul planlarınıza uymak genellikle daha kolaydır.\n\n**Hangisini Seçmelisiniz?**\n*   **Yağ yakımı ve disiplin istiyorsanız:** Sabah koşusu (özellikle aç karnına veya hafif bir kahvaltıdan sonra) genellikle daha çok tercih edilir.\n*   **Stresi atmak ve daha yüksek performansla koşmak istiyorsanız:** Akşam koşusu size daha iyi gelebilir.\n*   **Kronotipiniz önemli:** Eğer \"sabah insanı\"ysanız sabah koşusunda daha verimli olursunuz; \"gece kuşu\"ysanız akşam koşusunda vücudunuz daha iyi tepki verecektir.\n\n**Önemli Notlar:**\n*   **Uyku Düzeni:** Akşam koşusu yapıyorsanız, uykuya dalmanızı zorlaştıracak kadar geçe (yatmadan hemen önce) yapmamaya özen gösterin.\n*   **Güvenlik:** Hangi saatte koşarsanız koşun, çevresel faktörleri ve güvenli rotaları göz önünde bulundurun.\n\nSizin günlük rutininiz nasıl efendim? Hangisi yaşam tarzınıza daha kolay entegre edilebilir?",
+     "ttft_ms": 4237.6,
+     "context_prep_ms": 9.8,
+     "runtime_ttft_ms": 4227.8,
+     "prompt_tokens": 12427
+    },
+    {
+     "user": "Git'te rebase ile merge arasındaki fark ne?",
+     "background_at_send": null,
+     "first_delta_ms": 3616,
+     "stages": {
+      "waiting": 19,
+      "processing_context": 28
+     },
+     "total_ms": 36005,
+     "timed_out": false,
+     "errors": [],
+     "words": 409,
+     "reply": "Git'te **Merge** ve **Rebase**, iki farklı dalı (branch) birleştirmek için kullanılan iki temel yöntemdir. İkisi de aynı sonuca (kodun birleşmesi) ulaşabilir ancak bu sonuca giden **geçmişi (history)** farklı şekillerde kurgularlar.\n\nİşte temel farklar:\n\n### 1. Merge (Birleştirme)\nMerge, iki dalı birleştirmek için yeni bir **\"Merge Commit\"** oluşturur. Mevcut dallardaki tüm geçmiş korunur ve dalların birleştiği nokta bu yeni commit ile işaretlenir.\n\n*   **Geçmişi Nasıl Etkiler:** Geçmişi olduğu gibi bırakır (non-destructive). Hangi dalın ne zaman birleştirildiğini net bir şekilde gösteren bir \"birleşme noktası\" yaratır.\n*   **Avantajı:** Güvenlidir; orijinal commit geçmişini değiştirmez. Takım çalışmasında hangi dalın ne zaman ana dala dahil edildiğini takip etmek kolaydır.\n*   **Dezavantajı:** Çok fazla dalın sürekli birleştirildiği projelerde, \"Merge Commit\"lerin sayısı çok artabilir ve git geçmişi karmaşık, birbirine girmiş bir \"ağaç\" (spaghetti) görüntüsü alabilir.\n\n### 2. Rebase (Yeniden Temel Üzerine Koyma)\nRebase, bir dalın başlangıç noktasını (base) başka bir dalın en son commit'ine taşır. Yani, sizin yaptığınız commit'leri alır ve sanki en baştan diğer dalın üzerine yazmışsınız gibi araya ekler.\n\n*   **Geçmişi Nasıl Etkiler:** Geçmişi yeniden yazar (rewrites history). Commit'lerinizi alır ve hedef dalın üzerine \"tek tek\" sırayla tekrar uygular.\n*   **Avantajı:** Doğrusal ve temiz bir geçmiş (linear history) oluşturur. \"Merge commit\"ler oluşmadığı için `git log` baktığınızda dalların birbirine girdiği karmaşık bir ağaç yerine düz bir çizgi görürsünüz.\n*   **Dezavantajı:** **Tehlikelidir.** Eğer ortak bir daldaki (örneğin `main`) commit'leri rebase yaparsanız, başkalarının çalışma geçmişini bozabilirsiniz. Bu yüzden sadece kendi yerel dallarınızda kullanılmalıdır.\n\n---\n\n### Karşılaştırma Özeti\n\n| Özellik | Merge | Rebase |\n| :--- | :--- | :--- |\n| **Geçmiş Yapısı** | Karmaşık ama doğru (Ağaç yapısı) | Temiz ve doğrusal (Düz çizgi) |\n| **Yeni Commit** | Bir \"Merge Commit\" oluşturur. | Yeni commit oluşturmaz, mevcutları taşır. |\n| **Güvenlik** | Güvenli (Orijinal geçmişi bozmaz). | Riskli (Ortak dallarda kullanılmamalı). |\n| **Takip Edilebilirlik** | Dalların birleşme noktaları bellidir. | Dalların nereden ayrılıp birleştiği belirsizleşir. |\n\n### Ne Zaman Hangisini Kullanmalı?\n\n*   **Merge Kullanın:** Başkalarıyla ortak çalıştığınız, genel geçer (public) dalları birleştirirken. Bir dalı bitirip ana dala (master/main) dahil ederken standart yöntemdir.\n*   **Rebase Kullanın:** Kendi yerel dalınızda çalışırken, ana daldaki son değişiklikleri kendi dalınıza çekmek için. Böylece kendi commit'lerinizi en güncel değişikliklerin üzerine \"sıralı\" bir şekilde koymuş olursunuz ve temiz bir geçmiş elde edersiniz.\n\n**Altın Kural:** *Asla ortak olarak paylaşılan (push edilmiş) bir dal üzerinde Rebase yapmayın!* Bu, takım arkadaşlarınızın geçmişini parçalayabilir ve ciddi çatışmalara (conflict) neden olabilir.\n\nBu kavramlar üzerinde spesifik bir senaryo (örneğin bir çatışma çözümü) örneği görmek ister misiniz efendim?",
+     "ttft_ms": 3304.0,
+     "context_prep_ms": 9.5,
+     "runtime_ttft_ms": 3294.5,
+     "prompt_tokens": 13100
+    }
+   ],
+   "integrity": {
+    "seq_increasing": true,
+    "each_sent_once": true,
+    "order_kept": true,
+    "each_answered": true,
+    "none_streaming": true,
+    "messages": 46,
+    "summaries": 3
+   },
+   "settle": {
+    "settled": true,
+    "s": 228.4
+   },
+   "compactions": [
+    {
+     "event": "compaction.completed",
+     "conversation_id": "01M6EV77EP877SQ7Q1SPD05FNR",
+     "summary_version": 3,
+     "to_seq": 42,
+     "chunks": 3,
+     "kept_items": 10,
+     "dropped_items": 0,
+     "tokens_before": 13989,
+     "tokens_after": 4612,
+     "duration_ms": 167970
+    }
+   ],
+   "completed": 1
+  }
+ ]
+}
