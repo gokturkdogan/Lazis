@@ -1,0 +1,913 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "label": "cp-smoke",
+ "code": "47410ea",
+ "manifest": {
+  "captured_at": "2026-11-04T08:35:46+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 2.8,
+   "active_gb": 8.41,
+   "wired_gb": 2.56,
+   "compressed_gb": 0.8,
+   "swap_used_mb": 2791.5,
+   "swapouts": 2349601,
+   "memory_free_percent": 85
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "temperature                    1\ntop_k                          64\ntop_p                          0.95",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "scenario": "on-smoke-cp8",
+ "learning": true,
+ "checkpoint_limit_requested": 8,
+ "cache_ram": 2048,
+ "minutes": 1.8,
+ "steps": 4,
+ "gap_s": 45.0,
+ "idle_s": 30.0,
+ "first_token_s": [
+  6.44,
+  1.01,
+  0.68,
+  0.71
+ ],
+ "turns": [
+  {
+   "user": "Merhaba! Kız kardeşim Ayşe 3 Kasım'da Ankara'ya taşınıyor; ona yardım etmek istiyorum.",
+   "background_at_send": {
+    "kind": "prewarm",
+    "age_s": 0.0
+   },
+   "first_delta_ms": 6437,
+   "stages": {
+    "waiting": 2,
+    "processing_context": 5648
+   },
+   "total_ms": 7635,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Merhaba efendim. Ayşe'nin Ankara'ya taşınma sürecinde ona yardımcı olmanız çok nazik bir düşünce. Taşınma hazırlıkları konusunda size nasıl destek olabilirim?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 6295.7,
+   "context_prep_ms": 5646.8,
+   "runtime_ttft_ms": 647.2,
+   "prompt_tokens": 1376,
+   "output_tokens": 40,
+   "kind": "fact",
+   "gap_s": 0,
+   "at": "11:35:54"
+  },
+  {
+   "user": "İş arkadaşım Mehmet de galiba 10 Kasım'da İzmir'e gidecek, henüz kesin değil.",
+   "background_at_send": null,
+   "first_delta_ms": 1010,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 19
+   },
+   "total_ms": 2107,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Mehmet'in gidişinin henüz kesinleşmemiş olması planlarınızı etkileyebilir. İki taşınma süreci için ayrı ayrı hazırlık yapmak isterseniz size yardımcı olabilirim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 687.4,
+   "context_prep_ms": 6.6,
+   "runtime_ttft_ms": 680.5,
+   "prompt_tokens": 1475,
+   "output_tokens": 42,
+   "kind": "uncertain",
+   "gap_s": 5,
+   "at": "11:36:01"
+  },
+  {
+   "user": "Günaydın, nasılsın?",
+   "background_at_send": null,
+   "first_delta_ms": 684,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 18
+   },
+   "total_ms": 994,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Günaydın efendim, iyiyim, teşekkür ederim. Size nasıl yardımcı olabilirim?",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 358.9,
+   "context_prep_ms": 5.1,
+   "runtime_ttft_ms": 353.6,
+   "prompt_tokens": 1476,
+   "output_tokens": 19,
+   "kind": "short",
+   "gap_s": 5,
+   "at": "11:36:07"
+  },
+  {
+   "user": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+   "background_at_send": null,
+   "first_delta_ms": 706,
+   "stages": {
+    "waiting": 13,
+    "processing_context": 19
+   },
+   "total_ms": 1398,
+   "timed_out": false,
+   "errors": [],
+   "reply": "Mehmet'in 10 Kasım'da İzmir'e gidebileceği bilgisi var ancak bu durum henüz kesinleşmiş değil efendim.",
+   "shown_equals_final": true,
+   "context": {
+    "strategy": "full",
+    "window_start": 1,
+    "summary_to": 0,
+    "uncovered": 0
+   },
+   "ttft_ms": 347.4,
+   "context_prep_ms": 5.2,
+   "runtime_ttft_ms": 341.9,
+   "prompt_tokens": 1544,
+   "output_tokens": 31,
+   "kind": "probe",
+   "gap_s": 5,
+   "at": "11:36:13",
+   "recall": {
+    "fact": "İzmir",
+    "in_summary": false,
+    "in_memory": false,
+    "in_prompt_note": false,
+    "in_prompt": true
+   }
+  }
+ ],
+ "model_call_totals": {
+  "load": {
+   "calls": 1,
+   "seconds": 1.3,
+   "prompt_tokens": 0,
+   "output_tokens": 0
+  },
+  "prewarm": {
+   "calls": 7,
+   "seconds": 6.4,
+   "prompt_tokens": 10243,
+   "output_tokens": 7
+  },
+  "reply": {
+   "calls": 4,
+   "seconds": 6.5,
+   "prompt_tokens": 5871,
+   "output_tokens": 132
+  },
+  "extraction": {
+   "calls": 2,
+   "seconds": 33.0,
+   "prompt_tokens": 7530,
+   "output_tokens": 471
+  }
+ },
+ "model_calls": [
+  {
+   "kind": "load",
+   "at": "11:35:47",
+   "ended": "complete",
+   "s": 1.3
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:35:47",
+   "ended": "complete",
+   "prompt_tokens": 1236,
+   "output_tokens": 1,
+   "s": 4.3
+  },
+  {
+   "kind": "reply",
+   "at": "11:35:52",
+   "ended": "complete",
+   "prompt_tokens": 1376,
+   "output_tokens": 40,
+   "s": 2.0
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:35:54",
+   "ended": "complete",
+   "prompt_tokens": 1335,
+   "output_tokens": 1,
+   "s": 0.5
+  },
+  {
+   "kind": "reply",
+   "at": "11:35:59",
+   "ended": "complete",
+   "prompt_tokens": 1475,
+   "output_tokens": 42,
+   "s": 2.1
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:01",
+   "ended": "complete",
+   "prompt_tokens": 1436,
+   "output_tokens": 1,
+   "s": 0.5
+  },
+  {
+   "kind": "reply",
+   "at": "11:36:06",
+   "ended": "complete",
+   "prompt_tokens": 1476,
+   "output_tokens": 19,
+   "s": 1.0
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:07",
+   "ended": "complete",
+   "prompt_tokens": 1499,
+   "output_tokens": 1,
+   "s": 0.2
+  },
+  {
+   "kind": "reply",
+   "at": "11:36:12",
+   "ended": "complete",
+   "prompt_tokens": 1544,
+   "output_tokens": 31,
+   "s": 1.4
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:13",
+   "ended": "complete",
+   "prompt_tokens": 1579,
+   "output_tokens": 1,
+   "s": 0.3
+  },
+  {
+   "kind": "extraction",
+   "at": "11:36:19",
+   "ended": "complete",
+   "prompt_tokens": 3771,
+   "output_tokens": 461,
+   "s": 24.6
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:44",
+   "ended": "complete",
+   "prompt_tokens": 1579,
+   "output_tokens": 1,
+   "s": 0.3
+  },
+  {
+   "kind": "extraction",
+   "at": "11:36:44",
+   "ended": "complete",
+   "prompt_tokens": 3759,
+   "output_tokens": 10,
+   "s": 8.4
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:53",
+   "ended": "complete",
+   "prompt_tokens": 1579,
+   "output_tokens": 1,
+   "s": 0.3
+  }
+ ],
+ "calls_memory": [
+  {
+   "kind": "prewarm",
+   "at": "11:35:52",
+   "s": 4.3,
+   "prompt_tokens": 1236,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 1517,
+     "resident": 8176,
+     "wired": 0
+    },
+    "checkpoints": 0,
+    "checkpoints_mib": 0,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 1943,
+     "resident": 8602,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "reply",
+   "at": "11:35:54",
+   "s": 2.0,
+   "prompt_tokens": 1376,
+   "output_tokens": 40,
+   "memory_before": {
+    "runner": {
+     "footprint": 1943,
+     "resident": 8602,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 2263,
+     "resident": 8922,
+     "wired": 0
+    },
+    "checkpoints": 3,
+    "checkpoints_mib": 960,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:35:54",
+   "s": 0.5,
+   "prompt_tokens": 1335,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 2263,
+     "resident": 8922,
+     "wired": 0
+    },
+    "checkpoints": 3,
+    "checkpoints_mib": 960,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 2584,
+     "resident": 9242,
+     "wired": 0
+    },
+    "checkpoints": 4,
+    "checkpoints_mib": 1280,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "reply",
+   "at": "11:36:01",
+   "s": 2.1,
+   "prompt_tokens": 1475,
+   "output_tokens": 42,
+   "memory_before": {
+    "runner": {
+     "footprint": 2498,
+     "resident": 9242,
+     "wired": 0
+    },
+    "checkpoints": 4,
+    "checkpoints_mib": 1280,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 2904,
+     "resident": 9562,
+     "wired": 0
+    },
+    "checkpoints": 5,
+    "checkpoints_mib": 1600,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:01",
+   "s": 0.5,
+   "prompt_tokens": 1436,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 2904,
+     "resident": 9562,
+     "wired": 0
+    },
+    "checkpoints": 5,
+    "checkpoints_mib": 1600,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3224,
+     "resident": 9883,
+     "wired": 0
+    },
+    "checkpoints": 6,
+    "checkpoints_mib": 1920,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "reply",
+   "at": "11:36:07",
+   "s": 1.0,
+   "prompt_tokens": 1476,
+   "output_tokens": 19,
+   "memory_before": {
+    "runner": {
+     "footprint": 3138,
+     "resident": 9883,
+     "wired": 0
+    },
+    "checkpoints": 6,
+    "checkpoints_mib": 1920,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3544,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:07",
+   "s": 0.2,
+   "prompt_tokens": 1499,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 3544,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3544,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "reply",
+   "at": "11:36:13",
+   "s": 1.4,
+   "prompt_tokens": 1544,
+   "output_tokens": 31,
+   "memory_before": {
+    "runner": {
+     "footprint": 3459,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3544,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:14",
+   "s": 0.3,
+   "prompt_tokens": 1579,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 3544,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3544,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "extraction",
+   "at": "11:36:44",
+   "s": 24.6,
+   "prompt_tokens": 3771,
+   "output_tokens": 461,
+   "memory_before": {
+    "runner": {
+     "footprint": 3459,
+     "resident": 10203,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:44",
+   "s": 0.3,
+   "prompt_tokens": 1579,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "extraction",
+   "at": "11:36:53",
+   "s": 8.4,
+   "prompt_tokens": 3759,
+   "output_tokens": 10,
+   "memory_before": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "kind": "prewarm",
+   "at": "11:36:53",
+   "s": 0.3,
+   "prompt_tokens": 1579,
+   "output_tokens": 1,
+   "memory_before": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 7,
+    "checkpoints_mib": 2240,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3716,
+     "resident": 10375,
+     "wired": 0
+    },
+    "checkpoints": 6,
+    "checkpoints_mib": 1920,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  }
+ ],
+ "runtime": {
+  "checkpoints_created": 26,
+  "checkpoints_erased": 13,
+  "checkpoints_erased_oldest": 0,
+  "checkpoints_restored": 2,
+  "checkpoints_superseded": 2,
+  "full_reprocess": 0,
+  "prompt_eval_ms": 24569,
+  "prompt_eval_tokens": 6364,
+  "output_ms": 21195,
+  "output_tokens": 610,
+  "checkpoint_limit": 8,
+  "checkpoint_mib": 320.013,
+  "cache_limit_mib": 2048.0,
+  "checkpoints": 6,
+  "checkpoints_mib": 1920,
+  "cache_prompts": 0,
+  "cache_mib": 0
+ },
+ "memory_at_last_turn": {
+  "runner": {
+   "footprint": 3631,
+   "resident": 10375,
+   "wired": 0
+  },
+  "checkpoints": 6,
+  "checkpoints_mib": 1920,
+  "cache_prompts": 0,
+  "cache_mib": 0
+ },
+ "memory_after_idle": {
+  "runner": {
+   "footprint": 3631,
+   "resident": 10375,
+   "wired": 0
+  },
+  "checkpoints": 6,
+  "checkpoints_mib": 1920,
+  "cache_prompts": 0,
+  "cache_mib": 0
+ },
+ "memory_system": {
+  "samples": 22,
+  "runner_rss_peak_mb": 10375,
+  "used_peak_mb": 17704,
+  "compressed_peak_mb": 837,
+  "pressure_level_max": 1,
+  "pressure_not_normal_samples": 0,
+  "swap_used_start_mb": 2792,
+  "swap_used_peak_mb": 2792,
+  "swapouts_during": 0
+ },
+ "settle": {
+  "settled": true,
+  "s": 39.5
+ },
+ "integrity": {
+  "seq_increasing": true,
+  "each_sent_once": true,
+  "order_kept": true,
+  "each_answered": true,
+  "none_streaming": true,
+  "messages": 8,
+  "summaries": 0
+ },
+ "stored_equals_shown": true,
+ "events": [
+  {
+   "event": "prewarm.completed",
+   "at": "11:35:52",
+   "scope": "model_only",
+   "prompt_tokens": 1236,
+   "duration_ms": 5645
+  },
+  {
+   "event": "prewarm.completed",
+   "at": "11:35:54",
+   "scope": "context",
+   "prompt_tokens": 1335,
+   "duration_ms": 537
+  },
+  {
+   "event": "prewarm.completed",
+   "at": "11:36:01",
+   "scope": "context",
+   "prompt_tokens": 1436,
+   "duration_ms": 541
+  },
+  {
+   "event": "prewarm.completed",
+   "at": "11:36:07",
+   "scope": "context",
+   "prompt_tokens": 1499,
+   "duration_ms": 213
+  },
+  {
+   "event": "prewarm.completed",
+   "at": "11:36:14",
+   "scope": "context",
+   "prompt_tokens": 1579,
+   "duration_ms": 323
+  },
+  {
+   "event": "memory.extraction_completed",
+   "at": "11:36:44",
+   "messages": 3,
+   "proposed": 2,
+   "accepted": 2,
+   "created": 2,
+   "updated": 0,
+   "superseded": 0,
+   "inbox": 0,
+   "relations_created": 1,
+   "relations_inbox": 0,
+   "on_prefix": true,
+   "cache_expected": "warm",
+   "prompt_tokens": 3771,
+   "output_tokens": 461,
+   "duration_ms": 24580
+  },
+  {
+   "event": "prewarm.completed",
+   "at": "11:36:44",
+   "scope": "context",
+   "prompt_tokens": 1579,
+   "duration_ms": 323
+  },
+  {
+   "event": "memory.extraction_completed",
+   "at": "11:36:53",
+   "messages": 1,
+   "proposed": 0,
+   "accepted": 0,
+   "created": 0,
+   "updated": 0,
+   "superseded": 0,
+   "inbox": 0,
+   "relations_created": 0,
+   "relations_inbox": 0,
+   "on_prefix": true,
+   "cache_expected": "warm",
+   "prompt_tokens": 3759,
+   "output_tokens": 10,
+   "duration_ms": 8368
+  },
+  {
+   "event": "prewarm.completed",
+   "at": "11:36:53",
+   "scope": "context",
+   "prompt_tokens": 1579,
+   "duration_ms": 318
+  }
+ ],
+ "probes": [
+  {
+   "q": "Mehmet ne zaman nereye gidiyordu? Kısaca yaz.",
+   "answer": "Mehmet'in 10 Kasım'da İzmir'e gidebileceği bilgisi var ancak bu durum henüz kesinleşmiş değil efendim.",
+   "pass": true,
+   "any_ok": true,
+   "all_ok": true,
+   "forbidden": []
+  }
+ ],
+ "memories": [
+  {
+   "about": "Mehmet",
+   "relation": "iş arkadaşı",
+   "predicate": "note",
+   "value": "İzmir'e gidecek",
+   "content": "Mehmet galiba 10 Kasım'da İzmir'e gidecek.",
+   "status": "active",
+   "origin": "stated"
+  },
+  {
+   "about": "Ayşe",
+   "relation": "kız kardeşi",
+   "predicate": "location",
+   "value": "Ankara",
+   "content": "Ayşe 3 Kasım'da Ankara'ya taşınıyor.",
+   "status": "active",
+   "origin": "stated"
+  }
+ ],
+ "uncertain_memories": [
+  {
+   "name": "Mehmet",
+   "content": "Mehmet galiba 10 Kasım'da İzmir'e gidecek.",
+   "predicate": "note",
+   "certain": false
+  }
+ ],
+ "memory_jobs": {
+  "done": 4
+ }
+}

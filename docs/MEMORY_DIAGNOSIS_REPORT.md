@@ -79,6 +79,8 @@ Bu iki senaryodaki her istemde yeniden kullanılan konum, önceki istemlerin son
 
 Değiştirilmemiş senaryoyu uzatmayı önermiyorum: A 5,5 dakikada güvenlik sınırına ulaştı, uzatmak aynı sonucu verir.
 
+**Sonraki ölçüm:** sınır 8 ve 4 denendi, sonuç [CHECKPOINT_LIMIT_REPORT.md](CHECKPOINT_LIMIT_REPORT.md).
+
 ## 6. Seçici öğrenme değerlendirmesi (kod yok)
 
 | | Hafif test | A |

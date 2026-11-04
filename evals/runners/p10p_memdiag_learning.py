@@ -7,6 +7,8 @@
 The scenarios: ``on-short``, ``off-short`` (the light test's ten messages, 45 s apart, then five idle
 minutes) and ``on-smoke``, ``off-smoke`` (a tool check). Learning is turned off only in this run's
 settings, for its throwaway profile; no product code and no real profile or service changes.
+A ``-cp8`` or ``-cp4`` suffix limits the runtime's context checkpoints, in this run's private
+server only (``LLAMA_ARG_CTX_CHECKPOINTS``); the suffix absent, the runtime keeps its default.
 
 Recorded on stdout, kept by the supervisor, so a stopped run still has its record:
 
@@ -93,6 +95,11 @@ ROOM = re.compile(
 )
 PROMPT = re.compile(r"new prompt, n_ctx_slot = (\d+), n_keep = \d+, task\.n_tokens = (\d+)")
 CACHED = re.compile(r"cached n_tokens = (\d+), memory_seq_rm")
+RESTORED = re.compile(r"restored context checkpoint \(.*?n_tokens = (\d+).*?size = ([\d.]+) MiB")
+SUPERSEDED = re.compile(r"superseding context checkpoint")
+TOO_CLOSE = re.compile(r"erasing context checkpoint too close")
+FULL = re.compile(r"forcing full prompt re-processing")
+TIMING = re.compile(r"(prompt eval|eval) time =\s*([\d.]+) ms /\s*(\d+) tokens")
 
 
 def emit(row: dict[str, Any]) -> None:
@@ -122,6 +129,15 @@ class Runtime:
         self.checkpoint_mib = 0.0
         self.created = 0
         self.erased = 0
+        self.erased_old = 0
+        self.erased_too_close = 0
+        self.restored = 0
+        self.superseded = 0
+        self.full_reprocess = 0
+        self.prompt_eval_ms = 0.0
+        self.prompt_eval_tokens = 0
+        self.output_ms = 0.0
+        self.output_tokens = 0
         self.cache_prompts = 0
         self.cache_mib = 0.0
         self.cache_limit_mib = 0.0
@@ -138,10 +154,35 @@ class Runtime:
                 "n_tokens": int(m[3]),
                 "mib": float(m[4]),
             }
+        elif m := RESTORED.search(line):
+            self.restored += 1
+            row = {"event": "checkpoint_restored", "n_tokens": int(m[1]), "mib": float(m[2])}
+        elif TOO_CLOSE.search(line):
+            self.checkpoints = max(0, self.checkpoints - 1)
+            self.erased_too_close += 1
+            row = {"event": "checkpoint_erased_too_close"}
+        elif SUPERSEDED.search(line):
+            self.superseded += 1
+            row = {"event": "checkpoint_superseded"}
+        elif FULL.search(line):
+            self.full_reprocess += 1
+            row = {"event": "full_reprocess"}
+        elif m := TIMING.search(line):
+            prompt = m[1] == "prompt eval"
+            if prompt:
+                self.prompt_eval_ms += float(m[2])
+                self.prompt_eval_tokens += int(m[3])
+            else:
+                self.output_ms += float(m[2])
+                self.output_tokens += int(m[3])
+            row = {"event": "timing", "stage": "prompt" if prompt else "output",
+                   "ms": float(m[2]), "tokens": int(m[3])}  # fmt: skip
         elif m := ERASED.search(line):
+            self.erased_old += "erasing old" in line
             self.checkpoints = max(0, self.checkpoints - 1)
             self.erased += 1
-            row = {"event": "checkpoint_erased", "n_tokens": int(m[1]), "mib": float(m[2])}
+            row = {"event": "checkpoint_erased", "oldest": "erasing old" in line,
+                   "n_tokens": int(m[1]), "mib": float(m[2])}  # fmt: skip
         elif m := CACHE.search(line):
             self.cache_prompts, self.cache_mib, self.cache_limit_mib = (
                 int(m[1]),
@@ -183,14 +224,17 @@ class Runtime:
 class DiagServer(Server):
     """The same private runtime and environment, with its log read instead of discarded."""
 
-    def __init__(self, cache_ram: int, runtime: Runtime) -> None:
+    def __init__(self, cache_ram: int, runtime: Runtime, checkpoints: int | None = None) -> None:
         super().__init__(cache_ram)
         self.runtime = runtime
+        self.checkpoints = checkpoints
         self._runner: int | None = None
 
     async def start(self) -> None:
         env = {**os.environ, "OLLAMA_HOST": f"127.0.0.1:{PORT}", "OLLAMA_NO_CLOUD": "1",
                "LLAMA_ARG_CACHE_RAM": str(self.cache_ram)}  # fmt: skip
+        if self.checkpoints is not None:
+            env["LLAMA_ARG_CTX_CHECKPOINTS"] = str(self.checkpoints)
         self.proc = subprocess.Popen(
             ["ollama", "serve"],
             env=env,
@@ -322,21 +366,22 @@ class ProfileOff(P):
         )
 
 
-def steps_for(name: str) -> tuple[bool, list[Step], float]:
-    switch, _, length = name.partition("-")
-    if switch not in ("on", "off") or length not in IDLE_S:
+def steps_for(name: str) -> tuple[bool, list[Step], float, int | None]:
+    switch, length, *rest = [*name.split("-"), ""][:3]
+    limits = {"": None, "cp8": 8, "cp4": 4}
+    if switch not in ("on", "off") or length not in IDLE_S or rest[0] not in limits:
         raise SystemExit(f"unknown scenario {name}")
     if length == "smoke":
-        return switch == "on", scenario("smoke"), IDLE_S[length]
+        return switch == "on", scenario("smoke"), IDLE_S[length], limits[rest[0]]
     steps = scenario("light")
     fixed = [Step(s.text, s.kind, 0 if i == 0 else GAP_S, s.probe) for i, s in enumerate(steps)]
-    return switch == "on", fixed, IDLE_S[length]
+    return switch == "on", fixed, IDLE_S[length], limits[rest[0]]
 
 
 async def run(model: str, name: str, cache_ram: int) -> dict[str, Any]:
-    learning_on, steps, idle_s = steps_for(name)
+    learning_on, steps, idle_s, checkpoint_limit = steps_for(name)
     runtime = Runtime()
-    server = DiagServer(cache_ram, runtime)
+    server = DiagServer(cache_ram, runtime, checkpoint_limit)
     await server.start()
     llm = DiagRecorder(
         OllamaProvider(ENDPOINT, first_token_timeout=600, idle_timeout=120, max_duration=1200),
@@ -391,11 +436,15 @@ async def run(model: str, name: str, cache_ram: int) -> dict[str, Any]:
             row["prompt_tokens"] += c.get("prompt_tokens") or 0
             row["output_tokens"] += c.get("output_tokens") or 0
         return {
-            "scenario": name, "learning": learning_on, "cache_ram": cache_ram,
+            "scenario": name, "learning": learning_on, "checkpoint_limit_requested": checkpoint_limit, "cache_ram": cache_ram,
             "minutes": round((time.time() - started) / 60, 1), "steps": len(steps), "gap_s": GAP_S, "idle_s": idle_s,
             "first_token_s": [round((t["first_delta_ms"] or 0) / 1000, 2) for t in turns],
             "turns": turns, "model_call_totals": totals, "model_calls": llm.calls, "calls_memory": llm.calls_memory,
-            "runtime": {"checkpoints_created": runtime.created, "checkpoints_erased": runtime.erased,
+            "runtime": {"checkpoints_created": runtime.created, "checkpoints_erased": runtime.erased, "checkpoints_erased_oldest": runtime.erased_old, "checkpoints_erased_too_close": runtime.erased_too_close,
+                        "checkpoints_restored": runtime.restored, "checkpoints_superseded": runtime.superseded,
+                        "full_reprocess": runtime.full_reprocess, "prompt_eval_ms": round(runtime.prompt_eval_ms),
+                        "prompt_eval_tokens": runtime.prompt_eval_tokens, "output_ms": round(runtime.output_ms),
+                        "output_tokens": runtime.output_tokens,
                         "checkpoint_limit": runtime.checkpoint_limit, "checkpoint_mib": runtime.checkpoint_mib,
                         "cache_limit_mib": runtime.cache_limit_mib, **runtime.state()},
             "memory_at_last_turn": at_end, "memory_after_idle": after_idle, "memory_system": memory_summary(mem),
