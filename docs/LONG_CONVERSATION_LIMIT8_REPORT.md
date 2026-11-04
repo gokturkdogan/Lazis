@@ -101,6 +101,8 @@ Otomatik 7/10, **elle 8/10.** Mehmet yanıtı ("gitme ihtimali var") belirsizli�
 
 **Kayıt güvenliği:** 80 mesaj sırasında ve birer kez; kayıt = gösterilen; 4 özet sürümü saklı; kırpma yok. Konuşma verisi değiştirilmedi.
 
+**Sonradan:** Çoklu sıkıştırma karşılaştırması 50/50 aynı özet verdi; sınır 8 şüpheli olmaktan çıktı: [MULTI_CYCLE_LIMIT8_REPORT.md](MULTI_CYCLE_LIMIT8_REPORT.md).
+
 ## 6. Sınırlar
 
 Tek koşu. Taban çizgisi koşulları farklı. Kesinti yalnızca 60 s aralıkla sınandı. Bilgi ölçümü 19 kelime ve elle okuma; iddia seti henüz yok. Uzun süreli kullanım ve model boşaltma sınanmadı. 13 dakikalık ekran kapanması sonrası uyanma sınanmadı.

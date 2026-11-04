@@ -111,7 +111,11 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 4. **Two more paths lose text uncounted.** `parse_summary` keeps only the complete items of output cut at the token limit, with no count or log. `_str` cuts an item's text at 300 characters; this is visible in the data ("Düzenl" in D5 seed 7).
 5. **A passing item can still change meaning.** The check compares `quote` with the source. It does not compare `text` or `certain` with `quote`. "Araba kiralama: True (Eski: user reddetti, Yeni: assistant önerisi)" passed in D5 seed 7. This is also how an uncertain fact could be made certain; the summaries here did not show that happening.
 
-**Cause of the omission itself: not established.** Evidence against truncation as the main cause, not proof: three of the four loss events took 38–44 s, well under the 60–64 s plateau, and every lost line was in the first two sections, while a cut would remove the last ones if output follows the schema order. Raw model output is not stored, so this cannot be settled from these reports. Whether the filler crowds out facts is unknown; see below.
+**Cause, measured from raw output (limit 8 multi-cycle run, 2026-11-04, [MULTI_CYCLE_LIMIT8_REPORT.md](MULTI_CYCLE_LIMIT8_REPORT.md)):** the 50 summaries were byte-identical to the limit 32 run, so the checkpoint limit is not involved. Two mechanisms:
+- **A, omission with room left (the main one):** five of the six facts lost by the word check left in complete outputs of 593–739 tokens. A higher output limit does not help.
+- **B, cut at the output limit:** 16 of 50 outputs stopped at 1200 tokens (`done_reason: length`) and were salvaged silently. Sections are written in schema order, with open questions before constraints, people and instructions; of those 16, 12 never reached instructions, 9 people, 8 constraints. "Ayşe: kız kardeşi" left this way.
+
+**Earlier reading, before raw output was kept:** Cause of the omission itself: not established.** Evidence against truncation as the main cause, not proof: three of the four loss events took 38–44 s, well under the 60–64 s plateau, and every lost line was in the first two sections, while a cut would remove the last ones if output follows the schema order. Raw model output is not stored, so this cannot be settled from these reports. Whether the filler crowds out facts is unknown; see below.
 
 **Replaying other detectors over the stored summaries** (`evals/runners/p10p_loss_audit_replay.py`, results `evals/reports/phase10/perf/cycles/loss_audit_replay.json`; no model; chosen after the losses were known, on the same data, so these figures do not predict other data):
 
@@ -126,7 +130,7 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 - The moving-company decision was in version 1 and gone from version 2 with `dropped: 0`, along with the whole decisions section; `20 bin` was in no version. In all nine baseline runs both were in the final summary, and the moving-company question was answered. Here the answer was "hatırlamıyorum". The fact was in neither the summary nor active memory (learning sent it to the inbox).
 - "Planlama toplantısı" became "Taşınma planı toplantısı" in all four versions: a meaning change the check does not see.
 - Three of the four completed summary requests stopped at exactly 1200 output tokens. So output is cut at the limit, silently. Version 2 keeps the last section while the decisions are gone, which a cut from the end alone does not explain; raw output is not stored.
-- Whether limit 8 has anything to do with this is not shown. One run in ten; it stays a regression candidate.
+- Limit 8 is no longer a suspect: the multi-cycle comparison gave byte-identical summaries. Replies carry no fixed seed, so each long run summarizes different text; the long run itself was not repeated, so this is the most likely reading, not proof.
 - General questions took 5 of 17 items, so space is taken without repeated filler too.
 
 **Filler limit, kept with this result:** the filler is one fixed text repeated, far more repetitive than a real conversation. Share of summaries citing filler only, by version 1 → 5: items 33 → 47 %, characters 40 → 57 %, citations 43 → 87 %. This may overstate how often the loss occurs. It does not explain it away: the REL-002 runs, on varied text with no such filler, lost facts the same way (2 of 9 runs, 17 of 19 facts). The size of the filler's effect is unmeasured; the daily scenarios are the next evidence.
@@ -135,4 +139,4 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **How this is judged:** 62 → 56 of 64 is a regression baseline only, not a quality target. C acceptance requires retention no worse than it: see [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04). This entry stays open whatever C measures.
 
-**Evidence:** `evals/reports/phase10/perf/cycles/cycles_cache2048_gapall_r1.json`, field `rows[].cycles[].rendered`.
+**Evidence:** `evals/reports/phase10/perf/cycles/cycles_cache2048_gapall_r1.json`, field `rows[].cycles[].rendered`. Raw output and analysis: `evals/reports/phase10/perf/cycles-cp8/`.
