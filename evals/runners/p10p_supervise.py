@@ -10,7 +10,8 @@ runner process; a finished report is never run again.
 Kept in <out>/<label>_r<run>_progress/: status.json (current state), monitor.jsonl (system samples),
 runs.jsonl (one line per finished or stopped run), gap<g>.turns.jsonl (one line per turn, flushed by
 the runner) and gap<g>.stderr.txt, plus the memory files described in p10p_memwatch.py. A stopped run
-writes no report and counts as incomplete. A warning is recorded and does not stop a run.
+writes no report and counts as incomplete. A warning is recorded and does not stop a run, unless
+this run asks for it with ``--stop-on-flags`` or ``--stop-swap-growth-mb`` (off by default).
 
 To stop by hand: touch <progress>/STOP
 """
@@ -109,6 +110,17 @@ def stop_reason(row: dict[str, Any], battery_s: float, wall_gap: float, mono_gap
     return None
 
 
+def caution_stop(flags: dict[str, int], rules: str | None, swap_growth_mb: float, swap_limit_mb: int | None) -> str | None:
+    """The stops a run opts into. Rules look like ``long_warning,slow_response:3``: flag, times seen."""
+    for rule in (rules or "").split(","):
+        name, _, times = rule.strip().partition(":")
+        if name and flags.get(name, 0) >= int(times or 1):
+            return f"flag_{name}"
+    if swap_limit_mb is not None and swap_growth_mb >= swap_limit_mb:
+        return "swap_growth_limit"
+    return None
+
+
 class Supervisor:
     def __init__(self, a: argparse.Namespace) -> None:
         self.a = a
@@ -119,6 +131,7 @@ class Supervisor:
         self.status: dict[str, Any] = {"state": "starting", "pid": os.getpid(), "label": a.label, "run": a.run}
         self.mem = MemoryLog(self.dir, a.pressure_file)
         self.last_conditions: dict[str, Any] | None = None
+        self.swap_at_start: float | None = None
 
     def save(self, **changes: Any) -> None:
         self.status.update(changes, updated_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
@@ -244,7 +257,11 @@ class Supervisor:
             now_w, now_m = time.time(), time.monotonic()
             battery_since = (battery_since or now_m) if not row["ac_power"] else None
             battery_s = now_m - battery_since if battery_since else 0.0
-            why = stop_reason(row, battery_s, now_w - wall, now_m - mono, poll)
+            self.swap_at_start = row.get("swap_used_mb") if self.swap_at_start is None else self.swap_at_start
+            why = stop_reason(row, battery_s, now_w - wall, now_m - mono, poll) or caution_stop(
+                self.mem.flags, self.a.stop_on_flags, (row.get("swap_used_mb") or 0) - (self.swap_at_start or 0),
+                self.a.stop_swap_growth_mb,
+            )  # fmt: skip
             wall, mono = now_w, now_m
             n += 1
             if n % 12 == 1:
@@ -359,6 +376,8 @@ def main() -> int:
     ap.add_argument("--start-footprint-mb", type=int, default=START_FOOTPRINT_MB)
     ap.add_argument("--start-swap-mb", type=int, default=START_SWAP_MB)
     ap.add_argument("--start-stable", type=float, default=START_STABLE_S)
+    ap.add_argument("--stop-on-flags", help="also stop on these flags, e.g. long_warning,slow_response:3")
+    ap.add_argument("--stop-swap-growth-mb", type=int, help="also stop when swap has grown this much in the run")
     ap.add_argument("--pressure-file", help="tests only: read the pressure level from this file")
     a = ap.parse_args()
     # This process runs from the runners folder; a relative path here would silently mean another place.

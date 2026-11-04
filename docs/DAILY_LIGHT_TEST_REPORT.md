@@ -54,7 +54,9 @@ Kritik ana kadar programlar büyümedi: 11,8 GB ile başladı, çoğunlukla 10,3
 - Swap da ekran kapalıyken, kullanıcı yokken 1,5 → 4,1 GB büyüdü.
 - ADR-0010, 2048 MiB önbellekle çalıştırıcı için 6,4 GB tepe kaydediyor. Burada yaklaşık iki katı görüldü; ölçüm biçimleri farklı olabilir, karşılaştırılması gerekir.
 
-**Bilinmeyen:** bu belleğin ne olduğu. Sızıntı, önbellek davranışı ya da istem değişimi olabilir. Öğrenmeyle ilişki yalnızca üç koşunun karşılaştırmasından geliyor ve bu koşular başka yönlerden de farklı (çoklu testte kullanıcı yanıtları yalnızca konuşmanın sonunda). **Neden kanıtlanmadı; yalnızca güçlü bir işaret.** Tek koşu.
+**Sonradan bulundu:** kaynak llama.cpp'nin context checkpoint kopyaları; öğrenme yalnızca hızlandırıyor: [MEMORY_DIAGNOSIS_REPORT.md](MEMORY_DIAGNOSIS_REPORT.md).
+
+**Bu raporun yazıldığı andaki bilinmeyen:** bu belleğin ne olduğu. Sızıntı, önbellek davranışı ya da istem değişimi olabilir. Öğrenmeyle ilişki yalnızca üç koşunun karşılaştırmasından geliyor ve bu koşular başka yönlerden de farklı (çoklu testte kullanıcı yanıtları yalnızca konuşmanın sonunda). **Neden kanıtlanmadı; yalnızca güçlü bir işaret.** Tek koşu.
 
 **Yan gözlem:** en uzun boşlukta (10:04:13 → 10:08:53) kablolu bellek 10:08:33–10:08:49 arasında 2,4 GB'a düştü ve baskı normale döndü; sonraki tur ilk tokeni yine 0,8 s. Kablolu 8 GB'ın baskıdaki payını gösteriyor. Bu davranışın kaynağı incelenmedi.
 
