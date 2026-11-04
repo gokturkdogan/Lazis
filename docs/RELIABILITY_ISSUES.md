@@ -119,6 +119,8 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **Observable since 2026-11-04 ([REL003_OBSERVABILITY_REPORT.md](REL003_OBSERVABILITY_REPORT.md)):** `summary.output`, `summary.rewrite`, `engine.summary_audit`, and a 20-claim set that gives no general loss rate. The summary itself is unchanged. Planned, not approved: [REL003_FIX_PLAN.md](REL003_FIX_PLAN.md).
 
+**Fix 3 (write decisions and instructions first), `3f6f260`, short trial 2026-11-04 ([REL003_FIX3_REPORT.md](REL003_FIX3_REPORT.md)):** cut outputs 4 of 12 → 0 of 12, and `kız kardeş`, `8 bin`, `vejetaryen` came back in these chosen conversations. New: facts are written under "Kullanıcının talimatları", which the word check and the claim set do not see. Facts arriving after the first summary are untested. Not accepted yet; the full test has not run.
+
 **Earlier reading, before raw output was kept:** Cause of the omission itself: not established.** Evidence against truncation as the main cause, not proof: three of the four loss events took 38–44 s, well under the 60–64 s plateau, and every lost line was in the first two sections, while a cut would remove the last ones if output follows the schema order. Raw model output is not stored, so this cannot be settled from these reports. Whether the filler crowds out facts is unknown; see below.
 
 **Replaying other detectors over the stored summaries** (`evals/runners/p10p_loss_audit_replay.py`, results `evals/reports/phase10/perf/cycles/loss_audit_replay.json`; no model; chosen after the losses were known, on the same data, so these figures do not predict other data):

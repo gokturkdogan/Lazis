@@ -1,6 +1,6 @@
 # LAZIS — REL-003: Düzeltme 3 ve 4 Uygulama Planı
 
-- **Durum:** Yalnızca plan. **Kod değişmedi; her iki düzeltme de ayrı onay ister.** Özet davranışını değiştireceği için C'den önce yapılması önerilir (C'nin kabul taban çizgisi aksi hâlde sonradan geçersiz olur).
+- **Durum:** Düzeltme 3 uygulandı (`3f6f260`), kısa denemede yeni bir anlam sorunu görüldü: [REL003_FIX3_REPORT.md](REL003_FIX3_REPORT.md). Tam test ve Düzeltme 4 başlamadı. **Her adım ayrı onay ister.** Özet davranışını değiştireceği için C'den önce yapılması önerilir (C'nin kabul taban çizgisi aksi hâlde sonradan geçersiz olur).
 - **Sıra:** Önce 3, ölçüm, sonra 4. Aynı anda uygulanmaz; yoksa etkileri ayrılamaz.
 
 ## Düzeltme 3: Bölüm sırası (mekanizma B)
