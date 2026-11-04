@@ -172,7 +172,7 @@ Her adım ayrı commit'tir; yeni adıma ölçümle geçilir.
 
 ## 9. C planına ek: küçük iddia seti (kapsam ve maliyet)
 
-**Durum:** Yalnızca plan. Sahibinin kararıyla (2026-11-04) kapsamlı bir sistem kurulmuyor; bu set henüz yazılmadı. C'nin kendisi gibi ayrı onayla yapılır. Sayılar saklı raporlardan ve veri setinden sayıldı; süreler tahmindir.
+**Durum:** Set 2026-11-04'te kuruldu, sonuçlar [REL003_OBSERVABILITY_REPORT.md](REL003_OBSERVABILITY_REPORT.md). Kapsamlı bir sistem kurulmadı. Aşağıdaki süreler tahmindi.
 
 **Amaç:** C'nin bilgi korumasını kelime sayımından daha doğru ölçmek ve aynı yöntemle bugünkü taban çizgisini de puanlamak. Kapsamlı değerlendirme sisteminin yerine geçmez.
 

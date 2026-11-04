@@ -1,7 +1,7 @@
 # LAZIS — Sınır 8 ile 40 Mesajlık Uzun Konuşma Testi
 
 - **Tarih:** 2026-11-04, 12:20–13:20 (bir koşu, 40 mesaj, 60 s aralık, öğrenme açık)
-- **Durum:** Tamamlandı. **Gerçek servise ayar uygulanmadı;** sahibinin ayrı onayı bekleniyor.
+- **Durum:** Tamamlandı. O tarihte gerçek servise uygulanmamıştı; sonraki durum için [MEMORY_DIAGNOSIS_REPORT.md](MEMORY_DIAGNOSIS_REPORT.md), Kapanış.
 - **Ortam:** Yalnızca geçici Ollama süreci (port 11499). Ürün kodu, gerçek profil, gerçek servis ayarları, model, hafıza kuralları ve migration'a dokunulmadı.
 - **Ham veri:** `evals/reports/phase10/perf/long-checkpoints/`. Araç: `evals/runners/p10p_long_checkpoints.py`.
 

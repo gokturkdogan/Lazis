@@ -5,6 +5,33 @@
 - **Kod:** Ürün kodu değişmedi. Eklenen: `evals/runners/p10p_memdiag_learning.py`; `p10p_supervise.py`'ye isteğe bağlı durma kuralları (varsayılan davranış aynı). Gerçek profil, gerçek servis ayarları, model ve migration'a dokunulmadı. Öğrenme yalnızca B'nin geçici profilinde kapatıldı.
 - **Ham veri:** `evals/reports/phase10/perf/memdiag-learning/`
 
+## Kapanış (2026-11-04, sahibinin kararı)
+
+**Checkpoint bellek teşhisi kapandı.** Bu, LAZIS'in bütün günlük kullanım testlerini geçtiği anlamına gelmez.
+
+| Konu | Sonuç | Rapor |
+|---|---|---|
+| Neden | llama.cpp context checkpoint'leri: yaklaşık 320 MiB, sınır 32, en çok 10,2 GB; önbellek sınırının dışında | Bu rapor |
+| Öğrenmenin payı | Hızlandırıcı, kök neden değil (tur başına 3'e karşı 2 checkpoint, bir kez 1,7 GB önbellek) | Bu rapor |
+| Sınır 8 ve 4 | 8 seçildi: 5,5 GB'ta sabit; 4 her öğrenmeden sonra konuşmayı yeniden işliyor | [CHECKPOINT_LIMIT_REPORT.md](CHECKPOINT_LIMIT_REPORT.md) |
+| Uzun konuşma | 59 dakika: uyarı yok, swap artışı yok, 5,3 GB; gecikme değişmedi | [LONG_CONVERSATION_LIMIT8_REPORT.md](LONG_CONVERSATION_LIMIT8_REPORT.md) |
+| Özetlere etkisi | Yok: 50/50 bayt bayt aynı, aynı 4 soru geçemedi | [MULTI_CYCLE_LIMIT8_REPORT.md](MULTI_CYCLE_LIMIT8_REPORT.md) |
+
+**Gerçek servis:** `LLAMA_ARG_CTX_CHECKPOINTS=8` 2026-11-04'te uygulandı (`scripts/ollama-agent.sh`).
+
+- **Doğrulama:** Plist farkı tek satır; süreç ve llama-server ortamında 8; Ollama kaydında "of 8"; sentetik sağlık kontrolü hatasız; model boşaltıldı. Gerçek profil kullanılmadı.
+- **Önceki yapılandırma:** `evals/reports/phase10/service/com.lazis.ollama.plist.before-checkpoint8`.
+- **Geri alma:** `LAZIS_CTX_CHECKPOINTS=32 scripts/ollama-agent.sh install`. Ayarı tamamen kaldırmak için önceki plist'i geri kopyalayın:
+  `launchctl bootout gui/$(id -u)/com.lazis.ollama; cp evals/reports/phase10/service/com.lazis.ollama.plist.before-checkpoint8 ~/Library/LaunchAgents/com.lazis.ollama.plist; launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.lazis.ollama.plist`
+
+**Açık riskler (ölçülmedi veya çözülmedi):**
+
+- **Çok dolu sistem:** Program belleği 16 GB'a yaklaşınca kısa uyarılar görüldü (en uzunu 48 s); 25 GB'lık ortam sınanmadı.
+- **Uzun ekran uykusundan uyanma:** Hafif testteki kritik baskı 13 dakikalık kapanmadan sonra geldi. Sınır 8 ile yalnızca 17 saniyelik bir kapanma görüldü.
+- **Yoğun kesinti:** 6 s ve 30 s aralıklar sınır 8 ile sınanmadı.
+- **Sınır 8 ile hafif, orta ve yoğun günlük testler ile gerçek uygulama kullanımı:** Yapılmadı.
+- **Sıkıştırma gecikmesi:** Değişmedi (en kötü 175 s); C'nin konusu.
+
 ## 1. Sonuç
 
 **Büyümenin kaynağı Ollama'nın içindeki llama.cpp sunucusunun "context checkpoint" kopyalarıdır.** Her biri yaklaşık 320 MiB, varsayılan sınır 32, yani en çok yaklaşık 10,2 GB. 2048 MiB'lık önbellek sınırı bunları kapsamaz.

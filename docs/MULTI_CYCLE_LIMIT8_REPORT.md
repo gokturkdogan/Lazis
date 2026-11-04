@@ -1,7 +1,7 @@
 # LAZIS — Sınır 8 ile Çoklu Sıkıştırma Kalite Karşılaştırması
 
 - **Tarih:** 2026-11-04, 15:22–16:08 (46 dakika, 50 sıkıştırma, hiçbiri başarısız değil)
-- **Durum:** Tamamlandı, otomatik durma olmadı. Gerçek servise ayar uygulanmadı; ürün kodu değişmedi. Karar sahibinde.
+- **Durum:** Tamamlandı, otomatik durma olmadı. O tarihte gerçek servise uygulanmamıştı; sonraki durum için [MEMORY_DIAGNOSIS_REPORT.md](MEMORY_DIAGNOSIS_REPORT.md), Kapanış. **`Kuzey` ve `15 Aralık` için düzeltme:** [REL003_OBSERVABILITY_REPORT.md](REL003_OBSERVABILITY_REPORT.md) §4.
 - **Ortam:** Yalnızca geçici Ollama süreci, öğrenme kapalı, sentetik veri, geçici profil.
 - **Ham veri:** `evals/reports/phase10/perf/cycles-cp8/`. Araçlar: `p10p_cycles_checkpoints.py`, `p10p_cycles_limit_analysis.py`.
 

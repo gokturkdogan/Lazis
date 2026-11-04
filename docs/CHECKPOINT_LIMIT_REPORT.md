@@ -1,7 +1,7 @@
 # LAZIS — Checkpoint Sınırı 8 ve 4 Karşılaştırması
 
 - **Tarih:** 2026-11-04, 11:37–12:07
-- **Durum:** Kısa test tamam. **Gerçek servise ayar uygulanmadı;** sahibinin ayrı onayı bekleniyor.
+- **Durum:** Kısa test tamam. O tarihte gerçek servise uygulanmamıştı; sonraki durum için [MEMORY_DIAGNOSIS_REPORT.md](MEMORY_DIAGNOSIS_REPORT.md), Kapanış.
 - **Ortam:** Yalnızca geçici Ollama süreci (port 11499), ayar yalnızca o sürecin ortamında verildi. Gerçek servis ayarları aynı kaldı (`LLAMA_ARG_CACHE_RAM=2048`, checkpoint ayarı yok). Gerçek profil, model, hafıza kuralları ve ürün kodu değişmedi.
 - **Ham veri:** `evals/reports/phase10/perf/memdiag-learning/` (`cp8_*`, `cp4_*`, kısa araç denemesi `cp-smoke_*`).
 

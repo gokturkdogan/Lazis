@@ -98,7 +98,7 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 | Facts kept of 64 (word check) | 62 | 61 | 59 | 59 | 56 |
 | Conversations with a silent loss | 0 | 1 | 3 | 3 | 4 |
 
-- Six facts were lost at a rewrite: `vejetaryen`, `cuma`, `8 bin`, `Kaş`, `Mavi Koy`, `35 bin`. Every one reports `dropped: 0`. `Kuzey` and `15 Aralık` were never in the first summary; they are the two already missing from the 126/128 measure.
+- Six facts were lost at a rewrite: `vejetaryen`, `cuma`, `8 bin`, `Kaş`, `Mavi Koy`, `35 bin`. Every one reports `dropped: 0`. `Kuzey` and `15 Aralık` are the two already missing from the 126/128 measure. **Corrected 2026-11-04:** they were not simply absent; in D2 seed 11 the model wrote the item, with its quote from LAZIS's message, and the evidence check refused it (`dropped: 1`).
 - No interruptions, no user traffic and no memory pressure in this test, so the loss needs none of them.
 - Seed 7 lost 1 fact, seed 11 lost 7. Two seeds show large effects only.
 - **The word check undercounts.** Read by hand: "Kaş'a otobüsle" left with the same rewrite in D5 seed 11, and "Ayşe: kız kardeşi" left at version 3 in D1 in both seeds while the word `Ayşe` stayed. So the real figure is worse than 56 of 64. The 50 summaries have not all been scored claim by claim.
@@ -114,6 +114,10 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 **Cause, measured from raw output (limit 8 multi-cycle run, 2026-11-04, [MULTI_CYCLE_LIMIT8_REPORT.md](MULTI_CYCLE_LIMIT8_REPORT.md)):** the 50 summaries were byte-identical to the limit 32 run, so the checkpoint limit is not involved. Two mechanisms:
 - **A, omission with room left (the main one):** five of the six facts lost by the word check left in complete outputs of 593–739 tokens. A higher output limit does not help.
 - **B, cut at the output limit:** 16 of 50 outputs stopped at 1200 tokens (`done_reason: length`) and were salvaged silently. Sections are written in schema order, with open questions before constraints, people and instructions; of those 16, 12 never reached instructions, 9 people, 8 constraints. "Ayşe: kız kardeşi" left this way.
+
+- **C, refused by the evidence check:** a true item whose quote comes from the wrong message. Seen once (`Kuzey`, `15 Aralık`). No fix is proposed: the check keeps LAZIS's words from becoming the user's.
+
+**Observable since 2026-11-04 ([REL003_OBSERVABILITY_REPORT.md](REL003_OBSERVABILITY_REPORT.md)):** `summary.output`, `summary.rewrite`, `engine.summary_audit`, and a 20-claim set that gives no general loss rate. The summary itself is unchanged. Planned, not approved: [REL003_FIX_PLAN.md](REL003_FIX_PLAN.md).
 
 **Earlier reading, before raw output was kept:** Cause of the omission itself: not established.** Evidence against truncation as the main cause, not proof: three of the four loss events took 38–44 s, well under the 60–64 s plateau, and every lost line was in the first two sections, while a cut would remove the last ones if output follows the schema order. Raw model output is not stored, so this cannot be settled from these reports. Whether the filler crowds out facts is unknown; see below.
 
