@@ -123,6 +123,13 @@ Phase 3 turns the ephemeral Phase 2 preview into persistent, multi-turn conversa
   - returning to an 8K conversation after other activity can need a full prefill (32.6 s in the benchmark) unless it is pre-warmed. With pre-warm: 0.40 s.
   - The memory saving outweighs this; pre-warm on open covers the common case.
 
+### 7b. llama.cpp's context checkpoints (measured 2026-11-04)
+
+- **What they are.** The same runner keeps copies of its context state per slot: about 320 MiB each with this model, limit 32 by default, about 10.2 GB in all. `LLAMA_ARG_CACHE_RAM` does not cover them.
+- **Effect.** The runner grew with them, one to three per turn, until a light conversation reached critical pressure on this Mac.
+- **Decision:** `scripts/ollama-agent.sh` sets `LLAMA_ARG_CTX_CHECKPOINTS=8` (override: `LAZIS_CTX_CHECKPOINTS`; 32 restores the old limit). Measured with 8: the runner stays near 5.5 GB; first tokens unchanged; 50 of 50 multi-cycle summaries byte-identical to limit 32. 4 was rejected: it restores to token 212 after each learning call, so the re-warm grows with the conversation.
+- **Not measured:** waking after a long display sleep, heavy interruption, a fuller system. Reports: `docs/MEMORY_DIAGNOSIS_REPORT.md`, `docs/CHECKPOINT_LIMIT_REPORT.md`, `docs/LONG_CONVERSATION_LIMIT8_REPORT.md`, `docs/MULTI_CYCLE_LIMIT8_REPORT.md`.
+
 ### 8. Deletion
 
 - **The live database:**

@@ -150,7 +150,8 @@ Base `http://127.0.0.1:{port}/api/v1`; every request needs `Authorization: Beare
 
 ```bash
 make ollama-agent                         # Ollama as a LaunchAgent: OLLAMA_NO_CLOUD=1, 127.0.0.1:11434,
-                                          # LLAMA_ARG_CACHE_RAM=2048 (override: LAZIS_PROMPT_CACHE_MIB=<MiB>)
+                                          # LLAMA_ARG_CACHE_RAM=2048 (override: LAZIS_PROMPT_CACHE_MIB=<MiB>),
+                                          # LLAMA_ARG_CTX_CHECKPOINTS=8 (override: LAZIS_CTX_CHECKPOINTS=<n>; 32 is the old limit)
 scripts/ollama-agent.sh status            # agent state + the server's real OLLAMA_* environment
 make model-pull MODEL=qwen3.5:9b-q4_K_M   # only tags listed in scripts/approved-models.txt
 make bench MODEL=… [QUICK=1]              # performance (B1–B4, num_ctx, long context) → evals/reports/phase2/<model>/perf.json

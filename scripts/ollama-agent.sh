@@ -15,6 +15,12 @@
 # prompt states there and restores them, which makes switching back to a conversation fast,
 # but on a 24 GB Mac it competes with everything else (measured: runner footprint peak 16 GB
 # with the default). Override at install time: LAZIS_PROMPT_CACHE_MIB=<MiB> (0 disables it).
+#
+# LLAMA_ARG_CTX_CHECKPOINTS caps the runner's context checkpoints: about 320 MiB each with this
+# model, default limit 32, and not covered by the cache limit above. Measured: the runner's memory
+# grew with them until the Mac reached critical pressure in a light conversation (docs/
+# MEMORY_DIAGNOSIS_REPORT.md). 8 was chosen over 4, which re-processes the conversation after each
+# learning call. Override at install time: LAZIS_CTX_CHECKPOINTS=<n> (32 restores the old limit).
 set -euo pipefail
 
 LABEL="com.lazis.ollama"
@@ -22,12 +28,14 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG_DIR="$HOME/.ollama/logs"
 OLLAMA_BIN="$(command -v ollama || true)"
 PROMPT_CACHE_MIB="${LAZIS_PROMPT_CACHE_MIB:-2048}"
+CTX_CHECKPOINTS="${LAZIS_CTX_CHECKPOINTS:-8}"
 
 die() { echo "ollama-agent: $*" >&2; exit 1; }
 
 install_agent() {
   [ -n "$OLLAMA_BIN" ] || die "ollama not found (brew install ollama)"
   [[ "$PROMPT_CACHE_MIB" =~ ^[0-9]+$ ]] || die "LAZIS_PROMPT_CACHE_MIB must be a number of MiB"
+  [[ "$CTX_CHECKPOINTS" =~ ^[0-9]+$ ]] || die "LAZIS_CTX_CHECKPOINTS must be a number"
   OLLAMA_BIN="$(cd "$(dirname "$OLLAMA_BIN")" && pwd)/$(basename "$OLLAMA_BIN")"
   mkdir -p "$HOME/Library/LaunchAgents" "$LOG_DIR"
   # Stop any manually started server so the agent can bind the port.
@@ -49,6 +57,7 @@ install_agent() {
     <key>OLLAMA_NO_CLOUD</key><string>1</string>
     <key>OLLAMA_HOST</key><string>127.0.0.1:11434</string>
     <key>LLAMA_ARG_CACHE_RAM</key><string>$PROMPT_CACHE_MIB</string>
+    <key>LLAMA_ARG_CTX_CHECKPOINTS</key><string>$CTX_CHECKPOINTS</string>
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
@@ -82,7 +91,7 @@ size = ctypes.c_size_t(0)
 libc.sysctl(mib, 3, None, ctypes.byref(size), None, 0)
 buf = ctypes.create_string_buffer(size.value)
 libc.sysctl(mib, 3, buf, ctypes.byref(size), None, 0)
-names = (b"OLLAMA_", b"LLAMA_ARG_CACHE_RAM")
+names = (b"OLLAMA_", b"LLAMA_ARG_CACHE_RAM", b"LLAMA_ARG_CTX_CHECKPOINTS")
 env = [p.decode() for p in buf.raw[4:size.value].split(b"\0") if p.startswith(names)]
 print("server environment:", " ".join(env) or "(no OLLAMA_* variables)")
 PY
