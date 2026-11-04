@@ -6,7 +6,6 @@ facts, stale decisions shown as current, mixed-up people, mis-associated dates.
 
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 from typing import Any
 
@@ -25,12 +24,6 @@ from lazis.conversation.compaction import (
 )
 from lazis.conversation.context import TokenEstimator
 from lazis.conversation.models import Message
-from lazis.conversation.prompts import (
-    SECTIONS,
-    SUMMARY_INSTRUCTIONS,
-    SUMMARY_OUTPUT_ORDER,
-    SUMMARY_SCHEMA,
-)
 
 EST = TokenEstimator(2.2, 8)
 
@@ -342,118 +335,3 @@ def test_audit_survives_malformed_content_and_keeps_no_text() -> None:
     before = {**empty(), "goals": [item("Selin vejetaryen", "user", [1], "yardım")]}
     audit = audit_rewrite(before, empty())
     assert "Selin" not in repr(audit) and "vejetaryen" not in repr(audit)
-
-
-# ----- the order the model writes in (REL-003, fix 3) -------------------------------------------
-def test_the_schema_asks_for_what_the_user_decided_first_and_questions_last() -> None:
-    order = list(SUMMARY_SCHEMA["properties"])
-    assert order == list(SUMMARY_OUTPUT_ORDER)
-    assert SUMMARY_SCHEMA["required"] == order
-    critical = ("decisions", "instructions", "constraints", "people")
-    assert order[: len(critical)] == list(critical)
-    assert order.index("open_questions") > max(
-        order.index(k) for k in (*critical, "goals", "topics")
-    )
-    assert order[-1] == "assistant_notes"
-
-
-def test_the_writing_order_changes_no_section_and_no_rule() -> None:
-    assert sorted(SUMMARY_OUTPUT_ORDER) == sorted(key for key, _ in SECTIONS)
-    assert [key for key, _ in SECTIONS][:3] == [
-        "goals",
-        "topics",
-        "decisions",
-    ]  # the rendered layout
-    decision = SUMMARY_SCHEMA["properties"]["decisions"]["items"]
-    assert (
-        decision["properties"]["current"] == {"type": "boolean"}
-        and "current" in decision["required"]
-    )
-    person = SUMMARY_SCHEMA["properties"]["people"]["items"]
-    assert "name" in person["required"] and "text" not in person["properties"]
-    for key in SUMMARY_OUTPUT_ORDER:
-        required = SUMMARY_SCHEMA["properties"][key]["items"]["required"]
-        assert {"source", "refs", "quote", "certain"} <= set(required)
-    assert "1 200" not in SUMMARY_INSTRUCTIONS  # the instructions set no limit of their own
-
-
-def test_a_cut_in_the_new_order_keeps_what_the_user_decided_and_loses_the_questions() -> None:
-    whole = {key: [] for key in SUMMARY_OUTPUT_ORDER} | {
-        "decisions": [item("Perşembe", "user", [3], "perşembeye kaydırdık", current=True)],
-        "people": [
-            {
-                **item("", "user", [5], "İş arkadaşım Mehmet"),
-                "name": "Mehmet",
-                "relation": "iş arkadaşı",
-            }
-        ],
-        "open_questions": [
-            item("Ne zaman", "user", [1], "ona yardım"),
-            item("Nerede", "user", [1], "ona yardım"),
-        ],
-    }
-    text = json.dumps(whole, ensure_ascii=False)
-    cut = text[: text.index("Nerede")]
-    assert parse_kind(cut) == "salvaged"
-    parsed = parse_summary(cut)
-    assert parsed is not None
-    verified = verify_and_render(parsed, messages(), from_seq=1, to_seq=6)
-    assert verified.content["decisions"] and verified.content["people"]
-    assert [i["text"] for i in verified.content["open_questions"]] == ["Ne zaman"]
-
-
-def test_rendering_does_not_depend_on_the_order_items_arrive_in() -> None:
-    raw = {
-        **empty(),
-        "goals": [item("Yardım", "user", [1], "ona yardım")],
-        "decisions": [item("Perşembe", "user", [3], "perşembeye kaydırdık", current=True)],
-        "people": [
-            {
-                **item("", "user", [5], "İş arkadaşım Mehmet"),
-                "name": "Mehmet",
-                "relation": "iş arkadaşı",
-            }
-        ],
-    }
-    reordered = {key: raw[key] for key in SUMMARY_OUTPUT_ORDER}
-    a = verify_and_render(raw, messages(), from_seq=1, to_seq=6)
-    b = verify_and_render(reordered, messages(), from_seq=1, to_seq=6)
-    assert a.rendered == b.rendered and a.kept == b.kept == 3
-    assert (
-        a.rendered.index("hedefler") < a.rendered.index("kararları") < a.rendered.index("kişiler")
-    )
-
-
-def test_a_summary_written_in_the_old_order_is_still_read_and_used_as_previous() -> None:
-    old_order = {key: [] for key, _ in SECTIONS} | {
-        "goals": [item("Yardım", "user", [1], "ona yardım")]
-    }
-    text = json.dumps(old_order, ensure_ascii=False)
-    assert parse_kind(text) == "complete"
-    verified = verify_and_render(parse_summary(text) or {}, messages(), from_seq=1, to_seq=6)
-    assert verified.kept == 1
-    request = build_messages(verified.content, list(messages().values())[2:4])
-    assert "Önceki özet" in request[1].content
-
-
-def test_instructions_are_defined_as_what_the_user_asked_of_lazis() -> None:
-    """Fix 3 sent facts to this section. The definition is the only rule added."""
-    rule = next(x for x in SUMMARY_INSTRUCTIONS.split("\n") if x.startswith("11. "))
-    assert "'instructions' yalnızca kullanıcının LAZIS'e açıkça verdiği" in rule
-    assert "hâlâ geçerli" in rule
-    for kept_out in (
-        "gerçekler",
-        "tercihler",
-        "bütçeler",
-        "randevular",
-        "üçüncü kişilerin planları",
-        "belirsiz bilgiler",
-    ):
-        assert kept_out in rule
-    assert "uygun bilgi bölümlerinde korunur" in rule
-    numbers = [int(x.split(".")[0]) for x in SUMMARY_INSTRUCTIONS.split("\n")[1:]]
-    assert numbers == list(range(1, 13))
-    assert list(SUMMARY_SCHEMA["properties"])[:2] == [
-        "decisions",
-        "instructions",
-    ]  # the order stays

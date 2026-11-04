@@ -1,7 +1,6 @@
 # LAZIS — `s3-v5` Deneysel Davranışını İzole Etme Planı
 
-- **Durum:** Yalnızca plan. Dal oluşturulmadı, varsayılan davranış değişmedi. Prova, repoya dokunmadan geçici bir dosya kopyasında yapıldı.
-- **Karar gereken:** Bu planı onaylıyor musunuz?
+- **Durum:** Sahibin onayıyla 2026-11-04'te uygulandı. Deneysel kod `experiment/rel003-s3-v5` dalında, `main` `s3-v3` davranışında. Aşağıdaki "Bugünkü durum" ve adımlar uygulama öncesini anlatır. GitHub'a gönderilmedi.
 
 ## Özet
 

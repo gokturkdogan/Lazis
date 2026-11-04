@@ -70,7 +70,7 @@ def time_note(moment: datetime) -> str:
 
 
 # ----- compaction ----------------------------------------------------------------------
-SUMMARY_PROMPT_VERSION = "s3-v5"
+SUMMARY_PROMPT_VERSION = "s3-v3"
 
 SUMMARY_INSTRUCTIONS = (
     "Görevin bir sohbetin eski bölümünü, ileride hatırlatma olarak kullanılacak yapılandırılmış "
@@ -94,11 +94,7 @@ SUMMARY_INSTRUCTIONS = (
     "yeni mesajlarla güncelle.\n"
     "10. Aynı bilgiyi birden fazla bölüme yazma; her bölümde en fazla 6 madde olsun ve maddeleri "
     "kısa tut. En önemli bilgileri (kararlar, kişiler, tarihler, hedefler) önce yaz.\n"
-    "11. 'instructions' yalnızca kullanıcının LAZIS'e açıkça verdiği ve hâlâ geçerli olan "
-    "istekleri/talimatları içerir. Kullanıcı hakkında gerçekler, tercihler, bütçeler, randevular, "
-    "üçüncü kişilerin planları ve belirsiz bilgiler bu alana yazılmaz; uygun bilgi bölümlerinde "
-    "korunur.\n"
-    "12. Boş kalan alanlar için boş liste kullan. JSON'u girintisiz, tek satır halinde yaz. "
+    "11. Boş kalan alanlar için boş liste kullan. JSON'u girintisiz, tek satır halinde yaz. "
     "Yalnızca istenen JSON'u üret."
 )
 
@@ -136,21 +132,6 @@ SECTIONS: tuple[tuple[str, str], ...] = (
     ("assistant_notes", "LAZIS'in önerileri ve çıkarımları"),
 )
 
-# The order the model writes in: it follows the schema, and output cut at its token limit loses
-# what comes last (REL-003, 16 of 50 outputs). So what the user decided and asked comes first and
-# open questions last. Only the writing order: SECTIONS still sets how the summary is verified and
-# rendered, so the text shown to the model in later turns keeps its layout.
-SUMMARY_OUTPUT_ORDER: tuple[str, ...] = (
-    "decisions",
-    "instructions",
-    "constraints",
-    "people",
-    "goals",
-    "topics",
-    "open_questions",
-    "assistant_notes",
-)
-
 SUMMARY_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -158,7 +139,7 @@ SUMMARY_SCHEMA: dict[str, Any] = {
             "type": "array",
             "items": _item_schema(decision=key == "decisions", person=key == "people"),
         }
-        for key in SUMMARY_OUTPUT_ORDER
+        for key, _ in SECTIONS
     },
-    "required": list(SUMMARY_OUTPUT_ORDER),
+    "required": [key for key, _ in SECTIONS],
 }

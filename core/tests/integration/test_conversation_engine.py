@@ -17,11 +17,7 @@ import pytest
 
 from lazis.config.model import StorageSection
 from lazis.conversation import TurnRequest, repository
-from lazis.conversation.prompts import (
-    CANCELLED_MARKER,
-    INTERRUPTED_MARKER,
-    SUMMARY_INSTRUCTIONS,
-)
+from lazis.conversation.prompts import CANCELLED_MARKER, INTERRUPTED_MARKER
 from lazis.errors import (
     ConversationNotFoundError,
     LlmBusyError,
@@ -502,37 +498,6 @@ def test_compaction_records_its_output_and_possible_losses_in_numbers_only(
         ensure_ascii=False, default=str,
     )  # fmt: skip
     assert "Pamuk" not in logged and "kedisi" not in logged
-
-
-def test_the_summary_request_uses_the_new_order_and_nothing_else_moves(
-    tmp_path: Path, storage: StorageHandle
-) -> None:
-    """REL-003, fix 3. The limit stays 1200, messages are not touched, the version is recorded."""
-    llm = ScriptedLLM(reply=long_reply)
-    engine = make_engine(
-        storage, llm, tmp_path, idle_compaction_delay_s=3600.0, compact_at_tokens=1500,
-        keep_recent_tokens=256,
-    )  # fmt: skip
-
-    async def go() -> str:
-        cid: str | None = None
-        for i in range(3):
-            _, cid = await run_turn(engine, f"Not {i}: haftalık plan hazırlıyorum.", cid)
-        assert cid is not None
-        assert await engine.compact_now(cid)
-        await engine.close()
-        return cid
-
-    cid = asyncio.run(go())
-    request = llm.summary_requests[0]
-    schema = request.options.response_format
-    assert isinstance(schema, dict)
-    assert list(schema["properties"])[:4] == ["decisions", "instructions", "constraints", "people"]
-    assert request.options.max_tokens == 1200
-    assert request.messages[0].content == SUMMARY_INSTRUCTIONS
-    stored = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
-    assert stored[-1].prompt_version == "s3-v5"
-    assert [m.seq for m in rows(storage, cid)] == list(range(1, 7))
 
 
 def test_a_summary_cut_at_its_limit_is_recorded_and_read_as_before(

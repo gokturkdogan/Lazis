@@ -19,8 +19,8 @@ from p10p_claim_score import DATA as CLAIMS
 from p10p_claim_score import rule
 
 from lazis.conversation.compaction import audit_rewrite, parse_summary
-from lazis.conversation.prompts import SUMMARY_OUTPUT_ORDER
 
+SUMMARY_OUTPUT_ORDER = ("decisions", "instructions", "constraints", "people", "goals", "topics", "open_questions", "assistant_notes")  # s3-v4/v5 order: on branch experiment/rel003-s3-v5  # fmt: skip
 PERF = Path(__file__).resolve().parents[2] / "evals/reports/phase10/perf"
 BASE_REPORT = PERF / "cycles-cp8/cycles-cp8_cache2048_gapall_r1.json"
 BASE_TURNS = PERF / "cycles-cp8/cycles-cp8_r1_progress/gapall.turns.jsonl"
