@@ -1,0 +1,45 @@
+{
+ "version": "v1",
+ "description": "Facts that arrive or change after the first summary, written in phases with a compaction after each. Fictional people. For hand reading: what each summary version says about each claim. A category heading without the value does not count as keeping a fact.",
+ "phases": [
+  {"name": "start", "messages": [
+   ["user", "Kız kardeşim Elif 20 Mayıs'ta Eskişehir'e taşınıyor."], ["assistant", "Not ettim."],
+   ["user", "Taşınma için bütçem en fazla 25 bin TL."], ["assistant", "Tamam, bütçe en fazla 25 bin TL."],
+   ["user", "Tatil için Bodrum'a gitmeye karar verdik."], ["assistant", "Bodrum, güzel seçim."],
+   ["user", "Arkadaşım Burak belki 15 Haziran'da Trabzon'a gelir, henüz kesin değil."], ["assistant", "Kesinleşince haber verirsiniz."],
+   ["user", "Kuzenim Deniz galiba temmuzda Van'a taşınacak, daha belli değil."], ["assistant", "Anladım, henüz belli değil."],
+   ["user", "Cuma günü saat 11:00'de veterinerle görüşmemi bana hatırlat."], ["assistant", "Cuma 11:00 için hatırlatırım."]
+  ]},
+  {"name": "new_and_changed", "messages": [
+   ["user", "Eşim Derya vegan, yemek önerirken buna dikkat et."], ["assistant", "Derya Hanım'ın vegan olduğunu göz önünde bulunduracağım."],
+   ["user", "Kedim Tarçın'a penisilin alerjisi teşhisi kondu."], ["assistant", "Geçmiş olsun, not ettim."],
+   ["user", "Tatil için fikrimizi değiştirdik, Bodrum yerine Fethiye'ye gidiyoruz."], ["assistant", "Tamam, artık Fethiye."]
+  ]},
+  {"name": "settled", "messages": [
+   ["user", "Burak'ın gelişi kesinleşti, 15 Haziran'da Trabzon'a geliyor."], ["assistant", "Harika, kesinleşti."],
+   ["user", "Deniz'in Van'a taşınması iptal oldu."], ["assistant", "Anladım, iptal olmuş."],
+   ["user", "Taşınma bütçesini 30 bin TL'ye çıkardık."], ["assistant", "Yeni bütçe 30 bin TL."]
+  ]},
+  {"name": "later", "messages": []}
+ ],
+ "claims": [
+  {"id": "L1", "from_version": 1, "kind": "relation and date", "expect": "Elif kız kardeş, 20 Mayıs, Eskişehir; yıl yok"},
+  {"id": "L2", "from_version": 1, "kind": "reminder", "expect": "Cuma 11:00 veteriner hatırlatması, talimat olarak"},
+  {"id": "L3", "from_version": 2, "kind": "new preference", "expect": "Derya eş, vegan; yemek önerirken dikkat"},
+  {"id": "L4", "from_version": 2, "kind": "new fact", "expect": "Tarçın kedi, penisilin alerjisi"},
+  {"id": "L5", "from_version": 2, "kind": "changed decision", "expect": "Fethiye güncel; Bodrum güncel değil"},
+  {"id": "L6", "from_version": 1, "kind": "uncertain then settled", "expect": "Burak: 1 belirsiz; 3'ten sonra kesin"},
+  {"id": "L7", "from_version": 1, "kind": "uncertain then cancelled", "expect": "Deniz: 1 belirsiz; 3'ten sonra iptal, plan olarak yok"},
+  {"id": "L8", "from_version": 1, "kind": "changed value", "expect": "Bütçe: 1 25 bin; 3'ten sonra 30 bin, 25 bin güncel değil"}
+ ],
+ "probes": [
+  {"q": "Yemek önerirken neye dikkat etmeliyim? Kısaca yaz.", "expect_any": ["vegan"]},
+  {"q": "Kedim Tarçın'ın sağlığıyla ilgili ne söylemiştim? Kısaca yaz.", "expect_any": ["penisilin"]},
+  {"q": "Bodrum'a mı gidiyoruz? Kısaca yaz.", "expect_any": ["fethiye"]},
+  {"q": "Burak ne zaman nereye geliyor, kesin mi? Kısaca yaz.", "expect_all": ["trabzon"], "expect_any": ["kesin"]},
+  {"q": "Deniz Van'a taşınıyor mu? Kısaca yaz.", "expect_any": ["iptal", "hayır"]},
+  {"q": "Taşınma bütçem ne kadar? Kısaca yaz.", "expect_any": ["30 bin", "30.000"]},
+  {"q": "Sana neyi hatırlatmanı istemiştim? Kısaca yaz.", "expect_any": ["veteriner"]},
+  {"q": "Elif benim neyim, ne zaman nereye taşınıyor? Kısaca yaz.", "expect_all": ["kardeş", "eskişehir"], "expect_any": ["20 mayıs"]}
+ ]
+}
