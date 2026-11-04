@@ -1,0 +1,599 @@
+{
+ "model": "gemma4:12b-it-qat",
+ "label": "fix3b-instr",
+ "code": "df4da97",
+ "manifest": {
+  "captured_at": "2026-11-04T14:50:14+00:00",
+  "machine": "Mac16,7",
+  "chip": "Apple M4 Pro",
+  "memory_gb": 24,
+  "macos": "27.0.1",
+  "ollama_version": "0.40.4",
+  "ollama_env": [
+   "OLLAMA_HOST=127.0.0.1:11434",
+   "OLLAMA_NO_CLOUD=1"
+  ],
+  "power": [
+   "Now drawing from 'AC Power'",
+   " -InternalBattery-0\t100%; charged; 0:00 remaining present: true"
+  ],
+  "thermal": [
+   "Note: No thermal warning level has been recorded",
+   "Note: No performance warning level has been recorded",
+   "Note: No CPU power status has been recorded"
+  ],
+  "memory": {
+   "free_gb": 3.32,
+   "active_gb": 5.8,
+   "wired_gb": 2.78,
+   "compressed_gb": 3.6,
+   "swap_used_mb": 1766.81,
+   "swapouts": 2370738,
+   "memory_free_percent": 72
+  },
+  "model": {
+   "name": "gemma4:12b-it-qat",
+   "digest": "38044be4f923e5a55264ed7df4eaac2676651a905f735197c504045140c02bd3",
+   "size_bytes": 7151003754,
+   "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "gemma4",
+    "families": [
+     "gemma4"
+    ],
+    "parameter_size": "11.9B",
+    "quantization_level": "Q4_0",
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "runner": "ggml"
+   },
+   "capabilities": [
+    "completion",
+    "vision",
+    "audio",
+    "tools",
+    "thinking"
+   ],
+   "default_parameters": "top_p                          0.95\ntemperature                    1\ntop_k                          64",
+   "architecture": "gemma4",
+   "parameter_count": 11907350576,
+   "context_length_max": 262144
+  }
+ },
+ "checkpoint_limit_requested": 8,
+ "runtime": {
+  "checkpoint_limit": 8,
+  "checkpoints_created": 28,
+  "checkpoints_erased": 17,
+  "checkpoints_erased_too_close": 0,
+  "checkpoints_erased_oldest": 0,
+  "checkpoints_restored": 0,
+  "checkpoints_superseded": 6,
+  "full_reprocess": 7,
+  "prompt_eval_ms": 126711,
+  "prompt_eval_tokens": 35232,
+  "output_ms": 225223,
+  "output_tokens": 6370,
+  "checkpoints": 5,
+  "checkpoints_mib": 1600,
+  "cache_prompts": 1,
+  "cache_mib": 1061
+ },
+ "summary_calls": [
+  {
+   "at": "17:51:03",
+   "seed": 7,
+   "request": "9e2ad20a366f5b56",
+   "max_tokens": 1200,
+   "s": 49.2,
+   "ended": "complete",
+   "prompt_tokens": 3697,
+   "output_tokens": 986,
+   "done_reason": "stop",
+   "at_limit": false,
+   "parse": "complete",
+   "items": {
+    "goals": 1,
+    "topics": 3,
+    "decisions": 3,
+    "open_questions": 6,
+    "constraints": 1,
+    "people": 1,
+    "instructions": 3,
+    "assistant_notes": 1
+   },
+   "items_total": 19,
+   "raw": "{\"decisions\":[{\"text\":\"Yanıtlar en fazla üç cümle olmalı.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true,\"current\":true},{\"text\":\"Tarihler gün.ay.yıl biçiminde yazılmalı.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true,\"current\":true},{\"text\":\"Emoji kullanılabilir.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true,\"current\":true}],\"instructions\":[{\"text\":\"Yanıtları en fazla üç cümle ile sınırla.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true},{\"text\":\"Tarihleri gün.ay.yıl formatında yaz.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true},{\"text\":\"Emoji kullanabilirsin.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true}],\"constraints\":[{\"text\":\"Fıstık alerjisi var; tariflerde dikkat edilmeli.\",\"source\":\"user\",\"refs\":[13],\"quote\":\"Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir.\",\"certain\":true}],\"people\":[{\"name\":\"Fatma\",\"relation\":\"Kullanıcının annesi\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"goals\":[{\"text\":\"Kira sözleşmesi için avukat bul.\",\"source\":\"user\",\"refs\":[15],\"quote\":\"Kira sözleşmesi için avukat bulmamı bana hatırlat.\",\"certain\":true}],\"topics\":[{\"text\":\"Ev tadilatı bütçesi en fazla 40 bin TL.\",\"source\":\"user\",\"refs\":[9],\"quote\":\"Ev tadilatı için bütçemiz en fazla 40 bin TL.\",\"certain\":true},{\"text\":\"Diş randevusu: 05.04.2024 saat 14:00.\",\"source\":\"user\",\"refs\":[11],\"quote\":\"Diş randevum 5 Nisan saat 14:00'te.\",\"certain\":true},{\"text\":\"Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil).\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"open_questions\":[{\"text\":\"Evde sebze yetiştirmeye nasıl başlanır?\",\"source\":\"user\",\"refs\":[19],\"quote\":\"Evde sebze yetiştirmeye nasıl başlarım?\",\"certain\":false},{\"text\":\"Domates fideleri için en iyi toprak nedir?\",\"source\":\"user\",\"refs\":[21],\"quote\":\"Domates fideleri için en iyi toprak nedir?\",\"certain\":false},{\"text\":\"Balkonda hangi otlar kolay yetişir?\",\"source\":\"user\",\"refs\":[23],\"quote\":\"Balkonda hangi otlar kolay yetişir?\",\"certain\":false},{\"text\":\"Kompost yapmak için neler gerekir?\",\"source\":\"user\",\"refs\":[25],\"quote\":\"Kompost yapmak için neler gerekir?\",\"certain\":false},{\"text\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"source\":\"user\",\"refs\":[27],\"quote\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"certain\":false},{\"text\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"source\":\"user\",\"refs\":[29],\"quote\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"certain\":false}],\"assistant_notes\":[{\"text\":\"Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, dayanıklı türlerle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde koruma ve budama yapılmalı.\",\"source\":\"assistant\",\"refs\":[20,22,24,26,28,30],\"quote\":\"Toprağın havalanması ve su tutması dengede olmalı\",\"certain\":true}]}",
+   "memory_before": {
+    "runner": null,
+    "checkpoints": 0,
+    "checkpoints_mib": 0,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 2399,
+     "resident": 9059,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   }
+  },
+  {
+   "at": "17:51:59",
+   "seed": 7,
+   "request": "009bd96d738de78f",
+   "max_tokens": 1200,
+   "s": 56.0,
+   "ended": "complete",
+   "prompt_tokens": 5388,
+   "output_tokens": 1027,
+   "done_reason": "stop",
+   "at_limit": false,
+   "parse": "complete",
+   "items": {
+    "goals": 1,
+    "topics": 3,
+    "decisions": 3,
+    "open_questions": 6,
+    "constraints": 1,
+    "people": 1,
+    "instructions": 3,
+    "assistant_notes": 1
+   },
+   "items_total": 19,
+   "raw": "{\"decisions\":[{\"text\":\"Yanıtlar en fazla üç cümle olmalı.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true,\"current\":true},{\"text\":\"Tarihler gün.ay.yıl biçiminde yazılmalı.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true,\"current\":true},{\"text\":\"Emoji kullanılabilir.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true,\"current\":true}],\"instructions\":[{\"text\":\"Yanıtları en fazla üç cümle ile sınırla.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true},{\"text\":\"Tarihleri gün.ay.yıl formatında yaz.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true},{\"text\":\"Emoji kullanabilirsin.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true}],\"constraints\":[{\"text\":\"Fıstık alerjisi var; tariflerde dikkat edilmeli.\",\"source\":\"user\",\"refs\":[13],\"quote\":\"Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir.\",\"certain\":true}],\"people\":[{\"name\":\"Fatma\",\"relation\":\"Kullanıcının annesi\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"goals\":[{\"text\":\"Kira sözleşmesi için avukat bul.\",\"source\":\"user\",\"refs\":[15],\"quote\":\"Kira sözleşmesi için avukat bulmamı bana hatırlat.\",\"certain\":true}],\"topics\":[{\"text\":\"Ev tadilatı bütçesi en fazla 40 bin TL.\",\"source\":\"user\",\"refs\":[9],\"quote\":\"Ev tadilatı için bütçemiz en fazla 40 bin TL.\",\"certain\":true},{\"text\":\"Diş randevusu: 05.04.2024 saat 14:00.\",\"source\":\"user\",\"refs\":[11],\"quote\":\"Diş randevum 5 Nisan saat 14:00'te.\",\"certain\":true},{\"text\":\"Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil).\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"open_questions\":[{\"text\":\"Evde sebze yetiştirmeye nasıl başlanır?\",\"source\":\"user\",\"refs\":[19],\"quote\":\"Evde sebze yetiştirmeye nasıl başlarım?\",\"certain\":false},{\"text\":\"Domates fideleri için en iyi toprak nedir?\",\"source\":\"user\",\"refs\":[21],\"quote\":\"Domates fideleri için en iyi toprak nedir?\",\"certain\":false},{\"text\":\"Balkonda hangi otlar kolay yetişir?\",\"source\":\"user\",\"refs\":[23],\"quote\":\"Balkonda hangi otlar kolay yetişir?\",\"certain\":false},{\"text\":\"Kompost yapmak için neler gerekir?\",\"source\":\"user\",\"refs\":[25],\"quote\":\"Kompost yapmak için neler gerekir?\",\"certain\":false},{\"text\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"source\":\"user\",\"refs\":[27],\"quote\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"certain\":false},{\"text\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"source\":\"user\",\"refs\":[29],\"quote\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"certain\":false}],\"assistant_notes\":[{\"text\":\"Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, dayanıklı türlerle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde koruma ve budama yapılmalı.\",\"source\":\"assistant\",\"refs\":[20,22,24,26,28,30,32,34,36,38,40,42,44,46],\"quote\":\"Toprağın havalanması ve su tutması dengede olmalı\",\"certain\":true}]}",
+   "memory_before": {
+    "runner": {
+     "footprint": 2399,
+     "resident": 9059,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 0,
+    "cache_mib": 0
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3497,
+     "resident": 9868,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1033
+   }
+  },
+  {
+   "at": "17:52:57",
+   "seed": 7,
+   "request": "9b4c495d3f2091fa",
+   "max_tokens": 1200,
+   "s": 57.1,
+   "ended": "complete",
+   "prompt_tokens": 5420,
+   "output_tokens": 1051,
+   "done_reason": "stop",
+   "at_limit": false,
+   "parse": "complete",
+   "items": {
+    "goals": 1,
+    "topics": 3,
+    "decisions": 3,
+    "open_questions": 6,
+    "constraints": 1,
+    "people": 1,
+    "instructions": 3,
+    "assistant_notes": 1
+   },
+   "items_total": 19,
+   "raw": "{\"decisions\":[{\"text\":\"Yanıtlar en fazla üç cümle olmalı.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true,\"current\":true},{\"text\":\"Tarihler gün.ay.yıl biçiminde yazılmalı.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true,\"current\":true},{\"text\":\"Emoji kullanılabilir.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true,\"current\":true}],\"instructions\":[{\"text\":\"Yanıtları en fazla üç cümle ile sınırla.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true},{\"text\":\"Tarihleri gün.ay.yıl formatında yaz.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true},{\"text\":\"Emoji kullanabilirsin.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true}],\"constraints\":[{\"text\":\"Fıstık alerjisi var; tariflerde dikkat edilmeli.\",\"source\":\"user\",\"refs\":[13],\"quote\":\"Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir.\",\"certain\":true}],\"people\":[{\"name\":\"Fatma\",\"relation\":\"Kullanıcının annesi\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"goals\":[{\"text\":\"Kira sözleşmesi için avukat bul.\",\"source\":\"user\",\"refs\":[15],\"quote\":\"Kira sözleşmesi için avukat bulmamı bana hatırlat.\",\"certain\":true}],\"topics\":[{\"text\":\"Ev tadilatı bütçesi en fazla 40 bin TL.\",\"source\":\"user\",\"refs\":[9],\"quote\":\"Ev tadilatı için bütçemiz en fazla 40 bin TL.\",\"certain\":true},{\"text\":\"Diş randevusu: 05.04.2024 saat 14:00.\",\"source\":\"user\",\"refs\":[11],\"quote\":\"Diş randevum 5 Nisan saat 14:00'te.\",\"certain\":true},{\"text\":\"Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil).\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"open_questions\":[{\"text\":\"Evde sebze yetiştirmeye nasıl başlanır?\",\"source\":\"user\",\"refs\":[19],\"quote\":\"Evde sebze yetiştirmeye nasıl başlarım?\",\"certain\":false},{\"text\":\"Domates fideleri için en iyi toprak nedir?\",\"source\":\"user\",\"refs\":[21],\"quote\":\"Domates fideleri için en iyi toprak nedir?\",\"certain\":false},{\"text\":\"Balkonda hangi otlar kolay yetişir?\",\"source\":\"user\",\"refs\":[23],\"quote\":\"Balkonda hangi otlar kolay yetişir?\",\"certain\":false},{\"text\":\"Kompost yapmak için neler gerekir?\",\"source\":\"user\",\"refs\":[25],\"quote\":\"Kompost yapmak için neler gerekir?\",\"certain\":false},{\"text\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"source\":\"user\",\"refs\":[27],\"quote\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"certain\":false},{\"text\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"source\":\"user\",\"refs\":[29],\"quote\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"certain\":false}],\"assistant_notes\":[{\"text\":\"Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, dayanıklı türlerle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde koruma ve budama yapılmalı.\",\"source\":\"assistant\",\"refs\":[20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62],\"quote\":\"Toprağın havalanması ve su tutması dengede olmalı\",\"certain\":true}]}",
+   "memory_before": {
+    "runner": {
+     "footprint": 3497,
+     "resident": 9868,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1033
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3231,
+     "resident": 9769,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1060
+   }
+  },
+  {
+   "at": "17:54:00",
+   "seed": 11,
+   "request": "9e2ad20a366f5b56",
+   "max_tokens": 1200,
+   "s": 48.4,
+   "ended": "complete",
+   "prompt_tokens": 3697,
+   "output_tokens": 992,
+   "done_reason": "stop",
+   "at_limit": false,
+   "parse": "complete",
+   "items": {
+    "goals": 1,
+    "topics": 3,
+    "decisions": 3,
+    "open_questions": 6,
+    "constraints": 1,
+    "people": 1,
+    "instructions": 3,
+    "assistant_notes": 1
+   },
+   "items_total": 19,
+   "raw": "{\"decisions\":[{\"text\":\"Yanıtlar en fazla üç cümle olmalı.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true,\"current\":true},{\"text\":\"Tarihler gün.ay.yıl biçiminde yazılmalı.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true,\"current\":true},{\"text\":\"Emoji kullanılabilir.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true,\"current\":true}],\"instructions\":[{\"text\":\"Yanıtları en fazla üç cümle ile sınırla.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true},{\"text\":\"Tarihleri gün.ay.yıl formatında yaz.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true},{\"text\":\"Emoji kullanabilirsin.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true}],\"constraints\":[{\"text\":\"Fıstık alerjisi var; tariflerde dikkat edilmeli.\",\"source\":\"user\",\"refs\":[13],\"quote\":\"Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir.\",\"certain\":true}],\"people\":[{\"name\":\"Fatma\",\"relation\":\"Kullanıcının annesi\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"goals\":[{\"text\":\"Kira sözleşmesi için avukat bul.\",\"source\":\"user\",\"refs\":[15],\"quote\":\"Kira sözleşmesi için avukat bulmamı bana hatırlat.\",\"certain\":true}],\"topics\":[{\"text\":\"Ev tadilatı bütçesi en fazla 40 bin TL.\",\"source\":\"user\",\"refs\":[9],\"quote\":\"Ev tadilatı için bütçemiz en fazla 40 bin TL.\",\"certain\":true},{\"text\":\"Diş randevusu: 05.04.2024 saat 14:00.\",\"source\":\"user\",\"refs\":[11],\"quote\":\"Diş randevum 5 Nisan saat 14:00'te.\",\"certain\":true},{\"text\":\"Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil).\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"open_questions\":[{\"text\":\"Evde sebze yetiştirmeye nasıl başlanır?\",\"source\":\"user\",\"refs\":[19],\"quote\":\"Evde sebze yetiştirmeye nasıl başlarım?\",\"certain\":false},{\"text\":\"Domates fideleri için en iyi toprak nedir?\",\"source\":\"user\",\"refs\":[21],\"quote\":\"Domates fideleri için en iyi toprak nedir?\",\"certain\":false},{\"text\":\"Balkonda hangi otlar kolay yetişir?\",\"source\":\"user\",\"refs\":[23],\"quote\":\"Balkonda hangi otlar kolay yetişir?\",\"certain\":false},{\"text\":\"Kompost yapmak için neler gerekir?\",\"source\":\"user\",\"refs\":[25],\"quote\":\"Kompost yapmak için neler gerekir?\",\"certain\":false},{\"text\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"source\":\"user\",\"refs\":[27],\"quote\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"certain\":false},{\"text\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"source\":\"user\",\"refs\":[29],\"quote\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"certain\":false}],\"assistant_notes\":[{\"text\":\"Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, az ve dayanıklı türle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde rüzgardan korunmalı ve budama yapılmalı.\",\"source\":\"assistant\",\"refs\":[20,22,24,26,28,30],\"quote\":\"Toprağın havalanması ve su tutması dengede olmalı\",\"certain\":true}]}",
+   "memory_before": {
+    "runner": {
+     "footprint": 4293,
+     "resident": 10311,
+     "wired": 0
+    },
+    "checkpoints": 5,
+    "checkpoints_mib": 1600,
+    "cache_prompts": 1,
+    "cache_mib": 1061
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 4309,
+     "resident": 9319,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1969
+   }
+  },
+  {
+   "at": "17:54:57",
+   "seed": 11,
+   "request": "17c3e67040f726c2",
+   "max_tokens": 1200,
+   "s": 56.2,
+   "ended": "complete",
+   "prompt_tokens": 5394,
+   "output_tokens": 1033,
+   "done_reason": "stop",
+   "at_limit": false,
+   "parse": "complete",
+   "items": {
+    "goals": 1,
+    "topics": 3,
+    "decisions": 3,
+    "open_questions": 6,
+    "constraints": 1,
+    "people": 1,
+    "instructions": 3,
+    "assistant_notes": 1
+   },
+   "items_total": 19,
+   "raw": "{\"decisions\":[{\"text\":\"Yanıtlar en fazla üç cümle olmalı.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true,\"current\":true},{\"text\":\"Tarihler gün.ay.yıl biçiminde yazılmalı.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true,\"current\":true},{\"text\":\"Emoji kullanılabilir.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true,\"current\":true}],\"instructions\":[{\"text\":\"Yanıtları en fazla üç cümle ile sınırla.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true},{\"text\":\"Tarihleri gün.ay.yıl formatında yaz.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true},{\"text\":\"Emoji kullanabilirsin.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true}],\"constraints\":[{\"text\":\"Fıstık alerjisi var; tariflerde dikkat edilmeli.\",\"source\":\"user\",\"refs\":[13],\"quote\":\"Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir.\",\"certain\":true}],\"people\":[{\"name\":\"Fatma\",\"relation\":\"Kullanıcının annesi\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"goals\":[{\"text\":\"Kira sözleşmesi için avukat bul.\",\"source\":\"user\",\"refs\":[15],\"quote\":\"Kira sözleşmesi için avukat bulmamı bana hatırlat.\",\"certain\":true}],\"topics\":[{\"text\":\"Ev tadilatı bütçesi en fazla 40 bin TL.\",\"source\":\"user\",\"refs\":[9],\"quote\":\"Ev tadilatı için bütçemiz en fazla 40 bin TL.\",\"certain\":true},{\"text\":\"Diş randevusu: 05.04.2024 saat 14:00.\",\"source\":\"user\",\"refs\":[11],\"quote\":\"Diş randevum 5 Nisan saat 14:00'te.\",\"certain\":true},{\"text\":\"Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil).\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"open_questions\":[{\"text\":\"Evde sebze yetiştirmeye nasıl başlanır?\",\"source\":\"user\",\"refs\":[19],\"quote\":\"Evde sebze yetiştirmeye nasıl başlarım?\",\"certain\":false},{\"text\":\"Domates fideleri için en iyi toprak nedir?\",\"source\":\"user\",\"refs\":[21],\"quote\":\"Domates fideleri için en iyi toprak nedir?\",\"certain\":false},{\"text\":\"Balkonda hangi otlar kolay yetişir?\",\"source\":\"user\",\"refs\":[23],\"quote\":\"Balkonda hangi otlar kolay yetişir?\",\"certain\":false},{\"text\":\"Kompost yapmak için neler gerekir?\",\"source\":\"user\",\"refs\":[25],\"quote\":\"Kompost yapmak için neler gerekir?\",\"certain\":false},{\"text\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"source\":\"user\",\"refs\":[27],\"quote\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"certain\":false},{\"text\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"source\":\"user\",\"refs\":[29],\"quote\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"certain\":false}],\"assistant_notes\":[{\"text\":\"Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, az ve dayanıklı türle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde rüzgardan korunmalı ve budama yapılmalı.\",\"source\":\"assistant\",\"refs\":[20,22,24,26,28,30,32,34,36,38,40,42,44,46],\"quote\":\"Toprağın havalanması ve su tutması dengede olmalı\",\"certain\":true}]}",
+   "memory_before": {
+    "runner": {
+     "footprint": 4309,
+     "resident": 9319,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1969
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3575,
+     "resident": 9421,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1033
+   }
+  },
+  {
+   "at": "17:55:54",
+   "seed": 11,
+   "request": "023bbf354de340bb",
+   "max_tokens": 1200,
+   "s": 57.2,
+   "ended": "complete",
+   "prompt_tokens": 5426,
+   "output_tokens": 1057,
+   "done_reason": "stop",
+   "at_limit": false,
+   "parse": "complete",
+   "items": {
+    "goals": 1,
+    "topics": 3,
+    "decisions": 3,
+    "open_questions": 6,
+    "constraints": 1,
+    "people": 1,
+    "instructions": 3,
+    "assistant_notes": 1
+   },
+   "items_total": 19,
+   "raw": "{\"decisions\":[{\"text\":\"Yanıtlar en fazla üç cümle olmalı.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true,\"current\":true},{\"text\":\"Tarihler gün.ay.yıl biçiminde yazılmalı.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true,\"current\":true},{\"text\":\"Emoji kullanılabilir.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true,\"current\":true}],\"instructions\":[{\"text\":\"Yanıtları en fazla üç cümle ile sınırla.\",\"source\":\"user\",\"refs\":[1],\"quote\":\"Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz.\",\"certain\":true},{\"text\":\"Tarihleri gün.ay.yıl formatında yaz.\",\"source\":\"user\",\"refs\":[3],\"quote\":\"Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen.\",\"certain\":true},{\"text\":\"Emoji kullanabilirsin.\",\"source\":\"user\",\"refs\":[17],\"quote\":\"Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin.\",\"certain\":true}],\"constraints\":[{\"text\":\"Fıstık alerjisi var; tariflerde dikkat edilmeli.\",\"source\":\"user\",\"refs\":[13],\"quote\":\"Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir.\",\"certain\":true}],\"people\":[{\"name\":\"Fatma\",\"relation\":\"Kullanıcının annesi\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"goals\":[{\"text\":\"Kira sözleşmesi için avukat bul.\",\"source\":\"user\",\"refs\":[15],\"quote\":\"Kira sözleşmesi için avukat bulmamı bana hatırlat.\",\"certain\":true}],\"topics\":[{\"text\":\"Ev tadilatı bütçesi en fazla 40 bin TL.\",\"source\":\"user\",\"refs\":[9],\"quote\":\"Ev tadilatı için bütçemiz en fazla 40 bin TL.\",\"certain\":true},{\"text\":\"Diş randevusu: 05.04.2024 saat 14:00.\",\"source\":\"user\",\"refs\":[11],\"quote\":\"Diş randevum 5 Nisan saat 14:00'te.\",\"certain\":true},{\"text\":\"Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil).\",\"source\":\"user\",\"refs\":[7],\"quote\":\"Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek\",\"certain\":false}],\"open_questions\":[{\"text\":\"Evde sebze yetiştirmeye nasıl başlanır?\",\"source\":\"user\",\"refs\":[19],\"quote\":\"Evde sebze yetiştirmeye nasıl başlarım?\",\"certain\":false},{\"text\":\"Domates fideleri için en iyi toprak nedir?\",\"source\":\"user\",\"refs\":[21],\"quote\":\"Domates fideleri için en iyi toprak nedir?\",\"certain\":false},{\"text\":\"Balkonda hangi otlar kolay yetişir?\",\"source\":\"user\",\"refs\":[23],\"quote\":\"Balkonda hangi otlar kolay yetişir?\",\"certain\":false},{\"text\":\"Kompost yapmak için neler gerekir?\",\"source\":\"user\",\"refs\":[25],\"quote\":\"Kompost yapmak için neler gerekir?\",\"certain\":false},{\"text\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"source\":\"user\",\"refs\":[27],\"quote\":\"Bitkileri ne sıklıkla sulamalıyım?\",\"certain\":false},{\"text\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"source\":\"user\",\"refs\":[29],\"quote\":\"Yaprak bitleriyle doğal yollarla nasıl başa çıkarım?\",\"certain\":false}],\"assistant_notes\":[{\"text\":\"Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, az ve dayanıklı türle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde rüzgardan korunmalı ve budama yapılmalı.\",\"source\":\"assistant\",\"refs\":[20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62],\"quote\":\"Toprağın havalanması ve su tutması dengede olmalı\",\"certain\":true}]}",
+   "memory_before": {
+    "runner": {
+     "footprint": 3575,
+     "resident": 9421,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1033
+   },
+   "memory_after": {
+    "runner": {
+     "footprint": 3575,
+     "resident": 8783,
+     "wired": 0
+    },
+    "checkpoints": 2,
+    "checkpoints_mib": 640,
+    "cache_prompts": 1,
+    "cache_mib": 1061
+   }
+  }
+ ],
+ "set": "instructions",
+ "minutes": 5.9,
+ "versions": 3,
+ "per_version": {
+  "1": {
+   "expected": 20,
+   "missing": 4,
+   "silent_losses": 0
+  },
+  "2": {
+   "expected": 20,
+   "missing": 4,
+   "silent_losses": 0
+  },
+  "3": {
+   "expected": 20,
+   "missing": 4,
+   "silent_losses": 0
+  }
+ },
+ "final_facts": 20,
+ "final_missing": 4,
+ "failed_conversations": [],
+ "answers_passed": 7,
+ "answers_total": 8,
+ "rows": [
+  {
+   "dialogue": "I1",
+   "seed": 7,
+   "failed": null,
+   "cycles": [
+    {
+     "cycle": 1,
+     "s": 49.2,
+     "version": 1,
+     "to_seq": 30,
+     "expected": 10,
+     "missing": [
+      "12 Mart",
+      "5 Nisan"
+     ],
+     "lost_since_earlier": [],
+     "silent_loss": false,
+     "kept": 19,
+     "dropped": 0,
+     "uncertain": {},
+     "old_values_present": [],
+     "rendered": "Konuşma özeti (#1–#30 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kira sözleşmesi için avukat bul. [#15]\nDevam eden konular:\n- Ev tadilatı bütçesi en fazla 40 bin TL. [#9]\n- Diş randevusu: 05.04.2024 saat 14:00. [#11]\n- Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil). (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Yanıtlar en fazla üç cümle olmalı. [#1]\n- Tarihler gün.ay.yıl biçiminde yazılmalı. [#3]\n- Emoji kullanılabilir. [#17]\nÇözülmemiş sorular:\n- Evde sebze yetiştirmeye nasıl başlanır? (belirsiz) [#19]\n- Domates fideleri için en iyi toprak nedir? (belirsiz) [#21]\n- Balkonda hangi otlar kolay yetişir? (belirsiz) [#23]\n- Kompost yapmak için neler gerekir? (belirsiz) [#25]\n- Bitkileri ne sıklıkla sulamalıyım? (belirsiz) [#27]\n- Yaprak bitleriyle doğal yollarla nasıl başa çıkarım? (belirsiz) [#29]\nÖnemli kısıtlamalar:\n- Fıstık alerjisi var; tariflerde dikkat edilmeli. [#13]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Fatma: Kullanıcının annesi (belirsiz) [#7]\nKullanıcının talimatları:\n- Yanıtları en fazla üç cümle ile sınırla. [#1]\n- Tarihleri gün.ay.yıl formatında yaz. [#3]\n- Emoji kullanabilirsin. [#17]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, dayanıklı türlerle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde koruma ve budama yapılmalı. [#20, #22, #24, #26, #28, #30]"
+    },
+    {
+     "cycle": 2,
+     "s": 56.0,
+     "version": 2,
+     "to_seq": 46,
+     "expected": 10,
+     "missing": [
+      "12 Mart",
+      "5 Nisan"
+     ],
+     "lost_since_earlier": [],
+     "silent_loss": false,
+     "kept": 19,
+     "dropped": 0,
+     "uncertain": {},
+     "old_values_present": [],
+     "rendered": "Konuşma özeti (#1–#46 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kira sözleşmesi için avukat bul. [#15]\nDevam eden konular:\n- Ev tadilatı bütçesi en fazla 40 bin TL. [#9]\n- Diş randevusu: 05.04.2024 saat 14:00. [#11]\n- Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil). (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Yanıtlar en fazla üç cümle olmalı. [#1]\n- Tarihler gün.ay.yıl biçiminde yazılmalı. [#3]\n- Emoji kullanılabilir. [#17]\nÇözülmemiş sorular:\n- Evde sebze yetiştirmeye nasıl başlanır? (belirsiz) [#19]\n- Domates fideleri için en iyi toprak nedir? (belirsiz) [#21]\n- Balkonda hangi otlar kolay yetişir? (belirsiz) [#23]\n- Kompost yapmak için neler gerekir? (belirsiz) [#25]\n- Bitkileri ne sıklıkla sulamalıyım? (belirsiz) [#27]\n- Yaprak bitleriyle doğal yollarla nasıl başa çıkarım? (belirsiz) [#29]\nÖnemli kısıtlamalar:\n- Fıstık alerjisi var; tariflerde dikkat edilmeli. [#13]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Fatma: Kullanıcının annesi (belirsiz) [#7]\nKullanıcının talimatları:\n- Yanıtları en fazla üç cümle ile sınırla. [#1]\n- Tarihleri gün.ay.yıl formatında yaz. [#3]\n- Emoji kullanabilirsin. [#17]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, dayanıklı türlerle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde koruma ve budama yapılmalı. [#20, #22, #24, #26, #28, #30, #32, #34, #36, #38, #40, #42, #44, #46]"
+    },
+    {
+     "cycle": 3,
+     "s": 57.1,
+     "version": 3,
+     "to_seq": 62,
+     "expected": 10,
+     "missing": [
+      "12 Mart",
+      "5 Nisan"
+     ],
+     "lost_since_earlier": [],
+     "silent_loss": false,
+     "kept": 19,
+     "dropped": 0,
+     "uncertain": {},
+     "old_values_present": [],
+     "rendered": "Konuşma özeti (#1–#62 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kira sözleşmesi için avukat bul. [#15]\nDevam eden konular:\n- Ev tadilatı bütçesi en fazla 40 bin TL. [#9]\n- Diş randevusu: 05.04.2024 saat 14:00. [#11]\n- Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil). (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Yanıtlar en fazla üç cümle olmalı. [#1]\n- Tarihler gün.ay.yıl biçiminde yazılmalı. [#3]\n- Emoji kullanılabilir. [#17]\nÇözülmemiş sorular:\n- Evde sebze yetiştirmeye nasıl başlanır? (belirsiz) [#19]\n- Domates fideleri için en iyi toprak nedir? (belirsiz) [#21]\n- Balkonda hangi otlar kolay yetişir? (belirsiz) [#23]\n- Kompost yapmak için neler gerekir? (belirsiz) [#25]\n- Bitkileri ne sıklıkla sulamalıyım? (belirsiz) [#27]\n- Yaprak bitleriyle doğal yollarla nasıl başa çıkarım? (belirsiz) [#29]\nÖnemli kısıtlamalar:\n- Fıstık alerjisi var; tariflerde dikkat edilmeli. [#13]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Fatma: Kullanıcının annesi (belirsiz) [#7]\nKullanıcının talimatları:\n- Yanıtları en fazla üç cümle ile sınırla. [#1]\n- Tarihleri gün.ay.yıl formatında yaz. [#3]\n- Emoji kullanabilirsin. [#17]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, dayanıklı türlerle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde koruma ve budama yapılmalı. [#20, #22, #24, #26, #28, #30, #32, #34, #36, #38, #40, #42, #44, #46, #48, #50, #52, #54, #56, #58, #60, #62]"
+    }
+   ],
+   "answers": [
+    {
+     "q": "Diş randevum ne zamandı? Kısaca yaz.",
+     "answer": "Diş randevunuz 05.04.2024 tarihinde saat 14:00'dedir efendim.",
+     "first_s": 10.5,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Tadilat bütçemiz ne kadardı? Kısaca yaz.",
+     "answer": "Ev tadilatı bütçeniz en fazla 40 bin TL'dir efendim.",
+     "first_s": 0.7,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Annem nereye gidiyordu? Kısaca yaz.",
+     "answer": "Fatma'nın 12.03.2024 tarihinde Bursa'ya gidebileceği bilgisi bulunmaktadır efendim.",
+     "first_s": 0.7,
+     "pass": false,
+     "any_ok": false,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Sana yanıtları nasıl yazmanı istemiştim? Kısaca yaz.",
+     "answer": "Yanıtları en fazla üç cümle ile sınırlandırmamı ve tarihleri gün.ay.yıl formatında yazmamı istemiştiniz efendim.",
+     "first_s": 0.6,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ]
+  },
+  {
+   "dialogue": "I1",
+   "seed": 11,
+   "failed": null,
+   "cycles": [
+    {
+     "cycle": 1,
+     "s": 48.4,
+     "version": 1,
+     "to_seq": 30,
+     "expected": 10,
+     "missing": [
+      "12 Mart",
+      "5 Nisan"
+     ],
+     "lost_since_earlier": [],
+     "silent_loss": false,
+     "kept": 19,
+     "dropped": 0,
+     "uncertain": {},
+     "old_values_present": [],
+     "rendered": "Konuşma özeti (#1–#30 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kira sözleşmesi için avukat bul. [#15]\nDevam eden konular:\n- Ev tadilatı bütçesi en fazla 40 bin TL. [#9]\n- Diş randevusu: 05.04.2024 saat 14:00. [#11]\n- Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil). (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Yanıtlar en fazla üç cümle olmalı. [#1]\n- Tarihler gün.ay.yıl biçiminde yazılmalı. [#3]\n- Emoji kullanılabilir. [#17]\nÇözülmemiş sorular:\n- Evde sebze yetiştirmeye nasıl başlanır? (belirsiz) [#19]\n- Domates fideleri için en iyi toprak nedir? (belirsiz) [#21]\n- Balkonda hangi otlar kolay yetişir? (belirsiz) [#23]\n- Kompost yapmak için neler gerekir? (belirsiz) [#25]\n- Bitkileri ne sıklıkla sulamalıyım? (belirsiz) [#27]\n- Yaprak bitleriyle doğal yollarla nasıl başa çıkarım? (belirsiz) [#29]\nÖnemli kısıtlamalar:\n- Fıstık alerjisi var; tariflerde dikkat edilmeli. [#13]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Fatma: Kullanıcının annesi (belirsiz) [#7]\nKullanıcının talimatları:\n- Yanıtları en fazla üç cümle ile sınırla. [#1]\n- Tarihleri gün.ay.yıl formatında yaz. [#3]\n- Emoji kullanabilirsin. [#17]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, az ve dayanıklı türle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde rüzgardan korunmalı ve budama yapılmalı. [#20, #22, #24, #26, #28, #30]"
+    },
+    {
+     "cycle": 2,
+     "s": 56.2,
+     "version": 2,
+     "to_seq": 46,
+     "expected": 10,
+     "missing": [
+      "12 Mart",
+      "5 Nisan"
+     ],
+     "lost_since_earlier": [],
+     "silent_loss": false,
+     "kept": 19,
+     "dropped": 0,
+     "uncertain": {},
+     "old_values_present": [],
+     "rendered": "Konuşma özeti (#1–#46 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kira sözleşmesi için avukat bul. [#15]\nDevam eden konular:\n- Ev tadilatı bütçesi en fazla 40 bin TL. [#9]\n- Diş randevusu: 05.04.2024 saat 14:00. [#11]\n- Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil). (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Yanıtlar en fazla üç cümle olmalı. [#1]\n- Tarihler gün.ay.yıl biçiminde yazılmalı. [#3]\n- Emoji kullanılabilir. [#17]\nÇözülmemiş sorular:\n- Evde sebze yetiştirmeye nasıl başlanır? (belirsiz) [#19]\n- Domates fideleri için en iyi toprak nedir? (belirsiz) [#21]\n- Balkonda hangi otlar kolay yetişir? (belirsiz) [#23]\n- Kompost yapmak için neler gerekir? (belirsiz) [#25]\n- Bitkileri ne sıklıkla sulamalıyım? (belirsiz) [#27]\n- Yaprak bitleriyle doğal yollarla nasıl başa çıkarım? (belirsiz) [#29]\nÖnemli kısıtlamalar:\n- Fıstık alerjisi var; tariflerde dikkat edilmeli. [#13]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Fatma: Kullanıcının annesi (belirsiz) [#7]\nKullanıcının talimatları:\n- Yanıtları en fazla üç cümle ile sınırla. [#1]\n- Tarihleri gün.ay.yıl formatında yaz. [#3]\n- Emoji kullanabilirsin. [#17]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, az ve dayanıklı türle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde rüzgardan korunmalı ve budama yapılmalı. [#20, #22, #24, #26, #28, #30, #32, #34, #36, #38, #40, #42, #44, #46]"
+    },
+    {
+     "cycle": 3,
+     "s": 57.2,
+     "version": 3,
+     "to_seq": 62,
+     "expected": 10,
+     "missing": [
+      "12 Mart",
+      "5 Nisan"
+     ],
+     "lost_since_earlier": [],
+     "silent_loss": false,
+     "kept": 19,
+     "dropped": 0,
+     "uncertain": {},
+     "old_values_present": [],
+     "rendered": "Konuşma özeti (#1–#62 arası mesajlardan otomatik çıkarıldı; hatalı olabilir, orijinal mesajlar kayıtlı):\nKullanıcının belirttiği hedefler:\n- Kira sözleşmesi için avukat bul. [#15]\nDevam eden konular:\n- Ev tadilatı bütçesi en fazla 40 bin TL. [#9]\n- Diş randevusu: 05.04.2024 saat 14:00. [#11]\n- Fatma 12.03.2024 tarihinde Bursa'ya gidebilir (kesin değil). (belirsiz) [#7]\nKullanıcının kararları (güncel):\n- Yanıtlar en fazla üç cümle olmalı. [#1]\n- Tarihler gün.ay.yıl biçiminde yazılmalı. [#3]\n- Emoji kullanılabilir. [#17]\nÇözülmemiş sorular:\n- Evde sebze yetiştirmeye nasıl başlanır? (belirsiz) [#19]\n- Domates fideleri için en iyi toprak nedir? (belirsiz) [#21]\n- Balkonda hangi otlar kolay yetişir? (belirsiz) [#23]\n- Kompost yapmak için neler gerekir? (belirsiz) [#25]\n- Bitkileri ne sıklıkla sulamalıyım? (belirsiz) [#27]\n- Yaprak bitleriyle doğal yollarla nasıl başa çıkarım? (belirsiz) [#29]\nÖnemli kısıtlamalar:\n- Fıstık alerjisi var; tariflerde dikkat edilmeli. [#13]\nAdı geçen kişiler (kullanıcının anlattığı şekliyle):\n- Fatma: Kullanıcının annesi (belirsiz) [#7]\nKullanıcının talimatları:\n- Yanıtları en fazla üç cümle ile sınırla. [#1]\n- Tarihleri gün.ay.yıl formatında yaz. [#3]\n- Emoji kullanabilirsin. [#17]\nLAZIS'in önerileri ve çıkarımları (kullanıcı kabul etmedikçe kullanıcının görüşü ya da kararı değildir):\n- Bitki bakımı için genel öneriler: Toprak havalanmalı, drenajlı saksı kullanılmalı, güneş alan yere konmalı, toprak kuruduğunda sulanmalı, az ve dayanıklı türle başlanmalı, düzenli gözlem yapılmalı, gübre ölçülü kullanılmalı, mevsim geçişlerinde rüzgardan korunmalı ve budama yapılmalı. [#20, #22, #24, #26, #28, #30, #32, #34, #36, #38, #40, #42, #44, #46, #48, #50, #52, #54, #56, #58, #60, #62]"
+    }
+   ],
+   "answers": [
+    {
+     "q": "Diş randevum ne zamandı? Kısaca yaz.",
+     "answer": "Diş randevunuz 05.04.2024 tarihinde saat 14:00 için planlanmış.",
+     "first_s": 10.6,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Tadilat bütçemiz ne kadardı? Kısaca yaz.",
+     "answer": "Ev tadilatı bütçeniz en fazla 40 bin TL olarak belirlenmişti.",
+     "first_s": 0.7,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Annem nereye gidiyordu? Kısaca yaz.",
+     "answer": "Annenizin Bursa'ya gidebileceği (kesin değil) bilgisi mevcut.",
+     "first_s": 0.8,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    },
+    {
+     "q": "Sana yanıtları nasıl yazmanı istemiştim? Kısaca yaz.",
+     "answer": "Yanıtlarınızı en fazla üç cümleyle sınırlamamı, tarihleri gün.ay.yıl formatında yazmamı ve emoji kullanmamı istemiştiniz.",
+     "first_s": 0.7,
+     "pass": true,
+     "any_ok": true,
+     "all_ok": true,
+     "forbidden": []
+    }
+   ]
+  }
+ ],
+ "memory_system": {
+  "samples": 71,
+  "runner_rss_peak_mb": 10519,
+  "used_peak_mb": 20327,
+  "compressed_peak_mb": 6376,
+  "pressure_level_max": 2,
+  "pressure_not_normal_samples": 11,
+  "swap_used_start_mb": 1767,
+  "swap_used_peak_mb": 1767,
+  "swapouts_during": 0
+ }
+}

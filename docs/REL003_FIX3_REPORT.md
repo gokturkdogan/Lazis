@@ -105,3 +105,71 @@ Düzeltme 3 kabul edilmeden başlanmamalı; taban çizgisi yeniden ölçülmüş
 - **Kalıcı kayıtlar değişmez:** Mesajlar ve eski özet sürümleri aynı kalır; migration yok.
 - **Önce modelsiz:** Saklı 50 ham çıktıda geri gelen, yinelenen, büyüyen ölçülür. Kötüyse model koşusuna geçilmez.
 - **Ayrı onay ve geri alma:** Tek commit, `git revert`; C ve REL-001, REL-002 ile karıştırılmaz.
+
+## 8. İkinci deneme: talimat tanımı eklendi (2026-11-04, `df4da97`, `s3-v5`)
+
+**Değişen:** Özet talimatına sahibinin verdiği metinle 11. kural. Bölüm sırası, kanıt denetimi, ayrıştırıcı, veritabanı, öğrenme ve 1.200 sınırı aynı. `make check` geçti (3 305 test).
+
+**Sonuç: Talimat hatası düzeldi, ama önemli bir bilgi kayboldu. Düzeltme 3 bu hâliyle kabul edilemez.**
+
+Aynı kısa deneme (12 özet, geçici süreç, sınır 8). Ham veri: `evals/reports/phase10/perf/fix3b-short/`.
+
+| | Eski sıra | Yalnız yeni sıra | Yeni sıra + kural |
+|---|---|---|---|
+| Kesilen çıktı | 4 / 12 | 0 / 12 | **0 / 12** |
+| Çıktı tokeni | 673–1 200 | 581–829 | 512–947 |
+| Ortalama sıkıştırma | 51 s | 42 s | 43 s |
+| "Talimatlar" bölümünde madde | 0 | 2–4 | **0** |
+| Kelime denetiminde eksik (81) | 2 | 0 | **4** |
+| İddia setinde kayıp (87) | 12 | 2 | **13** |
+| Sorular, elle | 12 / 13 | 13 / 13 | 12 / 13 |
+
+(İddia sayımı yalnızca kurala göre; bu denemedeki sonuçları ayrıca elle okudum. Kayıpların 9'u düşük önemli kahvaltı planı.)
+
+**Düzelen:**
+
+- Kısa setin 12 özetinde "talimatlar" boş; gerçek talimat olmadığı için doğru.
+- `kız kardeş` ve `8 bin` korundu. Mehmet belirsizliği korundu.
+
+**Kötüleşen, D5 tohum 7:**
+
+- **`vejetaryen` ilk özetten itibaren yok.** Model bunu "Beslenme Tercihleri [#8]" gibi içeriksiz bir başlığa indirdi. Restoran yanıtı yine vejetaryenliği atladı. Sahibinin özellikle korunmasını istediği bilgi türü bu.
+- **`Mavi Koy` 3. sürümde kayboldu.**
+
+**Yeni sınıflandırma sorunları:**
+
+- **Bilgi kabı yer değiştirdi:** D1'de "Ayşe 3 Kasım'da Ankara'ya taşınıyor" ve belirsiz Mehmet seyahati "Önemli kısıtlamalar" altında. Talimat kadar yanıltıcı değil, ama doğru bölüm değil.
+- **Dolgu soruları hedefe dönüştü:** D1 tohum 7'de "Kompost yapmak" kullanıcı hedefi olarak yazıldı, "Ayşe'ye yardım" hedefi düştü. Kullanıcı yalnızca soru sormuştu.
+
+**Sentetik talimat denemesi (`fix3b-instructions`, 1 diyalog, 2 tohum, 3 sürüm, 5,9 dakika):**
+
+| Beklenen | Sonuç |
+|---|---|
+| Yanıtlar en fazla üç cümle | Talimatlarda, 6/6 |
+| Tarihler gün.ay.yıl | Talimatlarda, 6/6 |
+| Emoji: eskisi "kullanma", yenisi "kullanabilirsin" | Yalnız yenisi talimatlarda, 6/6; eskisi güncel görünmüyor |
+| Avukat bulmayı hatırlat | **Talimat olarak kayboldu:** "Hedefler: Kira sözleşmesi için avukat bul." Hatırlatma isteği gitti |
+| Bütçe, randevu | "Devam eden konular" altında, doğru |
+| Fıstık alerjisi | "Önemli kısıtlamalar" altında, doğru |
+| Fatma'nın belirsiz planı | Talimatlara girmedi, belirsiz kaldı |
+
+**Sentetikte görülen ayrı sorunlar:**
+
+- **Uydurma yıl:** "5 Nisan" ve "12 Mart", "05.04.2024" ve "12.03.2024" oldu; kullanıcı yıl söylemedi ve yıl yanlış. Yanıtlar da bunu tekrarladı. Tarih biçimi talimatı tetiklemiş olabilir. Kanıt denetimi metni alıntıyla karşılaştırmadığı için geçti. Bu, kuralın kapsamı dışında ama gerçek bir anlam hatası.
+- **Yineleme:** Talimatlar "Kararlar" altında da yazıldı.
+- **Yanlış işaret:** "Fatma: Kullanıcının annesi (belirsiz)". İlişki kesin, belirsiz olan plan.
+
+Çıktılar 986–1 057 token, kesilme yok. Sorular otomatik 3/4 ve 4/4; "gidebileceği bilgisi" belirsizliği koruduğu için elle 4/4 ve 4/4. Yanıtların talimata uyup uymadığı ayrıca ölçülmedi.
+
+### Bu deneme neyi kanıtlamıyor
+
+Küçük girdi değişikliği büyük sonuç doğuruyor: tek cümle D5 tohum 7'yi baştan değiştirdi. **Kuralın "tercihler" sözcüğü mü vejetaryenliği düşürdü, yoksa bu doğal değişkenlik mi, 12 özetten söylenemez.** Bu yüzden metni bu tek olaya göre yeniden ayarlamayı önermiyorum; aşırı uyum riski taşır. Daha geniş ölçüm gerekir.
+
+### Sonraki adım önerisi (başlatılmadı)
+
+1. **Sonradan gelen bilgi ve değişen karar senaryosu (yaklaşık 10 dakika):** Ayrı bir soruyu yanıtlıyor, bu sonuçtan bağımsız. Kabul değil, ölçüm.
+2. **Tam çoklu test (46 dakika) `s3-v5` ile:** 10 konuşma, 5 sürüm; 62→56/64 ile karşılaştırılır. Vejetaryen kaybının yaygın mı tek seferlik mi olduğunu ve `D5 tohum 11` sonucunu gösterir. Düzeltme 3'ün kabulü buna bağlı.
+3. **Sonuç kötüyse:** Kural metninde bir düzeltme (örneğin "beslenme ve sağlık bilgisi somut değeriyle yazılır") veya yeni sıranın geri alınması. Geri alma `git revert`.
+
+Uydurma yıl ve hatırlatma isteğinin kaybı REL-003 kaydına işlendi; bu düzeltmenin parçası değildir.
+
