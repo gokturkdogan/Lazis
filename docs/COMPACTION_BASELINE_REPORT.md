@@ -102,6 +102,7 @@ Bunlar taban çizgisi hatalarıdır, A/B/C'ye atfedilmez; ayrıntı [RELIABILITY
 
 - **REL-001:** belirsiz Mehmet bilgisi 9 koşunun 5'inde kesin yazıldı.
 - **REL-002:** bilgi 9 koşunun 2'sinde ikinci özet yazımında kayboldu.
+- **REL-003 (öncelikli teknik borç, 2026-11-04):** özet yeniden yazılırken bilgi sessizce kayboluyor; REL-002'nin özet tarafındaki mekanizma bu.
 - **Özet sürümleri boyunca (kelime denetimi, 19 bilgi):** 7 koşuda her sürümde 19/19; 2 koşuda son sürümde 17/19. Kayıpların ikisi de 6 s aralıkta. Elle okuma yerine geçmez.
 - **Sorular:** 90 sorunun 85'i geçti. Kalan 5: Mehmet 2 gerçek hata ve 1 olası denetleyici hatası, restoran sorusunda vejetaryenliğin atlanması 2.
 
@@ -137,6 +138,8 @@ Bunlar öneridir; ulaşılabilir olup olmadıkları henüz ölçülmedi. **Önce
 | Tur içinde sıkıştırma beklemesi | Hiç | Hiç | ≤45 s, seyrek |
 
 Her senaryoda değişmez koşullar: mesaj kaybı ve yanlış hafızada A/B/C kaynaklı yeni hata sıfır, kaydedilen, gösterilen ve seslendirilecek metin aynı, kişilik ve güvenlik testlerinde gerileme yok.
+
+**Sahibinin kararı (2026-11-04):** C'nin kabulünde çoklu sıkıştırma sonrası bilgi koruma da zorunlu kriterdir; mevcut kayıptan kötü sonuç kabul edilmez. Kalıcı konuşma ve özet kayıtları hiçbir koşulda hız uğruna silinmez. Ayrıntı: [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04), [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten).
 
 ## 10. Önerilen sonraki adım planı
 

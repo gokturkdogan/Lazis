@@ -107,6 +107,12 @@ Bütün aralıklarda ayrıca:
 - Mesaj kaybı ve sıralama bozulması: **0**.
 - Hedef tutmazsa kriteri gevşetmeden size raporlarım.
 
+**Sahibinin kararı (2026-11-04), C için zorunlu:**
+
+- **Bilgi koruma hız kadar zorunludur.** C, çoklu sıkıştırma sonrası bilgi korumada mevcut kayıptan kötü sonuç verirse kabul edilmez. Sınırlar ve ölçüm: [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04).
+- **Kayıtlar silinmez.** Kalıcı konuşma ve özet kayıtları hiçbir koşulda hız uğruna silinmez.
+- Bu sınır mevcut kaybı kabul edilebilir yapmaz: [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten) açık kalır.
+
 ## 6. Mesaj kaybı, sıralama ve bilgi kaybı testleri
 
 **Birim ve entegrasyon (sahte model):**

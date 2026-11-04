@@ -51,10 +51,7 @@ A cycle in which `compact_now` returns False fails the conversation visibly; it 
 2. **Each of A, B, C and the combination:** same data and seeds, compared per conversation with the baseline.
 3. **Separate columns:** losses already in the baseline stay in the general reliability reporting (REL-001, REL-002). New or more frequent losses count against the change being tested.
 
-**Pass criteria, proposed for the owner's decision once the baseline exists:**
-- No change may lose a fact, or lose it earlier, more often than the baseline beyond what two seeds can show; any such case is read by hand and reported, not averaged away.
-- No new silent loss, uncertain fact made certain, or old value restored.
-- An absolute target for retention at version 5. It cannot be set honestly before the baseline is measured.
+**Pass criteria for C:** see [the owner's decision below](#acceptance-for-c-owners-decision-2026-11-04). B and A are not approved; their criteria are set if they come up.
 
 **Known limit:** two seeds show large effects only. A small difference between code versions cannot be told from model variation with this sample, and the report must say so.
 
@@ -74,8 +71,51 @@ Seed 7 lost 1 fact, seed 11 lost 7. Answers: 28 of 32 passed. Three misses are r
 - The old values flagged read as past, not current ("React yerine Vue", "09:00 olarak planlanmıştı").
 - The word count understates one loss. In D5 seed 11, version 5 lost the whole lines for the route, transport and budget, so "otobüs" went too, and no word in the check covers it.
 - In D5 seed 11 the summary still holds "Selin, vejetaryen" and the restaurant answer still leaves it out: the reply not using a fact, as noted under REL-002.
-- The filler fills the summaries: up to 10 lines of repeated questions and up to 117 message citations. Whether real conversations do this is what the daily scenarios show.
+- The filler fills the summaries: up to 10 lines of repeated questions and up to 117 message citations. By version 5, 47 % of items, 57 % of characters and 87 % of citations are about the filler alone. Whether real conversations do this is what the daily scenarios show. **This limit stays attached to every use of these figures:** they may overstate how often the loss occurs.
 - Many compactions took a nearly constant 60–64 s. That may be the output limit (`summary_max_tokens` 1200), but this runner does not record output tokens. `p10p_daily.py` does, so check it there before planning C.
+
+## Acceptance for C (owner's decision, 2026-11-04)
+
+Speed alone does not accept C. Knowledge retention after several compactions is a required criterion, and **a result worse than the current loss is not accepted.** This baseline is a floor for C, not a target: [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten) stays open.
+
+Same data, same seeds, compared per conversation with this baseline:
+
+| Measure | Baseline, the limit for C |
+|---|---|
+| Facts kept of 64, versions 1 to 5 | At least 62, 61, 59, 59, 56 |
+| Conversations with a silent loss, versions 1 to 5 | At most 0, 1, 3, 3, 4 |
+| Answers | At least 28 of 32, no new real miss |
+| Uncertain facts | Stay uncertain in every version |
+| Replaced values | Never read as current |
+
+- **No offsetting.** A fact the baseline kept and C lost is read by hand and reported on its own, even if another fact came back. The owner decides on it.
+- **No explaining it away.** A result under the limit is a failure, not noise. Two seeds cannot show small differences, so a pass does not prove C is equal; a failure is rerun only if the owner decides. The limits are not relaxed.
+- **The test must reach C's code.** This runner compacts through `compact_now` with no user waiting. C changes what happens when a turn meets compaction, so this runner alone may never run C's path and would pass trivially. C also needs retention measured on the daily scenarios against their baseline, and the C plan must show which path each test runs.
+- **Same conversation length.** C may change how many rewrites a conversation goes through. Since loss grows per rewrite, a per-version figure can look fine while the conversation ends up worse. So the number of rewrites and the retention at the same message count are compared too.
+- **Words are not enough.** Every summary and answer is still read by hand, including the losses the word check misses (`otobüs`, `kız kardeşi`).
+- **Records are not deleted.** See below.
+
+## Stored records (owner's decision, 2026-11-04)
+
+Stored conversation messages and summary records are never deleted for the sake of speed, under any condition. This holds today: a new summary marks the old one `superseded`, `reset_context` marks summaries `invalidated`, and rows are removed only when the user deletes a conversation (`repository.delete_conversation`), which this rule does not concern. C must not add any other removal, and its acceptance checks that message and summary rows only grow during a run.
+
+## How meaning and uncertainty can be checked (review, no change made)
+
+Why word matching fails, from this data: it missed real losses (`otobüs`, `kız kardeşi`), raised false alarms on correct past mentions ("React yerine Vue"), and cannot tell whether a word still belongs to the right fact, or whether it is hedged. Figures for the detectors are under REL-003.
+
+| Method | What it can show | What it cannot | Cost | Assessment |
+|---|---|---|---|---|
+| **Claim-level gold set** | Each fact written as a claim: subject, value, source message, status (certain, uncertain, replaced). Passes only if the parts are on one item with the right status | Paraphrase beyond the listed forms; facts nobody listed | Hand-written, no model, can rescore stored summaries | **Recommended main measure.** Not built |
+| **Version comparison** | Items and citations that vanish between versions, with no gold set, so it also works on real conversations | Whether what vanished mattered; a fact merged under a citation that stays | No model | **Recommended as a candidate list** for hand reading |
+| **Item and source status check** | `current` and `certain` flipping between versions on the same claim | Implicit hedges | No model; needs the stored JSON content | Recommended with the gold set |
+| **Hedge words against the mark** | A hedge in the cited message but none on the item | Which clause the hedge belongs to | No model | **Not usable alone.** Replay over 413 lines: 4 flags, all "Mehmet: iş arkadaşı", where the relation is certain and only the trip is hedged. 13 lines from firm messages are marked uncertain ("Koşu yapılacak"), so the mark is also overused |
+| **Model as judge** (Gemma, test time only) | Paraphrase and hedging per claim | Its own errors, which may match the summarizer's: same model | One model call per claim | Only if the above fall short, after measuring it against the hand-scored set, with the owner's approval. Never in a turn |
+| **Embedding similarity** | Same topic | "Gidecek" and "galiba gidecek" are close in meaning space: this is exactly the difference that matters | Would need a model; downloads are out of bounds | **Rejected** for this purpose |
+| **Questions at the end** | What the user actually gets | Why it failed | Already in the runners | Keep; the daily runner also records where the fact was at that moment |
+
+**Uncertainty evidence is thin.** "Mehmet stayed hedged in all versions" rests on one uncertain fact in two conversations, the only uncertain fact in the gold set. A gold set for this needs more uncertain claims, including implicit ones. Hand reading stays the final judge in every case.
+
+**Possible product changes, none made or proposed for approval yet:** report vanished items beside `dropped_items`, and count cut output. These change no behaviour but need the owner's approval like any product code.
 
 ## Not in scope
 
