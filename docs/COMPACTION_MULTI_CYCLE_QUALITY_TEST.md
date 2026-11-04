@@ -76,7 +76,9 @@ Seed 7 lost 1 fact, seed 11 lost 7. Answers: 28 of 32 passed. Three misses are r
 
 ## Acceptance for C (owner's decision, 2026-11-04)
 
-Speed alone does not accept C. Knowledge retention after several compactions is a required criterion, and **a result worse than the current loss is not accepted.** This baseline is a floor for C, not a target: [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten) stays open.
+Speed alone does not accept C. Knowledge retention after several compactions is a required criterion, and **a result worse than the current loss is not accepted.** The three conditions marked below were approved by the owner on the same day.
+
+**The figures are a regression baseline only, not LAZIS's memory quality target (owner's decision).** 62 → 56 of 64 says how much worse C may not be. The long-term goal is that important facts are not lost over repeated compactions and that uncertain statements are not made certain. [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten) stays open.
 
 Same data, same seeds, compared per conversation with this baseline:
 
@@ -88,11 +90,11 @@ Same data, same seeds, compared per conversation with this baseline:
 | Uncertain facts | Stay uncertain in every version |
 | Replaced values | Never read as current |
 
-- **No offsetting.** A fact the baseline kept and C lost is read by hand and reported on its own, even if another fact came back. The owner decides on it.
+- **No offsetting (approved).** A new loss is not balanced by another fact coming back. A fact the baseline kept and C lost is read by hand and reported on its own, and the owner decides on it.
 - **No explaining it away.** A result under the limit is a failure, not noise. Two seeds cannot show small differences, so a pass does not prove C is equal; a failure is rerun only if the owner decides. The limits are not relaxed.
-- **The test must reach C's code.** This runner compacts through `compact_now` with no user waiting. C changes what happens when a turn meets compaction, so this runner alone may never run C's path and would pass trivially. C also needs retention measured on the daily scenarios against their baseline, and the C plan must show which path each test runs.
-- **Same conversation length.** C may change how many rewrites a conversation goes through. Since loss grows per rewrite, a per-version figure can look fine while the conversation ends up worse. So the number of rewrites and the retention at the same message count are compared too.
-- **Words are not enough.** Every summary and answer is still read by hand, including the losses the word check misses (`otobüs`, `kız kardeşi`).
+- **The test must reach C's code (approved).** Retention is measured in scenarios where C actually runs. This runner compacts through `compact_now` with no user waiting. C changes what happens when a turn meets compaction, so this runner alone may never run C's path and would pass trivially. C also needs retention measured on the daily scenarios against their baseline, and the C plan must show which path each test runs.
+- **Whole conversation, not only per version (approved).** C may change how many rewrites a conversation goes through. Since loss grows per rewrite, a per-version figure can look fine while the conversation ends up worse. So the total loss at the end of the conversation and the number of rewrites are compared too.
+- **Words are not enough.** Word or embedding matching alone is never evidence of accuracy (owner's decision). Every summary and answer is still read by hand, including the losses the word check misses (`otobüs`, `kız kardeşi`).
 - **Records are not deleted.** See below.
 
 ## Stored records (owner's decision, 2026-11-04)
@@ -101,15 +103,17 @@ Stored conversation messages and summary records are never deleted for the sake 
 
 ## How meaning and uncertainty can be checked (review, no change made)
 
+**Owner's decision (2026-11-04):** the hand-verified claim set (subject, value, source, certainty) is accepted as the recommended method for the next evaluation. No comprehensive new system is built now: only the scope and cost of a small sample go into the C plan ([COMPACTION_LATENCY_PROPOSAL.md](COMPACTION_LATENCY_PROPOSAL.md), §9). No model-based automatic judge is added for now.
+
 Why word matching fails, from this data: it missed real losses (`otobüs`, `kız kardeşi`), raised false alarms on correct past mentions ("React yerine Vue"), and cannot tell whether a word still belongs to the right fact, or whether it is hedged. Figures for the detectors are under REL-003.
 
 | Method | What it can show | What it cannot | Cost | Assessment |
 |---|---|---|---|---|
-| **Claim-level gold set** | Each fact written as a claim: subject, value, source message, status (certain, uncertain, replaced). Passes only if the parts are on one item with the right status | Paraphrase beyond the listed forms; facts nobody listed | Hand-written, no model, can rescore stored summaries | **Recommended main measure.** Not built |
+| **Claim-level gold set** | Each fact written as a claim: subject, value, source message, status (certain, uncertain, replaced). Passes only if the parts are on one item with the right status | Paraphrase beyond the listed forms; facts nobody listed | Hand-written, no model, can rescore stored summaries | **Accepted as the recommended method.** Not built; small sample planned |
 | **Version comparison** | Items and citations that vanish between versions, with no gold set, so it also works on real conversations | Whether what vanished mattered; a fact merged under a citation that stays | No model | **Recommended as a candidate list** for hand reading |
 | **Item and source status check** | `current` and `certain` flipping between versions on the same claim | Implicit hedges | No model; needs the stored JSON content | Recommended with the gold set |
 | **Hedge words against the mark** | A hedge in the cited message but none on the item | Which clause the hedge belongs to | No model | **Not usable alone.** Replay over 413 lines: 4 flags, all "Mehmet: iş arkadaşı", where the relation is certain and only the trip is hedged. 13 lines from firm messages are marked uncertain ("Koşu yapılacak"), so the mark is also overused |
-| **Model as judge** (Gemma, test time only) | Paraphrase and hedging per claim | Its own errors, which may match the summarizer's: same model | One model call per claim | Only if the above fall short, after measuring it against the hand-scored set, with the owner's approval. Never in a turn |
+| **Model as judge** (Gemma, test time only) | Paraphrase and hedging per claim | Its own errors, which may match the summarizer's: same model | One model call per claim | **Not added for now (owner's decision).** |
 | **Embedding similarity** | Same topic | "Gidecek" and "galiba gidecek" are close in meaning space: this is exactly the difference that matters | Would need a model; downloads are out of bounds | **Rejected** for this purpose |
 | **Questions at the end** | What the user actually gets | Why it failed | Already in the runners | Keep; the daily runner also records where the fact was at that moment |
 

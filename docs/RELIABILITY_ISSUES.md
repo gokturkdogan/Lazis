@@ -122,6 +122,8 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **Filler limit, kept with this result:** the filler is one fixed text repeated, far more repetitive than a real conversation. Share of summaries citing filler only, by version 1 → 5: items 33 → 47 %, characters 40 → 57 %, citations 43 → 87 %. This may overstate how often the loss occurs. It does not explain it away: the REL-002 runs, on varied text with no such filler, lost facts the same way (2 of 9 runs, 17 of 19 facts). The size of the filler's effect is unmeasured; the daily scenarios are the next evidence.
 
-**How this is judged:** C acceptance requires retention no worse than this baseline: see [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04). That floor does not make the loss acceptable. This entry stays open whatever C measures.
+**Goal (owner's decision, 2026-11-04):** in the long term, important facts are not lost over repeated compactions and uncertain statements are not made certain. No date is set and no fix is started.
+
+**How this is judged:** 62 → 56 of 64 is a regression baseline only, not a quality target. C acceptance requires retention no worse than it: see [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04). This entry stays open whatever C measures.
 
 **Evidence:** `evals/reports/phase10/perf/cycles/cycles_cache2048_gapall_r1.json`, field `rows[].cycles[].rendered`.

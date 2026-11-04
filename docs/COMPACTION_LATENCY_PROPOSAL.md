@@ -111,7 +111,11 @@ Bütün aralıklarda ayrıca:
 
 - **Bilgi koruma hız kadar zorunludur.** C, çoklu sıkıştırma sonrası bilgi korumada mevcut kayıptan kötü sonuç verirse kabul edilmez. Sınırlar ve ölçüm: [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04).
 - **Kayıtlar silinmez.** Kalıcı konuşma ve özet kayıtları hiçbir koşulda hız uğruna silinmez.
-- Bu sınır mevcut kaybı kabul edilebilir yapmaz: [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten) açık kalır.
+- **Yeni kayıp dengelenmez.** Yeni bir bilgi kaybı, başka bir bilginin geri gelmesiyle telafi edilmiş sayılmaz.
+- **Ölçüm C'nin çalıştığı senaryolarda yapılır.** C'nin kodunu hiç çalıştırmayan bir testin geçmesi kanıt değildir.
+- **Bütün konuşmaya bakılır.** Özet sürümü başına rakamlar yanında konuşma sonundaki toplam bilgi kaybı ve yeniden yazım sayısı da karşılaştırılır.
+- **62/64 → 56/64 yalnızca regresyon taban çizgisidir,** LAZIS'in hafıza kalite hedefi değildir. Uzun vadeli hedef: önemli bilgiler tekrarlanan sıkıştırmalarda kaybolmaz, belirsiz ifadeler kesinleştirilmez. [REL-003](RELIABILITY_ISSUES.md#rel-003-facts-disappear-silently-when-a-summary-is-rewritten) açık kalır.
+- Kelime veya embedding eşleşmesi tek başına doğruluk kanıtı sayılmaz. Model tabanlı otomatik hakem şimdilik eklenmez.
 
 ## 6. Mesaj kaybı, sıralama ve bilgi kaybı testleri
 
@@ -165,3 +169,57 @@ Her adım ayrı commit'tir; yeni adıma ölçümle geçilir.
 **Değişmeyecekler:** `compaction.py`, `prompts.py`, migration'lar, hafıza kodu. Arayüz "sıkıştırılıyor" durumunu zaten gösteriyor; değişiklik beklemiyorum, gerçek uygulamada doğrulanacak.
 
 **Dokunulmayacaklar:** Gerçek profil, `0008_adaptation`, push, Faz 10C.
+
+## 9. C planına ek: küçük iddia seti (kapsam ve maliyet)
+
+**Durum:** Yalnızca plan. Sahibinin kararıyla (2026-11-04) kapsamlı bir sistem kurulmuyor; bu set henüz yazılmadı. C'nin kendisi gibi ayrı onayla yapılır. Sayılar saklı raporlardan ve veri setinden sayıldı; süreler tahmindir.
+
+**Amaç:** C'nin bilgi korumasını kelime sayımından daha doğru ölçmek ve aynı yöntemle bugünkü taban çizgisini de puanlamak. Kapsamlı değerlendirme sisteminin yerine geçmez.
+
+**Kapsam: 20 iddia, D1 ve D5 diyaloglarından.** Her iddia: konu, değer, kaynak mesaj, kesinlik durumu.
+
+| Durum | Sayı | İddialar |
+|---|---|---|
+| Kesin | 15 | Ayşe kız kardeş; Ayşe 3 Kasım Ankara; nakliye tutulmayacak; bütçe 20 bin; toplantı perşembe; Mehmet iş arkadaşı; uçuş 14 Haziran 07:45; Sabiha Gökçen; Kaş; Mavi Koy; araba kiralanmayacak; otobüs; bütçe 35 bin; Selin eş; Selin vejetaryen |
+| Belirsiz | 3 | Mehmet 10 Kasım İzmir; yarın kahvaltı planı (D1, D5) |
+| Değişti | 2 | Toplantı salı; Antalya |
+
+**Tekrar üretilebilirlik:** Yeni model çağrısı yok. Girdi, saklı `rendered` alanıdır.
+
+| Girdi | Özet | Denetim |
+|---|---|---|
+| Çoklu test, D1 ve D5, 2 tohum, 5 sürüm | 20 | 200 |
+| REL-002 koşuları (6 s, koşu 2 ve 3), sürüm 1 ve 2, yalnızca Mehmet'in 2 iddiası; bu koşularda tekrarlı dolgu yok | 4 | 8 |
+| **Toplam** | **24, yaklaşık 35 bin karakter** | **208** |
+
+Ayrıca bu iki diyaloğun saklı 14 yanıtı elle okunur.
+
+**Neden bu ikisi:** yeniden yazımda kaybolan 6 bilginin 4'ü (`vejetaryen`, `Kaş`, `Mavi Koy`, `35 bin`), kelime denetiminin kaçırdığı iki kayıp (`otobüs`, `kız kardeşi`), REL-002'nin Mehmet olayı ve geçemeyen 4 yanıtın tamamı burada.
+
+**Maliyet:**
+
+| Kalem | Tahmin |
+|---|---|
+| Model süresi, RAM, ürün kodu | Yok |
+| Değişecek ürün dosyası | Yok; yalnızca bir veri dosyası ve yaklaşık 100–150 satırlık bir puanlama betiği (`evals/`) |
+| Elle puanlama, taban çizgisi | 208 denetim, benim için tek oturum |
+| Sizin doğrulamanız | 20 iddiayı ve tartışmalı denetimleri gözden geçirmek: yaklaşık 15–30 dakika |
+| Her C sürümü | Zaten gereken 46 dakikalık çoklu test ve günlük testlerin çıktısı üzerinde aynı elle puanlama. Ek model süresi yok |
+
+**C'nin çalıştığı senaryolarda kullanım:** Günlük senaryolar ve 40 mesajlık koşular aynı veri setinin bilgi mesajlarından seçiyor (`fact_messages`), bu yüzden iddialar yeniden yazılmadan kullanılabilir. Kapsam senaryoya göre değişir:
+
+| Senaryo | Geçerli iddia (20'den) | Belirsiz olan |
+|---|---|---|
+| Hafif | 6 (Ayşe 2, Mehmet 2, Selin 2) | Mehmet |
+| Orta | 10 (hafiftekiler, toplantı 2, uçuş 2) | Mehmet |
+| Yoğun ve 40 mesajlık koşular | 18 (kahvaltı dışında hepsi) | Mehmet |
+
+Orta ve yoğun senaryolardaki diğer belirsiz ifadeler (`Kadir`, `Gülay`) bu 20 iddianın dışındadır; gerekirse birer iddia olarak eklenebilir. Hafif test 10 kısa mesajdan oluştuğu için sıkıştırmaya hiç ulaşmayabilir; o zaman C için kanıt vermez. Bu, hafif testin sonucunda görülecek.
+
+**Sınırlar:**
+
+- Set bilinen kayıpları içerecek şekilde seçildi. Bu nedenle kayıp **oranı** vermez; 64 bilgilik regresyon taban çizgisinin yerine geçmez, onunla birlikte raporlanır.
+- D2, D3, D4 dışarıda: `cuma` ve `8 bin` kayıpları bu setle görünmez.
+- Belirsizlik için hâlâ 3 iddia var ve hepsinde açık kelime geçiyor ("galiba", "belki"). Örtük belirsizlik ölçülemez; bunun için yeni diyalog ve yeni koşu gerekir, bu ek kapsam dışındadır.
+- Dolgu uyarısı aynen geçerlidir: çoklu test özetleri tekrarlı dolgu içerir.
+- Elle puanlama bir kişinin yargısıdır. Bu yüzden iddialar ve tartışmalı kararlar size gösterilir.
