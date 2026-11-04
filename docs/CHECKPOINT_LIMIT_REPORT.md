@@ -97,6 +97,8 @@ Aynı istemde bile yanıtlar koşudan koşuya değişiyor (ilk yanıt 54–74 to
 7. **Tekrar:** Her sınır tek koşu; sınır 8 önce çalıştı.
 8. **Uzun oturum:** Saatlik kullanım, model boşaltma ve yeniden yükleme.
 
+**Sonraki ölçüm:** 40 mesajlık uzun konuşma yapıldı, sonuç [LONG_CONVERSATION_LIMIT8_REPORT.md](LONG_CONVERSATION_LIMIT8_REPORT.md).
+
 ## 7. En düşük riskli sonraki adım (onay bekliyor, başlatılmadı)
 
 Yine yalnızca geçici Ollama sürecinde, **sınır 8**, öğrenme açık:

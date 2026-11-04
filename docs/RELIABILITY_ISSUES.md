@@ -31,6 +31,8 @@ Open faults in what LAZIS stores or says, recorded apart from the phase reports.
 
 The uncertainty is lost outright in five of nine runs. Memory jobs were still running when the gap 6 run 1 and run 2 reports were written, so those two memory lists may be incomplete; in gap 6 run 3 all jobs finished. The gap 30 run 3 was stopped on critical memory pressure after 17 turns; it wrote no report and is not counted.
 
+**Later run (limit 8, 40 messages, 60 s, 2026-11-04):** stored again as certain, `plan`: "Mehmet 10 Kasım'da İzmir'e gidecek." Six of ten runs now. Summary and answer kept the uncertainty.
+
 **Where it does not appear:** the active summary keeps the uncertainty in the seven runs where it still mentions Mehmet. In gap 6 runs 2 and 3 the summary has no Mehmet line; that is a separate fault, [REL-002](#rel-002-a-stored-fact-about-a-person-cannot-be-recalled).
 
 **Related, not the same fault:** in gap 30, runs 1 and 2, the reply to the same message speaks of Mehmet "taşınma" (moving house), which the user did not say.
@@ -119,6 +121,13 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 | `kept_items` fell | 4 | 17 | Mostly no real fact behind it |
 | A dialogue message is no longer cited | 3 | 4 | 4 of 6 facts. Misses a fact whose message is still cited for something else (`vejetaryen` #8, `35 bin` #6). The fourth flag is a real unscored line. Also flags `#7` in exactly the two REL-002 runs (3 flags in 25 long-run pairs) |
 | A previous line has words found nowhere in the new text | 4 | 10 | Besides the 4: `kız kardeşi` twice (word check missed it), a breakfast line twice, rewording twice. Noisy on the long runs (10 of 25 pairs; those read were mostly merged lines). Candidates to read, not a verdict |
+
+**New evidence on varied text, no repeated filler (limit 8 run, 40 messages, 60 s, 2026-11-04, [LONG_CONVERSATION_LIMIT8_REPORT.md](LONG_CONVERSATION_LIMIT8_REPORT.md)):**
+- The moving-company decision was in version 1 and gone from version 2 with `dropped: 0`, along with the whole decisions section; `20 bin` was in no version. In all nine baseline runs both were in the final summary, and the moving-company question was answered. Here the answer was "hatırlamıyorum". The fact was in neither the summary nor active memory (learning sent it to the inbox).
+- "Planlama toplantısı" became "Taşınma planı toplantısı" in all four versions: a meaning change the check does not see.
+- Three of the four completed summary requests stopped at exactly 1200 output tokens. So output is cut at the limit, silently. Version 2 keeps the last section while the decisions are gone, which a cut from the end alone does not explain; raw output is not stored.
+- Whether limit 8 has anything to do with this is not shown. One run in ten; it stays a regression candidate.
+- General questions took 5 of 17 items, so space is taken without repeated filler too.
 
 **Filler limit, kept with this result:** the filler is one fixed text repeated, far more repetitive than a real conversation. Share of summaries citing filler only, by version 1 → 5: items 33 → 47 %, characters 40 → 57 %, citations 43 → 87 %. This may overstate how often the loss occurs. It does not explain it away: the REL-002 runs, on varied text with no such filler, lost facts the same way (2 of 9 runs, 17 of 19 facts). The size of the filler's effect is unmeasured; the daily scenarios are the next evidence.
 
