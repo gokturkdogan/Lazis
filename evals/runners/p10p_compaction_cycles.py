@@ -48,6 +48,7 @@ from lazis.conversation.compaction import normalize
 from lazis.ids import utc_now_iso
 from lazis.providers.llm.ollama import OllamaProvider
 
+INSTRUCTIONS = DATA.parent / "tr_instructions_check_v1.json"
 VERSIONS = 5
 FILLER_ROUNDS = 8
 UNCERTAIN = {"D1": ["Mehmet"]}  # said as a possibility; a summary must keep it so
@@ -143,13 +144,15 @@ async def one(model: str, d: dict[str, Any], seed: int, versions: int, probes: i
 
 async def run(model: str, name: str, cache_ram: int) -> dict[str, Any]:
     dialogues = json.loads(DATA.read_text())["dialogues"]
-    if name not in ("smoke", "short", "all"):
+    if name not in ("smoke", "short", "instructions", "all"):
         raise SystemExit(f"unknown set {name}")
     by_id = {d["id"]: d for d in dialogues}
     plans = {
         "smoke": ([(by_id["D1"], 7)], 2, 1),
         # Up to the third version, where the baseline first loses facts in these conversations.
         "short": ([(by_id[i], s) for i, s in (("D1", 7), ("D1", 11), ("D3", 11), ("D5", 7))], 3, 99),
+        # Real instructions next to facts, read by hand: see the dataset.
+        "instructions": ([(d, s) for s in (7, 11) for d in json.loads(INSTRUCTIONS.read_text())["dialogues"]], 3, 99),
         "all": ([(d, s) for s in (7, 11) for d in dialogues], VERSIONS, 99),
     }
     plan = plans[name]
@@ -192,7 +195,7 @@ def main() -> None:
     ap.add_argument("--model", required=True)
     ap.add_argument("--label", required=True)
     ap.add_argument("--cache-ram", type=int, default=2048)
-    ap.add_argument("--gaps", required=True, help="smoke, short or all")
+    ap.add_argument("--gaps", required=True, help="smoke, short, instructions or all")
     ap.add_argument("--runs", type=int, default=1)
     a = ap.parse_args()
     out = Path(os.environ.get("LAZIS_EVAL_OUT", OUT / "cycles"))

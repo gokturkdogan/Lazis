@@ -70,7 +70,7 @@ def time_note(moment: datetime) -> str:
 
 
 # ----- compaction ----------------------------------------------------------------------
-SUMMARY_PROMPT_VERSION = "s3-v4"
+SUMMARY_PROMPT_VERSION = "s3-v5"
 
 SUMMARY_INSTRUCTIONS = (
     "Görevin bir sohbetin eski bölümünü, ileride hatırlatma olarak kullanılacak yapılandırılmış "
@@ -94,7 +94,11 @@ SUMMARY_INSTRUCTIONS = (
     "yeni mesajlarla güncelle.\n"
     "10. Aynı bilgiyi birden fazla bölüme yazma; her bölümde en fazla 6 madde olsun ve maddeleri "
     "kısa tut. En önemli bilgileri (kararlar, kişiler, tarihler, hedefler) önce yaz.\n"
-    "11. Boş kalan alanlar için boş liste kullan. JSON'u girintisiz, tek satır halinde yaz. "
+    "11. 'instructions' yalnızca kullanıcının LAZIS'e açıkça verdiği ve hâlâ geçerli olan "
+    "istekleri/talimatları içerir. Kullanıcı hakkında gerçekler, tercihler, bütçeler, randevular, "
+    "üçüncü kişilerin planları ve belirsiz bilgiler bu alana yazılmaz; uygun bilgi bölümlerinde "
+    "korunur.\n"
+    "12. Boş kalan alanlar için boş liste kullan. JSON'u girintisiz, tek satır halinde yaz. "
     "Yalnızca istenen JSON'u üret."
 )
 

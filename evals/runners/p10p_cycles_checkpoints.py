@@ -108,7 +108,7 @@ def main() -> None:
     ap.add_argument("--model", required=True)
     ap.add_argument("--label", required=True)
     ap.add_argument("--cache-ram", type=int, default=2048)
-    ap.add_argument("--gaps", required=True, help="smoke, short or all")
+    ap.add_argument("--gaps", required=True, help="smoke, short, instructions or all")
     ap.add_argument("--runs", type=int, default=1)
     a = ap.parse_args()
     signal.signal(signal.SIGTERM, signal.default_int_handler)

@@ -434,3 +434,26 @@ def test_a_summary_written_in_the_old_order_is_still_read_and_used_as_previous()
     assert verified.kept == 1
     request = build_messages(verified.content, list(messages().values())[2:4])
     assert "Önceki özet" in request[1].content
+
+
+def test_instructions_are_defined_as_what_the_user_asked_of_lazis() -> None:
+    """Fix 3 sent facts to this section. The definition is the only rule added."""
+    rule = next(x for x in SUMMARY_INSTRUCTIONS.split("\n") if x.startswith("11. "))
+    assert "'instructions' yalnızca kullanıcının LAZIS'e açıkça verdiği" in rule
+    assert "hâlâ geçerli" in rule
+    for kept_out in (
+        "gerçekler",
+        "tercihler",
+        "bütçeler",
+        "randevular",
+        "üçüncü kişilerin planları",
+        "belirsiz bilgiler",
+    ):
+        assert kept_out in rule
+    assert "uygun bilgi bölümlerinde korunur" in rule
+    numbers = [int(x.split(".")[0]) for x in SUMMARY_INSTRUCTIONS.split("\n")[1:]]
+    assert numbers == list(range(1, 13))
+    assert list(SUMMARY_SCHEMA["properties"])[:2] == [
+        "decisions",
+        "instructions",
+    ]  # the order stays

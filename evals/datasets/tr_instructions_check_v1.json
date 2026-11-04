@@ -1,0 +1,182 @@
+{
+ "version": "v1",
+ "description": "A small synthetic dialogue with real user instructions next to facts, a third person's uncertain plan and a replaced instruction. For hand reading of what goes under 'instructions'. Fictional data.",
+ "expected_instructions": [
+  "yanıtlar kısa, en fazla üç cümle",
+  "tarihler gün.ay.yıl biçiminde",
+  "avukat bulmayı hatırlatmak",
+  "emoji kullanabilir (eskisi: kullanma)"
+ ],
+ "expected_elsewhere": [
+  "bütçe 40 bin",
+  "diş randevusu 5 Nisan 14:00",
+  "fıstık alerjisi",
+  "Fatma 12 Mart Bursa, belirsiz",
+  "Fatma anne"
+ ],
+ "dialogues": [
+  {
+   "id": "I1",
+   "topic": "talimat ve bilgi karışık",
+   "messages": [
+    [
+     "user",
+     "Bundan sonra yanıtlarını kısa tut, en fazla üç cümle yaz."
+    ],
+    [
+     "assistant",
+     "Anlaşıldı, yanıtlarımı en fazla üç cümle yazacağım."
+    ],
+    [
+     "user",
+     "Tarihleri de hep gün.ay.yıl biçiminde yaz lütfen."
+    ],
+    [
+     "assistant",
+     "Tamam, tarihleri gün.ay.yıl biçiminde yazacağım."
+    ],
+    [
+     "user",
+     "Emoji kullanma."
+    ],
+    [
+     "assistant",
+     "Peki, emoji kullanmayacağım."
+    ],
+    [
+     "user",
+     "Annem Fatma galiba 12 Mart'ta Bursa'ya gidecek, henüz kesin değil."
+    ],
+    [
+     "assistant",
+     "Not ettim, kesinleşmemiş bir plan."
+    ],
+    [
+     "user",
+     "Ev tadilatı için bütçemiz en fazla 40 bin TL."
+    ],
+    [
+     "assistant",
+     "Tadilat bütçesi en fazla 40 bin TL."
+    ],
+    [
+     "user",
+     "Diş randevum 5 Nisan saat 14:00'te."
+    ],
+    [
+     "assistant",
+     "5 Nisan 14:00, diş randevusu."
+    ],
+    [
+     "user",
+     "Fıstığa alerjim var, tariflerde buna dikkat etmen gerekir."
+    ],
+    [
+     "assistant",
+     "Fıstık alerjinizi göz önünde bulunduracağım."
+    ],
+    [
+     "user",
+     "Kira sözleşmesi için avukat bulmamı bana hatırlat."
+    ],
+    [
+     "assistant",
+     "Avukat bulmanızı hatırlatacağım."
+    ],
+    [
+     "user",
+     "Emoji konusunda fikrimi değiştirdim, artık kullanabilirsin."
+    ],
+    [
+     "assistant",
+     "Tamam, artık emoji kullanabilirim."
+    ]
+   ],
+   "summary_expect": [
+    [
+     "üç cümle",
+     1
+    ],
+    [
+     "gün.ay.yıl",
+     3
+    ],
+    [
+     "Fatma",
+     7
+    ],
+    [
+     "12 Mart",
+     7
+    ],
+    [
+     "Bursa",
+     7
+    ],
+    [
+     "40 bin",
+     9
+    ],
+    [
+     "5 Nisan",
+     11
+    ],
+    [
+     "14:00",
+     11
+    ],
+    [
+     "fıstık",
+     13
+    ],
+    [
+     "avukat",
+     15
+    ]
+   ],
+   "probes": [
+    {
+     "q": "Diş randevum ne zamandı? Kısaca yaz.",
+     "expect_all": [
+      "5"
+     ],
+     "expect_any": [
+      "14 00",
+      "14:00"
+     ]
+    },
+    {
+     "q": "Tadilat bütçemiz ne kadardı? Kısaca yaz.",
+     "expect_all": [
+      "40"
+     ],
+     "expect_any": [
+      "bin"
+     ]
+    },
+    {
+     "q": "Annem nereye gidiyordu? Kısaca yaz.",
+     "expect_all": [
+      "bursa"
+     ],
+     "expect_any": [
+      "kesin değil",
+      "belki",
+      "galiba",
+      "henüz",
+      "kesinleş",
+      "ihtimal"
+     ]
+    },
+    {
+     "q": "Sana yanıtları nasıl yazmanı istemiştim? Kısaca yaz.",
+     "expect_all": [],
+     "expect_any": [
+      "kısa",
+      "üç cümle"
+     ]
+    }
+   ]
+  }
+ ]
+}

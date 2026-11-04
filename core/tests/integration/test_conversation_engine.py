@@ -531,7 +531,7 @@ def test_the_summary_request_uses_the_new_order_and_nothing_else_moves(
     assert request.options.max_tokens == 1200
     assert request.messages[0].content == SUMMARY_INSTRUCTIONS
     stored = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
-    assert stored[-1].prompt_version == "s3-v4"
+    assert stored[-1].prompt_version == "s3-v5"
     assert [m.seq for m in rows(storage, cid)] == list(range(1, 7))
 
 
