@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/runners.py", line 119, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/base_events.py", line 726, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_long_checkpoints.py", line 105, in run
+    await asyncio.sleep(gap)
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 727, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_long_checkpoints.py", line 193, in <module>
+    main()
+    ~~~~^^
+  File "/Users/gokturk.dogan/Desktop/Projects/Lazis/evals/runners/p10p_long_checkpoints.py", line 185, in main
+    report = asyncio.run(run(a.model, a.gaps, a.cache_ram))
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/runners.py", line 196, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/Users/gokturk.dogan/.local/share/uv/python/cpython-3.13.16-macos-aarch64-none/lib/python3.13/asyncio/runners.py", line 124, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
