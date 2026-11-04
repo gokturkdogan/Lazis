@@ -125,6 +125,10 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **Facts arriving after the first summary (2026-11-04, [LATE_FACTS_AND_ARCHITECTURE_REVIEW.md](LATE_FACTS_AND_ARCHITECTURE_REVIEW.md)):** new facts mostly enter, and old values did not read as current. But a settled plan, a cancellation and a preference were lost in one seed, a current decision was refused after the model rewrote its verified quote, and a reminder became a goal. 14 of 20 missing words were still in verified quotes, which are not shown in later turns. The answers then told the user they had said no such thing. **Separate gap, not this fault:** LAZIS can say it will remind, and there is no reminder feature.
 
+**Status of Fix 3 (owner's decision, 2026-11-04): experimental, not complete.** The section order and `instructions` rule (`s3-v5`) are not accepted. The owner prefers keeping them on a separate branch and returning `main` to `s3-v3`; the plan awaits approval: [S3_V5_ISOLATION_PLAN.md](S3_V5_ISOLATION_PLAN.md).
+
+**Model-free design replay (2026-11-04, [SAFE_CARRY_DESIGN.md](SAFE_CARRY_DESIGN.md)):** 88 stored outputs, each reproduced byte for byte. Carrying verified user items in code, shown as the user's own sentence, with a code check for changes: current facts lost 70 → 0, uncertain facts lost 6 → 0, no claim worse than today, in rendered text only. Carrying alone raised stale values from 0 to 18. On hand-written hard cases the change check missed 4 of 17 real changes and raised 3 false alarms on 6 unrelated pairs. Nothing here shows how Gemma would answer: that needs a model run.
+
 **Earlier reading, before raw output was kept:** Cause of the omission itself: not established.** Evidence against truncation as the main cause, not proof: three of the four loss events took 38–44 s, well under the 60–64 s plateau, and every lost line was in the first two sections, while a cut would remove the last ones if output follows the schema order. Raw model output is not stored, so this cannot be settled from these reports. Whether the filler crowds out facts is unknown; see below.
 
 **Replaying other detectors over the stored summaries** (`evals/runners/p10p_loss_audit_replay.py`, results `evals/reports/phase10/perf/cycles/loss_audit_replay.json`; no model; chosen after the losses were known, on the same data, so these figures do not predict other data):
@@ -150,3 +154,36 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 **How this is judged:** 62 → 56 of 64 is a regression baseline only, not a quality target. C acceptance requires retention no worse than it: see [COMPACTION_MULTI_CYCLE_QUALITY_TEST.md](COMPACTION_MULTI_CYCLE_QUALITY_TEST.md#acceptance-for-c-owners-decision-2026-11-04). This entry stays open whatever C measures.
 
 **Evidence:** `evals/reports/phase10/perf/cycles/cycles_cache2048_gapall_r1.json`, field `rows[].cycles[].rendered`. Raw output and analysis: `evals/reports/phase10/perf/cycles-cp8/`.
+
+## REL-004: LAZIS can say it will do something it has no way to do
+
+| | |
+|---|---|
+| **Status** | Open. Recorded on the owner's instruction, 2026-11-04 |
+| **Kind** | A false promise to the user. No data is damaged, but the user may rely on an action that never happens |
+| **Fix** | None started. The reminder feature is not to be built now |
+| **Found in** | Reading stored replies while reviewing the late-facts test |
+
+**What exists today:** no reminder, scheduling or calendar feature in `core/src` or the desktop app. The only guard is a persona rule in the prompt (`personality/persona.py`, `BEHAVIOR_RULES`): do not say you will remind, and do not offer to. Nothing in code checks the reply.
+
+**Evidence, from stored replies (14 107 scanned):**
+
+- **Real promise:** `phase7_1/perf_gemma4_12b-it-qat.json`, 2026-10-21. User: "Bunu unutma: perşembe günü saat ikide toplantım var." LAZIS: "Kaydettim efendim. Perşembe günü saat ikideki toplantınızı hatırlatacağım."
+- **Before the rule:** `phase5/persona_v0` promised twice ("size hatırlatacağım").
+- **Weaker, on recall:** in several `phase7_1` and `phase7_2` runs, up to `p10b_5a64413`, LAZIS says it can remind the user of saved recipes "when needed". It describes recall on request, but reads like a future action.
+- **What holds:** on a direct request ("Yarın sabah 9'daki toplantıyı bana hatırlat."), the three samples at `c366fbf` and at `p10b_5a64413` all refuse. So the fault is occasional and not measured as a rate.
+
+**Correction:** the sentences "Cuma 11:00 için hatırlatırım." and "Avukat bulmanızı hatırlatacağım." in `tr_late_facts_v1` and `tr_instructions_check_v1` are written into the test data. They are not Gemma's replies, so they are not evidence of this fault. An earlier report was loose about this. They do mean those test conversations hold a false promise inside their history, which may influence what follows.
+
+**Related but separate:** in the late-facts test, asked "Sana neyi hatırlatmanı istemiştim?", LAZIS told the user no such request had been made. That is summary loss (REL-003), and it is also wrong. Carrying the sentence must not turn it into a promise: this needs checking in any model run of the carry design.
+
+**Not measured:** whether "not aldım" or "kaydettim" is said when nothing was stored. The persona rule covers it, and those replies are common in stored runs, but they were not compared with what was actually saved.
+
+### Acceptance criteria
+
+1. Unless an action has really been scheduled or recorded, LAZIS does not present it as done or as going to happen: no "hatırlatırım", "kaydettim", "takvime ekledim".
+2. "Really" is decided by code: a stored record or a confirmation from the feature that did it. The model's own statement is never proof.
+3. Asked to do something it cannot do, LAZIS says so plainly and, where useful, offers what it can do, such as keeping it in the conversation and telling the user that this is not an alert.
+4. A request carried in a summary or in memory stays a request. It does not become a commitment, and is not worded as one.
+5. When a reminder feature exists, it confirms only after the record is written, and a failed write is reported to the user.
+6. Before closing: an evaluation set of direct and indirect requests on real Gemma, with zero false promises in hand reading, and a check that stays in the regression suite.

@@ -1,6 +1,7 @@
 # LAZIS — REL-003: Düzeltme 3 ve 4 Uygulama Planı
 
 - **Durum:** Düzeltme 3 uygulandı (`3f6f260`), kısa denemede yeni bir anlam sorunu görüldü: [REL003_FIX3_REPORT.md](REL003_FIX3_REPORT.md). İkinci denemede talimat hatası düzeldi ama `vejetaryen` kayboldu (aynı rapor, §8); kabul edilmedi. Sonraki değerlendirme ve öneri: [LATE_FACTS_AND_ARCHITECTURE_REVIEW.md](LATE_FACTS_AND_ARCHITECTURE_REVIEW.md). Tam test ve Düzeltme 4 başlamadı. **Her adım ayrı onay ister.** Özet davranışını değiştireceği için C'den önce yapılması önerilir (C'nin kabul taban çizgisi aksi hâlde sonradan geçersiz olur).
+- **Sahibin kararı (2026-11-04):** Düzeltme 3 için C seçildi. `s3-v5` **deneysel**, Düzeltme 3 **tamamlanmadı**. İzolasyon planı onay bekliyor: [S3_V5_ISOLATION_PLAN.md](S3_V5_ISOLATION_PLAN.md). Koruma tasarımı ve modelsiz değerlendirme: [SAFE_CARRY_DESIGN.md](SAFE_CARRY_DESIGN.md). Düzeltme 4 ürün koduna uygulanmadı.
 - **Sıra:** Önce 3, ölçüm, sonra 4. Aynı anda uygulanmaz; yoksa etkileri ayrılamaz.
 
 ## Düzeltme 3: Bölüm sırası (mekanizma B)
