@@ -11,6 +11,10 @@ against the *original* stored messages before anything reaches a prompt:
 
 Items that fail are dropped and counted. Summaries are stored next to (never instead of)
 the original messages and can be invalidated and rebuilt at any time.
+
+That count (``dropped_items``) is not a measure of lost information: it covers only items the
+model wrote and the check refused. A fact the model leaves out of a rewrite is never counted there
+(REL-003). ``audit_rewrite`` and ``parse_kind`` observe that side. They change no summary.
 """
 
 from __future__ import annotations
@@ -145,6 +149,21 @@ def parse_summary(text: str) -> dict[str, Any] | None:
             continue
         return cast(dict[str, Any], data) if isinstance(data, dict) else None
     return _salvage_truncated(cleaned)
+
+
+def parse_kind(text: str) -> str:
+    """How ``parse_summary`` reads this output: ``complete``, ``salvaged`` (cut off; the items
+    after the cut are lost) or ``failed``. Observation only."""
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
+    for candidate in (cleaned, _outer_object(text)):
+        if candidate is None:
+            continue
+        try:
+            data = json.loads(candidate)
+        except ValueError:
+            continue
+        return "complete" if isinstance(data, dict) else "failed"
+    return "salvaged" if _salvage_truncated(cleaned) is not None else "failed"
 
 
 def _outer_object(text: str) -> str | None:
@@ -387,3 +406,86 @@ def cited_seqs(content: Mapping[str, Any]) -> list[int]:
                 if isinstance(entry, dict):
                     seqs.update(_refs(cast(dict[str, Any], entry).get("refs")))
     return sorted(seqs)
+
+
+# ----- what a rewrite may have lost (observation only) ------------------------------------------
+_WORD_START = 5  # a crude way past Turkish suffixes: candidates to read, never a verdict
+
+
+@dataclass(frozen=True)
+class PossibleLoss:
+    """An item of the previous version with words found nowhere in the new one. Rewording raises
+    it too. Numbers only, so it can be logged: never the item's text."""
+
+    section: str
+    source: str
+    refs: tuple[int, ...]
+    words_gone: int
+    words_total: int
+
+
+@dataclass(frozen=True)
+class RewriteAudit:
+    possibly_lost: tuple[PossibleLoss, ...]
+    refs_no_longer_cited: tuple[int, ...]  # cited before, by any item; cited by none now
+    became_certain: int  # the same quote, marked uncertain before and certain now
+
+    def lost_by(self, source: str) -> int:
+        return sum(1 for item in self.possibly_lost if item.source == source)
+
+
+def _visible_text(item: Mapping[str, Any]) -> str:
+    """What the prompt shows of an item. A quote is not shown, so a fact kept only there is lost."""
+    return " ".join(str(item.get(k) or "") for k in ("text", "name", "relation"))
+
+
+def _word_starts(text: str) -> set[str]:
+    words = normalize(text).split()
+    return {w[:_WORD_START] for w in words if len(w) >= 3 or any(c.isdigit() for c in w)}
+
+
+def _items(content: Mapping[str, Any]) -> list[tuple[str, Mapping[str, Any]]]:
+    out: list[tuple[str, Mapping[str, Any]]] = []
+    for key, _ in SECTIONS:
+        raw = content.get(key)
+        if isinstance(raw, list):
+            for entry in cast(list[Any], raw):
+                if isinstance(entry, Mapping):
+                    out.append((key, cast(Mapping[str, Any], entry)))
+    return out
+
+
+def audit_rewrite(previous: Mapping[str, Any] | None, current: Mapping[str, Any]) -> RewriteAudit:
+    """Compare two versions of a summary. Candidates to read by hand: ``dropped_items`` cannot
+    see these, and this cannot tell a lost fact from a reworded one."""
+    if not previous:
+        return RewriteAudit((), (), 0)
+    before, after = _items(previous), _items(current)
+    now = set[str]().union(*(_word_starts(_visible_text(i)) for _, i in after))
+    lost: list[PossibleLoss] = []
+    for key, entry in before:
+        words = _word_starts(_visible_text(entry))
+        gone = words - now
+        if gone:
+            lost.append(
+                PossibleLoss(
+                    key,
+                    str(entry.get("source") or ""),
+                    tuple(_refs(entry.get("refs"))),
+                    len(gone),
+                    len(words),
+                )
+            )
+    cited_before = {r for _, i in before for r in _refs(i.get("refs"))}
+    cited_now = {r for _, i in after for r in _refs(i.get("refs"))}
+    certain_now = {
+        normalize(str(i.get("quote") or "")) for _, i in after if i.get("certain") is True
+    }
+    became = sum(
+        1
+        for _, i in before
+        if i.get("certain") is not True
+        and normalize(str(i.get("quote") or ""))
+        and normalize(str(i.get("quote") or "")) in certain_now
+    )
+    return RewriteAudit(tuple(lost), tuple(sorted(cited_before - cited_now)), became)

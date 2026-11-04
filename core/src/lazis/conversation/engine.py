@@ -1954,6 +1954,7 @@ class ConversationEngine:
         summary: Summary | None = loaded.summary
         version = loaded.state.context_version
         kept = dropped = 0
+        limit_hits = possibly_lost = became_certain = 0
         for index, chunk in enumerate(chunks):
             next_start = chunks[index + 1][0].seq if index + 1 < len(chunks) else plan.split_seq
             raw: dict[str, Any] | None = None
@@ -1973,10 +1974,14 @@ class ConversationEngine:
                     request_id=rid,
                 )
                 text = ""
+                output: GenerationMetrics | None = None
                 self.scheduler.cache = None  # the summary prompt replaces the cached prefix
                 async for event in llm.stream(request):
                     if isinstance(event, TextDelta) and event.kind == "content":
                         text += event.text
+                    elif isinstance(event, GenerationDone):
+                        output = event.metrics
+                limit_hits += self._log_summary_output(conversation_id, output, text)
                 raw = compaction.parse_summary(text)
                 if raw is not None:
                     break
@@ -1991,6 +1996,9 @@ class ConversationEngine:
             }
             verified = compaction.verify_and_render(raw, lookup, from_seq=1, to_seq=next_start - 1)
             kept, dropped = verified.kept, dropped + verified.dropped
+            lost, certain = self._log_rewrite(conversation_id, previous, verified.content)
+            possibly_lost += lost
+            became_certain += certain
             previous = verified.content
             check()
             summary = await self._persist_summary(
@@ -2018,11 +2026,94 @@ class ConversationEngine:
             chunks=len(chunks),
             kept_items=kept,
             dropped_items=dropped,
+            output_limit_hits=limit_hits,
+            possibly_lost_user_items=possibly_lost,
+            became_certain=became_certain,
             tokens_before=tokens_before,
             tokens_after=after,
             duration_ms=round((time.monotonic() - started) * 1000),
         )
         return True
+
+    def _log_summary_output(
+        self, conversation_id: str, output: GenerationMetrics | None, text: str
+    ) -> int:
+        """How one summary request ended, in numbers: was its output cut at the limit? It is not
+        stored (that needs a migration) and changes nothing. Returns 1 for a cut."""
+        tokens = output.output_tokens if output else None
+        reason = output.done_reason if output else None
+        at_limit = reason == "length" or (
+            tokens is not None and tokens >= self._cfg.summary_max_tokens
+        )
+        log_event(
+            _log,
+            logging.INFO,
+            "summary.output",
+            conversation_id=conversation_id,
+            output_tokens=tokens,
+            max_tokens=self._cfg.summary_max_tokens,
+            done_reason=reason,
+            at_limit=at_limit,
+            parse=compaction.parse_kind(text),
+        )
+        return 1 if at_limit else 0
+
+    def _log_rewrite(
+        self,
+        conversation_id: str,
+        previous: dict[str, Any] | None,
+        current: dict[str, list[dict[str, Any]]],
+    ) -> tuple[int, int]:
+        """What this rewrite may have lost, in numbers. An error here must not touch compaction."""
+        try:
+            audit = compaction.audit_rewrite(previous, current)
+        except Exception as exc:
+            log_event(_log, logging.WARNING, "summary.audit_failed", error=type(exc).__name__)
+            return 0, 0
+        log_event(
+            _log,
+            logging.INFO,
+            "summary.rewrite",
+            conversation_id=conversation_id,
+            possibly_lost_user_items=audit.lost_by("user"),
+            possibly_lost_assistant_items=audit.lost_by("assistant"),
+            refs_no_longer_cited=list(audit.refs_no_longer_cited),
+            became_certain=audit.became_certain,
+        )
+        return audit.lost_by("user"), audit.became_certain
+
+    async def summary_audit(self, conversation_id: str) -> list[dict[str, Any]]:
+        """Each summary version against the one before: candidates for lost items, in numbers.
+        ``rejected_items`` is ``dropped_items``: the evidence check's count, not a loss."""
+        await self.get_conversation(conversation_id)
+        rows = await self._q(lambda c: repository.list_summaries(c, conversation_id))
+        kept = [s for s in rows if s.status != "invalidated"]
+        report: list[dict[str, Any]] = []
+        before: Summary | None = None
+        for s in kept:
+            audit = compaction.audit_rewrite(before.content if before else None, s.content)
+            report.append(
+                {
+                    "version": s.version,
+                    "to_seq": s.to_seq,
+                    "kept_items": s.kept_items,
+                    "rejected_items": s.dropped_items,
+                    "possibly_lost": [
+                        {
+                            "section": x.section,
+                            "source": x.source,
+                            "refs": list(x.refs),
+                            "words_gone": x.words_gone,
+                            "words_total": x.words_total,
+                        }
+                        for x in audit.possibly_lost
+                    ],
+                    "refs_no_longer_cited": list(audit.refs_no_longer_cited),
+                    "became_certain": audit.became_certain,
+                }
+            )
+            before = s
+        return report
 
     async def _persist_summary(
         self,

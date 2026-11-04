@@ -8,7 +8,10 @@ pre-warming and a 300-turn soak. Synthetic data only.
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -27,6 +30,7 @@ from lazis.errors import (
 )
 from lazis.ids import utc_now_iso
 from lazis.personality.persona import CORE_IDENTITY
+from lazis.providers.llm.ports import ChatRequest
 from lazis.security.secrets import SecretBytes
 from lazis.storage import StorageHandle, open_storage
 from tests.conversation_support import (
@@ -419,6 +423,114 @@ def test_idle_compaction_runs_in_background_then_prewarms(
     assert ctx is not None and ctx.strategy == "summary_window"
     assert llm.summary_requests and llm.prewarm_requests
     assert len(rows(storage, cid)) == 6
+
+
+def test_compaction_records_its_output_and_possible_losses_in_numbers_only(
+    tmp_path: Path, storage: StorageHandle, caplog: pytest.LogCaptureFixture
+) -> None:
+    """REL-003: a second summary that leaves out the first one's fact is seen, with
+    ``dropped_items`` still 0. What is stored and sent is what it was; the log holds no text."""
+    caplog.set_level(logging.INFO)
+    secret_fact = "Komşunun kedisi Pamuk için özel mama alınacak"
+    summaries: list[str] = []
+
+    def summary(request: ChatRequest) -> str:
+        n = len(summaries)
+        goal = {
+            "text": secret_fact,
+            "source": "user",
+            "refs": [1],
+            "quote": "Not 0",
+            "certain": True,
+        }
+        other = {
+            "text": "Haftalık plan",
+            "source": "user",
+            "refs": [1],
+            "quote": "Not 0",
+            "certain": True,
+        }
+        body = {"goals": [goal, other] if n == 0 else [other], "topics": [], "decisions": [],
+                "open_questions": [], "constraints": [], "people": [], "instructions": [],
+                "assistant_notes": []}  # fmt: skip
+        summaries.append(json.dumps(body, ensure_ascii=False))
+        return summaries[-1]
+
+    llm = ScriptedLLM(reply=long_reply, summary=summary)
+    engine = make_engine(
+        storage, llm, tmp_path, idle_compaction_delay_s=3600.0, compact_at_tokens=1500,
+        keep_recent_tokens=256, summary_max_tokens=400,
+    )  # fmt: skip
+
+    async def go() -> tuple[str, list[dict[str, Any]]]:
+        cid: str | None = None
+        for i in range(3):
+            _, cid = await run_turn(engine, f"Not {i}: haftalık plan hazırlıyorum.", cid)
+        assert cid is not None
+        assert await engine.compact_now(cid)
+        for i in range(3, 6):
+            await run_turn(engine, f"Not {i}: haftalık plan hazırlıyorum.", cid)
+        assert await engine.compact_now(cid)
+        audit = await engine.summary_audit(cid)
+        await engine.close()
+        return cid, audit
+
+    cid, audit = asyncio.run(go())
+    assert audit[0]["possibly_lost"] == [] and audit[0]["rejected_items"] == 0
+    lost = [x for row in audit for x in row["possibly_lost"]]
+    assert [(x["section"], x["source"]) for x in lost] == [("goals", "user")]
+    stored = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
+    assert [s.dropped_items for s in stored] == [0] * len(stored)  # the old count cannot see it
+    assert all(secret_fact not in s.rendered for s in stored[1:])
+
+    fields = [getattr(r, "lazis_fields", {}) for r in caplog.records]
+    names = [r.getMessage() for r in caplog.records]
+    outputs = [f for n, f in zip(names, fields, strict=True) if n == "summary.output"]
+    assert len(outputs) == len(llm.summary_requests)
+    assert all(f["parse"] == "complete" and f["at_limit"] is False for f in outputs)
+    assert all(f["max_tokens"] == 400 and isinstance(f["output_tokens"], int) for f in outputs)
+    rewrites = [f for n, f in zip(names, fields, strict=True) if n == "summary.rewrite"]
+    assert sum(f["possibly_lost_user_items"] for f in rewrites) == 1
+    done = [f for n, f in zip(names, fields, strict=True) if n == "compaction.completed"]
+    assert sum(f["possibly_lost_user_items"] for f in done) == 1
+    logged = json.dumps(
+        [f for n, f in zip(names, fields, strict=True) if n.startswith(("summary.", "compaction."))],
+        ensure_ascii=False, default=str,
+    )  # fmt: skip
+    assert "Pamuk" not in logged and "kedisi" not in logged
+
+
+def test_a_summary_cut_at_its_limit_is_recorded_and_read_as_before(
+    tmp_path: Path, storage: StorageHandle, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO)
+
+    def cut(_request: ChatRequest) -> str:  # stops inside the second item, as the limit does
+        return (
+            '{"goals": [{"text": "Haftalık plan", "source": "user", "refs": [1], "quote": "Not 0",'
+            ' "certain": true}, {"text": "kesik metin'
+        )
+
+    llm = ScriptedLLM(reply=long_reply, summary=cut)
+    engine = make_engine(
+        storage, llm, tmp_path, idle_compaction_delay_s=3600.0, compact_at_tokens=1500,
+        keep_recent_tokens=256, summary_max_tokens=400,
+    )  # fmt: skip
+
+    async def go() -> str:
+        cid: str | None = None
+        for i in range(3):
+            _, cid = await run_turn(engine, f"Not {i}: haftalık plan hazırlıyorum.", cid)
+        assert cid is not None
+        assert await engine.compact_now(cid)
+        await engine.close()
+        return cid
+
+    cid = asyncio.run(go())
+    stored = storage.db.run_sync(lambda c: repository.list_summaries(c, cid))
+    assert stored and stored[-1].kept_items == 1  # salvaged as before
+    outputs = [r for r in caplog.records if r.getMessage() == "summary.output"]
+    assert outputs and all(getattr(r, "lazis_fields", {})["parse"] == "salvaged" for r in outputs)
 
 
 def test_failed_compaction_falls_back_to_an_announced_trim(

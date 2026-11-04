@@ -248,7 +248,7 @@ class SummaryInfoModel(_Schema):
     version: int
     to_seq: int
     kept_items: int
-    dropped_items: int
+    dropped_items: int  # refused by the evidence check; not a measure of lost information (REL-003)
     created_at: str
 
 

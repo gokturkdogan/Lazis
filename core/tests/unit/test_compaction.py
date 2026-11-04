@@ -10,9 +10,11 @@ from dataclasses import replace
 from typing import Any
 
 from lazis.conversation.compaction import (
+    audit_rewrite,
     build_messages,
     chunk_messages,
     normalize,
+    parse_kind,
     parse_summary,
     plan_split,
     quote_in,
@@ -252,3 +254,84 @@ def test_truncated_json_keeps_only_complete_items() -> None:
     # Nothing complete before the cut: nothing to salvage (and no exception).
     assert parse_summary('{"goals": [{"text": "yar') is None
     assert parse_summary("{") is None
+
+
+# ----- observation only: what a rewrite may have lost -----------------------------------------
+def test_parse_kind_tells_a_cut_output_apart() -> None:
+    whole = (
+        '{"goals": [{"text": "a", "source": "user", "refs": [1], "quote": "q", "certain": true}]}'
+    )
+    assert parse_kind(whole) == "complete"
+    assert parse_kind(f"```json\n{whole}\n```") == "complete"
+    cut = whole[:-2] + ', {"text": "kesik metin'
+    assert parse_kind(cut) == "salvaged"
+    assert parse_summary(cut) is not None  # the same text is still read as before
+    assert parse_kind('{"goals": [{"text": "yar') == "failed"
+    assert parse_kind("metin") == "failed"
+
+
+def test_audit_finds_an_item_the_rewrite_left_out_with_nothing_dropped() -> None:
+    """REL-003: the fact is gone, and the evidence check has nothing to count."""
+    before = {
+        **empty(),
+        "goals": [item("Günde 8 bin adım atmak", "user", [1], "ona yardım")],
+        "topics": [item("Toplantı perşembe", "user", [3], "perşembeye kaydırdık")],
+    }
+    after = {**empty(), "topics": [item("Toplantı perşembe", "user", [3], "perşembeye kaydırdık")]}
+    verified = verify_and_render(after, messages(), from_seq=1, to_seq=6)
+    assert verified.dropped == 0  # the evidence check sees no problem
+    audit = audit_rewrite(before, verified.content)
+    assert [(x.section, x.source, x.refs) for x in audit.possibly_lost] == [("goals", "user", (1,))]
+    assert audit.refs_no_longer_cited == (1,)
+    assert audit.lost_by("user") == 1 and audit.lost_by("assistant") == 0
+
+
+def test_audit_sees_a_lost_detail_when_the_message_is_still_cited() -> None:
+    before = {
+        **empty(),
+        "people": [
+            {**item("", "user", [1], "kız kardeşim"), "name": "Ayşe", "relation": "kız kardeşi"}
+        ],
+    }
+    after = {**empty(), "goals": [item("Ayşe taşınıyor", "user", [1], "kız kardeşim")]}
+    audit = audit_rewrite(before, after)
+    assert audit.refs_no_longer_cited == ()
+    assert [x.section for x in audit.possibly_lost] == ["people"]
+    assert audit.possibly_lost[0].words_gone == 2 and audit.possibly_lost[0].words_total == 3
+
+
+def test_a_quote_does_not_count_as_keeping_a_fact() -> None:
+    """The quote is not shown to the model in later turns."""
+    before = {**empty(), "goals": [item("Bütçe 35 bin", "user", [1], "yardım")]}
+    after = {**empty(), "goals": [item("Bütçe belirlendi", "user", [1], "Bütçe 35 bin")]}
+    assert audit_rewrite(before, after).lost_by("user") == 1
+
+
+def test_audit_counts_uncertain_made_certain() -> None:
+    before = {**empty(), "topics": [item("Mehmet gidebilir", "user", [5], "galiba", certain=False)]}
+    same = {**empty(), "topics": [item("Mehmet gidebilir", "user", [5], "galiba", certain=False)]}
+    made_sure = {
+        **empty(),
+        "topics": [item("Mehmet gidebilir", "user", [5], "galiba", certain=True)],
+    }
+    assert audit_rewrite(before, same).became_certain == 0
+    assert audit_rewrite(before, made_sure).became_certain == 1
+
+
+def test_audit_of_a_first_version_or_identical_rewrite_finds_nothing() -> None:
+    content = {**empty(), "goals": [item("Ayşe taşınıyor", "user", [1], "ona yardım")]}
+    assert audit_rewrite(None, content) == audit_rewrite({}, content)
+    audit = audit_rewrite(None, content)
+    assert (
+        audit.possibly_lost == () and audit.refs_no_longer_cited == () and audit.became_certain == 0
+    )
+    same = audit_rewrite(content, content)
+    assert same.possibly_lost == () and same.refs_no_longer_cited == ()
+
+
+def test_audit_survives_malformed_content_and_keeps_no_text() -> None:
+    bad: dict[str, Any] = {"goals": ["metin", {"source": "user", "refs": "x"}], "topics": "yok"}
+    assert audit_rewrite(bad, {}).refs_no_longer_cited == ()
+    before = {**empty(), "goals": [item("Selin vejetaryen", "user", [1], "yardım")]}
+    audit = audit_rewrite(before, empty())
+    assert "Selin" not in repr(audit) and "vejetaryen" not in repr(audit)
