@@ -32,6 +32,7 @@ from lazis.conversation import (
     citations,
     compaction,
     continuity,
+    daily,
     disclosure,
     learning,
     people,
@@ -1431,6 +1432,8 @@ class ConversationEngine:
         budget = self._memory.context_budget_tokens * (2 if overview else 1)
         if handle.style is not None and handle.style.notice():
             notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
+        if self.layers.memory and daily.asks(handle.user.content):
+            notice = "\n\n".join(x for x in (await self._daily_note(handle), notice) if x)
         # Layer 2 again, next to the message: a saved preference holds from the first reply of
         # a new session, with no earlier instruction in the history (ADR-0022 §8).
         saved = style_prefs.reminder(self.preferences) if self.layers.preferences else ""
@@ -1510,6 +1513,18 @@ class ConversationEngine:
             messages=[*built.messages[:-1], ChatMessage("user", f"{note}\n\n{last.content}")],
             estimated_tokens=built.estimated_tokens + cost,
         )
+
+    async def _daily_note(self, handle: TurnHandle) -> str:
+        """Today's own messages for this one reply (Phase 10D): a local read, on request only.
+        No model call of its own and nothing stored; it never blocks or fails a reply."""
+        now = self._now_local()
+        message_id = handle.user.id
+        try:
+            lines = await self._q(lambda c: daily.lines_today(c, message_id, now))
+        except Exception as exc:
+            log_event(_log, logging.WARNING, "reply.daily_failed", error=type(exc).__name__)
+            return ""
+        return daily.note(lines)
 
     async def _memory_request(
         self,

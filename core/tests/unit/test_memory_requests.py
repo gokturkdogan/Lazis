@@ -44,6 +44,38 @@ def test_requests_that_start_a_save(message: str) -> None:
     assert commands.detect(message) == "remember"
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Dosyayı kaydet.",
+        "Kaydet butonuna bastım.",
+        "Annem anahtarı unutma dedi.",
+        "Word belgesini kaydet ve kapat.",
+        "Bugün hatırla ki diye bir şarkı dinledim.",
+        "Annem unutmanı istemiyorum dedi.",
+    ],
+)
+def test_a_cue_inside_a_sentence_starts_nothing(message: str) -> None:
+    assert commands.detect(message) is None
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Bunu hatırla: Derya vegan.",
+        "Hafızana kaydet: Kahveyi şekersiz içerim.",
+        "Şunu öğren: Mehmet benim kardeşim.",
+        "Bunu unutma: Kısa cevaplardan hoşlanıyorum.",
+        "Bunu hafızana kaydet lütfen.",
+        "Derya'nın vegan olduğunu unutma.",
+        "Adresimi kaydet.",
+        "Mehmet kardeşim, bunu unutma.",
+    ],
+)
+def test_an_explicit_instruction_starts_a_save(message: str) -> None:
+    assert commands.detect(message) == "remember"
+
+
 @pytest.mark.parametrize("message", NOT_SAVES)
 def test_other_uses_of_not_and_kaydet(message: str) -> None:
     assert commands.detect(message) in (None, "recall")

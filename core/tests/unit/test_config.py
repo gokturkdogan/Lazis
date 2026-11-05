@@ -87,6 +87,16 @@ def test_validation_errors_do_not_echo_values() -> None:
     assert "10.9.8.7" not in info.value.detail
 
 
+def test_old_settings_do_not_turn_automatic_learning_back_on(tmp_path: Path) -> None:
+    user = tmp_path / "config.toml"
+    user.write_text("[memory]\nauto_extract = true\ncontext_budget_tokens = 123\n")
+    from_file = load_settings(user_config=user, environ={})
+    assert from_file.memory.auto_extract is False
+    assert from_file.memory.context_budget_tokens == 123  # the rest of the section still counts
+    from_env = load_settings(user_config=None, environ={"LAZIS_MEMORY__AUTO_EXTRACT": "true"})
+    assert from_env.memory.auto_extract is False
+
+
 def test_env_override_parsing() -> None:
     assert env_overrides({"LAZIS_LOGGING__CONSOLE": "true", "LAZIS_X": "1"}) == {
         "logging": {"console": True}

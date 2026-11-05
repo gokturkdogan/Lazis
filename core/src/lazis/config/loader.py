@@ -63,6 +63,15 @@ def _read_toml(path: Path) -> dict[str, Any]:
         raise ConfigError(f"user config could not be read ({exc.__class__.__name__})") from None
 
 
+def _without_automatic_learning(data: dict[str, Any]) -> dict[str, Any]:
+    """Learning only on explicit requests is a product decision (2026-11-05): an old user
+    file or environment saying ``auto_extract = true`` does not turn it back on."""
+    memory = data.get("memory")
+    if not isinstance(memory, dict) or "auto_extract" not in memory:
+        return data
+    return {**data, "memory": {k: v for k, v in memory.items() if k != "auto_extract"}}
+
+
 def load_settings(
     *,
     user_config: Path | None = None,
@@ -74,6 +83,7 @@ def load_settings(
         data = _deep_merge(data, _read_toml(user_config))
     if environ is not None:
         data = _deep_merge(data, env_overrides(environ))
+    data = _without_automatic_learning(data)
     if overrides:
         data = _deep_merge(data, overrides)
     try:

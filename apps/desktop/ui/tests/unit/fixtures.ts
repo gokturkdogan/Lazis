@@ -192,6 +192,9 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       pending_compaction: [],
     }),
     diagnostics: vi.fn().mockResolvedValue(diagnosticsFixture()),
+    style: vi.fn().mockResolvedValue({ dimensions: [] }),
+    setStyle: vi.fn().mockResolvedValue({ dimensions: [] }),
+    clearStyle: vi.fn().mockResolvedValue({ dimensions: [] }),
     memoryOverview: vi.fn().mockResolvedValue({
       memories: {}, entities: 0, inbox_open: 0, jobs: {}, auto_extract: true, trusted_models: ["gemma4:12b-it-qat"],
     }),

@@ -94,6 +94,13 @@ async function submit() {
   if (!accepted && draft.value === "") draft.value = text; // refused before storing: keep it
 }
 
+/** On the user's request only: this is an ordinary message, answered in an ordinary turn. */
+async function askDailySummary() {
+  if (!store.canSend) return;
+  atBottom.value = true;
+  await store.send(t("conversation.dailySummaryMessage"));
+}
+
 function renderAsMarkdown(m: Message): boolean {
   return m.role === "assistant" && m.status !== "streaming" && m.content !== "";
 }
@@ -264,6 +271,17 @@ watch(
       {{ t(errorKey(store.errorCode)) }}
     </p>
 
+    <div class="quick">
+      <button
+        class="btn"
+        type="button"
+        data-testid="daily-summary"
+        :disabled="!store.canSend"
+        @click="askDailySummary"
+      >
+        {{ t("conversation.dailySummary") }}
+      </button>
+    </div>
     <form class="composer" @submit.prevent="submit">
       <textarea
         v-model="draft"
@@ -458,6 +476,11 @@ select {
   margin: 0;
   font-size: 13px;
   color: var(--state-thinking);
+}
+.quick {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
 }
 .composer {
   display: flex;

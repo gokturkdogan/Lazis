@@ -7,6 +7,7 @@
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import StatusCard from "@/components/StatusCard.vue";
+import StylePanel from "@/components/StylePanel.vue";
 import type { StatusRow } from "@/components/types";
 import { formatBytes } from "@/format";
 import { useAssistantStore } from "@/stores/assistant";
@@ -134,10 +135,13 @@ const recoveryRows = computed<StatusRow[]>(() => [
       </label>
       <p v-if="prefs.errorCode" class="error small" role="alert">{{ t(errorKey(prefs.errorCode)) }}</p>
       <ul class="muted small notes">
+        <li>{{ t("settings.learningNote") }}</li>
+        <li>{{ t("settings.remindersNote") }}</li>
         <li>{{ t("settings.notificationsNote") }}</li>
         <li>{{ t("settings.loginItemNote") }}</li>
       </ul>
     </section>
+    <StylePanel />
     <StatusCard :title="t('settings.model')" :rows="modelRows" testid="settings-model" />
     <p class="muted small">{{ t("settings.modelHint") }}</p>
     <StatusCard :title="t('settings.privacy')" :rows="privacyRows" testid="settings-privacy" />

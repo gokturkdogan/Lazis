@@ -20,6 +20,9 @@ export type TurnSubmitRequest = Schemas["TurnSubmitRequest"];
 export type PrepareResponse = Schemas["PrepareResponse"];
 export type ActivityResponse = Schemas["ActivityResponse"];
 export type DiagnosticsResponse = Schemas["DiagnosticsResponse"];
+export type StyleDimension = Schemas["StyleDimensionModel"];
+export type StyleName = StyleDimension["dimension"];
+export type StyleResponse = Schemas["StyleResponse"];
 export type MemoryRecord = Schemas["MemoryRecordModel"];
 export type MemoryListResponse = Schemas["MemoryListResponse"];
 export type MemoryRecordDetail = Schemas["MemoryRecordDetailResponse"];
@@ -164,6 +167,10 @@ export interface ApiClient {
   ): Promise<void>;
   cancelTurn(clientId: string): Promise<boolean>;
   // ----- personal memory (Phase 6) -----
+  // ----- communication preferences (Phase 10D screen on the Phase 10B endpoints) -----
+  style(): Promise<StyleResponse>;
+  setStyle(dimension: StyleName, value: string): Promise<StyleResponse>;
+  clearStyle(dimension: StyleName): Promise<StyleResponse>;
   memoryOverview(): Promise<MemoryOverview>;
   memoryPredicates(): Promise<MemoryPredicate[]>;
   memoryRecords(query?: MemoryQuery): Promise<MemoryListResponse>;
@@ -298,7 +305,7 @@ export function createApiClient(
   }
 
   async function send<T>(
-    method: "POST" | "PATCH" | "DELETE",
+    method: "POST" | "PATCH" | "PUT" | "DELETE",
     path: string,
     payload?: unknown,
     timeout = timeoutMs,
@@ -387,6 +394,9 @@ export function createApiClient(
     prepare: (model) => post<PrepareResponse>("/chat/prepare", { model }),
     activity: () => get<ActivityResponse>("/chat/activity"),
     diagnostics: () => get<DiagnosticsResponse>("/diagnostics"),
+    style: () => get<StyleResponse>("/style"),
+    setStyle: (dimension, value) => send<StyleResponse>("PUT", `/style/${enc(dimension)}`, { value }),
+    clearStyle: (dimension) => send<StyleResponse>("DELETE", `/style/${enc(dimension)}`),
     memoryOverview: () => get<MemoryOverview>("/memory/overview"),
     memoryPredicates: async () =>
       (await get<{ predicates: MemoryPredicate[] }>("/memory/predicates")).predicates,

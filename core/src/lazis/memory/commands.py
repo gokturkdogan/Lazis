@@ -143,8 +143,10 @@ def detect(message: str, *, pending_confirmation: bool = False) -> Intent | None
     if _CORRECT.search(folded) or _denies_relation(folded.split()):
         return "correct"
     # "unutma" (remember) is checked before "unut" (forget).
+    # A cue that is no instruction starts nothing, and never a deletion ("Annem unutmanı
+    # istemiyorum dedi" holds "unutmanı", which alone reads as forget).
     if _REMEMBER.search(folded):
-        return "remember"
+        return "remember" if told_to_remember(message) else None
     if _FORGET.search(folded):
         return "forget"
     return None
@@ -350,6 +352,40 @@ _CUE_WORDS = frozenset(
      "da", "ve", "tamam", "peki", "olur", "mu", "mi", "misin", "musun", "simdi", "hemen",
      "ileride", "istiyorum", "istemiyorum", "rica", "ederim", "ediyorum", "sakin"}
 )  # fmt: skip
+
+
+# ----- an explicit instruction, not a word in a sentence (Phase 10D) ------------------------
+_REMEMBER_WORDS = re.compile(_REMEMBER.pattern + r"\w*")
+_CLAUSE = re.compile(r"[.!?;:,…\n]+")
+_SAID_TO_LAZIS = _CUE_WORDS | {"olsun", "tut", "et", "al", "yaz"}
+_TO_MEMORY = re.compile(
+    r"\bhafizan(?:a|iza) (?:kaydet(?!ti|mis)|kaydedin|al(?!d)|ekle(?!d)|yaz(?!d)|not)"
+)
+# What the verb is about, in a form that can only be meant for LAZIS: "vegan olduğunu unutma",
+# "içtiğimi kaydet", "gideceğimi hatırla", "adresimi not al". "Dosyayı kaydet" is not.
+_TOLD_OBJECT = re.compile(
+    r"(?:[dt][iu]g[iu][nm][iu]|c[ae]g[iu][nm][iu]|m[ae]s[iu]n[iu]|m[ae]m[iu]|[iu]m[iu])$"
+)
+
+
+def told_to_remember(message: str) -> bool:
+    """A clause of the message is a request and nothing else ("Bunu hatırla:", "Hafızana kaydet",
+    "…, not al"), or asks it about something the user says in the same clause. A cue among other
+    words ("Kaydet butonuna bastım", "Annem anahtarı unutma dedi") starts nothing."""
+    for part in _CLAUSE.split(extraction.users_own_words(message)):
+        clause = " ".join(text.words(part))
+        found = _REMEMBER_WORDS.search(clause)
+        if found is None:
+            continue
+        if _TO_MEMORY.search(clause):
+            return True
+        if all(w in _SAID_TO_LAZIS for w in _REMEMBER_WORDS.sub(" ", clause).split()):
+            return True
+        before = clause[: found.start()].split()
+        after = clause[found.end() :].split()
+        if before and _TOLD_OBJECT.search(before[-1]) and all(w in _SAID_TO_LAZIS for w in after):
+            return True
+    return False
 
 
 def cue_only(message: str) -> bool:
