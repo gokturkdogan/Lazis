@@ -31,6 +31,7 @@ from lazis.conversation import (
     adaptation,
     citations,
     compaction,
+    continuity,
     disclosure,
     learning,
     people,
@@ -1123,9 +1124,14 @@ class ConversationEngine:
                 if local_dois is not None:
                     guard.add_dois(await local_dois)
                     local_dois = None
+                offer = await self._continuity_offer(handle)
+                if offer is not None:
+                    await self._show(handle, guard.feed(f"\n\n{offer[1]}"))
                 await self._show(handle, guard.finish())
                 self._note_claims(handle, guard)
                 text = guard.released
+                if offer is not None and offer[1] in text:
+                    await self._continuity_offered(handle, offer[0])
                 if metrics is None:
                     raise LlmInvalidResponseError("stream ended without completion")
                 if not text.strip():
@@ -1313,6 +1319,40 @@ class ConversationEngine:
         if handle.first_shown_at is None:
             handle.first_shown_at = time.monotonic()
         await self._emit(handle, {"type": "delta", "text": text})
+
+    async def _continuity_offer(self, handle: TurnHandle) -> tuple[str, str] | None:
+        """A topic to come back to, and the fixed sentence for it (Phase 10C). A local read, only on
+        a greeting after a long gap; it never blocks or fails a reply."""
+        message = handle.user
+        on = self._cfg.continuity_followups and self.layers.memory
+        if not on or not continuity.is_greeting(message.content):
+            return None
+
+        def read(c: Connection) -> tuple[str, str] | None:
+            if not continuity.long_gap(c, message_id=message.id, now=message.created_at):
+                return None
+            topic = continuity.choose(c, now=message.created_at)
+            if topic is None:
+                return None
+            address = self.preferences.address if self.layers.preferences else "siz"
+            return topic.id, continuity.sentence(topic.value, address=address)
+
+        try:
+            return await self._q(read)
+        except Exception as exc:
+            log_event(_log, logging.WARNING, "reply.continuity_failed", error=type(exc).__name__)
+            return None
+
+    async def _continuity_offered(self, handle: TurnHandle, memory_id: str) -> None:
+        try:
+            await self._q(lambda c: continuity.mark_offered(c, memory_id))
+        except Exception as exc:
+            log_event(_log, logging.WARNING, "reply.continuity_failed", error=type(exc).__name__)
+            return
+        # Neither the topic nor its id: that one was offered is enough.
+        log_event(
+            _log, logging.INFO, "reply.continuity_offered", conversation_id=handle.conversation.id
+        )
 
     async def _local_dois(self) -> frozenset[str]:
         """DOIs in active memory records: a local source the reply may repeat (ADR-0022 §10)."""

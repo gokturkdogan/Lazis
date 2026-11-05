@@ -383,7 +383,8 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
     - acceptance: PER-06, PER-07, PER-12.
     `0008_adaptation` is tested on an isolated database first; it is applied to the real profile only with the owner's separate approval.
     As built: layer 2 in `personality/preferences.py`, learning in `conversation/adaptation.py`, a per-turn reminder and an address guard so a saved preference holds from a new session's first reply, refused requests that stay refused, and a DOI guard (`conversation/citations.py`, approved by the owner). Final runs: PER-06 new session 30/30 (`a440a3d`), PER-12 42/42 (`c449a0d`), DOI scenarios 48/48 plus 24 attack turns, read by hand (`6531811`, the final code). Not migrated on the real profile. Report: [PHASE_10_REPORT.md](PHASE_10_REPORT.md) Part B, [ADR-0022](adr/0022-adaptive-communication-preferences.md).
-  - **P10C — continuity and proactive follow-ups:**
+  - **P10B closed by the owner 2026-11-05** on its core deliveries, with REL-001, REL-002, REL-003 and REL-004 open ([PHASE_10B_CLOSURE.md](PHASE_10B_CLOSURE.md)).
+  - **P10C — continuity and proactive follow-ups** (first version approved 2026-11-05, in progress, off by default: [PHASE_10C_FIRST_VERSION.md](PHASE_10C_FIRST_VERSION.md); the rest below is not built and needs separate approval):
     - open loops and episodes;
     - at most one follow-up question per session;
     - never a topic the user declined, deleted or cancelled, or one that cannot be matched reliably;

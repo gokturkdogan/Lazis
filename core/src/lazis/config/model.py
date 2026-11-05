@@ -171,6 +171,9 @@ class ConversationSection(_Section):
     # Partial assistant output is persisted at most this often while streaming.
     flush_interval_s: float = Field(default=1.0, gt=0.0, le=30.0)
     flush_chars: int = Field(default=400, ge=1, le=100_000)
+    # Phase 10C: one fixed question about a topic of the user's own, on a greeting after a long
+    # gap. Off until the owner turns it on.
+    continuity_followups: bool = False
     title_max_chars: int = Field(default=60, ge=10, le=200)
     page_size: int = Field(default=50, ge=10, le=500)
     # Conservative estimate for text the runtime has not counted yet. Measured Turkish ratios

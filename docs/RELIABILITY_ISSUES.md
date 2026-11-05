@@ -155,6 +155,8 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **Evidence:** `evals/reports/phase10/perf/cycles/cycles_cache2048_gapall_r1.json`, field `rows[].cycles[].rendered`. Raw output and analysis: `evals/reports/phase10/perf/cycles-cp8/`.
 
+**Update 2026-11-05: approaches dropped.** The owner dropped showing a ledger of the user's sentences in every prompt, after three reading tests, and word-match retrieval of original sentences, which failed its frozen limits (reports on branch `experiment/rel003-carry`). No fix is in the product. This stays open, and is not an accepted quality level. `main` keeps its summary behaviour.
+
 ## REL-004: LAZIS can say it will do something it has no way to do
 
 | | |
@@ -178,6 +180,10 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 **Related but separate:** in the late-facts test, asked "Sana neyi hatırlatmanı istemiştim?", LAZIS told the user no such request had been made. That is summary loss (REL-003), and it is also wrong. Carrying the sentence must not turn it into a promise: this needs checking in any model run of the carry design.
 
 **Not measured:** whether "not aldım" or "kaydettim" is said when nothing was stored. The persona rule covers it, and those replies are common in stored runs, but they were not compared with what was actually saved.
+
+**Cause, measured 2026-11-05 (`docs/CARRY_READING3_REPORT.md` on branch `experiment/rel003-carry`):** with no reminder sentence in the prompt, 0 of 27 answers promised a reminder; with one, 12 of 18, in today's summary format and in a ledger alike. So the fault can appear in the product once a request reaches a summary. The persona rule was in the prompt every time. A better prompt cannot guarantee this: see acceptance criterion 2. Small sample, read by the developer who wrote the data.
+
+**Acceptance test, 2026-11-05 ([REL004_ACCEPTANCE_REPORT.md](REL004_ACCEPTANCE_REPORT.md)):** the fix on branch `rel004/action-claims` did not pass: 2 unverified claims shown in 72 turns, found by hand, and 1 right answer wrongly replaced. On the owner's decision it stays on its branch, not on `main`, with no new word lists and no rerun. Open.
 
 ### Acceptance criteria
 
