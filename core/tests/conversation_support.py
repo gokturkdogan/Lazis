@@ -238,6 +238,18 @@ class ScriptedLLM:
         return None
 
 
+def _test_memory(memory: MemorySection | None) -> MemorySection:
+    """Automatic learning is off in the product; these tests cover its machinery, so it is on
+    unless a test sets it. Learning starts right away unless a test sets the idle delay."""
+    given = memory or MemorySection()
+    update: dict[str, Any] = {}
+    if "auto_extract" not in given.model_fields_set:
+        update["auto_extract"] = True
+    if "learn_after_idle_s" not in given.model_fields_set:
+        update["learn_after_idle_s"] = 0.0
+    return given.model_copy(update=update)
+
+
 def settings_for(
     tmp_path: Path, *, memory: MemorySection | None = None, **conversation: Any
 ) -> Settings:
@@ -248,10 +260,7 @@ def settings_for(
         storage=StorageSection(data_dir=tmp_path / "data"),
         logging=LoggingSection(directory=tmp_path / "logs"),
         conversation=ConversationSection(**defaults),
-        # Learning starts right away in tests unless a test sets the idle delay itself.
-        memory=memory
-        if memory is not None and "learn_after_idle_s" in memory.model_fields_set
-        else (memory or MemorySection()).model_copy(update={"learn_after_idle_s": 0.0}),
+        memory=_test_memory(memory),
     )
 
 

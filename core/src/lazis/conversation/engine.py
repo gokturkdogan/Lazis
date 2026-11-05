@@ -937,6 +937,7 @@ class ConversationEngine:
                 after_reply=before is not None and before[0] == "assistant",
                 base=self.base_preferences,
                 now=now,
+                implicit=self._memory.auto_extract,
             )
         except Exception as exc:
             conn.execute("ROLLBACK TO style")
@@ -1585,7 +1586,9 @@ class ConversationEngine:
                 # Answered from the database: "Evet" after a failed save was the model's guess.
                 recent = [m.id for m in loaded.window if m.role == "user" and m.seq < user.seq]
                 lines = await self._q(lambda c: commands.saved_from(c, recent[-2:]))
-                waiting = await self._q(lambda c: commands.learning_waits(c, recent[-2:]))
+                waiting = self._memory.auto_extract and await self._q(
+                    lambda c: commands.learning_waits(c, recent[-2:])
+                )
                 handle.saved_before = lines
                 return commands.saved_notice(lines, waiting=waiting)
             return ""
@@ -2338,7 +2341,11 @@ class ConversationEngine:
     # ----- learning ----------------------------------------------------------------------
     async def _learn_now(self, conversation_id: str) -> None:
         """Process this conversation's queued memory jobs in the background slot, on the
-        prefix the re-warm just cached. Never waits for or delays a turn."""
+        prefix the re-warm just cached. Never waits for or delays a turn. With automatic learning
+        off, jobs queued earlier stay as they are and write nothing."""
+        if not self._memory.auto_extract:
+            self._learn.discard(conversation_id)
+            return
         now = time.monotonic()
         if self.is_busy() or self.scheduler.background is not None:
             self._pending[conversation_id] = now + 0.5

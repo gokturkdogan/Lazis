@@ -137,7 +137,7 @@ def test_pending_decisions(tmp_path: Path, storage: StorageHandle, token: str) -
     assert (
         overview["inbox_open"] == 0
         and overview["entities"] == 2
-        and overview["auto_extract"] is True
+        and overview["auto_extract"] is False
     )
 
 

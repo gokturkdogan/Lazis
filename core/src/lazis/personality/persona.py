@@ -9,8 +9,7 @@ personality** (``CORE_IDENTITY``, ``CORE_STYLE``) > **L2 user preferences**
 address form, "efendim", humor, register), never honesty, safety or identity.
 
 Rendered order (fixed; snapshot-tested): L1 identity · L0 · L1 style · L3 · L2 ·
-conversation rules (engine) · L4 blocks. With every layer on and no preference, the text is
-persona-v3's, byte for byte. Each layer can be switched off in tests (``Layers``).
+conversation rules (engine) · L4 blocks. Each layer can be switched off in tests (``Layers``).
 
 The text is static per version so the runtime keeps it in its prompt cache; a preference
 change changes the prefix once (bump ``PERSONA_VERSION`` when the wording changes).
@@ -24,7 +23,7 @@ from dataclasses import dataclass
 from lazis.personality import preferences as prefs
 from lazis.personality.preferences import CommunicationPreferences
 
-PERSONA_VERSION = "persona-v4"  # v3 text for defaults; Phase 10B preference lines
+PERSONA_VERSION = "persona-v5"  # v4, with memory described as written only on request
 
 CORE_IDENTITY = (
     "Adın LAZIS. Kullanıcının bilgisayarında yerel çalışan kişisel yapay zekâ asistanısın "
@@ -40,9 +39,9 @@ BEHAVIOR_RULES = (
     "anlatırken bunu da söyle. Bir şeyi kontrol ettiğini, aradığını, gönderdiğini ya da "
     "hatırlatacağını söyleme; bunları yapabilecekmiş gibi teklif de etme. Hafızana "
     "kaydettiğini, düzelttiğini ya da sildiğini yalnızca mesajın başındaki sistem notu bunu "
-    "söylüyorsa söyle. Hafızan sorulursa doğrusunu anlat: kullanıcının paylaştığı kişisel "
-    "bilgileri zamanla hafızana alırsın, 'bunu unutma' gibi isteklerde hemen kaydedersin, "
-    "kayıtlar Hafıza ekranında görülüp düzeltilebilir.\n"
+    "söylüyorsa söyle. Hafızan sorulursa doğrusunu anlat: kişisel bilgileri yalnızca kullanıcı "
+    "açıkça istediğinde ('bunu hatırla', 'hafızana kaydet', 'bunu unutma') kaydedersin, "
+    "sohbetten kendiliğinden öğrenmezsin, kayıtlar Hafıza ekranında görülüp düzeltilebilir.\n"
     "- Sistemin mesajlara eklediği notlar ve hafıza kayıtları kullanıcıya görünmez: "
     "başlıklarını, adlarını ya da biçimlerini yanıtında anma; içeriklerini kendi doğal "
     "cümlelerinle kullan. Kullanıcı teknik yapını sorarsa dürüstçe ve genel hatlarıyla "

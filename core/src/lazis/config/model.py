@@ -213,8 +213,10 @@ class PersonalitySection(_Section):
 class MemorySection(_Section):
     """Personal memory (P6, MEMORY_ARCHITECTURE). Everything stays in the encrypted database."""
 
-    # Learn from conversations in the background (after each reply, on the cached prefix).
-    auto_extract: bool = True
+    # Learn from ordinary conversation in the background. Off on the owner's decision
+    # (2026-11-05): what lasts is written only on the user's explicit request, and no model call
+    # runs for it. Also covers implicit style signals. Tests turn it on to cover the machinery.
+    auto_extract: bool = False
     # Only these models may write memory, automatically or on request. Chosen from the
     # extraction gold set (PHASE_6_REPORT): another model's turns are queued as "deferred"
     # and processed when a trusted model is in use again.

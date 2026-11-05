@@ -70,7 +70,7 @@ _REMEMBER = re.compile(
     r"|kaydeder misin|kaydedebilir|kaydedin\b|kayit et"
     r"|kayda (?:gecir|al)|kayit altina al|kaydini tut"
     r"|not (?:al|et|dus)\b|not (?:al|ed)(?:ir misin|abilir|ebilir|in|iniz|sana|sene)\b"
-    r"|not etsene|hafizana|bunu bil\b)"
+    r"|not etsene|hafizana|bunu bil\b|(?:sunu|bunu|bunlari) ogren\b)"
 )
 _FORGET = re.compile(
     r"\b(unut(?:\b|ur mu|abilir|mani|sana|un\b)|hafizandan|kaydini sil|kayitlarini sil|"
@@ -102,7 +102,7 @@ _DECLINE = re.compile(r"^\s*(hayir|vazgec|silme|iptal)\b")
 # statements: 3/10 replies claimed "not aldım" with the old wording, 1/10 with this one).
 PENDING_NOTICE = (
     f"{NOTICE_START}\n"
-    "Bu mesajdaki bilgiler henüz hafızaya yazılmadı (gerekirse sonra arka planda yazılır). "
+    "Bu mesajdaki bilgiler hafızaya yazılmadı; kullanıcı açıkça istemedikçe yazılmaz. "
     "Yanıtta yalnızca anladığını göster ve konuya devam et; kaydetmekten, not almaktan, "
     "öğrenmekten ya da hatırlayacağından söz etme.\n"
     f"{NOTICE_END}"
@@ -294,7 +294,7 @@ JSON'u tek satırda, girintisiz yaz."""
 # requests (Phase 7.2: "Burak'ın düğünü haziranda" → predicate "device", nothing saved).
 REMEMBER_NOTE = """\
 Bu bir AÇIK KAYIT İSTEĞİ olabilir: kullanıcı bir bilgiyi hafızaya kaydetmemi istiyor ("bunu \
-unutma", "not al", "kaydet", "aklında tut", "hatırla").
+unutma", "not al", "kaydet", "aklında tut", "hatırla", "şunu öğren").
 - action="remember": kaydedilmesini istediği bilgiyi aşağıdaki kurallarla items ve relations \
 olarak çıkar. İstek kalıbı ("lütfen şunu not al", "bunu unutma") bilgi değildir; quote bilginin \
 kendisinden alınır. Kural 2 burada yalnızca istek kalıbı için geçerlidir.

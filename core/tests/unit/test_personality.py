@@ -73,7 +73,7 @@ def test_system_text_is_deterministic_and_has_no_per_turn_content() -> None:
     a = system_text(None, None)
     assert a == system_text(None, None)
     assert "Mesaj zamanı:" not in a  # time lives with each user message, not in the prefix
-    assert PROMPT_VERSION == "p72-v1" and PERSONA_VERSION == "persona-v4"
+    assert PROMPT_VERSION == "p72-v1" and PERSONA_VERSION == "persona-v5"
 
 
 def test_defaults_add_no_preference_text_and_preferences_are_explicit() -> None:

@@ -348,8 +348,11 @@ def observe(
     after_reply: bool,
     base: CommunicationPreferences,
     now: str,
+    implicit: bool = True,
 ) -> Observed:
-    """Read one live user message for style and apply what it says (caller's transaction)."""
+    """Read one live user message for style and apply what it says (caller's transaction).
+    ``implicit``: also count signals toward learned preferences. What the user says outright
+    always applies, and preferences learned earlier stay."""
     r = prefs.read(content, after_reply=after_reply)
     if not r.any:
         return Observed(preferences=effective(conn, base))
@@ -365,7 +368,7 @@ def observe(
              now=now, detail={"reason": reason})  # fmt: skip
     recorded = 0
     learned: list[Step] = []
-    for s in r.signals:
+    for s in r.signals if implicit else ():
         if record_signal(conn, s.dim, int(s.op[1]), message_id=message_id,
                          conversation_id=conversation_id, words=r.words, now=now):  # fmt: skip
             recorded += 1
