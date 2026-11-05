@@ -1,6 +1,6 @@
 # Faz 10C ilk sürüm: Konuya dönme
 
-**Tarih:** 2026-11-05. **Dal:** `phase10c/continuity`, `main`'den (`fc1716d`, `s3-v3`) açıldı. **Durum:** Geliştirildi, `make check` geçti. Sahip kabulü bekliyor. **`main`'e alınmadı, varsayılan olarak kapalı.**
+**Tarih:** 2026-11-05. **Dal:** `phase10c/continuity`, `main`'den (`fc1716d`, `s3-v3`) açıldı. **Durum:** Sahibin kararıyla `main`'e alındı ve kapsamı kapatıldı (2026-11-05). **Varsayılan olarak kapalı. Gerçek uygulamada ve gerçek Gemma ile denenmedi.** Aşağıdaki `make check` sonucu `386c17e` kodu içindir; birleşik `main` test edilmedi ([PHASE_10_CLOSURE.md](PHASE_10_CLOSURE.md)).
 
 ## 1. Davranış
 
@@ -105,6 +105,8 @@ Risk azaltıldı, **sıfır değil**:
 | `make check` | Bu dalda geçti |
 | Gerçek profil, servis, checkpoint, model, migration, push | Dokunulmadı |
 | **Gerçek uygulamada ve gerçek Gemma ile kullanım** | **Yapılmadı.** Bu aşamada istenmedi |
-| Sahibin kabulü | Bekliyor |
+| Sahibin kararı | Kapsam kapatıldı, kullanımda denenmeden |
 
 Yani kabul edilen test kapsamında kriterler karşılandı; ama ürün **gerçek kullanımda sınanmadı**.
+
+**Otomatik öğrenmenin kapatılmasıyla ilişkisi:** Yeni konular artık yalnızca açık kayıt isteklerinden doğar, bu yüzden aday sayısı azalır.
