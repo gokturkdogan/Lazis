@@ -1,6 +1,6 @@
 # Faz 10D ilk sürüm: Kapsam ve kabul kriterleri
 
-**Tarih:** 2026-11-05. **Dal:** `phase10d/first-version`, `main`'den (`12217c3`) açıldı.
+**Tarih:** 2026-11-05. **Dal:** `phase10d/first-version`, `main`'den (`12217c3`) açıldı. **Durum:** Sahibin kararıyla test edilmeden `main`'e alındı (2026-11-05). Kapsam kapatılmadı.
 
 **Test durumu:** Sahibin talimatıyla **hiçbir test, lint, tip denetimi veya derleme çalıştırılmadı**, uygulama açılmadı. Aşağıdaki kriterler kodu okuyarak değerlendirildi.
 
