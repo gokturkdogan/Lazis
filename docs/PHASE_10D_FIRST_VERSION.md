@@ -112,7 +112,8 @@ Sahibin talimatı: kalan küçük işleri tamamla, kapsamı kapat, Faz 11'e sahi
 - **Tekrar azaltmanın etkisi ölçülmedi.** Not yalnızca bir önceki yanıta bakar; daha eski tekrarları ve farklı söylenmiş aynı kalıpları görmez.
 - **Bellek katmanı kapalı değerlendirme ayarında**, tekrar notu olan turlarda hatırlama okuması yine çalışır (atıf notunda olduğu gibi); üründe bellek katmanı açıktır.
 - **Açık hatalar:** REL-001, REL-002, REL-003, REL-004 ve uzun sohbet sıkıştırma gecikmeleri.
-- **Doğrulama:** Faz 10C, 10D ve kapanış kodu hiç çalıştırılmadı; `main` test edilmedi.
+- **Doğrulama (2026-11-06 güncellemesi):** `make check` `main`'de geçti (`8ef5b83`). Geçici profilde arka uç açıldı, temel Türkçe sohbet, konuşma tarzı ve ilk kurulum uçları çalıştı.
+- **Teknik borç: gerçek modelle doğrulanmadı.** Manuel öğrenme, unutma ve günlük özet gerçek Gemma ile denenmedi. Model yüklenince swap 0'dan 986 MB'a çıktığı için deneme güvenlik kuralıyla durduruldu ve sahibin kararıyla yeniden çalıştırılmadı.
 
 **Sonuç:** Faz 10D kapsam bakımından kapalı. Faz 11'e sahibin bir sonraki talimatıyla geçilecek.
 
