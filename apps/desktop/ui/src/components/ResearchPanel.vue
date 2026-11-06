@@ -50,6 +50,7 @@ onMounted(() => {
       {{ t("research.unavailable") }}
     </p>
     <ul class="muted small">
+      <li data-testid="research-not-general">{{ t("research.notGeneral") }}</li>
       <li>{{ t("research.sends") }}</li>
       <li>{{ t("research.keeps") }}</li>
       <li>{{ t("research.never") }}</li>

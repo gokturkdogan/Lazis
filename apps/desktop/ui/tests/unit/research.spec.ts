@@ -50,6 +50,7 @@ describe("Internet research (Phase 12)", () => {
     expect(client.submitTurn).not.toHaveBeenCalled();
     expect((wrapper.get('[data-testid="research-query"]').element as HTMLInputElement).value).toBe("Ankara nüfusu");
     expect(wrapper.get('[data-testid="research-people"]').text()).toContain("Derya");
+    expect(wrapper.get('[data-testid="research-not-general"]').text()).toContain("genel bir internet arama motoru değildir");
     await wrapper.get('[data-testid="research-query"]').setValue("Ankara il nüfusu");
     await wrapper.get('[data-testid="research-approve"]').trigger("click");
     await flushPromises();
@@ -80,6 +81,7 @@ describe("Internet research (Phase 12)", () => {
     });
     expect((wrapper.get('[data-testid="research-mode"]').element as HTMLSelectElement).value).toBe("offline_only");
     expect(wrapper.find('[data-testid="research-unavailable"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="research-not-general"]').text()).toContain("Haberler, güncel olaylar");
     await wrapper.get('[data-testid="research-mode"]').setValue("ask");
     await flushPromises();
     expect(client.setResearchMode).toHaveBeenCalledWith("ask");

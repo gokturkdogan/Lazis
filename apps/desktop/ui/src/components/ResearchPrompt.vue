@@ -40,6 +40,7 @@ async function approve() {
   <div class="panel prompt" data-testid="research-prompt" role="dialog" :aria-label="t('research.confirmTitle')">
     <label for="research-query">{{ t("research.confirmTitle") }}</label>
     <input id="research-query" v-model="query" maxlength="200" data-testid="research-query" :disabled="plan.blocked" />
+    <p class="muted small" data-testid="research-not-general">{{ t("research.notGeneral") }}</p>
     <p v-if="plan.blocked" class="error small" role="alert" data-testid="research-blocked">{{ t("research.blocked") }}</p>
     <p v-else-if="plan.people.length" class="warn small" data-testid="research-people">
       {{ t("research.people", { names: plan.people.join(", ") }) }}

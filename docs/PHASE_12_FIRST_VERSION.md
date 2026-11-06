@@ -1,6 +1,6 @@
 # Faz 12 ilk sürüm: İzinli internet araştırması
 
-**Tarih:** 2026-11-06. **Dal:** `phase12/research`, `main`'den (`acb9b49`) açıldı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı. Gerçek Gemma ile, gerçek internetle ve masaüstü penceresinde **denenmedi**.
+**Tarih:** 2026-11-06. **Dal:** `phase12/research`, `main`'den (`acb9b49`) açıldı. **Durum:** Sahibin kararıyla **Wikipedia tabanlı ilk sürüm tamamlandı** (2026-11-06) ve `main`'e alındı. Gerçek Wikipedia bağlantısı bir kez doğrulandı (bölüm 11). Gerçek Gemma ile ve masaüstü penceresinde **denenmedi**.
 
 ## 1. Davranış
 
@@ -103,7 +103,7 @@ Araştırmanın açılıp kapanması ve her arama (`category = research`) kayded
 
 ## 10. Açık eksikler ve riskler
 
-- **Gerçek internetle denenmedi.** Yardımcının Wikipedia'ya gerçekten bağlanması (TLS, DNS, korumalı profil altında sertifika okuma) yalnızca sahte HTTP katmanıyla sınandı.
+- ~~Gerçek internetle denenmedi.~~ Bir kez doğrulandı (bölüm 11); başka sorgularla, ağ kesintisinde veya Wikipedia yavaşken denenmedi.
 - **Gerçek Gemma ile denenmedi:** kaynağa sadakat, atıf doğruluğu, sayfa içi talimatlara direnç ölçülmedi.
 - **Masaüstü penceresi açılmadı:** düğme, onay penceresi ve kabuğun yardımcıyı başlatması gerçek uygulamada görülmedi (Rust testi yardımcının profiliyle başladığını doğruluyor).
 - **Yalnızca Wikipedia:** genel web araması için sahibin sağlayıcı kararı gerekiyor.
@@ -111,3 +111,26 @@ Araştırmanın açılıp kapanması ve her arama (`category = research`) kayded
 - **Denetim kaydı sorgu metnini tutmuyor** (RES-12'den bilinçli sapma).
 - **Kelimeye dayalı paragraf seçimi** farklı kelimelerle anlatılan bilgiyi kaçırabilir.
 - **Yardımcının iç denetimi** Python soketleri içindir. İşletim sistemi profili 443 dışını zaten kapatıyor; 443'te özel adres engeli yalnızca iç denetimdedir. Bugün yardımcıda yerel kodla bağlantı kuran bir bileşen yok.
+
+## 11. Gerçek Wikipedia bağlantı testi (2026-11-06, sahibin onayıyla, tek istek)
+
+Kabuğun kullandığı düzen: yardımcı `egress.sb` altında, istemci `backend.sb` altında; istek yalnızca yardımcının soketinden. Sorgu: "İstanbul tarihi". Model yüklenmedi.
+
+| Kontrol | Sonuç |
+|---|---|
+| Arka uç profili internete doğrudan ulaşabiliyor mu | Hayır: DNS reddedildi, `185.15.59.224:443` bağlantısı işletim sistemince reddedildi (EPERM) |
+| DNS (yardımcı) | Çalıştı |
+| HTTPS/TLS (yardımcı) | Kuruldu; sertifika doğrulandı |
+| Wikipedia API yanıtı | Alındı; 1 arama ve 3 sayfa isteği, toplam 2,1 sn |
+| Sınırlar | 3 sayfa (sınır 3); 2. sayfa 20.000 karakter sınırında kesildi; not 8.725 karakter (sınır 9.000) |
+| Kaynaklar | [1] İstanbul tarihi, [2] İstanbul, [3] Fatih; bağlantılar `https://tr.wikipedia.org/wiki/...`; notta ve yanıt sonundaki listede aynı numara ve bağlantı |
+| İlk sayfanın başı | "İstanbul tarihi, günümüzde Türkiye toprakları üzerinde bulunan İstanbul şehrinin tarihini anlatır…" (sorguyla ilgili) |
+
+Bağlantılardaki Türkçe harfler URL kodlamasıyla gösterilir (`%C4%B0stanbul`); bağlantı doğrudur, ama okunması zordur.
+
+## 12. Kapanış ve ertelenen kapsam
+
+- **Arayüz:** Ayarlar'da ve onay penceresinde "Wikipedia genel bir internet arama motoru değildir…" açıklaması var.
+- **Ertelenen:** Genel web araması (DuckDuckGo, Brave, Mojeek, SearXNG) sonraki geliştirme kapsamındadır; sağlayıcı kararı sahibindir. Sorgu sınıflandırması (hassas konular), araştırma önbelleği ve gönderilen metnin denetim görünümü de ertelendi.
+- **Açık teknik borç:** gerçek Gemma ile kaynak sadakati ve atıf doğruluğu, sayfa içi talimatlara direnç, masaüstü penceresinde düğme, onay penceresi ve kabuğun yardımcıyı başlatması.
+

@@ -89,6 +89,7 @@ export const tr = {
     off: "Kapalı",
     ask: "Her aramada onayımla",
     unavailable: "Araştırma bileşeni şu anda çalışmıyor; açık olsa da arama yapılamaz.",
+    notGeneral: "Wikipedia genel bir internet arama motoru değildir: yalnızca ansiklopedi maddelerinde arar. Haberler, güncel olaylar ve diğer siteler bulunmaz.",
     sends: "Gönderilen tek şey, onayladığınız arama metnidir; Wikipedia'ya gider. Hafızanızdan hiçbir bilgi eklenmez.",
     keeps: "Bulunan sayfalar yalnızca o yanıtta kullanılır, hafızaya yazılmaz; kaynaklar yanıtın sonunda listelenir.",
     never: "Siteye giriş, form doldurma, dosya indirme ya da satın alma yapılmaz.",
