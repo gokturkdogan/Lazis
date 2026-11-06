@@ -18,7 +18,7 @@ NOW = datetime(2026, 11, 5, 18, 0, tzinfo=UTC)
 def _conn(*rows: tuple[str, str, str, str]) -> Connection:
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE messages (id TEXT, role TEXT, content TEXT, created_at TEXT)")
-    conn.execute("CREATE TABLE memory_suppressions (reason TEXT)")
+    conn.execute("CREATE TABLE memory_suppressions (reason TEXT, fingerprint TEXT)")
     conn.executemany("INSERT INTO messages VALUES (?, ?, ?, ?)", rows)
     return cast(Connection, conn)
 

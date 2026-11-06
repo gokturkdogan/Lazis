@@ -59,10 +59,12 @@ def test_other_uses_never_reach_the_request_stage(
 
 
 def test_the_model_can_say_it_is_not_a_request(tmp_path: Path, storage: StorageHandle) -> None:
-    llm, _ = run(storage, tmp_path, lambda r: answer("none"), "Kaydet butonuna bastım ama olmadı.")
+    # Phase 10D: a cue inside a sentence ("Kaydet butonuna bastım") no longer reaches the model;
+    # an instruction does, and the model may still say there is nothing to keep.
+    llm, _ = run(storage, tmp_path, lambda r: answer("none"), "Bunu not al, yarın bakarız.")
     assert len(llm.command_requests) == 1 and saved(storage) == []
     note = last_user(llm.chat_requests[0])
-    assert "Kaydedildi" not in note and "henüz hafızaya yazılmadı" in note  # an ordinary statement
+    assert "Kaydedildi" not in note and note.startswith(commands.PENDING_NOTICE)  # ordinary
 
 
 def test_a_wrong_predicate_is_kept_as_a_note(tmp_path: Path, storage: StorageHandle) -> None:

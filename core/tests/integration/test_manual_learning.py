@@ -33,7 +33,9 @@ def test_the_explicit_requests_are_seen_with_no_model_call(message: str) -> None
     assert commands.detect(message) == "remember"
 
 
-@pytest.mark.parametrize("message", ["Eşim Derya vegan.", "Kahveyi şekersiz içerim.", "Bugün hava güzel."])
+@pytest.mark.parametrize(
+    "message", ["Eşim Derya vegan.", "Kahveyi şekersiz içerim.", "Bugün hava güzel."]
+)
 def test_an_ordinary_message_is_no_request(message: str) -> None:
     assert commands.detect(message) is None
 
@@ -49,6 +51,9 @@ def test_an_ordinary_message_queues_nothing_and_calls_no_learning_model(
         await engine.close()
 
     asyncio.run(go())
-    assert storage.db.run_sync(lambda c: repo.count_memories(c)) == 0
-    assert storage.db.run_sync(lambda c: c.execute("SELECT COUNT(*) FROM memory_jobs").fetchone()[0]) == 0
+    assert storage.db.run_sync(lambda c: repo.count_memories(c)) == {}
+    assert (
+        storage.db.run_sync(lambda c: c.execute("SELECT COUNT(*) FROM memory_jobs").fetchone()[0])
+        == 0
+    )
     assert llm.requests and all(r.options.response_format is None for r in llm.requests)

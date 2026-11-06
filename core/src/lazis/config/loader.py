@@ -11,7 +11,7 @@ import re
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import ValidationError
 
@@ -70,7 +70,8 @@ def _without_automatic_learning(data: dict[str, Any]) -> dict[str, Any]:
     memory = data.get("memory")
     if not isinstance(memory, dict) or "auto_extract" not in memory:
         return data
-    return {**data, "memory": {k: v for k, v in memory.items() if k != "auto_extract"}}
+    section = cast(dict[str, Any], memory)
+    return {**data, "memory": {k: v for k, v in section.items() if k != "auto_extract"}}
 
 
 def load_settings(
