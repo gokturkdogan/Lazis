@@ -30,6 +30,7 @@ from lazis.api.chat import build_chat_router
 from lazis.api.conversations import build_conversation_router
 from lazis.api.documents import MAX_UPLOAD_BODY, UPLOAD_PATH, build_documents_router
 from lazis.api.memory import build_memory_router
+from lazis.api.research import build_research_router
 from lazis.api.schemas import (
     AiStatus,
     AppInfoResponse,
@@ -251,6 +252,7 @@ def create_app(ctx: ApiContext) -> FastAPI:
     app.include_router(build_conversation_router(PREFIX, lambda: ctx.conversations))
     app.include_router(build_style_router(PREFIX, lambda: ctx.conversations))
     app.include_router(build_documents_router(PREFIX, lambda: ctx.conversations))
+    app.include_router(build_research_router(PREFIX, lambda: ctx.conversations))
     app.include_router(
         build_memory_router(
             PREFIX,

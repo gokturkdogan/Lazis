@@ -58,6 +58,7 @@ Found during the same work: the shell leaked two descriptors into the backend. T
 - **`sandbox-exec` is deprecated** (still functional, used widely). If Apple removes it, the app fails closed instead of running unprotected. The long-term replacement is App Sandbox entitlements for a signed, packaged backend (ADR-0008, P15).
 - **Not covered by this profile:** the Rust shell and the WebKit processes (no network code; the webview is restricted by the CSP).
 - **P12 implication:** internet research needs outbound access. It must run in a separate helper process with its own narrower profile and the egress gateway; the main backend keeps this profile.
+  - *Implemented in P12 (2026-11-06):* `sandbox/egress.sb` runs `lazis.providers.web.helper` (outbound TCP 443 and DNS only, plus a connect-time public-address check in-process); `backend.sb` gains exactly one allowance, the helper's Unix socket (`EGRESS_SOCKET` parameter). See [PHASE_12_FIRST_VERSION.md](../PHASE_12_FIRST_VERSION.md).
 
 ## Alternatives considered
 

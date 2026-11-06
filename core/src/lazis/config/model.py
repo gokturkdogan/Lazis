@@ -84,18 +84,27 @@ class LoggingSection(_Section):
 
 
 class NetworkSection(_Section):
-    # Outbound network access arrives with research in P12. Until then it cannot be enabled.
+    # The backend itself never opens an outbound connection, also with research (P12): web
+    # requests go through the separate research helper (ADR-0009). This stays False.
     egress_enabled: Literal[False] = False
 
 
 class ResearchSection(_Section):
+    # Whether research is allowed is the user's choice in Settings (stored in the database,
+    # off by default), not this file. This value is kept for compatibility and must stay
+    # offline_only: a configuration file cannot turn research on.
     mode: ResearchMode = "offline_only"
+    # The research helper's Unix socket, given by the desktop shell (--egress-socket). Without
+    # it research is unavailable and says so; ordinary chat is unaffected.
+    egress_socket: str | None = Field(default=None, max_length=200)
 
     @field_validator("mode")
     @classmethod
-    def _offline_until_p12(cls, value: ResearchMode) -> ResearchMode:
+    def _offline_only(cls, value: ResearchMode) -> ResearchMode:
         if value != "offline_only":
-            raise ValueError("research.mode supports only 'offline_only' before Phase 12")
+            raise ValueError(
+                "research.mode must be 'offline_only'; research is enabled in Settings"
+            )
         return value
 
 

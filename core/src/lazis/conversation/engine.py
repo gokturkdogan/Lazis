@@ -24,8 +24,9 @@ import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field, replace
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
+from lazis import research
 from lazis.config.model import Settings
 from lazis.conversation import (
     adaptation,
@@ -84,6 +85,8 @@ from lazis.errors import (
     LlmUnavailableError,
     MemoryModelUntrustedError,
     MessageTooLongError,
+    ResearchBlockedError,
+    ResearchDisabledError,
     SessionNotActiveError,
     StorageError,
     TurnDuplicateError,
@@ -98,6 +101,7 @@ from lazis.memory import (
     graphstore,
     importer,
     orchestrator,
+    policy,
     relationships,
     retrieval,
 )
@@ -116,9 +120,10 @@ from lazis.providers.llm.ports import (
     LLMProvider,
     TextDelta,
 )
+from lazis.providers.web.client import ResearchClient, ResearchUnavailable, WebPage
 from lazis.storage.database import Database
 from lazis.storage.driver import Connection, DatabaseError
-from lazis.storage.repositories import write_audit
+from lazis.storage.repositories import get_setting, set_setting, write_audit
 
 _log = get_logger("conversation")
 
@@ -136,6 +141,7 @@ class TurnRequest:
     model: str
     channel: Channel = "text"
     document_id: str | None = None  # Phase 11: an open document this message is about
+    research_query: str | None = None  # Phase 12: a web search the user approved, as sent
 
 
 @dataclass
@@ -158,6 +164,10 @@ class TurnHandle:
     memory_ids: list[str] = field(default_factory=list[str])
     document_id: str | None = None  # Phase 11: the open document the message is about
     document_partial: bool = False  # the reply saw only part of it: the user is told
+    # Phase 12: the approved search, what it found (pages) or why it found nothing.
+    research_query: str | None = None
+    research_pages: list[WebPage] = field(default_factory=list[WebPage])
+    research_failure: str | None = None
     memory_note_floor: int = 0  # a lower bound of the note's tokens (see `_with_memory`)
     memory_ms: float | None = None
     # An explicit memory request in this message ("bunu unutma", "Ahmet'i unut"), if any.
@@ -296,6 +306,9 @@ class ConversationEngine:
         self.preferences = self.base_preferences
         # Phase 11: documents the user opened in this session, in memory only (never stored).
         self.documents = Library()
+        # Phase 12: the research helper (its socket is given by the desktop shell), if any.
+        socket_path = settings.research.egress_socket
+        self.research_client = ResearchClient(socket_path) if socket_path else None
         self.layers: Layers = ALL_LAYERS  # PER-07: tests and evaluations switch layers off
         self.budget = Budget.build(
             self.num_ctx,
@@ -758,7 +771,9 @@ class ConversationEngine:
     async def _begin(self, req: TurnRequest) -> TurnHandle:
         llm = self._llm()
         content = req.content.strip()
-        if req.document_id is not None and self.documents.get(req.document_id) is None:
+        if req.research_query is not None:
+            await self._check_research(req.research_query)
+        elif req.document_id is not None and self.documents.get(req.document_id) is None:
             raise DocumentNotFoundError("the document is not open")
         if self.estimator.message(content) > self.budget.hard_limit // 2:
             raise MessageTooLongError("message exceeds half of the context budget")
@@ -844,7 +859,9 @@ class ConversationEngine:
         conv, user, assistant, created, style = await self._q(write)
         handle = TurnHandle(conv, user, assistant, created, request_id=f"turn-{assistant.id}")
         handle.style = style
-        handle.document_id = req.document_id
+        # A research turn is about the web: an open document is not added to it.
+        handle.research_query = req.research_query
+        handle.document_id = req.document_id if req.research_query is None else None
         self._note_style(style)
         self._turn = handle
         self._focused = conv.id
@@ -1141,6 +1158,9 @@ class ConversationEngine:
                     local_dois = None
                 if handle.document_partial:
                     await self._show(handle, guard.feed(f"\n\n{documents.PARTIAL_NOTICE}"))
+                if handle.research_query is not None:
+                    found = research.sources_text(handle.research_pages, handle.research_failure)
+                    await self._show(handle, guard.feed(f"\n\n{found}"))
                 offer = await self._continuity_offer(handle)
                 if offer is not None:
                     await self._show(handle, guard.feed(f"\n\n{offer[1]}"))
@@ -1449,6 +1469,9 @@ class ConversationEngine:
             notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
         asked_daily = self.layers.memory and daily.asks(handle.user.content)
         document = self.documents.get(handle.document_id)
+        searched = handle.research_query is not None
+        if searched:
+            await self._research(handle)
         if asked_daily:
             notice = "\n\n".join(x for x in (await self._daily_note(handle), notice) if x)
         # Layer 2 again, next to the message: a saved preference holds from the first reply of
@@ -1487,7 +1510,7 @@ class ConversationEngine:
         )
         if not self.layers.memory:
             budget = 0  # PER-07: the memory layer off — no recall block
-        if budget <= 0 and not notice and not reminder and document is None:
+        if budget <= 0 and not notice and not reminder and document is None and not searched:
             return built
         user = handle.user
         previous = next(
@@ -1534,7 +1557,7 @@ class ConversationEngine:
         # Today's summary stands on today's own messages alone: no recalled (older) memories.
         # A document answer stands on the document alone (Phase 11): no personal memories
         # next to it, so its content is never mixed up with what the user said about their life.
-        alone = asked_daily or document is not None
+        alone = asked_daily or document is not None or searched
         recalled = "" if alone else retrieval.render(found)
         note = "\n\n".join(x for x in (notice, recalled, reminder) if x)
         if document is not None:
@@ -1543,12 +1566,22 @@ class ConversationEngine:
             chars = min(DOCUMENT_NOTE_CHARS, chars)
             doc_note, handle.document_partial = documents.prepare(document, user.content, chars)
             note = "\n\n".join(x for x in (doc_note, note) if x)
+        if searched:
+            room = self.budget.hard_limit - built.estimated_tokens - self.estimator.text(note)
+            chars = int(max(0, room - DOCUMENT_NOTE_OVERHEAD) * self.estimator.chars_per_token)
+            budget_chars = min(research.NOTE_CHARS, chars)
+            web = research.note(handle.research_query or "", handle.research_pages,
+                                handle.research_failure, budget_chars)  # fmt: skip
+            note = "\n\n".join(x for x in (web, note) if x)
         if not note or built.messages[-1].role != "user":
             return built
         cost = self.estimator.text(note) + 2
         if alone and built.estimated_tokens + cost > self.budget.hard_limit:
             # Without its text the answer would be made up: say it cannot be given.
-            if document is not None:
+            if searched:
+                handle.research_failure = "context_full"
+                note = research.note(handle.research_query or "", [], "context_full", 0)
+            elif document is not None:
                 note, handle.document_partial = documents.prepare(document, user.content, 0)
             else:
                 note = daily.UNAVAILABLE
@@ -1565,6 +1598,64 @@ class ConversationEngine:
             messages=[*built.messages[:-1], ChatMessage("user", f"{note}\n\n{last.content}")],
             estimated_tokens=built.estimated_tokens + cost,
         )
+
+    # ----- internet research (Phase 12) -----------------------------------------------------
+    async def research_mode(self) -> research.Mode:
+        return research.mode_of(await self._q(lambda c: get_setting(c, research.SETTING_KEY)))
+
+    async def set_research_mode(self, mode: research.Mode) -> research.Mode:
+        def write(conn: Connection) -> None:
+            set_setting(conn, research.SETTING_KEY, mode, actor="user")
+            write_audit(conn, category="research", action="mode_set", outcome="success",
+                        actor="user", details={"mode": mode})  # fmt: skip
+
+        await self._q(write)
+        log_event(_log, logging.INFO, "research.mode_set", mode=mode)
+        return mode
+
+    async def research_plan(self, message: str) -> research.Plan:
+        return await self._q(lambda c: research.plan(c, message))
+
+    async def _check_research(self, query: str) -> None:
+        """Before anything is stored: research is on, and the query holds no restricted data."""
+        if await self.research_mode() != "ask":
+            raise ResearchDisabledError("research is off")
+        if not query.strip() or len(query) > research.MAX_QUERY_CHARS:
+            raise ResearchBlockedError("query")
+        if policy.secret_kind(query) is not None:
+            raise ResearchBlockedError("restricted")
+
+    async def _research(self, handle: TurnHandle) -> None:
+        """The approved search, in this turn only. Never raises: a failure becomes its code."""
+        await self._stage(handle, "researching")
+        query = handle.research_query or ""
+        started = time.monotonic()
+        client = self.research_client
+        try:
+            if client is None:
+                raise ResearchUnavailable("helper_unavailable")
+            pages = await asyncio.wait_for(asyncio.to_thread(client.research, query), 40)
+            handle.research_pages = pages
+            handle.research_failure = None if pages else "no_results"
+        except ResearchUnavailable as exc:
+            handle.research_failure = exc.code
+        except TimeoutError:
+            handle.research_failure = "timeout"
+        ms = round((time.monotonic() - started) * 1000)
+        outcome: Literal["success", "failure"] = "success" if handle.research_pages else "failure"
+        log_event(_log, logging.INFO, "research.done", outcome=outcome, ms=ms,
+                  pages=len(handle.research_pages), reason=handle.research_failure)  # fmt: skip
+
+        def audit(conn: Connection) -> None:
+            write_audit(conn, category="research", action="search", outcome=outcome, actor="user",
+                        reason_code=handle.research_failure,
+                        details={"provider": "wikipedia", "pages": len(handle.research_pages),
+                                 "query_chars": len(query), "ms": ms})  # fmt: skip
+
+        try:
+            await self._q(audit)
+        except Exception as exc:  # the audit row never fails the reply
+            log_event(_log, logging.WARNING, "research.audit_failed", error=type(exc).__name__)
 
     async def _daily_note(self, handle: TurnHandle) -> str:
         """Today's own messages for this one reply (Phase 10D): a local read, on request only.

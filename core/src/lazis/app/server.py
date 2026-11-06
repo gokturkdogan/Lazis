@@ -61,6 +61,7 @@ class ServeOptions:
     config_path: Path | None = None
     secrets_timeout: float | None = None
     require_os_sandbox: bool = False
+    egress_socket: str | None = None
 
 
 def _overrides(options: ServeOptions) -> dict[str, dict[str, object]]:
@@ -73,6 +74,8 @@ def _overrides(options: ServeOptions) -> dict[str, dict[str, object]]:
         result.setdefault("logging", {})["directory"] = str(options.log_dir)
     if options.secrets_timeout:
         result.setdefault("backend", {})["secrets_timeout_seconds"] = options.secrets_timeout
+    if options.egress_socket:
+        result.setdefault("research", {})["egress_socket"] = options.egress_socket
     return result
 
 

@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import shutil
+import socket
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -20,7 +22,10 @@ from tests.conftest import REPO_ROOT
 from tests.process_helpers import start_backend
 
 PROFILE = REPO_ROOT / "apps/desktop/src-tauri/sandbox/backend.sb"
+EGRESS_PROFILE = REPO_ROOT / "apps/desktop/src-tauri/sandbox/egress.sb"
 SANDBOX_EXEC = "/usr/bin/sandbox-exec"
+NO_SOCKET = "/dev/null/lazis-no-research-helper"  # what the shell passes without a helper
+BACKEND = [SANDBOX_EXEC, "-f", str(PROFILE), "-D", f"EGRESS_SOCKET={NO_SOCKET}"]
 
 pytestmark = pytest.mark.skipif(
     sys.platform != "darwin" or not Path(SANDBOX_EXEC).exists(),
@@ -69,7 +74,7 @@ print(json.dumps(r))
 def _run_probe(*, sandboxed: bool) -> dict[str, str]:
     cmd = [sys.executable, "-c", PROBE]
     if sandboxed:
-        cmd = [SANDBOX_EXEC, "-f", str(PROFILE), *cmd]
+        cmd = [*BACKEND, *cmd]
     out = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=True)
     return json.loads(out.stdout.strip().splitlines()[-1])
 
@@ -101,7 +106,7 @@ def test_status_probe_reports_not_enforced_without_the_profile() -> None:
 def test_backend_runs_under_the_profile_and_reports_it(tmp_path: Path) -> None:
     backend = start_backend(
         tmp_path,
-        prefix=[SANDBOX_EXEC, "-f", str(PROFILE)],
+        prefix=BACKEND,
         extra_args=["--require-os-sandbox"],
     )
     try:
@@ -131,7 +136,99 @@ def test_backend_refuses_to_start_when_the_sandbox_is_required_but_missing(
 
 def test_profile_is_valid_seatbelt_syntax() -> None:
     assert shutil.which(SANDBOX_EXEC)
-    out = subprocess.run(
-        [SANDBOX_EXEC, "-f", str(PROFILE), "/usr/bin/true"], capture_output=True, text=True
-    )
+    out = subprocess.run([*BACKEND, "/usr/bin/true"], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
+    egress = [SANDBOX_EXEC, "-f", str(EGRESS_PROFILE), "-D", f"EGRESS_SOCKET={NO_SOCKET}"]
+    out = subprocess.run([*egress, "/usr/bin/true"], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+
+
+# ----- Phase 12: the research helper's socket and profile -----------------------------------
+UNIX_PROBE = r"""
+import errno, json, socket, sys
+def attempt(path):
+    try:
+        s = socket.socket(socket.AF_UNIX); s.settimeout(2); s.connect(path); s.close()
+        return "allowed"
+    except OSError as exc:
+        return "eperm" if exc.errno in (errno.EPERM, errno.EACCES) else "error:" + str(exc.errno)
+print(json.dumps({"helper": attempt(sys.argv[1]), "other": attempt(sys.argv[2])}))
+"""
+
+
+def _listen(path: str) -> socket.socket:
+    server = socket.socket(socket.AF_UNIX)
+    server.bind(path)
+    server.listen(4)
+    return server
+
+
+def test_the_backend_reaches_the_helper_socket_and_no_other() -> None:
+    root = Path(tempfile.mkdtemp(prefix="lzs-", dir="/private/tmp"))
+    try:
+        helper, other = str(root / "helper.sock"), str(root / "other.sock")
+        servers = [_listen(helper), _listen(other)]
+        cmd = [SANDBOX_EXEC, "-f", str(PROFILE), "-D", f"EGRESS_SOCKET={helper}",
+               sys.executable, "-c", UNIX_PROBE, helper, other]  # fmt: skip
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=True)
+        assert json.loads(out.stdout) == {"helper": "allowed", "other": "eperm"}
+        for s in servers:
+            s.close()
+    finally:
+        shutil.rmtree(root)
+
+
+EGRESS_PROBE = rf"""
+import errno, json, socket, sys
+r = {{}}
+def attempt(name, fn):
+    try:
+        fn(); r[name] = "allowed"
+    except PermissionError as exc:
+        r[name] = "eperm" if exc.errno in (errno.EPERM, errno.EACCES) else "guard"
+    except OSError as exc:
+        r[name] = "error:" + str(exc.errno)
+def tcp(host, port):
+    s = socket.socket(); s.settimeout(2); s.connect((host, port)); s.close()
+attempt("tcp_listen", lambda: socket.socket().bind(("127.0.0.1", 0)))
+attempt("loopback_other_port", lambda: tcp("127.0.0.1", int(sys.argv[2])))
+attempt("ollama_port", lambda: tcp("127.0.0.1", 11434))
+attempt("remote_port_80", lambda: tcp("{TEST_NET}", 80))
+attempt("other_unix_socket", lambda: socket.socket(socket.AF_UNIX).connect(sys.argv[1]))
+attempt("dns_daemon", lambda: socket.socket(socket.AF_UNIX).connect("/var/run/mDNSResponder"))
+from lazis.providers.web import guard
+guard.install()
+attempt("guarded_loopback_443", lambda: tcp("127.0.0.1", 443))
+attempt("guarded_private_443", lambda: tcp("10.0.0.1", 443))
+attempt("guarded_bind", lambda: socket.socket().bind(("127.0.0.1", 0)))
+import subprocess
+attempt("guarded_process", lambda: subprocess.run(["/usr/bin/true"]))
+print(json.dumps(r))
+"""
+
+
+def test_the_helper_profile_allows_https_and_dns_only() -> None:
+    root = Path(tempfile.mkdtemp(prefix="lzs-", dir="/private/tmp"))
+    try:
+        mine, other = str(root / "helper.sock"), str(root / "other.sock")
+        server = _listen(other)
+        local = socket.socket()
+        local.bind(("127.0.0.1", 0))
+        local.listen(1)
+        cmd = [SANDBOX_EXEC, "-f", str(EGRESS_PROFILE), "-D", f"EGRESS_SOCKET={mine}",
+               sys.executable, "-c", EGRESS_PROBE, other, str(local.getsockname()[1])]  # fmt: skip
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=True)
+        r = json.loads(out.stdout.strip().splitlines()[-1])
+        server.close()
+        local.close()
+    finally:
+        shutil.rmtree(root)
+    # The OS refuses every port but 443, any local service, and any other Unix socket.
+    for name in ("tcp_listen", "loopback_other_port", "ollama_port", "remote_port_80",
+                 "other_unix_socket"):  # fmt: skip
+        assert r[name] == "eperm", (name, r[name])
+    assert r["dns_daemon"] == "allowed"
+    # Port 443 on a local or private address passes the OS; the helper's own guard refuses it
+    # before anything is sent, as it refuses listening sockets and starting programs.
+    for name in ("guarded_loopback_443", "guarded_private_443", "guarded_bind", "guarded_process"):
+        assert r[name] == "guard", (name, r[name])

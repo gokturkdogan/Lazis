@@ -1,0 +1,18 @@
+;; LAZIS research helper sandbox (Phase 12, ADR-0009) — macOS Seatbelt profile, applied by the
+;; desktop shell with /usr/bin/sandbox-exec to `python -I -B -m lazis.providers.web.helper`.
+;;
+;; * It listens on one Unix socket (param EGRESS_SOCKET), the only way the backend reaches it.
+;; * Outbound: TCP to port 443 (HTTPS) and the system DNS resolver, nothing else: no other port,
+;;   no plain HTTP, no other Unix socket. Seatbelt cannot tell public from private addresses on
+;;   port 443; the helper refuses those itself at connect time (lazis.providers.web.guard), and
+;;   accepts only allowlisted hosts.
+;; * It holds no secrets: no database key, no session token, no access to the backend's API
+;;   (connecting to the backend's TCP port is denied here).
+;; Verified by core/tests/security/test_os_sandbox.py.
+(version 1)
+(allow default)
+(deny network*)
+(allow network-bind (local unix-socket (path-literal (param "EGRESS_SOCKET"))))
+(allow network-inbound (local unix-socket (path-literal (param "EGRESS_SOCKET"))))
+(allow network-outbound (remote unix-socket (path-literal "/private/var/run/mDNSResponder")))
+(allow network-outbound (remote tcp "*:443"))

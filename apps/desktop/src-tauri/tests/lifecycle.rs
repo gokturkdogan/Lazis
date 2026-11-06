@@ -26,6 +26,7 @@ fn launch_for(profile: &Profile) -> BackendLaunch {
         config_path: profile.config_path.clone(),
         startup_timeout: Duration::from_secs(30),
         shutdown_grace: Duration::from_secs(7),
+        egress_socket: None,
     }
 }
 

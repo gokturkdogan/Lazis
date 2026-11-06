@@ -290,7 +290,8 @@ export const useAssistantStore = defineStore("assistant", {
     },
 
     /** Returns false if the backend refused the message before storing it (keep the draft). */
-    async send(text: string): Promise<boolean> {
+    /** ``researchQuery``: a web search the user approved exactly as shown (Phase 12). */
+    async send(text: string, options: { researchQuery?: string } = {}): Promise<boolean> {
       const client = currentApiClient();
       const content = text.trim();
       if (client === null || content === "" || !this.canSend) return false;
@@ -346,7 +347,10 @@ export const useAssistantStore = defineStore("assistant", {
             content,
             model: this.selectedModel,
             // Only while a document is open: an ordinary message stays exactly as before.
-            ...(this.document !== null ? { document_id: this.document.id } : {}),
+            ...(this.document !== null && options.researchQuery === undefined
+              ? { document_id: this.document.id }
+              : {}),
+            ...(options.researchQuery !== undefined ? { research_query: options.researchQuery } : {}),
           },
           onEvent,
           controller.signal,

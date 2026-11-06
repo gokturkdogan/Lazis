@@ -230,6 +230,27 @@ class DocumentNotFoundError(NotFoundError):
     code = "document_not_found"
 
 
+class ResearchDisabledError(LazisError):
+    """Internet research was asked for while it is off (Phase 12): nothing was sent."""
+
+    code = "research_disabled"
+    http_status = 409
+    recoverable = True
+
+
+class ResearchBlockedError(LazisError):
+    """The query cannot be sent (Phase 12): restricted data (passwords, tokens, IBAN, TC kimlik,
+    card numbers) is never sent, whatever the user says. The code names the reason."""
+
+    code = "research_blocked"
+    http_status = 422
+    recoverable = True
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.code = f"research_blocked_{reason}"
+
+
 class MemoryModelUntrustedError(LazisError):
     """Memory writes that need the model (text import) run only with a trusted model."""
 

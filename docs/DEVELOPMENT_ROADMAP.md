@@ -436,6 +436,8 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 
 ## P12 — Internet research (M)
 
+> **First version (2026-11-06, branch `phase12/research`, awaiting the owner's approval):** research off by default; each search previewed and approved by the user; Wikipedia only, through a separate sandboxed helper process (HTTPS on 443 and DNS only) while the backend stays offline; sources appended as fixed text; nothing stored in memory. General web search (provider decision), query classification beyond restricted data and names, the research cache and the audit view of sent text are not built ([PHASE_12_FIRST_VERSION.md](PHASE_12_FIRST_VERSION.md)).
+
 - **Objective:** optional, privacy-controlled, verified research ([RESEARCH_ARCHITECTURE.md](RESEARCH_ARCHITECTURE.md)).
 - **Prerequisites:** P7 (entity visibility), P5, P3, P1 (egress skeleton).
 - **Scope:**

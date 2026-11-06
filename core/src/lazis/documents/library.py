@@ -176,6 +176,27 @@ def select(doc: Document, message: str, budget_chars: int) -> tuple[list[Part], 
     return [parts[i] for i in _fit(order, parts, budget_chars)], "relevant"
 
 
+def best_passages(body: str, query: str, budget_chars: int) -> list[str]:
+    """The passages of ``body`` that share the most word stems with ``query``, in their order,
+    within the budget (Phase 12 reuses this for web pages)."""
+    parts = [Part("", piece, stems(piece)) for piece in _pieces(body)]
+    if not parts:
+        return []
+    if sum(len(p.text) + 4 for p in parts) <= budget_chars:
+        return [p.text for p in parts]
+    scores = _bm25(parts, stems(query))
+    order = sorted(range(len(parts)), key=lambda i: (-scores[i], i))
+    if 0 not in order[:1]:
+        order.remove(0)
+        order.insert(0, 0)  # the opening paragraph says what the page is about
+    return [parts[i].text for i in _fit(order, parts, budget_chars)]
+
+
+def safe(value: str) -> str:
+    """Untrusted text (a document, a web page) cannot close the note it sits in."""
+    return _safe(value)
+
+
 def _safe(value: str) -> str:
     """Document text cannot close the note it sits in."""
     return _MARKERS.sub("--", value)

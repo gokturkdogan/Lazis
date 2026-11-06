@@ -25,6 +25,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
             config_path=args.config,
             secrets_timeout=args.secrets_timeout,
             require_os_sandbox=args.require_os_sandbox,
+            egress_socket=args.egress_socket,
         )
     )
 
@@ -71,6 +72,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--require-os-sandbox",
         action="store_true",
         help="refuse to start unless the OS network sandbox is in effect (set by the shell)",
+    )
+    serve.add_argument(
+        "--egress-socket",
+        help="the research helper's Unix socket (set by the shell; research is off without it)",
     )
     serve.set_defaults(func=_cmd_serve)
 

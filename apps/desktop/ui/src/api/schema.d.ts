@@ -731,6 +731,41 @@ export interface paths {
         patch: operations["edit_relationship_api_v1_memory_relationships__rel_id__patch"];
         trace?: never;
     };
+    "/api/v1/research/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan */
+        post: operations["plan_api_v1_research_plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/research/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_research_settings_get"];
+        /** Put Settings */
+        put: operations["put_settings_api_v1_research_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -2496,6 +2531,56 @@ export interface components {
             /** Updated */
             updated: number;
         };
+        /** ResearchPlanModel */
+        ResearchPlanModel: {
+            /** Blocked */
+            blocked: boolean;
+            /** Blocked Reason */
+            blocked_reason: "restricted" | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "offline_only" | "ask";
+            /** People */
+            people: string[];
+            /** Query */
+            query: string;
+        };
+        /** ResearchPlanRequest */
+        ResearchPlanRequest: {
+            /** Message */
+            message: string;
+        };
+        /** ResearchSettingsModel */
+        ResearchSettingsModel: {
+            /** Available */
+            available: boolean;
+            /**
+             * Max Query Chars
+             * @default 200
+             */
+            max_query_chars: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "offline_only" | "ask";
+            /**
+             * Provider
+             * @default wikipedia
+             * @constant
+             */
+            provider: "wikipedia";
+        };
+        /** ResearchSettingsRequest */
+        ResearchSettingsRequest: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "offline_only" | "ask";
+        };
         /** RuntimeStatusModel */
         RuntimeStatusModel: {
             /** Available */
@@ -2633,6 +2718,8 @@ export interface components {
             document_id?: string | null;
             /** Model */
             model: string;
+            /** Research Query */
+            research_query?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -4254,6 +4341,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RelationshipModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_api_v1_research_plan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResearchPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchPlanModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_research_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchSettingsModel"];
+                };
+            };
+        };
+    };
+    put_settings_api_v1_research_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResearchSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchSettingsModel"];
                 };
             };
             /** @description Validation Error */

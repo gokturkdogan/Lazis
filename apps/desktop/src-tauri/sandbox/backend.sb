@@ -13,6 +13,10 @@
 ;; * Bind / inbound: Seatbelt cannot express "127.0.0.1 only" (in a *local* filter "localhost"
 ;;   means any local address). Loopback-only listening is enforced inside the backend
 ;;   (validated config + the audit-hook guard), not by this profile.
+;; * Research (Phase 12, ADR-0009): the backend still cannot reach the internet. It may connect
+;;   to exactly one Unix socket, the research helper's (param EGRESS_SOCKET, given by the shell;
+;;   a path that does not exist when the helper is not running). The helper runs under its own
+;;   profile (sandbox/egress.sb) and does the web requests.
 ;; * Everything else (files, Keychain, processes) is unrestricted here; file permissions and the
 ;;   backend's own guard cover those.
 (version 1)
@@ -21,3 +25,4 @@
 (allow network-bind (local ip "localhost:*"))
 (allow network-inbound (local ip "localhost:*"))
 (allow network-outbound (remote ip "localhost:11434"))
+(allow network-outbound (remote unix-socket (path-literal (param "EGRESS_SOCKET"))))

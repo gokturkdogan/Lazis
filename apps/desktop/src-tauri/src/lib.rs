@@ -10,6 +10,7 @@
 pub mod backend;
 pub mod controller;
 pub mod desktop;
+pub mod egress;
 pub mod errors;
 pub mod keystore;
 pub mod metrics;
@@ -296,7 +297,10 @@ pub fn run() {
     }
 
     let core_dir = paths::core_dir(std::env::var("LAZIS_CORE_DIR").ok().as_deref(), debug);
+    // Phase 12: the research helper, in its own sandbox; the backend gets its socket path.
+    let research_helper = egress::start(&paths::backend_python(&core_dir));
     let launch = BackendLaunch {
+        egress_socket: research_helper.as_ref().map(|h| h.socket.clone()),
         python: paths::backend_python(&core_dir),
         environment: if debug { "development" } else { "production" },
         data_dir: profile.data_dir.clone(),
@@ -381,9 +385,11 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to build the LAZIS desktop app");
 
-    app.run(|handle, event| match event {
+    let mut research_helper = research_helper;
+    app.run(move |handle, event| match event {
         RunEvent::Exit => {
             handle.state::<Shared>().shutdown();
+            drop(research_helper.take()); // after the backend: no request is in flight any more
         }
         // Dock icon clicked while the window is hidden in the menu bar.
         RunEvent::Reopen { has_visible_windows: false, .. } => show_main_window(handle, None),

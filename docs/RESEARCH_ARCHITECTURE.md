@@ -2,6 +2,8 @@
 
 > Status: Phase 0.1 (revised), aligned with the Phase 1 requirements · Last updated: 2026-10-17 · Delivered in **P12**
 > Owner requirements (Phase 1 brief): research is **Python-based, provider-agnostic, lightweight, Docker-free and privacy-controlled**, and internet access is **disabled by default**. LAZIS never requires Docker, for research or anything else.
+> **P12 first version (2026-11-06):** see [PHASE_12_FIRST_VERSION.md](PHASE_12_FIRST_VERSION.md) — permission `offline_only`/`ask` stored in Settings, Wikipedia only, separate sandboxed helper (ADR-0009). The rest of this document is the full design, not the delivered scope.
+>
 > P1 status: only the configuration exists — `research.mode` defaults to `offline_only` and any other value is rejected until P12; the backend's network guard blocks every non-loopback connection.
 > Principles: **the internet is an optional, controlled, visible capability.** Public information may be searched freely once the user enables it. Private information does not leave the device without an authorization policy. Web content never becomes trusted personal memory, and it never issues instructions.
 

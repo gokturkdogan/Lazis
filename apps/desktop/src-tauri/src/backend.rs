@@ -44,7 +44,13 @@ pub struct BackendLaunch {
     pub config_path: PathBuf,
     pub startup_timeout: Duration,
     pub shutdown_grace: Duration,
+    /// The research helper's Unix socket (Phase 12), if the helper was started. The backend's
+    /// profile allows connecting to this one path only; without it research is unavailable.
+    pub egress_socket: Option<PathBuf>,
 }
+
+/// Given to the profile when there is no research helper: a path that can never exist.
+pub const NO_EGRESS_SOCKET: &str = "/dev/null/lazis-no-research-helper";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StartError {
@@ -153,6 +159,11 @@ pub fn start(
     command
         .arg("-p")
         .arg(SANDBOX_PROFILE)
+        .arg("-D")
+        .arg(format!(
+            "EGRESS_SOCKET={}",
+            launch.egress_socket.as_deref().map_or(NO_EGRESS_SOCKET.into(), |p| p.to_string_lossy())
+        ))
         .arg(&launch.python)
         .args(["-I", "-m", "lazis", "serve", "--stdin-secrets", "--require-os-sandbox"])
         .args(["--environment", launch.environment])
@@ -162,6 +173,12 @@ pub fn start(
         .arg(&launch.log_dir)
         .arg("--config")
         .arg(&launch.config_path)
+        .args(
+            launch
+                .egress_socket
+                .iter()
+                .flat_map(|p| [std::ffi::OsStr::new("--egress-socket"), p.as_os_str()]),
+        )
         .env_clear()
         .current_dir("/")
         .stdin(Stdio::piped())
@@ -286,7 +303,7 @@ pub fn start(
 
 /// Read until EOF, tolerating invalid UTF-8, so the pipe is always drained and EOF really
 /// means the process closed it.
-fn for_each_line(stream: impl std::io::Read, mut f: impl FnMut(&str)) {
+pub(crate) fn for_each_line(stream: impl std::io::Read, mut f: impl FnMut(&str)) {
     let mut reader = BufReader::new(stream);
     let mut buf = Vec::with_capacity(256);
     loop {

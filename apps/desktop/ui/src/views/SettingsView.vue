@@ -7,6 +7,7 @@
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import StatusCard from "@/components/StatusCard.vue";
+import ResearchPanel from "@/components/ResearchPanel.vue";
 import StylePanel from "@/components/StylePanel.vue";
 import type { StatusRow } from "@/components/types";
 import { formatBytes } from "@/format";
@@ -142,6 +143,7 @@ const recoveryRows = computed<StatusRow[]>(() => [
       </ul>
     </section>
     <StylePanel />
+    <ResearchPanel />
     <StatusCard :title="t('settings.model')" :rows="modelRows" testid="settings-model" />
     <p class="muted small">{{ t("settings.modelHint") }}</p>
     <StatusCard :title="t('settings.privacy')" :rows="privacyRows" testid="settings-privacy" />

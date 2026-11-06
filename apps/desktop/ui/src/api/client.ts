@@ -21,6 +21,8 @@ export type PrepareResponse = Schemas["PrepareResponse"];
 export type ActivityResponse = Schemas["ActivityResponse"];
 export type DiagnosticsResponse = Schemas["DiagnosticsResponse"];
 export type DocumentInfo = Schemas["DocumentModel"];
+export type ResearchSettings = Schemas["ResearchSettingsModel"];
+export type ResearchPlan = Schemas["ResearchPlanModel"];
 export type StyleDimension = Schemas["StyleDimensionModel"];
 export type StyleName = StyleDimension["dimension"];
 export type StyleResponse = Schemas["StyleResponse"];
@@ -94,6 +96,7 @@ export type TurnStage =
   | "context_trimmed"
   | "loading_model"
   | "memory"
+  | "researching"
   | "processing_context";
 
 /** One line of the NDJSON stream from POST /turns. */
@@ -168,6 +171,10 @@ export interface ApiClient {
   ): Promise<void>;
   cancelTurn(clientId: string): Promise<boolean>;
   // ----- personal memory (Phase 6) -----
+  // ----- internet research the user allows and approves (Phase 12) -----
+  researchSettings(): Promise<ResearchSettings>;
+  setResearchMode(mode: ResearchSettings["mode"]): Promise<ResearchSettings>;
+  researchPlan(message: string): Promise<ResearchPlan>;
   // ----- documents the user opens (Phase 11; in the backend's memory for this session only) -----
   documents(): Promise<DocumentInfo[]>;
   addDocument(fileName: string, contentBase64: string): Promise<DocumentInfo>;
@@ -399,6 +406,9 @@ export function createApiClient(
     prepare: (model) => post<PrepareResponse>("/chat/prepare", { model }),
     activity: () => get<ActivityResponse>("/chat/activity"),
     diagnostics: () => get<DiagnosticsResponse>("/diagnostics"),
+    researchSettings: () => get<ResearchSettings>("/research/settings"),
+    setResearchMode: (mode) => send<ResearchSettings>("PUT", "/research/settings", { mode }),
+    researchPlan: (message) => post<ResearchPlan>("/research/plan", { message }),
     documents: async () => (await get<{ documents: DocumentInfo[] }>("/documents")).documents,
     addDocument: (fileName, contentBase64) =>
       post<DocumentInfo>("/documents", { file_name: fileName, content_base64: contentBase64 }),

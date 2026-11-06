@@ -3,15 +3,16 @@
  *  No conversation list, no "new chat", no renaming: technical sessions are invisible.
  *  Replies render as safe Markdown once complete (plain text while streaming, so partial
  *  syntax never flickers). The view follows new text only while the reader is at the bottom. */
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import type { Message } from "@/api/client";
+import { ApiError, type Message, type ResearchPlan } from "@/api/client";
 import MarkdownContent from "@/components/MarkdownContent.vue";
+import ResearchPrompt from "@/components/ResearchPrompt.vue";
 import { formatBytes, formatWhen } from "@/format";
 import { errorKey } from "@/i18n";
 import { copyText } from "@/platform/clipboard";
 import { useAssistantStore } from "@/stores/assistant";
-import { useConnectionStore } from "@/stores/connection";
+import { currentApiClient, useConnectionStore } from "@/stores/connection";
 
 const store = useAssistantStore();
 const connection = useConnectionStore();
@@ -49,6 +50,8 @@ const stageLabel = computed(() => {
   switch (turn.stage) {
     case "loading_model":
       return t("conversation.stage.loading_model");
+    case "researching":
+      return t("conversation.stage.researching");
     case "compacting":
       return t("conversation.stage.compacting");
     case "memory":
@@ -93,6 +96,48 @@ async function submit() {
   const accepted = await store.send(text);
   if (!accepted && draft.value === "") draft.value = text; // refused before storing: keep it
 }
+
+// ----- internet research (Phase 12): only when allowed in Settings, only after approval -----
+const researchAllowed = ref(false);
+const research = ref<{ message: string; plan: ResearchPlan } | null>(null);
+const researchError = ref<string | null>(null);
+
+async function refreshResearch() {
+  const client = currentApiClient();
+  if (client === null) return;
+  try {
+    researchAllowed.value = (await client.researchSettings()).mode === "ask";
+  } catch {
+    researchAllowed.value = false;
+  }
+}
+
+/** Shows what would be sent; nothing leaves the machine until the user approves it. */
+async function planResearch() {
+  researchError.value = null;
+  const message = draft.value.trim();
+  const client = currentApiClient();
+  if (message === "") {
+    researchError.value = t("research.needText");
+    return;
+  }
+  if (client === null) return;
+  try {
+    research.value = { message, plan: await client.researchPlan(message) };
+  } catch (e) {
+    researchError.value = t(errorKey(e instanceof ApiError ? e.code : null));
+  }
+}
+
+function researchDone(sent: boolean) {
+  research.value = null;
+  if (sent) {
+    draft.value = "";
+    atBottom.value = true;
+  }
+}
+
+onMounted(refreshResearch);
 
 /** On the user's request only: this is an ordinary message, answered in an ordinary turn. */
 async function askDailySummary() {
@@ -281,7 +326,19 @@ watch(
       >
         {{ t("conversation.dailySummary") }}
       </button>
+      <button
+        v-if="researchAllowed"
+        class="btn"
+        type="button"
+        data-testid="research-button"
+        :disabled="!store.canSend || research !== null"
+        @click="planResearch"
+      >
+        {{ t("research.button") }}
+      </button>
     </div>
+    <p v-if="researchError" class="muted small" role="status">{{ researchError }}</p>
+    <ResearchPrompt v-if="research" :message="research.message" :plan="research.plan" @done="researchDone" />
     <form class="composer" @submit.prevent="submit">
       <textarea
         v-model="draft"
@@ -480,6 +537,7 @@ select {
 .quick {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   margin-bottom: 6px;
 }
 .composer {

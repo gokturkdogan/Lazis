@@ -69,6 +69,11 @@ MESSAGES_TR: dict[str, str] = {
     "import_file_binary": "Bu bir metin dosyası gibi görünmüyor.",
     "import_file_empty": "Dosya boş.",
     "import_file_too_large": "Dosya çok büyük (en fazla 1 MB).",
+    "research_disabled": "İnternet araştırması kapalı. Ayarlar'dan açabilirsiniz.",
+    "research_blocked_restricted": (
+        "Bu arama gönderilmedi: şifre, kimlik, IBAN ya da kart bilgisi içeriyor."
+    ),
+    "research_blocked_query": "Arama metni boş ya da çok uzun (en fazla 200 karakter).",
     "document_unsupported": "Bu dosya türü desteklenmiyor. TXT, PDF ya da DOCX seçin.",
     "document_too_large": "Belge çok büyük (en fazla 10 MB).",
     "document_empty": "Belgede okunacak metin yok.",

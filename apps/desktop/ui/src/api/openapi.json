@@ -5270,6 +5270,119 @@
         "title": "RelationshipWriteResponse",
         "type": "object"
       },
+      "ResearchPlanModel": {
+        "properties": {
+          "blocked": {
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "const": "restricted",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "mode": {
+            "enum": [
+              "offline_only",
+              "ask"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "people": {
+            "items": {
+              "type": "string"
+            },
+            "title": "People",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "blocked",
+          "blocked_reason",
+          "people",
+          "mode"
+        ],
+        "title": "ResearchPlanModel",
+        "type": "object"
+      },
+      "ResearchPlanRequest": {
+        "properties": {
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ResearchPlanRequest",
+        "type": "object"
+      },
+      "ResearchSettingsModel": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "max_query_chars": {
+            "default": 200,
+            "title": "Max Query Chars",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "offline_only",
+              "ask"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "provider": {
+            "const": "wikipedia",
+            "default": "wikipedia",
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "available"
+        ],
+        "title": "ResearchSettingsModel",
+        "type": "object"
+      },
+      "ResearchSettingsRequest": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "offline_only",
+              "ask"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "title": "ResearchSettingsRequest",
+        "type": "object"
+      },
       "RuntimeStatusModel": {
         "additionalProperties": false,
         "properties": {
@@ -5693,6 +5806,19 @@
             "pattern": "^[a-z0-9][a-z0-9._-]{0,79}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,79})?$",
             "title": "Model",
             "type": "string"
+          },
+          "research_query": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Research Query"
           }
         },
         "required": [
@@ -7835,6 +7961,98 @@
           }
         },
         "summary": "Edit Relationship"
+      }
+    },
+    "/api/v1/research/plan": {
+      "post": {
+        "operationId": "plan_api_v1_research_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPlanModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plan"
+      }
+    },
+    "/api/v1/research/settings": {
+      "get": {
+        "operationId": "get_settings_api_v1_research_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchSettingsModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Settings"
+      },
+      "put": {
+        "operationId": "put_settings_api_v1_research_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchSettingsModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Settings"
       }
     },
     "/api/v1/settings": {
