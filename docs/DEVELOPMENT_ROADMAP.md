@@ -418,7 +418,7 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 
 ## P11 — Authorized local document ingestion (L)
 
-> **First version (2026-11-06, branch `phase11/documents`, awaiting the owner's approval):** one user-chosen TXT, PDF or DOCX, read locally, summarized and answered from; in memory for the session only, never learned from, no migration. Folders, sync, `documents.db`, document claims and the separate parser process are not built ([PHASE_11_FIRST_VERSION.md](PHASE_11_FIRST_VERSION.md)).
+> **First version accepted and completed 2026-11-06 by the owner's decision (limited scope; not tried with the real model or in the desktop window):** one user-chosen TXT, PDF or DOCX, read locally, summarized and answered from; in memory for the session only, never learned from, no migration. Folders, sync, a persistent document index (`documents.db`), learning from documents, document claims and the separate parser process are deferred, not part of this delivery ([PHASE_11_FIRST_VERSION.md](PHASE_11_FIRST_VERSION.md)).
 
 - **Objective:** learn from user-authorized local sources without confusing document content with personal facts ([LOCAL_INGESTION_ARCHITECTURE.md](LOCAL_INGESTION_ARCHITECTURE.md)).
 - **Prerequisites:** P9 (policy + pipeline), P7 (domain-aware resolution), P4 (UI).

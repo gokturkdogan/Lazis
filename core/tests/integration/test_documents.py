@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from lazis.documents.library import PARTIAL_NOTICE
 from lazis.memory import repository as memory_repo
 from lazis.memory.retrieval import BLOCK_START
 from lazis.providers.llm.ports import ChatRequest
@@ -126,3 +127,24 @@ def test_large_uploads_pass_the_size_guard(
         r = _upload(c, token, "uzun.txt", body.encode())
         assert r.status_code == 200, r.text
         assert r.json()["parts"] > 100
+
+
+def test_a_reply_from_part_of_the_document_says_so(
+    tmp_path: Path, storage: StorageHandle, token: str
+) -> None:
+    llm = ScriptedLLM(reply=lambda r: "Depozito 40 bin TL [parça 3].")
+    long_text = ("Genel açıklama paragrafı. " * 40 + "\n\n") * 200 + "Depozito 40 bin TL."
+    with make_client(tmp_path, storage, token, llm=llm) as c:
+        short = _upload(c, token, "kisa.txt", b"Depozito 40 bin TL.").json()
+        events = _turn(c, token, "Depozito ne kadar?", short["id"])
+        assert PARTIAL_NOTICE not in events[-1]["message"]["content"]
+
+        doc = _upload(c, token, "uzun.txt", long_text.encode()).json()
+        events = _turn(c, token, "Depozito ne kadar?", doc["id"])
+        shown = events[-1]["message"]["content"]
+        assert shown.endswith(PARTIAL_NOTICE) and shown.startswith("Depozito 40 bin TL")
+    stored = storage.db.run_sync(
+        lambda c: [str(r[0]) for r in c.execute(
+            "SELECT content FROM messages WHERE role='assistant' ORDER BY seq")]
+    )  # fmt: skip
+    assert stored[-1] == shown  # what was shown is what is stored

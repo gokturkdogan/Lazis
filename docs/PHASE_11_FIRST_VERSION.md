@@ -1,6 +1,6 @@
 # Faz 11 ilk sürüm: Seçilen belgeyi okuma, özetleme ve soru-cevap
 
-**Tarih:** 2026-11-06. **Dal:** `phase11/documents`, `main`'den (`8ef5b83`) açıldı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı.
+**Tarih:** 2026-11-06. **Dal:** `phase11/documents`, `main`'den (`8ef5b83`) açıldı. **Durum:** İlk sürüm, sahibin kararıyla sınırlı kapsamıyla **kabul edildi ve tamamlandı** (2026-11-06) ve `main`'e alındı. Gerçek Gemma ile ve masaüstü penceresinde **denenmedi**; özellik bütünüyle test edilmiş sayılmaz.
 
 ## 1. Kapsam
 
@@ -20,6 +20,7 @@ Kullanıcının seçtiği tek bir TXT, PDF veya DOCX belgesi:
 | Özet ve soru-cevap ek model çağrısı yapmaz | O turun normal yanıtı; belge parçaları yalnızca o turun notuna girer | Test edildi (betikli model) |
 | Belge talimat sayılmaz | Not, metnin bilgi olduğunu söyler; belge metni notu kapatamaz | Test edildi |
 | Belge kişisel bilgiyle karışmaz | Belge turunda hafıza kayıtları nota eklenmez; belgeden hafıza kaydı oluşmaz | Test edildi |
+| Kısmi içerik kullanıcıya söylenir | Belgenin yalnızca bir bölümünü gören yanıtın sonuna sabit not eklenir: "Not: Bu yanıt belgenin tamamına değil, yalnızca bir bölümüne dayanıyor." Modele bırakılmaz | Test edildi |
 | Uydurma yerine dürüstlük | Yanıt metinde yoksa söylemesi; uzun belgede tamamını görmediğini söylemesi; sığmazsa okuyamadığını söylemesi istenir | Not metni test edildi; **modelin uyması denenmedi** |
 | Belge kalıcı saklanmaz | Yalnızca bu oturumda bellekte; kapatınca veya uygulama kapanınca silinir | Test edildi |
 | Kullanıcının mesajı yalnızca yazdığıdır | Saklanan mesaj soru; belge metni saklanmaz | Test edildi |
@@ -78,3 +79,35 @@ Yalnızca modelsiz testler çalıştırıldı (sahibin izniyle). `make check` bu
 - **Belge geçmişte kalır:** Özet ve yanıtlar normal yanıt olarak sohbet geçmişinde saklanır ve sonraki turlarda veya sıkıştırma özetinde görünebilir. Belgenin kendisi saklanmaz.
 - **Tek belge:** Arayüz aynı anda bir belgeyle konuşur; arka uç beşe kadar tutar.
 - **Uygulama yeniden başlarsa** belge kaybolur; arayüz bunu `document_not_found` ile bildirir ve belgeyi bırakır.
+
+## 8. Kapanış (2026-11-06)
+
+### 8.1 Korunan güvenlik sınırları
+
+| Sınır | Kod |
+|---|---|
+| Dosya yalnızca kullanıcının açık seçimiyle okunur | Arka uç yol açmaz; yalnızca arayüzde seçilen dosyanın baytlarını alır |
+| Klasör veya dosya sistemi taranmaz | Tarama kodu yok |
+| Belge buluta gitmez | Arka uç ağa yalnızca yerel Ollama'ya çıkabilir (işletim sistemi koruması ve süreç içi kanca) |
+| Belge içeriği kalıcı hafızaya yazılmaz | Belge yalnızca o turun notunda; otomatik öğrenme kapalı; belge turunda hafıza kayıtları eklenmez |
+| Belge metni komut sayılmaz | Not, metnin bilgi olduğunu söyler; belge metni notu kapatamaz (bu sınırın modelce uygulanması denenmedi) |
+| Desteklenmeyen, bozuk, sınırı aşan belge reddedilir | `document_*` kodları, Türkçe ileti, içerik taşımaz |
+| Kısmi içerik kullanıcıya açıkça söylenir | Sabit not cümlesi (8.2'deki değişiklik) |
+
+### 8.2 Birleştirmeden önceki değişiklik
+
+Kısmi içerik bilgisi önceden yalnızca modele talimattı. Model atlarsa kullanıcı öğrenemeyecekti. Artık uzun belgede seçilmiş bölümlerle veya sonu okunamamış belgeyle verilen yanıtın sonuna sabit bir not eklenir; ekranda görünen ile saklanan metin aynıdır. `make check` yeniden geçti (3.424 çekirdek testi).
+
+### 8.3 Açık riskler (kapatılmadı)
+
+- Gemma'nın belgeye sadık kalması doğrulanmadı.
+- Belge içindeki kötü niyetli talimatlara karşı dayanıklılık doğrulanmadı.
+- PDF ayrıştırması ayrı süreçte çalışmıyor; tek bir sayfada uzun işlem riski var.
+- Dolaylı anlam eşleşmelerinde ilgili belge parçası kaçırılabilir (kelime köküne dayalı seçim).
+- Masaüstü belge paneli görsel olarak denenmedi.
+- Belge yanıtları konuşma geçmişinde saklanır; kullanıcının "belge saklanmaz" beklentisiyle çelişebilir (belgenin kendisi saklanmaz, yanıtlar saklanır).
+
+### 8.4 Ertelenen kapsam (bu sürümün teslimatı değildir)
+
+Klasör tarama, kalıcı belge dizini (`documents.db`), eşitleme ve geri alma, belgeden öğrenme ve belge iddiaları, güven sınırları, ayrı ayrıştırıcı süreci, Markdown ve HTML, OCR. Sahibin talimatı olmadan başlanmayacak.
+

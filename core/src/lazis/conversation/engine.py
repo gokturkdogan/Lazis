@@ -157,6 +157,7 @@ class TurnHandle:
     # Recall for this turn (ids and sizes only; the note itself is never stored).
     memory_ids: list[str] = field(default_factory=list[str])
     document_id: str | None = None  # Phase 11: the open document the message is about
+    document_partial: bool = False  # the reply saw only part of it: the user is told
     memory_note_floor: int = 0  # a lower bound of the note's tokens (see `_with_memory`)
     memory_ms: float | None = None
     # An explicit memory request in this message ("bunu unutma", "Ahmet'i unut"), if any.
@@ -1138,6 +1139,8 @@ class ConversationEngine:
                 if local_dois is not None:
                     guard.add_dois(await local_dois)
                     local_dois = None
+                if handle.document_partial:
+                    await self._show(handle, guard.feed(f"\n\n{documents.PARTIAL_NOTICE}"))
                 offer = await self._continuity_offer(handle)
                 if offer is not None:
                     await self._show(handle, guard.feed(f"\n\n{offer[1]}"))
@@ -1538,7 +1541,7 @@ class ConversationEngine:
             room = self.budget.hard_limit - built.estimated_tokens - self.estimator.text(note)
             chars = int(max(0, room - DOCUMENT_NOTE_OVERHEAD) * self.estimator.chars_per_token)
             chars = min(DOCUMENT_NOTE_CHARS, chars)
-            doc_note = documents.note(document, user.content, chars)
+            doc_note, handle.document_partial = documents.prepare(document, user.content, chars)
             note = "\n\n".join(x for x in (doc_note, note) if x)
         if not note or built.messages[-1].role != "user":
             return built
@@ -1546,7 +1549,7 @@ class ConversationEngine:
         if alone and built.estimated_tokens + cost > self.budget.hard_limit:
             # Without its text the answer would be made up: say it cannot be given.
             if document is not None:
-                note = documents.note(document, user.content, 0)
+                note, handle.document_partial = documents.prepare(document, user.content, 0)
             else:
                 note = daily.UNAVAILABLE
             cost = self.estimator.text(note) + 2
