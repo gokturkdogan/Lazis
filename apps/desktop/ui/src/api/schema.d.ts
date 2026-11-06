@@ -123,6 +123,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_api_v1_documents_get"];
+        put?: never;
+        /** Add Document */
+        post: operations["add_document_api_v1_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Document */
+        delete: operations["remove_document_api_v1_documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -1588,6 +1623,45 @@ export interface components {
             /** Turn Active */
             turn_active: boolean;
         };
+        /** DocumentAddRequest */
+        DocumentAddRequest: {
+            /** Content Base64 */
+            content_base64: string;
+            /** File Name */
+            file_name: string;
+        };
+        /** DocumentListResponse */
+        DocumentListResponse: {
+            /** Documents */
+            documents: components["schemas"]["DocumentModel"][];
+        };
+        /** DocumentModel */
+        DocumentModel: {
+            /** Added At */
+            added_at: string;
+            /** Chars */
+            chars: number;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "txt" | "pdf" | "docx";
+            /** Name */
+            name: string;
+            /** Pages */
+            pages: number | null;
+            /** Parts */
+            parts: number;
+            /** Truncated */
+            truncated: boolean;
+        };
+        /** DocumentRemoveResponse */
+        DocumentRemoveResponse: {
+            /** Removed */
+            removed: boolean;
+        };
         /**
          * EffectiveSettingsResponse
          * @description Non-secret, read-only view of the effective configuration (Phase 1).
@@ -2555,6 +2629,8 @@ export interface components {
             client_id: string;
             /** Content */
             content: string;
+            /** Document Id */
+            document_id?: string | null;
             /** Model */
             model: string;
         };
@@ -2791,6 +2867,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiagnosticsResponse"];
+                };
+            };
+        };
+    };
+    list_documents_api_v1_documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentListResponse"];
+                };
+            };
+        };
+    };
+    add_document_api_v1_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentAddRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_document_api_v1_documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRemoveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -22,6 +22,7 @@ import {
   ApiError,
   type ActivityResponse,
   type AssistantStateResponse,
+  type DocumentInfo,
   type LlmStatusResponse,
   type Message,
   type ModelListResponse,
@@ -95,6 +96,8 @@ export const useAssistantStore = defineStore("assistant", {
     turn: null as TurnState | null,
     background: null as ActivityResponse["background"],
     errorCode: null as string | null,
+    /** Phase 11: the open document messages are about (summary, questions); null = none. */
+    document: null as DocumentInfo | null,
   }),
 
   getters: {
@@ -107,6 +110,10 @@ export const useAssistantStore = defineStore("assistant", {
   },
 
   actions: {
+    setDocument(document: DocumentInfo | null) {
+      this.document = document;
+    },
+
     /** Opening LAZIS: the same assistant, the latest page of the timeline, then warm the
      *  active session's prompt prefix (only that one). */
     async init() {
@@ -334,7 +341,13 @@ export const useAssistantStore = defineStore("assistant", {
       };
       try {
         await client.submitTurn(
-          { client_id: clientId, content, model: this.selectedModel },
+          {
+            client_id: clientId,
+            content,
+            model: this.selectedModel,
+            // Only while a document is open: an ordinary message stays exactly as before.
+            ...(this.document !== null ? { document_id: this.document.id } : {}),
+          },
           onEvent,
           controller.signal,
         );
@@ -343,6 +356,8 @@ export const useAssistantStore = defineStore("assistant", {
         const code = error instanceof ApiError ? error.code : "internal_error";
         if (!started) {
           this.errorCode = code;
+          // The backend no longer has it (closed elsewhere, or it restarted): stop sending it.
+          if (code === "document_not_found") this.document = null;
           return false;
         }
         // The stream broke after the message was stored: keep the partial reply visible as

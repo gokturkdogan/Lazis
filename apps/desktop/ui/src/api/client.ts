@@ -20,6 +20,7 @@ export type TurnSubmitRequest = Schemas["TurnSubmitRequest"];
 export type PrepareResponse = Schemas["PrepareResponse"];
 export type ActivityResponse = Schemas["ActivityResponse"];
 export type DiagnosticsResponse = Schemas["DiagnosticsResponse"];
+export type DocumentInfo = Schemas["DocumentModel"];
 export type StyleDimension = Schemas["StyleDimensionModel"];
 export type StyleName = StyleDimension["dimension"];
 export type StyleResponse = Schemas["StyleResponse"];
@@ -167,6 +168,10 @@ export interface ApiClient {
   ): Promise<void>;
   cancelTurn(clientId: string): Promise<boolean>;
   // ----- personal memory (Phase 6) -----
+  // ----- documents the user opens (Phase 11; in the backend's memory for this session only) -----
+  documents(): Promise<DocumentInfo[]>;
+  addDocument(fileName: string, contentBase64: string): Promise<DocumentInfo>;
+  removeDocument(id: string): Promise<boolean>;
   // ----- communication preferences (Phase 10D screen on the Phase 10B endpoints) -----
   style(): Promise<StyleResponse>;
   setStyle(dimension: StyleName, value: string): Promise<StyleResponse>;
@@ -394,6 +399,11 @@ export function createApiClient(
     prepare: (model) => post<PrepareResponse>("/chat/prepare", { model }),
     activity: () => get<ActivityResponse>("/chat/activity"),
     diagnostics: () => get<DiagnosticsResponse>("/diagnostics"),
+    documents: async () => (await get<{ documents: DocumentInfo[] }>("/documents")).documents,
+    addDocument: (fileName, contentBase64) =>
+      post<DocumentInfo>("/documents", { file_name: fileName, content_base64: contentBase64 }),
+    removeDocument: async (id) =>
+      (await send<{ removed: boolean }>("DELETE", `/documents/${enc(id)}`)).removed,
     style: () => get<StyleResponse>("/style"),
     setStyle: (dimension, value) => send<StyleResponse>("PUT", `/style/${enc(dimension)}`, { value }),
     clearStyle: (dimension) => send<StyleResponse>("DELETE", `/style/${enc(dimension)}`),

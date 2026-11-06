@@ -10,6 +10,7 @@ import {
   assistantFixture,
   connection,
   conversationFixture,
+  documentFixture,
   fakeClient,
   fakePlatform,
   llmStatusFixture,
@@ -98,6 +99,32 @@ describe("The one assistant", () => {
     expect(seqs).toEqual([1, 2, 3, 4]);
     expect(wrapper.findAll('[data-testid="message-assistant"]').at(-1)?.text()).toContain("Bir plan yapalım.");
     expect((wrapper.get('[data-testid="composer"]').element as HTMLTextAreaElement).value).toBe("");
+  });
+
+  it("names the open document in the message, and only then (Phase 11)", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const turn: TurnImpl = async (body, onEvent) => {
+      bodies.push({ ...body });
+      onEvent(startEvent(3 + 2 * (bodies.length - 1)));
+      onEvent({
+        type: "done",
+        message: messageFixture(4 + 2 * (bodies.length - 1), "assistant", "Tamam."),
+        context: { estimated_tokens: 1, prompt_tokens: 1, strategy: "full" },
+      });
+    };
+    const { wrapper } = await mountView({
+      timeline: vi.fn().mockResolvedValue(history),
+      assistantState: vi.fn().mockResolvedValue(assistantFixture({ timeline_messages: 2 })),
+      submitTurn: vi.fn(turn),
+    });
+    useAssistantStore().setDocument(documentFixture());
+    await send(wrapper, "Depozito ne kadar?");
+    await flushPromises();
+    useAssistantStore().setDocument(null);
+    await send(wrapper, "Teşekkürler.");
+    await flushPromises();
+    expect(bodies[0]?.document_id).toBe(documentFixture().id);
+    expect(bodies[1]).not.toHaveProperty("document_id");
   });
 
   it("works for a first-ever user (no session yet)", async () => {

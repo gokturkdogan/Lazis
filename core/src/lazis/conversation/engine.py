@@ -67,10 +67,14 @@ from lazis.conversation.prompts import (
 )
 from lazis.conversation.reply_guard import ReplyGuard
 from lazis.conversation.scheduler import BackgroundJob, CacheKey, InferenceScheduler
+from lazis.documents import Library
+from lazis.documents import library as documents
+from lazis.documents.library import DOCUMENT_NOTE_CHARS, DOCUMENT_NOTE_OVERHEAD
 from lazis.errors import (
     ContextBuildError,
     ConversationNotFoundError,
     DatabaseBusyError,
+    DocumentNotFoundError,
     LazisError,
     LlmBusyError,
     LlmCancelledError,
@@ -131,6 +135,7 @@ class TurnRequest:
     content: str
     model: str
     channel: Channel = "text"
+    document_id: str | None = None  # Phase 11: an open document this message is about
 
 
 @dataclass
@@ -151,6 +156,7 @@ class TurnHandle:
     shutdown: bool = False
     # Recall for this turn (ids and sizes only; the note itself is never stored).
     memory_ids: list[str] = field(default_factory=list[str])
+    document_id: str | None = None  # Phase 11: the open document the message is about
     memory_note_floor: int = 0  # a lower bound of the note's tokens (see `_with_memory`)
     memory_ms: float | None = None
     # An explicit memory request in this message ("bunu unutma", "Ahmet'i unut"), if any.
@@ -287,6 +293,8 @@ class ConversationEngine:
             settings.personality.verbosity, settings.personality.humor
         )
         self.preferences = self.base_preferences
+        # Phase 11: documents the user opened in this session, in memory only (never stored).
+        self.documents = Library()
         self.layers: Layers = ALL_LAYERS  # PER-07: tests and evaluations switch layers off
         self.budget = Budget.build(
             self.num_ctx,
@@ -749,6 +757,8 @@ class ConversationEngine:
     async def _begin(self, req: TurnRequest) -> TurnHandle:
         llm = self._llm()
         content = req.content.strip()
+        if req.document_id is not None and self.documents.get(req.document_id) is None:
+            raise DocumentNotFoundError("the document is not open")
         if self.estimator.message(content) > self.budget.hard_limit // 2:
             raise MessageTooLongError("message exceeds half of the context budget")
         await self._require_model(llm, req.model)
@@ -833,6 +843,7 @@ class ConversationEngine:
         conv, user, assistant, created, style = await self._q(write)
         handle = TurnHandle(conv, user, assistant, created, request_id=f"turn-{assistant.id}")
         handle.style = style
+        handle.document_id = req.document_id
         self._note_style(style)
         self._turn = handle
         self._focused = conv.id
@@ -1434,6 +1445,7 @@ class ConversationEngine:
         if handle.style is not None and handle.style.notice():
             notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
         asked_daily = self.layers.memory and daily.asks(handle.user.content)
+        document = self.documents.get(handle.document_id)
         if asked_daily:
             notice = "\n\n".join(x for x in (await self._daily_note(handle), notice) if x)
         # Layer 2 again, next to the message: a saved preference holds from the first reply of
@@ -1472,7 +1484,7 @@ class ConversationEngine:
         )
         if not self.layers.memory:
             budget = 0  # PER-07: the memory layer off — no recall block
-        if budget <= 0 and not notice and not reminder:
+        if budget <= 0 and not notice and not reminder and document is None:
             return built
         user = handle.user
         previous = next(
@@ -1517,14 +1529,26 @@ class ConversationEngine:
         if not notice and commands.looks_like_statement(user.content):
             notice = commands.PENDING_NOTICE
         # Today's summary stands on today's own messages alone: no recalled (older) memories.
-        recalled = "" if asked_daily else retrieval.render(found)
+        # A document answer stands on the document alone (Phase 11): no personal memories
+        # next to it, so its content is never mixed up with what the user said about their life.
+        alone = asked_daily or document is not None
+        recalled = "" if alone else retrieval.render(found)
         note = "\n\n".join(x for x in (notice, recalled, reminder) if x)
+        if document is not None:
+            room = self.budget.hard_limit - built.estimated_tokens - self.estimator.text(note)
+            chars = int(max(0, room - DOCUMENT_NOTE_OVERHEAD) * self.estimator.chars_per_token)
+            chars = min(DOCUMENT_NOTE_CHARS, chars)
+            doc_note = documents.note(document, user.content, chars)
+            note = "\n\n".join(x for x in (doc_note, note) if x)
         if not note or built.messages[-1].role != "user":
             return built
         cost = self.estimator.text(note) + 2
-        if asked_daily and built.estimated_tokens + cost > self.budget.hard_limit:
-            # Without its messages the summary would be made up: say it cannot be made.
-            note = daily.UNAVAILABLE
+        if alone and built.estimated_tokens + cost > self.budget.hard_limit:
+            # Without its text the answer would be made up: say it cannot be given.
+            if document is not None:
+                note = documents.note(document, user.content, 0)
+            else:
+                note = daily.UNAVAILABLE
             cost = self.estimator.text(note) + 2
         if built.estimated_tokens + cost > self.budget.hard_limit:
             log_event(_log, logging.INFO, "memory.recall_skipped", reason="context_full")

@@ -210,6 +210,26 @@ class BootstrapRefusedError(LazisError):
         self.public_details = details
 
 
+class DocumentRefusedError(LazisError):
+    """A document the user chose that cannot be read (Phase 11). The code names the reason
+    (``document_<reason>``); the error never carries any of the file's content."""
+
+    code = "document_refused"
+    http_status = 422
+    recoverable = True
+
+    def __init__(self, reason: str, *, status: int = 422) -> None:
+        super().__init__(reason)
+        self.code = f"document_{reason}"
+        self.http_status = status
+
+
+class DocumentNotFoundError(NotFoundError):
+    """The document is not open (closed, or the app restarted: documents live in memory)."""
+
+    code = "document_not_found"
+
+
 class MemoryModelUntrustedError(LazisError):
     """Memory writes that need the model (text import) run only with a trusted model."""
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from "vue";
 import AssistantThread from "@/components/AssistantThread.vue";
+import DocumentPanel from "@/components/DocumentPanel.vue";
 import IntakePanel from "@/components/IntakePanel.vue";
 import { useAssistantStore } from "@/stores/assistant";
 import { onSystemWoke } from "@/stores/connection";
@@ -28,6 +29,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="assistant" data-testid="assistant-view">
     <IntakePanel />
+    <DocumentPanel />
     <AssistantThread />
   </div>
 </template>

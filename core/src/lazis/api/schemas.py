@@ -286,6 +286,8 @@ class TurnSubmitRequest(_Schema):
     client_id: str = Field(pattern=REQUEST_ID_PATTERN)
     content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     model: str = Field(pattern=MODEL_NAME_PATTERN)
+    # Phase 11: the open document this message is about (summary or question).
+    document_id: str | None = Field(default=None, pattern=r"^[0-9A-HJKMNP-TV-Z]{26}$")
 
     @field_validator("content")
     @classmethod

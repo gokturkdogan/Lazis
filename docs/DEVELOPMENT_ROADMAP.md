@@ -418,6 +418,8 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 
 ## P11 — Authorized local document ingestion (L)
 
+> **First version (2026-11-06, branch `phase11/documents`, awaiting the owner's approval):** one user-chosen TXT, PDF or DOCX, read locally, summarized and answered from; in memory for the session only, never learned from, no migration. Folders, sync, `documents.db`, document claims and the separate parser process are not built ([PHASE_11_FIRST_VERSION.md](PHASE_11_FIRST_VERSION.md)).
+
 - **Objective:** learn from user-authorized local sources without confusing document content with personal facts ([LOCAL_INGESTION_ARCHITECTURE.md](LOCAL_INGESTION_ARCHITECTURE.md)).
 - **Prerequisites:** P9 (policy + pipeline), P7 (domain-aware resolution), P4 (UI).
 - **Scope:** sources and source classes; discovery under PathGuard; sandboxed parser worker; extractors (Markdown, text, PDF text layer, HTML); chunking and indexing in `documents.db`; document claims; trust caps; documents retrieval channel; incremental sync; revocation; Sources UI; spike SPK-13.

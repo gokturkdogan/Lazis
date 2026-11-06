@@ -1,5 +1,12 @@
 import { vi } from "vitest";
-import type { ApiClient, AssistantStateResponse, Conversation, DiagnosticsResponse, Message } from "@/api/client";
+import type {
+  ApiClient,
+  AssistantStateResponse,
+  Conversation,
+  DiagnosticsResponse,
+  DocumentInfo,
+  Message,
+} from "@/api/client";
 import type { BackendConnection, Platform, Preferences } from "@/platform/tauri";
 
 export const TOKEN = "a".repeat(64);
@@ -168,6 +175,20 @@ export function assistantFixture(overrides: Partial<AssistantStateResponse> = {}
   };
 }
 
+export function documentFixture(overrides: Partial<DocumentInfo> = {}): DocumentInfo {
+  return {
+    id: "01M6RVDCVMDQ41R03CC1XHES7C",
+    name: "kira.pdf",
+    kind: "pdf",
+    pages: 2,
+    chars: 120,
+    parts: 2,
+    truncated: false,
+    added_at: "2026-11-06T10:00:00.000Z",
+    ...overrides,
+  };
+}
+
 export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     health: vi.fn().mockResolvedValue({ status: "ok", version: "0.1.0", checks: {} }),
@@ -192,6 +213,9 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       pending_compaction: [],
     }),
     diagnostics: vi.fn().mockResolvedValue(diagnosticsFixture()),
+    documents: vi.fn().mockResolvedValue([]),
+    addDocument: vi.fn().mockResolvedValue(documentFixture()),
+    removeDocument: vi.fn().mockResolvedValue(true),
     style: vi.fn().mockResolvedValue({ dimensions: [] }),
     setStyle: vi.fn().mockResolvedValue({ dimensions: [] }),
     clearStyle: vi.fn().mockResolvedValue({ dimensions: [] }),

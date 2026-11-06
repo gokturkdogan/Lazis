@@ -84,6 +84,7 @@ def build_conversation_router(
                 client_id=body.client_id,
                 content=body.content,
                 model=body.model,
+                document_id=body.document_id,
             )
         )
 
