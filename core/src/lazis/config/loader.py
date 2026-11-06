@@ -64,8 +64,9 @@ def _read_toml(path: Path) -> dict[str, Any]:
 
 
 def _without_automatic_learning(data: dict[str, Any]) -> dict[str, Any]:
-    """Learning only on explicit requests is a product decision (2026-11-05): an old user
-    file or environment saying ``auto_extract = true`` does not turn it back on."""
+    """Learning only on explicit requests is a product decision (2026-11-05): no user file,
+    environment or start option turns it back on. Tests and evaluations that need it build
+    ``MemorySection(auto_extract=True)`` directly."""
     memory = data.get("memory")
     if not isinstance(memory, dict) or "auto_extract" not in memory:
         return data
@@ -83,9 +84,9 @@ def load_settings(
         data = _deep_merge(data, _read_toml(user_config))
     if environ is not None:
         data = _deep_merge(data, env_overrides(environ))
-    data = _without_automatic_learning(data)
     if overrides:
         data = _deep_merge(data, overrides)
+    data = _without_automatic_learning(data)
     try:
         return Settings.model_validate(data)
     except ValidationError as exc:

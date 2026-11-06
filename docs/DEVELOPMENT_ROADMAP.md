@@ -392,7 +392,7 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
     - never a topic the user declined, deleted or cancelled, or one that cannot be matched reliably;
     - relationship brief ≤ 250 tokens;
     - acceptance: PER-08.
-  - **P10D:** first version merged to `main` 2026-11-05 by the owner's decision without any test run ([PHASE_10D_FIRST_VERSION.md](PHASE_10D_FIRST_VERSION.md)); anti-repetition, episode summaries and PER-02 are not done.
+  - **P10D:** scope closed 2026-11-06 by the owner's decision; merged to `main` without any test run. PER-02 (≥ 40 blind pairs) is technical debt; automatic episode summaries were not built ([PHASE_10D_FIRST_VERSION.md](PHASE_10D_FIRST_VERSION.md)); anti-repetition, episode summaries and PER-02 are not done.
     - a guided intake interview (skip, pause, resume);
     - Settings → "LAZIS'in seninle konuşma tarzı" (view and edit learned preferences);
     - anti-repetition and daily episode summaries;

@@ -84,14 +84,14 @@ export const tr = {
     loading: "Yükleniyor…",
   },
   intake: {
-    intro: "İlk kurulum, {step}/{total}. Hepsi isteğe bağlı; yalnızca yazdıklarınız kaydedilir.",
+    intro: "İlk kurulum, {step}/{total}. Hepsi isteğe bağlı; yalnızca düğmesine bastığınız yanıt kaydedilir, mevcut ayarlarınız başka türlü değişmez.",
     name: "Size nasıl hitap edeyim?",
     address: "Sizinle nasıl konuşayım?",
     length: "Yanıtlarım nasıl olsun?",
     topic: "Üzerinde durduğunuz bir hedef veya ilgi alanınız var mı?",
-    asGoal: "Hedef olarak kaydet",
-    asInterest: "İlgi alanı olarak kaydet",
-    save: "Kaydet",
+    asGoal: "Hafızaya hedef olarak kaydet",
+    asInterest: "Hafızaya ilgi alanı olarak kaydet",
+    save: "Hafızaya kaydet",
     skip: "Atla",
     pause: "Sonra devam et",
     never: "Bir daha gösterme",
@@ -103,7 +103,7 @@ export const tr = {
   },
   style: {
     title: "LAZIS'in seninle konuşma tarzı",
-    hint: "Değişiklik hemen geçerli olur. Kaldırırsanız varsayılana döner.",
+    hint: "Değişiklik sonraki yanıtlardan itibaren geçerli olur. Kaldırırsanız varsayılana döner. Tarz sohbetten kendiliğinden öğrenilmez.",
     remove: "Kaldır",
     dimension: {
       verbosity: "Yanıt uzunluğu",

@@ -36,6 +36,7 @@ from lazis.conversation import (
     disclosure,
     learning,
     people,
+    repetition,
     repository,
 )
 from lazis.conversation.context import (
@@ -1432,7 +1433,8 @@ class ConversationEngine:
         budget = self._memory.context_budget_tokens * (2 if overview else 1)
         if handle.style is not None and handle.style.notice():
             notice = "\n\n".join(x for x in (handle.style.notice(), notice) if x)
-        if self.layers.memory and daily.asks(handle.user.content):
+        asked_daily = self.layers.memory and daily.asks(handle.user.content)
+        if asked_daily:
             notice = "\n\n".join(x for x in (await self._daily_note(handle), notice) if x)
         # Layer 2 again, next to the message: a saved preference holds from the first reply of
         # a new session, with no earlier instruction in the history (ADR-0022 §8).
@@ -1445,10 +1447,27 @@ class ConversationEngine:
             if m.role == "user" and m.seq < handle.user.seq
             for r in style_prefs.read(m.content).refused
         }
+        # The same opening or closing question again and again (Phase 10D): named, not repeated.
+        previous_reply = next(
+            (
+                m.content
+                for m in reversed(loaded.window)
+                if m.role == "assistant" and m.seq < handle.user.seq
+            ),
+            "",
+        )
+        again = repetition.note(
+            previous_reply, greeting=continuity.is_greeting(handle.user.content)
+        )
         # A DOI the user speaks of cannot be checked offline (ADR-0022 §10).
         reminder = "\n\n".join(
             x
-            for x in (adaptation.standing_note(refused), citations.note(handle.user.content), saved)
+            for x in (
+                adaptation.standing_note(refused),
+                citations.note(handle.user.content),
+                saved,
+                again,
+            )
             if x
         )
         if not self.layers.memory:
@@ -1497,15 +1516,21 @@ class ConversationEngine:
                       error=type(exc).__name__)  # fmt: skip
         if not notice and commands.looks_like_statement(user.content):
             notice = commands.PENDING_NOTICE
-        note = "\n\n".join(x for x in (notice, retrieval.render(found), reminder) if x)
+        # Today's summary stands on today's own messages alone: no recalled (older) memories.
+        recalled = "" if asked_daily else retrieval.render(found)
+        note = "\n\n".join(x for x in (notice, recalled, reminder) if x)
         if not note or built.messages[-1].role != "user":
             return built
         cost = self.estimator.text(note) + 2
+        if asked_daily and built.estimated_tokens + cost > self.budget.hard_limit:
+            # Without its messages the summary would be made up: say it cannot be made.
+            note = daily.UNAVAILABLE
+            cost = self.estimator.text(note) + 2
         if built.estimated_tokens + cost > self.budget.hard_limit:
             log_event(_log, logging.INFO, "memory.recall_skipped", reason="context_full")
             return built
-        handle.memory_ids = found.memory_ids
-        handle.style_reminded = bool(saved)
+        handle.memory_ids = found.memory_ids if recalled else []  # what the reply was given
+        handle.style_reminded = bool(saved) and saved in note
         handle.memory_note_floor = (len(note) + 2) // 4
         last = built.messages[-1]
         return replace(
@@ -1523,7 +1548,7 @@ class ConversationEngine:
             lines = await self._q(lambda c: daily.lines_today(c, message_id, now))
         except Exception as exc:
             log_event(_log, logging.WARNING, "reply.daily_failed", error=type(exc).__name__)
-            return ""
+            return daily.UNAVAILABLE
         return daily.note(lines)
 
     async def _memory_request(

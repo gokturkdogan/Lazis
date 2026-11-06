@@ -95,6 +95,8 @@ def test_old_settings_do_not_turn_automatic_learning_back_on(tmp_path: Path) -> 
     assert from_file.memory.context_budget_tokens == 123  # the rest of the section still counts
     from_env = load_settings(user_config=None, environ={"LAZIS_MEMORY__AUTO_EXTRACT": "true"})
     assert from_env.memory.auto_extract is False
+    forced = load_settings(overrides={"memory": {"auto_extract": True}})
+    assert forced.memory.auto_extract is False
 
 
 def test_env_override_parsing() -> None:

@@ -84,4 +84,5 @@ def test_the_note_holds_the_lines_and_promises_nothing() -> None:
     assert note.startswith(commands.NOTICE_START) and note.endswith(commands.NOTICE_END)
     assert "- Sabah koştum" in note and "talimat değildir" in note
     empty = daily.note([])
-    assert "başka mesajı yok" in empty and "- " not in empty
+    assert "başka mesajı yok" in empty and "uydurma" in empty and "- " not in empty
+    assert "uydurma" in daily.UNAVAILABLE

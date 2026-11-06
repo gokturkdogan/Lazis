@@ -1,6 +1,6 @@
 # Faz 10D ilk sürüm: Kapsam ve kabul kriterleri
 
-**Tarih:** 2026-11-05. **Dal:** `phase10d/first-version`, `main`'den (`12217c3`) açıldı. **Durum:** Sahibin kararıyla test edilmeden `main`'e alındı (2026-11-05). Kapsam kapatılmadı.
+**Tarih:** 2026-11-05. **Dal:** `phase10d/first-version`, `main`'den (`12217c3`) açıldı. **Durum:** Sahibin kararıyla test edilmeden `main`'e alındı (2026-11-05). **Kapsam 2026-11-06'da sahibin kararıyla kapatıldı** (bölüm 7); hatalar ve teknik borçlar açık.
 
 **Test durumu:** Sahibin talimatıyla **hiçbir test, lint, tip denetimi veya derleme çalıştırılmadı**, uygulama açılmadı. Aşağıdaki kriterler kodu okuyarak değerlendirildi.
 
@@ -28,8 +28,8 @@ Interview (atla, duraklat, devam et), Ayarlar'da "LAZIS'in seninle konuşma tarz
 
 | Konu | Neden |
 |---|---|
-| Tekrarları azaltma ayarı | Modelle ölçüm gerektirir; test yasak |
-| 40 kör eşleştirme (PER-02) | Model çıktısı üretir, oylamayı sahip yapar |
+| Tekrarları azaltmanın ölçümü | Modelle ölçüm gerektirir; test yasak. En küçük sürüm bölüm 7'de |
+| 40 kör eşleştirme (PER-02) | **Teknik borç** (bölüm 7) |
 | Otomatik günlük özet, `episodes` | Arka plan modeli veya migration gerektirir |
 | Model yönlendirmeli sohbet mülakatı | Sabit form daha ucuz ve güvenli |
 
@@ -79,3 +79,40 @@ Migration, yeni API ucu, yeni model çağrısı, arka plan işi yok. Gerçek pro
 
 **Kapsam**
 - Tekrarları azaltma, `episodes` ve otomatik özet, PER-02 kör eşleştirmeleri yapılmadı. REL-001, REL-002, REL-003, REL-004 ve uzun sohbet sıkıştırma gecikmeleri açıktır.
+
+## 7. Kapanış (2026-11-06)
+
+Sahibin talimatı: kalan küçük işleri tamamla, kapsamı kapat, Faz 11'e sahibin talimatıyla geç. **Hiçbir test, `make check`, Gemma veya performans ölçümü çalıştırılmadı.** Aşağıdakiler kod okunarak değerlendirildi; hiçbiri test edilmiş sayılmaz.
+
+### 7.1 Kapanışta eklenenler
+
+| Konu | Değişiklik |
+|---|---|
+| Otomatik öğrenme | `load_settings` değeri başlatma seçenekleri dahil her katmandan sonra siler. Testler ve değerlendirmeler `MemorySection(auto_extract=True)` ile doğrudan kurar |
+| İlk kurulum | Kayıt düğmeleri "Hafızaya kaydet" adını taşır; giriş metni yalnızca basılan yanıtın kaydedildiğini söyler |
+| Konuşma tarzı | Açıklama, değişikliğin sonraki yanıtlardan itibaren geçerli olduğunu ve tarzın kendiliğinden öğrenilmediğini söyler |
+| Günlük özet | Hatırlanan eski hafıza kayıtları özet turuna eklenmez. Mesajlar okunamazsa veya bağlama sığmazsa model özetin çıkarılamadığını söyler, uydurmaz |
+| Tekrarları azaltma | `repetition.py`: kullanıcı yalnızca selam verirse önceki yanıtın açılış cümlesi, önceki yanıt soru ile bittiyse o soru, tekrarlanmaması için o turun notunda anılır. Model çağrısı yok, kayıt yok, sistem istemi değişmez |
+
+### 7.2 Kod düzeyinde denetim (okuma)
+
+| Gereksinim | Nerede |
+|---|---|
+| Otomatik öğrenme kapalı | `MemorySection.auto_extract = False`; `load_settings` her kaynaktan siler; `_learn_now` ve `learning.py` kapalıyken çıkar |
+| Otomatik üslup öğrenme kapalı | `adaptation.observe(implicit=auto_extract)`: sinyal sayılmaz. Önceden öğrenilmiş değerler "önceden öğrenildi" olarak görünür, kaldırılabilir |
+| Tarz değişikliği sonraki sohbetlerde | `set_style` veritabanına yazar ve tercihleri yeniler; her tur tercih hatırlatması ondan kurulur. Model çağrısı yok |
+| İlk kurulumda kayıt yalnızca onayla | Hafıza kaydı yalnızca "Hafızaya kaydet" düğmeleriyle; atlamak hiçbir şeyi değiştirmez |
+| Özet istekle, arka plan yok | Yalnızca `daily.asks` eşleşirse, o turun içinde |
+| Aynı proaktif konu, reddedilen konu | `continuity`: bir konu en çok bir kez sunulur, reddedilince geri gelmez; özellik varsayılan olarak kapalı |
+
+### 7.3 Teknik borçlar
+
+- **PER-02 kapsamlı değerlendirmesi (en az 40 kör eşleştirme):** yapılmadı, teknik borç.
+- **Otomatik `episodes` ve günlük özet üretimi:** bilerek geliştirilmedi.
+- **Tekrar azaltmanın etkisi ölçülmedi.** Not yalnızca bir önceki yanıta bakar; daha eski tekrarları ve farklı söylenmiş aynı kalıpları görmez.
+- **Bellek katmanı kapalı değerlendirme ayarında**, tekrar notu olan turlarda hatırlama okuması yine çalışır (atıf notunda olduğu gibi); üründe bellek katmanı açıktır.
+- **Açık hatalar:** REL-001, REL-002, REL-003, REL-004 ve uzun sohbet sıkıştırma gecikmeleri.
+- **Doğrulama:** Faz 10C, 10D ve kapanış kodu hiç çalıştırılmadı; `main` test edilmedi.
+
+**Sonuç:** Faz 10D kapsam bakımından kapalı. Faz 11'e sahibin bir sonraki talimatıyla geçilecek.
+
