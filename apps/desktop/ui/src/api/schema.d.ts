@@ -2710,6 +2710,8 @@ export interface components {
          *     idempotency key: a retry with the same key is refused with ``turn_duplicate``.
          */
         TurnSubmitRequest: {
+            /** Channel */
+            channel?: ("text" | "voice") | null;
             /** Client Id */
             client_id: string;
             /** Content */

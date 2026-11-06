@@ -290,6 +290,11 @@ export function fakePlatform(initial: BackendConnection, overrides: Partial<Plat
     onSystemWoke: vi.fn().mockResolvedValue(() => undefined),
     onNavigate: vi.fn().mockResolvedValue(() => undefined),
     initialView: vi.fn().mockReturnValue(null),
+    voiceStatus: vi.fn().mockResolvedValue({ stt_available: true, stt_reason: null, stt_running: false, tts_available: true, tts_voice: "Yelda" }),
+    voiceTranscribe: vi.fn().mockResolvedValue("Merhaba LAZIS"),
+    voiceSpeak: vi.fn().mockResolvedValue(undefined),
+    voiceStopSpeaking: vi.fn().mockResolvedValue(undefined),
+    voiceRelease: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

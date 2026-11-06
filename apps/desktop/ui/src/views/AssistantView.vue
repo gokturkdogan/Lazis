@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted } from "vue";
 import AssistantThread from "@/components/AssistantThread.vue";
 import DocumentPanel from "@/components/DocumentPanel.vue";
+import VoicePanel from "@/components/VoicePanel.vue";
 import IntakePanel from "@/components/IntakePanel.vue";
 import { useAssistantStore } from "@/stores/assistant";
 import { onSystemWoke } from "@/stores/connection";
@@ -30,6 +31,7 @@ onBeforeUnmount(() => {
   <div class="assistant" data-testid="assistant-view">
     <IntakePanel />
     <DocumentPanel />
+    <VoicePanel />
     <AssistantThread />
   </div>
 </template>

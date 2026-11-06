@@ -8,7 +8,7 @@ TAURI   := $(DESKTOP)/src-tauri
 .DEFAULT_GOAL := help
 .PHONY: help setup dev build check test test-core test-ui test-ui-integration test-shell \
         test-keychain lint lint-core lint-ui lint-shell api-schema audit spike-storage clean \
-        ollama-agent model-pull bench eval blind test-ollama
+        ollama-agent model-pull voice-model bench eval blind test-ollama
 
 help: ## List commands
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-22s %s\n", $$1, $$2}'
@@ -74,6 +74,9 @@ ollama-agent: ## Run Ollama as a LaunchAgent with cloud features off, loopback o
 
 model-pull: ## Download one owner-approved model: make model-pull MODEL=qwen3.5:9b-q4_K_M
 	scripts/model-pull.sh "$(MODEL)"
+
+voice-model: ## Phase 13: download the speech model (~574 MB) after the owner's approval: make voice-model APPROVED=yes
+	APPROVED="$(APPROVED)" SHA256="$(SHA256)" scripts/voice-model.sh
 
 bench: ## Phase 2 performance benchmarks: make bench MODEL=... [QUICK=1]
 	uv run --project $(CORE) python evals/runners/perf.py --model "$(MODEL)" $(if $(QUICK),--quick,)

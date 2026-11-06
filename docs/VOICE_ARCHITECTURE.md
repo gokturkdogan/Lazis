@@ -1,5 +1,7 @@
 # LAZIS — Voice Architecture
 
+> **P13 first version (2026-11-06):** a deliberately smaller design — see [PHASE_13_FIRST_VERSION.md](PHASE_13_FIRST_VERSION.md). The rest of this document is the full target, not the delivered scope.
+
 > Status: Phase 0.1 (revised) · Last updated: 2026-10-17 · Delivered in **P13**. A feasibility smoke test (memory + RTF only) runs in P2 (SPK-07)
 > Technology rationale: [TECHNOLOGY_DECISIONS.md §6](TECHNOLOGY_DECISIONS.md) · Evaluation suites, gates and decision rules: [BENCHMARK_PLAN.md §7](BENCHMARK_PLAN.md)
 > **No voice component has been measured on the target machine.** STT and TTS engines are *candidates* until the P13 tests choose them.

@@ -36,6 +36,12 @@ fn message_for(code: &str) -> &'static str {
         "recovery_not_available" => "Kurtarma kodu şu anda gösterilemez.",
         "database_key_missing" => "Veritabanı anahtarı bulunamadı.",
         "database_key_invalid" => "Veritabanı anahtarı bu veritabanını açamıyor.",
+        "stt_server_missing" => "Konuşma tanıma bileşeni (whisper.cpp) kurulu değil.",
+        "stt_model_missing" => "Konuşma tanıma modeli indirilmemiş.",
+        "stt_failed" => "Konuşma yazıya çevrilemedi.",
+        "audio_invalid" => "Ses kaydı okunamadı ya da çok uzun (en fazla 60 saniye).",
+        "tts_unavailable" => "Türkçe sistem sesi bulunamadı.",
+        "tts_failed" => "Yanıt sesli okunamadı.",
         _ => "Beklenmeyen bir hata oluştu.",
     }
 }

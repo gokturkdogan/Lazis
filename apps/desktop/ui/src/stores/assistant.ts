@@ -291,7 +291,10 @@ export const useAssistantStore = defineStore("assistant", {
 
     /** Returns false if the backend refused the message before storing it (keep the draft). */
     /** ``researchQuery``: a web search the user approved exactly as shown (Phase 12). */
-    async send(text: string, options: { researchQuery?: string } = {}): Promise<boolean> {
+    async send(
+      text: string,
+      options: { researchQuery?: string; channel?: "text" | "voice" } = {},
+    ): Promise<boolean> {
       const client = currentApiClient();
       const content = text.trim();
       if (client === null || content === "" || !this.canSend) return false;
@@ -351,6 +354,8 @@ export const useAssistantStore = defineStore("assistant", {
               ? { document_id: this.document.id }
               : {}),
             ...(options.researchQuery !== undefined ? { research_query: options.researchQuery } : {}),
+            // Phase 13: spoken messages never write memory (speech recognition can mishear).
+            ...(options.channel === "voice" ? { channel: "voice" as const } : {}),
           },
           onEvent,
           controller.signal,

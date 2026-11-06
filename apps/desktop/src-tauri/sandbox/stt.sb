@@ -1,0 +1,14 @@
+;; LAZIS speech-to-text server sandbox (Phase 13) — macOS Seatbelt profile, applied by the desktop
+;; shell with /usr/bin/sandbox-exec to whisper.cpp's `whisper-server` (wrapped in /bin/sh only to
+;; tie its life to the shell's lifeline pipe).
+;;
+;; * No outbound network at all: speech never leaves this machine, and the model file is read
+;;   from disk (downloaded once by an explicit setup command, never at runtime).
+;; * It may listen on loopback only (the shell picks the port and is its only client).
+;; * Started when the user first uses voice, stopped when voice goes idle or the app quits.
+;; Verified by core/tests/security/test_os_sandbox.py.
+(version 1)
+(allow default)
+(deny network*)
+(allow network-bind (local ip "localhost:*"))
+(allow network-inbound (local ip "localhost:*"))

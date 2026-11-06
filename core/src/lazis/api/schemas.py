@@ -288,6 +288,8 @@ class TurnSubmitRequest(_Schema):
     model: str = Field(pattern=MODEL_NAME_PATTERN)
     # Phase 11: the open document this message is about (summary or question).
     document_id: str | None = Field(default=None, pattern=r"^[0-9A-HJKMNP-TV-Z]{26}$")
+    # Phase 13: "voice" when the message was spoken (speech recognition); it never writes memory.
+    channel: Literal["text", "voice"] | None = None  # None: typed ("text")
     # Phase 12: the web search the user approved, exactly as shown to them and as it is sent.
     research_query: str | None = Field(default=None, min_length=1, max_length=200)
 

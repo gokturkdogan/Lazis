@@ -11,6 +11,11 @@ const COMMANDS: &[&str] = &[
     "set_tray_status",
     "open_external_url",
     "process_metrics",
+    "voice_status",
+    "voice_transcribe",
+    "voice_speak",
+    "voice_stop_speaking",
+    "voice_release",
 ];
 
 fn main() {

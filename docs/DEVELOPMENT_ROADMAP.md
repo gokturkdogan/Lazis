@@ -458,6 +458,8 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 
 ## P13 — Turkish voice communication (L)
 
+> **First version (2026-11-06, branch `phase13/voice`, awaiting the owner's approval):** push-to-talk and a user-started hands-free session; STT by whisper.cpp large-v3-turbo (q5_0) in a no-network sandbox, started on demand by the shell (model not yet downloaded); TTS by the macOS system voice (Yelda); spoken messages never write memory. Not built: the Swift audio helper, AEC and barge-in, Silero VAD and Smart Turn, the male neural voice (SPK-09/10/11), wake word ([PHASE_13_FIRST_VERSION.md](PHASE_13_FIRST_VERSION.md)).
+
 - **Objective:** natural, low-latency Turkish voice conversation with a suitable male voice and barge-in ([VOICE_ARCHITECTURE.md](VOICE_ARCHITECTURE.md)).
 - **Prerequisites:** P5, P4, P3; P2 voice feasibility smoke.
 - **Scope:**

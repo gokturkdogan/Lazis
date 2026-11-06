@@ -68,6 +68,23 @@ export interface Platform {
   onNavigate(callback: (view: View) => void): Promise<UnlistenFn>;
   /** A view requested at launch (`--show=<view>`), if any. */
   initialView(): View | null;
+  // ----- voice (Phase 13): local speech recognition and the system voice -----
+  voiceStatus(): Promise<VoiceStatus>;
+  /** A 16 kHz mono WAV, sent as raw bytes; kept in memory only. */
+  voiceTranscribe(wav: Uint8Array): Promise<string>;
+  /** Resolves when the text was spoken, or stopped. */
+  voiceSpeak(text: string): Promise<void>;
+  voiceStopSpeaking(): Promise<void>;
+  /** The voice session ended: stop speaking, free the speech model. */
+  voiceRelease(): Promise<void>;
+}
+
+export interface VoiceStatus {
+  stt_available: boolean;
+  stt_reason: "stt_server_missing" | "stt_model_missing" | null;
+  stt_running: boolean;
+  tts_available: boolean;
+  tts_voice: string | null;
 }
 
 export const CONNECTION_EVENT = "lazis://backend-connection";
@@ -81,6 +98,11 @@ function asView(value: unknown): View | null {
 
 export const tauriPlatform: Platform = {
   getConnection: () => invoke<BackendConnection>("backend_connection"),
+  voiceStatus: () => invoke<VoiceStatus>("voice_status"),
+  voiceTranscribe: (wav) => invoke<string>("voice_transcribe", wav),
+  voiceSpeak: (text) => invoke<void>("voice_speak", { text }),
+  voiceStopSpeaking: () => invoke<void>("voice_stop_speaking"),
+  voiceRelease: () => invoke<void>("voice_release"),
   onConnectionChanged: (callback) =>
     listen<BackendConnection>(CONNECTION_EVENT, (event) => callback(event.payload)),
   retryBackend: () => invoke<BackendConnection>("retry_backend"),

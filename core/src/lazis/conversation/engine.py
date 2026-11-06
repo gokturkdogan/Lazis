@@ -127,6 +127,15 @@ from lazis.storage.repositories import get_setting, set_setting, write_audit
 
 _log = get_logger("conversation")
 
+VOICE_MEMORY_NOTICE = (
+    f"{commands.NOTICE_START}\n"
+    "Bu mesaj sesle geldi ve bir hafıza isteğine benziyor. Sesli mesajlarla hafızaya hiçbir şey "
+    "kaydedilmez, düzeltilmez ya da silinmez; bu mesajla da hiçbir şey değişmedi. Bunu kısaca "
+    "söyle ve kullanıcının isterse aynı isteği yazarak yapabileceğini belirt. 'Kaydettim' ya da "
+    "'unuttum' deme.\n"
+    f"{commands.NOTICE_END}"
+)
+
 Event = dict[str, Any]
 
 
@@ -952,7 +961,12 @@ class ConversationEngine:
     ) -> adaptation.Observed:
         """Layer 2 (Phase 10B), in the transaction that stores the message: an explicit style
         instruction applies to this very reply; an implicit signal is counted. A failure rolls
-        back only this part (savepoint) and never fails the turn."""
+        back only this part (savepoint) and never fails the turn.
+
+        A spoken message (Phase 13) changes no stored preference: speech recognition can
+        mishear, so lasting changes are made by typing or in Settings."""
+        if user.channel == "voice":
+            return adaptation.Observed(preferences=self.preferences)
         conn.execute("SAVEPOINT style")
         try:
             before = conn.execute(
@@ -1679,8 +1693,13 @@ class ConversationEngine:
     ) -> str:
         """An explicit memory request is carried out before the reply, so the reply can only
         claim what really happened (the HAFIZA İŞLEMİ notice). Ordinary messages stop at the
-        cue check (no model call)."""
+        cue check (no model call).
+
+        A spoken message (Phase 13) never writes, corrects or deletes memory: speech
+        recognition can mishear a name or a number. The reply says so if it was asked."""
         user, conv = handle.user, handle.conversation
+        if user.channel == "voice":
+            return VOICE_MEMORY_NOTICE if commands.detect(user.content) is not None else ""
         pending = await self._q(lambda c: commands.pending_confirmation(c, conv.id))
         # An answer to an open "which Ahmet?" question ("Komşum olan.") completes the waiting
         # record here, deterministically — the user does not repeat the whole sentence.

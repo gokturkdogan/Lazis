@@ -5779,6 +5779,21 @@
         "additionalProperties": false,
         "description": "One user message to LAZIS. It always goes to the active technical session (created\nwith the very first message); the client never chooses a session. ``client_id`` is the\nidempotency key: a retry with the same key is refused with ``turn_duplicate``.",
         "properties": {
+          "channel": {
+            "anyOf": [
+              {
+                "enum": [
+                  "text",
+                  "voice"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
           "client_id": {
             "pattern": "^[A-Za-z0-9-]{8,64}$",
             "title": "Client Id",

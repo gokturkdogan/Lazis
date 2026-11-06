@@ -86,6 +86,7 @@ def build_conversation_router(
                 model=body.model,
                 document_id=body.document_id,
                 research_query=body.research_query,
+                channel=body.channel or "text",
             )
         )
 

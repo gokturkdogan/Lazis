@@ -23,6 +23,7 @@ from tests.process_helpers import start_backend
 
 PROFILE = REPO_ROOT / "apps/desktop/src-tauri/sandbox/backend.sb"
 EGRESS_PROFILE = REPO_ROOT / "apps/desktop/src-tauri/sandbox/egress.sb"
+STT_PROFILE = REPO_ROOT / "apps/desktop/src-tauri/sandbox/stt.sb"
 SANDBOX_EXEC = "/usr/bin/sandbox-exec"
 NO_SOCKET = "/dev/null/lazis-no-research-helper"  # what the shell passes without a helper
 BACKEND = [SANDBOX_EXEC, "-f", str(PROFILE), "-D", f"EGRESS_SOCKET={NO_SOCKET}"]
@@ -232,3 +233,33 @@ def test_the_helper_profile_allows_https_and_dns_only() -> None:
     # before anything is sent, as it refuses listening sockets and starting programs.
     for name in ("guarded_loopback_443", "guarded_private_443", "guarded_bind", "guarded_process"):
         assert r[name] == "guard", (name, r[name])
+
+
+# ----- Phase 13: the speech-to-text server's profile -----------------------------------------
+STT_PROBE = rf"""
+import errno, json, socket
+r = {{}}
+def attempt(name, fn):
+    try:
+        fn(); r[name] = "allowed"
+    except OSError as exc:
+        r[name] = "eperm" if exc.errno in (errno.EPERM, errno.EACCES) else "error:" + str(exc.errno)
+srv = socket.socket()
+attempt("listen_loopback", lambda: (srv.bind(("127.0.0.1", 0)), srv.listen(1)))
+def tcp(host, port):
+    s = socket.socket(); s.settimeout(2); s.connect((host, port)); s.close()
+attempt("ollama_port", lambda: tcp("127.0.0.1", 11434))
+attempt("remote_https", lambda: tcp("{TEST_NET}", 443))
+attempt("dns_daemon", lambda: socket.socket(socket.AF_UNIX).connect("/var/run/mDNSResponder"))
+print(json.dumps(r))
+"""
+
+
+def test_the_stt_server_profile_allows_loopback_listening_only() -> None:
+    out = subprocess.run([SANDBOX_EXEC, "-f", str(STT_PROFILE), sys.executable, "-c", STT_PROBE],
+                         capture_output=True, text=True, timeout=60, check=True)  # fmt: skip
+    r = json.loads(out.stdout.strip().splitlines()[-1])
+    assert r["listen_loopback"] == "allowed"
+    # Speech never leaves the machine: no outbound connection of any kind, no name resolution.
+    for name in ("ollama_port", "remote_https", "dns_daemon"):
+        assert r[name] == "eperm", (name, r[name])

@@ -19,6 +19,7 @@ pub mod recovery;
 pub mod secrets;
 pub mod state_file;
 pub mod system;
+pub mod voice;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -79,6 +80,50 @@ async fn blocking<T: Send + 'static>(
     tauri::async_runtime::spawn_blocking(move || f(&controller))
         .await
         .map_err(|_| ShellError::new("internal_error"))?
+}
+
+// ----- voice (Phase 13): local STT and TTS; the microphone is opened by the UI only -----
+type VoiceState = Arc<voice::Voice>;
+
+#[tauri::command]
+fn voice_status(voice: State<'_, VoiceState>) -> voice::VoiceStatus {
+    voice.status()
+}
+
+/// The body is the raw WAV (16 kHz mono PCM), kept in memory only.
+#[tauri::command]
+async fn voice_transcribe(
+    voice: State<'_, VoiceState>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<String, ShellError> {
+    let tauri::ipc::InvokeBody::Raw(wav) = request.body() else {
+        return Err(ShellError::new("audio_invalid"));
+    };
+    let wav = wav.clone();
+    let voice = Arc::clone(&voice);
+    tauri::async_runtime::spawn_blocking(move || voice.transcribe(&wav))
+        .await
+        .map_err(|_| ShellError::new("stt_failed"))?
+}
+
+#[tauri::command]
+async fn voice_speak(voice: State<'_, VoiceState>, text: String) -> Result<(), ShellError> {
+    let voice = Arc::clone(&voice);
+    tauri::async_runtime::spawn_blocking(move || voice.speak(&text))
+        .await
+        .map_err(|_| ShellError::new("tts_failed"))?
+}
+
+#[tauri::command]
+fn voice_stop_speaking(voice: State<'_, VoiceState>) {
+    voice.stop_speaking();
+}
+
+/// The voice session ended: stop speaking and free the speech model now.
+#[tauri::command]
+fn voice_release(voice: State<'_, VoiceState>) {
+    voice.stop_speaking();
+    voice.release();
 }
 
 #[tauri::command]
@@ -311,6 +356,9 @@ pub fn run() {
     };
     let keystore = Arc::new(KeychainStore::new(KEYCHAIN_SERVICE, &profile.keychain_account));
     let controller = Controller::new(profile.clone(), launch, keystore);
+    // Phase 13: nothing starts here; the STT server starts on first use.
+    let home = std::env::var_os("HOME").map(std::path::PathBuf::from).unwrap_or_default();
+    let voice: VoiceState = voice::Voice::new(voice::VoiceConfig::from_env(&home));
 
     let app = tauri::Builder::default()
         // Must be first: a second launch focuses the existing window instead of starting a
@@ -322,6 +370,7 @@ pub fn run() {
         }))
         .plugin(log_plugin(&profile, debug))
         .manage(Arc::clone(&controller))
+        .manage(voice)
         .invoke_handler(tauri::generate_handler![
             backend_connection,
             retry_backend,
@@ -332,7 +381,12 @@ pub fn run() {
             set_preferences,
             set_tray_status,
             open_external_url,
-            process_metrics
+            process_metrics,
+            voice_status,
+            voice_transcribe,
+            voice_speak,
+            voice_stop_speaking,
+            voice_release
         ])
         .on_window_event(|window, event| {
             // Closing the window keeps LAZIS in the menu bar (default) or quits, per preference.
@@ -388,6 +442,9 @@ pub fn run() {
     let mut research_helper = research_helper;
     app.run(move |handle, event| match event {
         RunEvent::Exit => {
+            let voice = handle.state::<VoiceState>();
+            voice.stop_speaking();
+            voice.release();
             handle.state::<Shared>().shutdown();
             drop(research_helper.take()); // after the backend: no request is in flight any more
         }
