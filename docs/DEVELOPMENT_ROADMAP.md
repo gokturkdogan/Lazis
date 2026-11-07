@@ -479,7 +479,7 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 
 ## P14 — Final neural interface (M)
 
-> **First version (2026-11-07, branch `phase14/jarvis-ui`, awaiting the owner's approval):** the owner's LAZOS visual identity ported to Vue (the same core shaders on plain three.js, HUD, glass chat panel, accent colour following five states: #00BFFF, #A855F7, #FFD600, #00E676, #FF1744); push-to-talk replaced by a user-started voice session; the core follows the real microphone and Yelda's real output ([PHASE_14_FIRST_VERSION.md](PHASE_14_FIRST_VERSION.md)). Not yet seen in the desktop window.
+> **First version completed 2026-11-07 (owner reviewed and accepted the visual design):** the owner's LAZOS visual identity ported to Vue (the same core shaders on plain three.js, HUD, glass chat panel, accent colour following five states: #00BFFF, #A855F7, #FFD600, #00E676, #FF1744); push-to-talk replaced by a user-started voice session; the core follows the real microphone and Yelda's real output ([PHASE_14_FIRST_VERSION.md](PHASE_14_FIRST_VERSION.md)). Real voice-session behaviour, Yelda–Web Audio sync and resource use stay open technical debt.
 
 - **Objective:** the cinematic LAZIS interface on top of the stable stores and events ([UI_ARCHITECTURE.md §1–§5](UI_ARCHITECTURE.md)).
 - **Prerequisites:** P13 (audio levels), P4.

@@ -1,6 +1,6 @@
 # Faz 14 ilk sürüm: LAZOS görsel kimliğiyle yaşayan çekirdek
 
-**Tarih:** 2026-11-07. **Dal:** `phase14/jarvis-ui`, `main`'den (`168589f`) açıldı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı. **Masaüstü penceresinde görsel olarak denenmedi.**
+**Tarih:** 2026-11-07. **Dal:** `phase14/jarvis-ui`, `main`'den (`168589f`) açıldı. **Durum:** **İlk sürüm tamamlandı ve sahibin kararıyla kabul edildi** (2026-11-07); `main`'e alındı. Sahip görsel tasarımı inceledi ve onayladı.
 
 ## 1. LAZOS'tan alınanlar
 
@@ -98,3 +98,20 @@ Yeni ve güncellenen testler:
 - **Tek seferlik geçici dosya:** Sentezde yanıt sesi kısa süreli, yalnızca size açık bir dosyaya yazılıp hemen siliniyor.
 - **HUD ölçümleri:** Son tur telemetrisi her turdan sonra tanılama ucundan okunuyor. "Ses tanıma" ve "İlk ses" yalnızca sesli turlarda dolu.
 - **Faz 13'ten süren teknik borçlar:** Gürültülü ortam, LAZIS konuşurken sesle sözünü kesme, yankı engelleme, paketleme.
+
+## 9. Kapanış (2026-11-07)
+
+- **Sahibin kararı:** Görsel tasarım (çekirdek, halkalar, HUD, renkler, sohbet paneli) mevcut hâliyle onaylandı; yeni tasarım değişikliği istenmedi.
+- **Son `make check`:** geçti (3.496 çekirdek, 158 arayüz, 8 arayüz–arka uç, 47 Rust testi).
+- **Değişmeyenler:** Whisper, Yelda, Gemma ve checkpoint 8 yapılandırması değişmedi.
+
+### Açık teknik borçlar (kapatılmadı)
+
+| Konu | Durum |
+|---|---|
+| Gerçek sesli oturum döngüsü | Gerçek mikrofonla sürekli oturum (dinle, düşün, konuş, yeniden dinle) ve hoparlör yankısına karşı davranış ölçülmedi |
+| Yelda–Web Audio senkronizasyonu | Pencerede Web Audio ile çalmanın ve çekirdeğin Yelda'nın genliğine tepkisinin doğruluğu ölçülmedi; ilk sesin ek gecikmesi (tahmin 0,5–0,7 sn) ölçülmedi |
+| Kaynak tüketimi | Kare hızı, GPU ve bellek kullanımı, özellikle Gemma, Whisper ve Yelda birlikteyken, ölçülmedi; otomatik kalite eşikleri gerçek donanımda ayarlanmadı |
+| Görsel ince ayar | three.js Bloom ile LAZOS'un `postprocessing` Bloom'u arasındaki parlaklık farkı ölçülmedi (sahip görünümü onayladı) |
+| Faz 13'ten sürenler | Gürültülü ortam, sesle kesme, yankı engelleme, paketleme |
+
