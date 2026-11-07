@@ -387,7 +387,13 @@ pub fn post_inference(addr: SocketAddr, wav: &[u8]) -> Result<String, ShellError
     };
     let json: serde_json::Value = serde_json::from_slice(&payload).map_err(|_| fail("json"))?;
     let text = json.get("text").and_then(|t| t.as_str()).ok_or_else(|| fail("json"))?;
-    Ok(text.trim().to_owned())
+    Ok(joined(text))
+}
+
+/// whisper-server joins its segments with newlines, sometimes inside a word ("ha\nva");
+/// a segment that starts a new word carries its own leading space.
+pub fn joined(text: &str) -> String {
+    text.replace(['\r', '\n'], "").split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn dechunk(mut raw: &[u8]) -> Option<Vec<u8>> {
@@ -485,6 +491,17 @@ mod tests {
         assert_eq!(text, "Merhaba LAZIS, bugün hava nasıl?");
         let request = server.join().unwrap();
         assert!(request.starts_with(b"POST /inference HTTP/1.1\r\n"));
+    }
+
+    #[test]
+    fn segments_are_joined_without_breaking_words() {
+        // Real whisper-server output for a Turkish sentence (2026-11-07 check).
+        let raw = " Merhaba Lazız, yarın sabah saat 9'da toplantım var. Bana ha\nva durumunu söyler misin?\n";
+        assert_eq!(
+            joined(raw),
+            "Merhaba Lazız, yarın sabah saat 9'da toplantım var. Bana hava durumunu söyler misin?"
+        );
+        assert_eq!(joined(" Birinci cümle.\n İkinci cümle.\n"), "Birinci cümle. İkinci cümle.");
     }
 
     #[test]

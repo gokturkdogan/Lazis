@@ -1,6 +1,6 @@
 # Faz 13 ilk sürüm: Türkçe sesli asistan
 
-**Tarih:** 2026-11-06. **Dal:** `phase13/voice`, `main`'den (`a5be761`) açıldı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı. Konuşma tanıma modeli **indirilmedi**; gerçek mikrofonla, gerçek konuşma tanımayla ve masaüstü penceresinde **denenmedi**.
+**Tarih:** 2026-11-06. **Dal:** `phase13/voice`, `main`'den (`a5be761`) açıldı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı. Konuşma tanıma modeli sahibin onayıyla **kuruldu** ve sentetik Türkçe sesle denendi (bölüm 8). Gerçek mikrofonla ve masaüstü penceresinde **henüz denenmedi**.
 
 ## 1. Teknik seçim (kısa)
 
@@ -23,7 +23,7 @@
 | Piper `tr_TR-dfki` | Var | Çalışma zamanı artık GPL (aynı süreçte kullanılamaz) | Yalnızca ayrı süreçle |
 | VoxCPM2, XTTS-v2 | Var | Çok ağır ya da ticari olmayan lisans | Hayır |
 
-**Erkek, sıcak ve doğal ses hedefi bu sürümde karşılanmadı.** macOS'ta Türkçe erkek sistem sesi yok.
+**Sahibin kararı (2026-11-07):** Varsayılan ve tek TTS sesi macOS Yelda. Erkek ses araştırması durduruldu; Chatterbox, Piper veya başka bir TTS modeli kurulmayacak.
 
 ## 2. Mimari
 
@@ -91,3 +91,15 @@
 - **Konuşma sunucusu yerel bir porttan dinler.** Aynı kullanıcı hesabındaki başka bir süreç, sunucu açıkken ona ses gönderebilir (yalnızca yazıya çevirir; dışarıya erişimi yok).
 - **Homebrew bağımlılığı:** `whisper-server` uygulamayla paketlenmiyor.
 - **Gerçek Gemma ile sesli yanıt kalitesi** (kısa, konuşma diline uygun yanıt) ölçülmedi; ses için ayrı üslup kuralı yok.
+
+## 8. Model kurulumu ve konuşma tanıma denemesi (2026-11-07)
+
+- **Kurulum:** `make voice-model APPROVED=yes` ile indirildi. Konum: `~/Library/Application Support/LAZIS/models/whisper/ggml-large-v3-turbo-q5_0.bin`. Bu klasör profil verisi değil, profiller arasında ortak.
+- **Doğrulama:** 574.041.195 bayt; SHA-256 `394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2`, Hugging Face'in yayımladığı değerle aynı.
+- **Mikrofonsuz deneme:** Yelda'nın okuduğu 6,5 saniyelik Türkçe cümle 16 kHz WAV'a çevrildi. `whisper-server`, kabuğun kullandığı `stt.sb` profili ve bağlantı borusu sarmalayıcısıyla çalıştırıldı.
+  - Sonuç: "Merhaba Lazız, yarın sabah saat 9'da toplantım var. Bana hava durumunu söyler misin?"
+  - Süre: istek 0,77 sn, sunucunun hazır olması 0,3 sn. Bellek ölçülmedi.
+  - Sunucu durduruldu, geçici ses dosyası silindi.
+- **Düzeltme:** whisper-server parçaları satır sonuyla, bazen kelimenin ortasından birleştiriyor ("ha⏎va"). Kabuk artık satır sonlarını kaldırıp boşlukları sadeleştiriyor (gerçek çıktıyla test edildi).
+- **Bilinen:** Sentetik ses temizdir; insan sesi, mikrofon ve oda gürültüsüyle doğruluk ölçülmedi. "LAZIS" adı "Lazız" diye yazılabiliyor.
+
