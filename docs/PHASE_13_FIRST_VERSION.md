@@ -1,6 +1,6 @@
 # Faz 13 ilk sürüm: Türkçe sesli asistan
 
-**Tarih:** 2026-11-06. **Dal:** `phase13/voice`, `main`'den (`a5be761`) açıldı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı. Konuşma tanıma modeli sahibin onayıyla **kuruldu** ve sentetik Türkçe sesle denendi (bölüm 8). Gerçek mikrofonla ve masaüstü penceresinde **henüz denenmedi**.
+**Tarih:** 2026-11-06. **Dal:** `phase13/voice`, `main`'den (`a5be761`) açıldı. **Durum:** **İlk sürüm tamamlandı ve sahibin kararıyla kabul edildi** (2026-11-07); `main`'e alındı. Konuşma tanıma modeli kuruldu ve sentetik Türkçe sesle denendi (bölüm 8). Sahip, masaüstü uygulamasında gerçek mikrofonla bas-konuş denemesini yaptı ve **başarılı** buldu (bölüm 9).
 
 ## 1. Teknik seçim (kısa)
 
@@ -102,4 +102,22 @@
   - Sunucu durduruldu, geçici ses dosyası silindi.
 - **Düzeltme:** whisper-server parçaları satır sonuyla, bazen kelimenin ortasından birleştiriyor ("ha⏎va"). Kabuk artık satır sonlarını kaldırıp boşlukları sadeleştiriyor (gerçek çıktıyla test edildi).
 - **Bilinen:** Sentetik ses temizdir; insan sesi, mikrofon ve oda gürültüsüyle doğruluk ölçülmedi. "LAZIS" adı "Lazız" diye yazılabiliyor.
+
+## 9. Kapanış (2026-11-07)
+
+- **Gerçek kullanıcı testi:** Sahip gerçek mikrofonla denedi ve başarılı buldu: Whisper ile Türkçe konuşma tanıma, Yelda ile sesli yanıt. Ayrıntılı ölçüm yapılmadı.
+- **Son `make check`:** geçti (3.496 çekirdek, 151 arayüz, 8 arayüz–arka uç, 46 Rust testi).
+
+### Açık teknik borçlar (kapatılmadı)
+
+| Konu | Durum |
+|---|---|
+| Performans | Gerçek konuşmada gecikme (konuşma bitişinden yanıtın sesine), konuşma modelinin bellek kullanımı ve Gemma ile birlikte kaynak tüketimi ölçülmedi |
+| Gürültülü ortam | Ses düzeyine dayalı sıra algılama ve Whisper doğruluğu gürültüde ölçülmedi; Silero VAD veya Smart Turn yok |
+| Sesli kesme (barge-in) | Yok: LAZIS konuşurken dinleme durur; kesme yalnızca "Sesli yanıtı durdur" düğmesiyle |
+| Yankı | Hoparlörle eller serbest kullanımda yankı engelleme yok (yarım çift yönlü çalışma) |
+| Paketleme | `whisper-server` Homebrew'den kullanılıyor; uygulama paketine dahil değil; paketlenmiş (`.app`) sürümde mikrofon izni denenmedi |
+| Ad tanıma | "LAZIS" "Lazız" diye yazılabiliyor; kişi adları için ipucu yok |
+| Ses | Yelda tek ses (sahibin kararı); erkek ses araştırması durduruldu |
+| Sesli yanıt üslubu | Sesli yanıtlar için ayrı kısalık veya konuşma dili kuralı yok |
 
