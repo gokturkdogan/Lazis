@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "@/api/client";
 import App from "@/App.vue";
 import OnboardingModal from "@/components/OnboardingModal.vue";
+import { READY_HOLD_MS } from "@/composables/startup";
 import { createAppI18n } from "@/i18n";
 import { useConnectionStore } from "@/stores/connection";
 import { useOnboardingStore } from "@/stores/onboarding";
@@ -144,6 +145,9 @@ describe("First setup modal (Phase 14.1)", () => {
     await wrapper.get('[data-testid="tab-settings"]').trigger("click");
     await flushPromises();
     await wrapper.get('[data-testid="open-onboarding"]').trigger("click");
+    await flushPromises();
+    // the setup window waits for the start screen's short "LAZIS hazır." to finish
+    await new Promise((r) => setTimeout(r, READY_HOLD_MS + 50));
     await flushPromises();
     expect(wrapper.find('[data-testid="onboarding"]').exists()).toBe(true);
     expect(useOnboardingStore().step).toBe(0);

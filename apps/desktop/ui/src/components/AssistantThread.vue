@@ -10,8 +10,9 @@ import DocumentAttach from "@/components/DocumentAttach.vue";
 import DocumentChip from "@/components/DocumentChip.vue";
 import Icon from "@/components/Icon.vue";
 import MarkdownContent from "@/components/MarkdownContent.vue";
+import NeuralSpinner from "@/components/NeuralSpinner.vue";
 import ResearchPrompt from "@/components/ResearchPrompt.vue";
-import { formatBytes, formatWhen } from "@/format";
+import { formatWhen } from "@/format";
 import { errorKey } from "@/i18n";
 import { copyText } from "@/platform/clipboard";
 import { useAssistantStore } from "@/stores/assistant";
@@ -37,12 +38,6 @@ const contextBoundary = computed(() => {
   if (from === null) return -1;
   const index = store.messages.findIndex((m) => m.timeline_seq >= from);
   return index > 0 || (index === 0 && store.hasOlder) ? index : -1;
-});
-const loadedLabel = computed(() => {
-  const first = store.loaded[0];
-  return first
-    ? t("conversation.loaded", { model: first.name, size: formatBytes(first.size_bytes) })
-    : t("conversation.notLoaded");
 });
 
 const stageLabel = computed(() => {
@@ -83,12 +78,6 @@ const backgroundLabel = computed(() => {
   return t(`conversation.background.${bg.kind}`);
 });
 
-function metricsLine(m: Message): string {
-  const metrics = m.metrics;
-  if (!metrics || m.status !== "complete") return "";
-  const ttft = metrics.ttft_ms === null ? "—" : `${(metrics.ttft_ms / 1000).toFixed(2)} sn`;
-  return t("conversation.metrics", { ttft, tokens: metrics.output_tokens ?? "—" });
-}
 
 async function submit() {
   const text = draft.value;
@@ -216,26 +205,9 @@ watch(
 
 <template>
   <section class="thread panel" data-testid="conversation-thread">
-    <header>
-      <div class="heading">
-        <h2 data-testid="thread-title">{{ t("conversation.title") }}</h2>
-        <span class="muted small">{{ t("conversation.subtitle") }}</span>
-      </div>
-      <label class="model">
-        <span class="muted">{{ t("conversation.model") }}</span>
-        <select
-          v-model="store.selectedModel"
-          data-testid="model-select"
-          :disabled="store.busy || store.models.length === 0"
-          @change="store.prepare(true)"
-        >
-          <option v-for="m in store.models" :key="m.name" :value="m.name">
-            {{ m.name }} · {{ m.parameter_size }} · {{ formatBytes(m.size_bytes) }}
-          </option>
-        </select>
-      </label>
-    </header>
-
+    <!-- Phase 14 polish: title, model choice, model memory and the privacy note left the chat:
+         the panel head carries the title; the model is chosen in Ayarlar → Yapay Zekâ Modeli;
+         memory and turn details are in Tanılama; the privacy note is in Ayarlar → Gizlilik. -->
     <div v-if="store.runtimeDown" class="banner danger" data-testid="runtime-down">
       <strong>{{ t("conversation.runtimeDown") }}</strong>
       <span class="muted">{{ t("conversation.runtimeDownHint") }}</span>
@@ -296,7 +268,6 @@ watch(
         <p v-else-if="m.status === 'failed'" class="error small" data-testid="failed-note">
           {{ t(errorKey(m.error_code)) }}
         </p>
-        <p v-if="metricsLine(m)" class="muted small mono">{{ metricsLine(m) }}</p>
       </article>
       </template>
     </div>
@@ -308,8 +279,9 @@ watch(
     <p v-if="turnHere && store.turn?.trimmed" class="warn-text small" data-testid="trimmed-notice">
       {{ t("conversation.trimmed", { from: store.turn.trimmed[0], to: store.turn.trimmed[1] }) }}
     </p>
-    <p v-if="backgroundLabel && !store.busy" class="muted small" data-testid="background-status">
-      {{ backgroundLabel }}…
+    <p v-if="backgroundLabel && !store.busy" class="background" role="status" data-testid="background-status">
+      <NeuralSpinner :size="18" />
+      <span>{{ backgroundLabel }}…</span>
     </p>
     <p v-if="store.errorCode && !store.busy" class="error small" role="alert" data-testid="thread-error">
       {{ t(errorKey(store.errorCode)) }}
@@ -348,6 +320,8 @@ watch(
         rows="3"
         data-testid="composer"
         maxlength="16000"
+        aria-keyshortcuts="Meta+Enter Control+Enter"
+        :aria-label="t('conversation.placeholder')"
         :placeholder="t('conversation.placeholder')"
         :disabled="store.runtimeDown || store.noModels"
         @keydown="onKey"
@@ -355,34 +329,40 @@ watch(
       />
       <button
         v-if="!turnHere"
-        class="btn btn-primary"
+        class="icon-btn send"
         type="submit"
         data-testid="send"
+        :aria-label="t('conversation.send')"
+        :title="t('conversation.send')"
         :disabled="!store.canSend || draft.trim() === ''"
       >
-        <Icon name="send" :size="15" />
-        {{ t("conversation.send") }}
+        <Icon name="send" :size="17" />
       </button>
       <button
         v-else
-        class="btn"
+        class="icon-btn send stop"
         type="button"
         data-testid="stop"
+        :aria-label="store.phase === 'cancelling' ? t('conversation.stopping') : t('conversation.stop')"
+        :title="store.phase === 'cancelling' ? t('conversation.stopping') : t('conversation.stop')"
         :disabled="store.phase === 'cancelling'"
         @click="store.cancel()"
       >
-        <Icon name="stop" :size="15" />
-        {{ store.phase === "cancelling" ? t("conversation.stopping") : t("conversation.stop") }}
+        <Icon name="stop" :size="16" />
       </button>
     </form>
-    <p class="muted small footer">
-      <span>{{ t("conversation.storedNotice") }}</span>
-      <span class="mono" data-testid="loaded-model">{{ loadedLabel }}</span>
-    </p>
   </section>
 </template>
 
 <style scoped>
+.background {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 .thread {
   display: flex;
   flex-direction: column;
@@ -391,29 +371,12 @@ watch(
   min-height: 0;
   min-width: 0;
 }
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.heading {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
 h2 {
   margin: 0;
   font-size: 16px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.model {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 select {
   background: var(--bg-elevated);
@@ -545,10 +508,14 @@ select {
   gap: 6px;
   margin-bottom: 8px;
 }
+/* Quiet shortcuts: no frame until hovered, so they never compete with the conversation. */
 .quick .btn {
-  padding: 5px 11px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 11.5px;
   border-radius: 999px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
 }
 .quick .btn,
 .composer .btn {
@@ -556,14 +523,43 @@ select {
   align-items: center;
   gap: 6px;
 }
+/* Phase 14 polish: one fixed, balanced height; long text scrolls inside; the paperclip and the
+   send button stay where they are at every window size. */
 .composer {
+  --composer-h: 76px;
   display: flex;
-  gap: 10px;
-  align-items: flex-end;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.composer :deep(.attach),
+.send {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+.send {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, rgb(4 10 22 / 0.8));
+}
+.send:hover:not(:disabled) {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.send.stop {
+  color: var(--text);
+  border-color: rgb(255 255 255 / 0.18);
+  background: rgb(255 255 255 / 0.05);
 }
 textarea {
   flex: 1;
-  resize: vertical;
+  min-width: 0;
+  height: var(--composer-h);
+  min-height: var(--composer-h);
+  max-height: var(--composer-h);
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.45;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--panel-border-strong);
@@ -571,12 +567,5 @@ textarea {
   color: var(--text);
   font: inherit;
   user-select: text;
-}
-.footer {
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 </style>

@@ -207,6 +207,17 @@ onBeforeUnmount(() => {
   flex-direction: column;
   padding: 12px;
 }
+/* Phase 14 polish: one glass panel, not a panel in a panel; the conversation fills it and the
+   message field sits at the bottom. */
+.chat-body :deep(.thread) {
+  flex: 1;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 4px 6px;
+}
 .chat-enter-active,
 .chat-leave-active {
   transition: opacity 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1);

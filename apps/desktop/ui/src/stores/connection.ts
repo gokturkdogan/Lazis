@@ -84,6 +84,9 @@ export function onSystemWoke(handler: () => void): () => void {
 export const useConnectionStore = defineStore("connection", {
   state: () => ({
     phase: "initializing" as UiPhase,
+    /** Phase 14 polish: the backend is up and its state is being read (encrypted database,
+     *  app info); drives the start screen's "memory" step, nothing else. */
+    verifying: false,
     errorCode: null as string | null,
     connection: null as PublicConnection | null,
     info: null as AppInfoResponse | null,
@@ -193,7 +196,12 @@ export const useConnectionStore = defineStore("connection", {
           }
           client = deps.clientFactory({ port: connection.port, token });
           epoch += 1;
-          await this.refreshAll();
+          this.verifying = true;
+          try {
+            await this.refreshAll();
+          } finally {
+            this.verifying = false;
+          }
           return;
         }
       }

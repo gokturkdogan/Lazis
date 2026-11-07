@@ -67,7 +67,13 @@ describe("The one assistant", () => {
       timeline: vi.fn().mockResolvedValue(history),
     });
     expect(client.timeline).toHaveBeenCalledWith(null, 50);
-    expect(wrapper.get('[data-testid="thread-title"]').text()).toBe("LAZIS");
+    expect(wrapper.get(".chat-head").text()).toContain("Konuşma");
+    // Phase 14 polish: no model chooser, model memory line or long notes in the chat
+    for (const gone of ["model-select", "loaded-model", "thread-title"]) {
+      expect(wrapper.find(`[data-testid="${gone}"]`).exists()).toBe(false);
+    }
+    expect(wrapper.text()).not.toContain("Bellekte");
+    expect(wrapper.text()).not.toContain("şifreli veritabanında");
     expect(wrapper.findAll('[data-testid="message-assistant"]')[0]?.text()).toContain("Merhaba efendim.");
     for (const control of ["new-conversation", "conversation-item", "rename-conversation", "delete-conversation", "conversation-sidebar"]) {
       expect(wrapper.find(`[data-testid="${control}"]`).exists()).toBe(false);
@@ -196,7 +202,7 @@ describe("The one assistant", () => {
     const { wrapper } = await mountView({ submitTurn: vi.fn(turn), cancelTurn });
     await send(wrapper, "Yarın ne yapalım?");
     await flushPromises();
-    expect(wrapper.get('[data-testid="turn-status"]').text()).toContain("Model hazırlanıyor");
+    expect(wrapper.get('[data-testid="turn-status"]').text()).toContain("Sinir ağları hazırlanıyor");
     (release as unknown as () => void)();
     await flushPromises();
     expect(wrapper.get('[data-testid="turn-status"]').text()).toContain("yaklaşık 8200 token");

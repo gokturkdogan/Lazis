@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import Icon from "@/components/Icon.vue";
-import { LOGO } from "@/brand";
 import NavDrawer from "@/components/NavDrawer.vue";
 import OnboardingModal from "@/components/OnboardingModal.vue";
 import { iconFor } from "@/navigation";
@@ -10,6 +9,8 @@ import PresenceIndicator from "@/components/PresenceIndicator.vue";
 import RecoveryCodeDialog from "@/components/RecoveryCodeDialog.vue";
 import RestorePanel from "@/components/RestorePanel.vue";
 import StartupError from "@/components/StartupError.vue";
+import StartupLoader from "@/components/StartupLoader.vue";
+import { useStartup } from "@/composables/startup";
 import StatusPill from "@/components/StatusPill.vue";
 import { useCore } from "@/core/useCore";
 import type { View } from "@/platform/tauri";
@@ -37,6 +38,12 @@ function go(view: View) {
 }
 
 const version = computed(() => store.info?.version ?? "—");
+// Phase 14 polish: the start screen follows the real startup steps (composables/startup.ts).
+const startup = useStartup(computed(() => tab.value === "conversation"));
+function startupDiagnostics() {
+  startup.dismiss();
+  go("diagnostics");
+}
 const showError = computed(
   () =>
     store.phase === "backend_failed" ||
@@ -101,16 +108,10 @@ onBeforeUnmount(() => offNavigate?.());
     </header>
 
     <main :class="{ stage: tab === 'conversation' && store.phase === 'connected' }">
-      <div v-if="store.phase === 'initializing' || store.phase === 'starting'" class="starting" role="status">
-        <img class="starting-logo" :src="LOGO" alt="LAZIS" width="220" height="220" draggable="false" data-testid="starting-logo" />
-        <div class="starting-row">
-          <PresenceIndicator state="thinking" label="starting" compact />
-          <span>{{ t("connection.starting") }}…</span>
-        </div>
-      </div>
+      <template v-if="store.phase === 'initializing' || store.phase === 'starting'" />
       <RestorePanel v-else-if="store.phase === 'needs_recovery'" />
       <template v-else>
-        <StartupError v-if="showError" />
+        <StartupError v-if="showError && !startup.visible.value" />
         <Transition name="view" mode="out-in">
           <div :key="tab" class="view" :class="{ 'view-stage': tab === 'conversation' }" :data-view="tab">
             <header v-if="tab !== 'conversation'" class="page-head" data-testid="page-head">
@@ -131,8 +132,11 @@ onBeforeUnmount(() => offNavigate?.());
     </main>
 
     <RecoveryCodeDialog v-if="store.phase === 'connected' && store.recoveryPending" />
-    <OnboardingModal v-else-if="store.phase === 'connected'" />
+    <OnboardingModal v-else-if="store.phase === 'connected' && !startup.visible.value" />
     <NavDrawer :open="menuOpen" :current="tab" @close="menuOpen = false" @go="go" />
+    <Transition name="loader">
+      <StartupLoader v-if="startup.visible.value && startup.step.value" :step="startup.step.value" @diagnostics="startupDiagnostics" />
+    </Transition>
   </div>
 </template>
 
@@ -219,23 +223,11 @@ main.stage {
   padding: 0;
   overflow: hidden;
 }
-.starting {
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  color: var(--text-muted);
+.loader-leave-active {
+  transition: opacity 520ms ease;
 }
-.starting-logo {
-  width: 220px;
-  height: 220px;
-  user-select: none;
-}
-.starting-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.loader-leave-to {
+  opacity: 0;
 }
 
 .view {

@@ -6,6 +6,7 @@
  */
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import ModelPanel from "@/components/ModelPanel.vue";
 import StatusCard from "@/components/StatusCard.vue";
 import ResearchPanel from "@/components/ResearchPanel.vue";
 import StylePanel from "@/components/StylePanel.vue";
@@ -154,11 +155,13 @@ const recoveryRows = computed<StatusRow[]>(() => [
         <button class="btn" type="button" data-testid="open-onboarding" @click="openOnboarding">{{ t("settings.onboardingOpen") }}</button>
       </div>
     </section>
+    <ModelPanel />
     <StylePanel />
     <ResearchPanel />
     <StatusCard :title="t('settings.model')" :rows="modelRows" testid="settings-model" />
     <p class="muted small">{{ t("settings.modelHint") }}</p>
     <StatusCard :title="t('settings.privacy')" :rows="privacyRows" testid="settings-privacy" />
+    <p class="muted small" data-testid="settings-privacy-note">{{ t("settings.privacyNote") }}</p>
     <StatusCard :title="t('settings.recovery')" :rows="recoveryRows" />
     <StatusCard :title="t('settings.config')" :rows="configRows" />
     <p class="muted small">{{ t("settings.readOnly") }}</p>

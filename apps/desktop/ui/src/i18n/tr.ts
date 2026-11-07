@@ -241,14 +241,27 @@ export const tr = {
       honorific: { "1": "Densin", "0": "Denmesin" },
     },
   },
+  startup: {
+    waking: "LAZIS uyanıyor…",
+    systems: "Bilişsel sistemler başlatılıyor…",
+    memory: "Hafıza bağlantısı kuruluyor…",
+    preparing: "Sizin için hazırlanıyor…",
+    ready: "LAZIS hazır.",
+    // What is really happening at each step, in plain words, under the line above.
+    plain: {
+      waking: "Uygulama penceresi açıldı, arka uç bekleniyor",
+      systems: "Yerel arka uç başlatılıyor",
+      memory: "Şifreli veritabanı ve ayarlar okunuyor",
+      preparing: "Konuşma geçmişi ve yerel modeller yükleniyor",
+      ready: "Her şey yerel ve hazır",
+    },
+    progress: "Başlatma: {done} / {total} adım",
+    diagnostics: "Ayrıntılar: Tanılama",
+  },
   conversation: {
     dailySummary: "Bugünün özeti",
     dailySummaryMessage: "Bugünün özetini çıkar.",
     title: "LAZIS",
-    subtitle: "Kişisel asistanınız · yerel",
-    storedNotice:
-      "Konuşma geçmişi yalnızca bu bilgisayarda, şifreli veritabanında saklanır; buluta gönderilmez ve " +
-      "günlüklere yazılmaz. Yanıtları bu bilgisayardaki yerel model üretir.",
     fileVaultOff:
       "FileVault kapalı: konuşma geçmişi veritabanında şifreli, ancak diskteki diğer dosyalar (günlükler, " +
       "macOS takas alanı) şifrelenmiyor. Kişisel sohbetlerden önce Sistem Ayarları › Gizlilik ve " +
@@ -258,8 +271,8 @@ export const tr = {
     noModelsHint: "Kurulum (onaylı modeller): make model-pull MODEL=gemma4:12b-it-qat",
     runtimeDown: "Yerel model çalışma ortamına (Ollama) ulaşılamıyor.",
     runtimeDownHint: "Ollama'yı başlatın: scripts/ollama-agent.sh install",
-    placeholder: "Mesajınızı yazın… (Gönder: ⌘↵)",
-    send: "Gönder",
+    placeholder: "LAZIS'e yaz…",
+    send: "Gönder (⌘↵)",
     stop: "Durdur",
     stopping: "Durduruluyor…",
     you: "Siz",
@@ -272,7 +285,7 @@ export const tr = {
     failed: "Yanıt üretilemedi.",
     stage: {
       waiting: "Sırada…",
-      loading_model: "Model hazırlanıyor (belleğe yükleniyor)…",
+      loading_model: "Sinir ağları hazırlanıyor…",
       researching: "İnternette araştırılıyor (Wikipedia)…",
       processing_cold: "Konuşma bağlamı hazırlanıyor (yaklaşık {tokens} token)…",
       processing_warm: "Yanıt hazırlanıyor…",
@@ -286,11 +299,10 @@ export const tr = {
     omitted: "Bazı eski mesajlar bağlam sınırı nedeniyle şu an LAZIS'in bağlamında değil.",
     boundary: "Bu çizginin üstündeki mesajlar LAZIS'in güncel bağlamında değil; ayrıntıları hatırlamayabilir.",
     background: {
-      prewarm: "Arka planda konuşma bağlamı hazırlanıyor",
+      prewarm: "Sinir ağları hazırlanıyor",
       compaction: "Arka planda konuşma özetleniyor",
       memory: "Arka planda konuşmadan öğreniliyor",
     },
-    metrics: "İlk token {ttft} · {tokens} token",
     copy: "Kopyala",
     copied: "Kopyalandı",
     copyFailed: "Kopyalanamadı",
@@ -300,7 +312,6 @@ export const tr = {
     linkOpen: "Tarayıcıda aç",
     linkCancel: "Vazgeç",
     linkFailed: "Bağlantı açılamadı (yalnızca http/https adreslerine izin verilir).",
-    loaded: "Bellekte: {model} ({size})",
     notLoaded: "Bellekte yüklü model yok",
   },
   memory: {
@@ -650,7 +661,22 @@ export const tr = {
     runtime: "Yerel çalışma ortamı",
     modelActive: "Kullanılan model",
     modelFallback: "Yedek model (otomatik geçiş yok)",
-    modelHint: "Model seçimi sohbet ekranının üstündeki listeden yapılır. Ayrıntılar: Tanılama.",
+    modelHint: "Bellek, bağlam ve önbellek ayrıntıları: Tanılama.",
+    ai: {
+      title: "Yapay Zekâ Modeli",
+      intro: "Bu bilgisayarda kurulu yerel modeller. LAZIS model indirmez ve Ollama ayarlarını değiştirmez; seçim yalnızca hangi modelin yanıt vereceğini belirler.",
+      active: "Etkin",
+      primary: "Varsayılan",
+      inMemory: "Bellekte · {size}",
+      use: "Bu modeli kullan",
+      using: "Kullanılıyor",
+      busy: "Bir yanıt sürerken model değiştirilemez.",
+      none: "Kurulu yerel model bulunamadı.",
+      runtimeDown: "Yerel model sunucusuna (Ollama) ulaşılamıyor.",
+      details: "{params} · {quant} · {size}",
+      changed: "{model} etkin. İlk yanıt modeli belleğe yüklerken biraz gecikebilir.",
+    },
+    privacyNote: "Konuşma geçmişi yalnızca bu bilgisayarda, şifreli veritabanında saklanır; buluta gönderilmez ve günlüklere yazılmaz. Yanıtları bu bilgisayardaki yerel model üretir.",
     privacy: "Gizlilik",
     localOnly: "Çalışma biçimi",
     localOnlyValue: "Tamamen yerel · bulut yok",

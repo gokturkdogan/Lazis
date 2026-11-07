@@ -52,7 +52,8 @@ describe("App", () => {
     expect(wrapper.get('[data-testid="tab-conversation"]').classes()).toContain("active");
     await wrapper.get('[data-testid="nav-close"]').trigger("click");
     const thread = wrapper.get('[data-testid="conversation-thread"]');
-    expect(thread.text()).toContain("şifreli veritabanında saklanır");
+    // Phase 14 polish: the privacy note left the chat; it is in Ayarlar (asserted below)
+    expect(thread.text()).not.toContain("şifreli veritabanında saklanır");
     expect(thread.get('[data-testid="empty-thread"]').text()).toContain("tek bir konuşma geçmişinde");
     expect(wrapper.find('[data-testid="new-conversation"]').exists()).toBe(false);
     expect(thread.findAll('[data-testid="message-assistant"]')).toHaveLength(0);
@@ -67,6 +68,8 @@ describe("App", () => {
     expect(wrapper.get('[data-testid="card-privacy"]').text()).toContain("Kapalı — Sistem Ayarları");
     await go(wrapper, "settings");
     expect(wrapper.get('[data-testid="settings-view"]').text()).toContain("FileVault");
+    // and the privacy note that left the chat is here
+    expect(wrapper.get('[data-testid="settings-privacy-note"]').text()).toContain("şifreli veritabanında saklanır");
   });
 
   it("shows a Turkish startup error with a retry action", async () => {
