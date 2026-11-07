@@ -107,27 +107,13 @@ pub fn parse_view(arg: &str) -> Option<&'static str> {
 
 pub const TRAY_ICON_SIZE: u32 = 44; // 22 pt @2x
 
-/// Menu-bar template icon (ring + centre dot, black with alpha; macOS tints it for light and
-/// dark menu bars). Drawn here so no image decoder is needed.
+/// Menu-bar template icon: the LAZIS logo's shape (sphere, ring, a small network), black with
+/// alpha, so macOS tints it for light and dark menu bars. Generated from the owner's logo by
+/// `scripts/brand_assets.py` as raw RGBA, so no image decoder is needed.
+const TRAY_ICON: &[u8] = include_bytes!("../icons/tray-template.rgba");
+
 pub fn tray_icon_rgba() -> Vec<u8> {
-    let size = TRAY_ICON_SIZE as f32;
-    let alpha = |x: f32, y: f32| {
-        let d = (x - size / 2.0).hypot(y - size / 2.0);
-        let ring = (1.0 - (d - 16.5).abs() / 2.0).max(0.0);
-        let dot = (7.0 - d).clamp(0.0, 1.0);
-        (ring + dot).min(1.0)
-    };
-    let mut rgba = Vec::with_capacity((TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize);
-    for y in 0..TRAY_ICON_SIZE {
-        for x in 0..TRAY_ICON_SIZE {
-            let mut a = 0.0;
-            for (sx, sy) in [(0.25, 0.25), (0.75, 0.25), (0.25, 0.75), (0.75, 0.75)] {
-                a += alpha(x as f32 + sx, y as f32 + sy) / 4.0;
-            }
-            rgba.extend_from_slice(&[0, 0, 0, (a * 255.0).round() as u8]);
-        }
-    }
-    rgba
+    TRAY_ICON.to_vec()
 }
 
 #[cfg(test)]
@@ -208,13 +194,15 @@ mod tests {
     }
 
     #[test]
-    fn tray_icon_is_a_template_ring_with_a_dot() {
+    fn tray_icon_is_the_logo_as_a_template() {
         let rgba = tray_icon_rgba();
         assert_eq!(rgba.len(), (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize);
         let px = |x: u32, y: u32| &rgba[((y * TRAY_ICON_SIZE + x) * 4) as usize..][..4];
-        assert_eq!(px(22, 22), &[0, 0, 0, 255]); // centre dot
-        assert_eq!(px(0, 0)[3], 0); // transparent corner
-        assert!(px(22 + 16, 22)[3] > 200); // on the ring
+        assert_eq!(px(0, 0)[3], 0); // transparent corners
+        assert_eq!(px(TRAY_ICON_SIZE - 1, TRAY_ICON_SIZE - 1)[3], 0);
+        assert!(px(22, 21)[3] > 200); // the network's hub at the centre
+        let drawn = rgba.chunks(4).filter(|p| p[3] > 128).count();
+        assert!((150..900).contains(&drawn), "{drawn}"); // a line drawing, not a blob or empty
         assert!(rgba.chunks(4).all(|p| p[..3] == [0, 0, 0])); // pure template colour
     }
 }

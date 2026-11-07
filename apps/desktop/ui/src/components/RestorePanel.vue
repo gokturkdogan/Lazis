@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { LOGO } from "@/brand";
 import { errorKey } from "@/i18n";
 import { useConnectionStore } from "@/stores/connection";
 
@@ -26,6 +27,7 @@ async function submit() {
 
 <template>
   <section class="restore panel" data-testid="restore-panel">
+    <img class="brand" :src="LOGO" alt="LAZIS" width="120" height="120" draggable="false" />
     <h2>{{ t("recovery.restoreTitle") }}</h2>
     <p class="muted">{{ t("recovery.restoreIntro") }}</p>
     <form @submit.prevent="submit">
@@ -56,6 +58,12 @@ async function submit() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.brand {
+  width: 120px;
+  height: 120px;
+  align-self: center;
+  user-select: none;
 }
 h2,
 p {

@@ -6,6 +6,7 @@
  */
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { EMBLEM } from "@/brand";
 import Icon from "@/components/Icon.vue";
 import { useFocusTrap } from "@/composables/focusTrap";
 import { NAV_ITEMS as ITEMS } from "@/navigation";
@@ -52,7 +53,10 @@ function go(view: View) {
             </button>
           </li>
         </ul>
-        <div class="foot muted">{{ t("nav.foot") }}</div>
+        <div class="foot muted">
+          <img class="foot-logo" :src="EMBLEM" alt="" aria-hidden="true" width="22" height="22" draggable="false" />
+          {{ t("nav.foot") }}
+        </div>
       </nav>
     </div>
   </Transition>
@@ -161,8 +165,16 @@ ul {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
+.foot-logo {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
 .foot {
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 0 8px;
   font-size: 11px;
   letter-spacing: 0.2em;

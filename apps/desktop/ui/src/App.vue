@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import Icon from "@/components/Icon.vue";
+import { LOGO } from "@/brand";
 import NavDrawer from "@/components/NavDrawer.vue";
 import OnboardingModal from "@/components/OnboardingModal.vue";
 import { iconFor } from "@/navigation";
@@ -80,6 +81,7 @@ onBeforeUnmount(() => offNavigate?.());
           :label="presence.label"
           :params="presence.params ?? {}"
           compact
+          logo
         />
         <div>
           <h1>{{ t("app.name") }}</h1>
@@ -100,8 +102,11 @@ onBeforeUnmount(() => offNavigate?.());
 
     <main :class="{ stage: tab === 'conversation' && store.phase === 'connected' }">
       <div v-if="store.phase === 'initializing' || store.phase === 'starting'" class="starting" role="status">
-        <PresenceIndicator state="thinking" label="starting" compact />
-        <span>{{ t("connection.starting") }}…</span>
+        <img class="starting-logo" :src="LOGO" alt="LAZIS" width="220" height="220" draggable="false" data-testid="starting-logo" />
+        <div class="starting-row">
+          <PresenceIndicator state="thinking" label="starting" compact />
+          <span>{{ t("connection.starting") }}…</span>
+        </div>
       </div>
       <RestorePanel v-else-if="store.phase === 'needs_recovery'" />
       <template v-else>
@@ -217,10 +222,22 @@ main.stage {
 .starting {
   margin: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   color: var(--text-muted);
 }
+.starting-logo {
+  width: 220px;
+  height: 220px;
+  user-select: none;
+}
+.starting-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .view {
   flex: 1;
   min-height: 0;

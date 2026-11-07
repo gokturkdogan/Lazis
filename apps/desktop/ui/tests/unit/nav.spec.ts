@@ -97,3 +97,36 @@ describe("Navigation drawer (Phase 14.1)", () => {
     wrapper.unmount();
   });
 });
+
+describe("LAZIS logo in the app", () => {
+  beforeEach(() => localStorage.setItem("lazis.intake.v1", JSON.stringify({ status: "done", step: 4 })));
+  afterEach(() => {
+    useConnectionStore().stop();
+    document.body.innerHTML = "";
+  });
+
+  it("is the app's mark in the top bar, inside the state ring, and in the menu", async () => {
+    const wrapper = await mountApp();
+    const mark = wrapper.get('header [data-testid="presence-logo"]');
+    expect(mark.attributes("src")).toContain("lazis-emblem");
+    expect(mark.attributes("alt")).toBe(""); // the name is written next to it
+    expect(wrapper.get('header [data-testid="presence"]').attributes("data-state")).toBeDefined();
+    await wrapper.get('[data-testid="menu-button"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.get("#nav-panel .foot img").attributes("src")).toContain("lazis-emblem");
+    wrapper.unmount();
+  });
+
+  it("is shown in full on the start screen", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useConnectionStore();
+    const wrapper = mount(App, { global: { plugins: [pinia, createAppI18n()] } });
+    store.$patch({ phase: "starting" });
+    await flushPromises();
+    const logo = wrapper.get('[data-testid="starting-logo"]');
+    expect(logo.attributes("src")).toContain("lazis-logo");
+    expect(logo.attributes("alt")).toBe("LAZIS");
+    wrapper.unmount();
+  });
+});

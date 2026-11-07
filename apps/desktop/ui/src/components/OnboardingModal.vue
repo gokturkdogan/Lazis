@@ -8,6 +8,7 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ApiError, type MemoryApplyResult } from "@/api/client";
+import { EMBLEM } from "@/brand";
 import Icon from "@/components/Icon.vue";
 import { useFocusTrap } from "@/composables/focusTrap";
 import { errorKey } from "@/i18n";
@@ -76,6 +77,7 @@ function saveStyle(dimension: "address" | "verbosity", value: string) {
         tabindex="-1"
       >
         <header>
+          <img class="brand" :src="EMBLEM" alt="" aria-hidden="true" width="30" height="30" draggable="false" />
           <div class="hud-label accent-text" id="onboarding-title">{{ t("intake.title") }}</div>
           <ol class="progress" :aria-label="t('intake.intro', { step: Math.min(onboarding.step + 1, LAST_STEP), total: LAST_STEP })">
             <li v-for="i in LAST_STEP" :key="i" :class="{ done: i <= onboarding.step, current: i === onboarding.step + 1 }" />
@@ -146,6 +148,12 @@ function saveStyle(dimension: "address" | "verbosity", value: string) {
 </template>
 
 <style scoped>
+.brand {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  user-select: none;
+}
 .backdrop {
   position: fixed;
   inset: 0;

@@ -4,20 +4,27 @@
  * Not the P14 neural core. Animation runs only while thinking or speaking (idle is still,
  * so an open window costs nothing), uses transform/opacity only, and stops under macOS
  * Reduce Motion or the app's own "reduce motion" preference (`html.reduce-motion`).
+ *
+ * With `logo`, the LAZIS logo sits inside the state ring (the app's mark in the top bar): the
+ * ring and the logo's glow still show the state, as before.
  */
 import { useI18n } from "vue-i18n";
+import { EMBLEM } from "@/brand";
 import type { PresenceState } from "@/stores/presence";
 
-defineProps<{ state: PresenceState; label: string; params?: Record<string, number>; compact?: boolean }>();
+defineProps<{ state: PresenceState; label: string; params?: Record<string, number>; compact?: boolean; logo?: boolean }>();
 const { t } = useI18n();
 </script>
 
 <template>
   <div class="presence" :class="`presence--${state}`" data-testid="presence" :data-state="state">
-    <div class="glyph" aria-hidden="true">
+    <div class="glyph" :class="{ 'glyph--logo': logo }" aria-hidden="true">
       <div class="ring ring--outer" />
-      <div class="ring ring--inner" />
-      <div class="core" />
+      <img v-if="logo" class="core logo" :src="EMBLEM" alt="" draggable="false" data-testid="presence-logo" />
+      <template v-else>
+        <div class="ring ring--inner" />
+        <div class="core" />
+      </template>
     </div>
     <span v-if="!compact" class="label" role="status" aria-live="polite" data-testid="presence-label">
       {{ t(`presence.${label}`, params ?? {}) }}
@@ -71,6 +78,18 @@ const { t } = useI18n();
   background: radial-gradient(circle at 40% 35%, #fff, var(--tone) 45%, transparent 75%);
   box-shadow: 0 0 14px color-mix(in srgb, var(--tone) 60%, transparent);
   transition: background 300ms ease, box-shadow 300ms ease;
+}
+.glyph--logo .logo {
+  inset: 3px;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tone) 55%, transparent));
+  transition: filter 300ms ease;
+  user-select: none;
 }
 .presence--thinking .ring--outer {
   animation: spin 3s linear infinite;
