@@ -43,14 +43,20 @@ export class Recorder {
     return this.stream !== null;
   }
 
-  /** Opens the microphone. `onFrame` gets each frame's level and length (ms). */
-  async start(onFrame?: (level: number, ms: number) => void): Promise<void> {
+  /** Opens the microphone. `onFrame` gets each frame's level and length (ms); `onLost` is
+   *  called if the system takes the microphone away (permission revoked, device unplugged). */
+  async start(onFrame?: (level: number, ms: number) => void, onLost?: () => void): Promise<void> {
     if (this.stream) return;
     const stream = await this.media.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video: false,
     });
     this.stream = stream;
+    for (const track of stream.getTracks()) {
+      track.addEventListener?.("ended", () => {
+        if (this.stream === stream) onLost?.();
+      });
+    }
     try {
       const context = this.media.createContext();
       this.context = context;

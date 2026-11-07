@@ -13,6 +13,7 @@ pub mod desktop;
 pub mod egress;
 pub mod errors;
 pub mod keystore;
+pub mod measure;
 pub mod metrics;
 pub mod paths;
 pub mod recovery;
@@ -44,6 +45,52 @@ use crate::state_file::Preferences;
 
 pub const CONNECTION_EVENT: &str = "lazis://backend-connection";
 pub const WAKE_EVENT: &str = "lazis://system-woke";
+/// Phase 15B: the voice session must end now (payload: the reason). The UI closes the
+/// microphone; the shell has already stopped speech and the speech server.
+pub const VOICE_STOP_EVENT: &str = "lazis://voice-stop";
+/// How often the voice guard checks that the window is still shown and the screen unlocked.
+const VOICE_GUARD_POLL: Duration = Duration::from_millis(1500);
+
+/// End any voice session: stop speaking, free the speech model, tell the UI to close the
+/// microphone. Harmless when no session is open.
+fn stop_voice(app: &AppHandle, reason: &'static str) {
+    let voice = app.state::<VoiceState>();
+    voice.stop_speaking();
+    voice.release();
+    let _ = app.emit_to(MAIN_WINDOW, VOICE_STOP_EVENT, reason);
+    log::info!("voice.session_stop_requested reason={reason}");
+}
+
+/// Phase 15B: no microphone while LAZIS cannot be seen. The window being hidden (closed to
+/// the menu bar, ⌘H), minimized, or the screen locked ends the voice session. Losing focus or
+/// being covered by another app's window does not: the window is still open.
+fn spawn_voice_guard(app: AppHandle) -> std::io::Result<()> {
+    std::thread::Builder::new().name("voice-guard".into()).spawn(move || {
+        let mut was_away = false;
+        loop {
+            std::thread::sleep(VOICE_GUARD_POLL);
+            let Some(window) = app.get_webview_window(MAIN_WINDOW) else { continue };
+            let reason = if system::screen_locked() == Some(true) {
+                Some("locked")
+            } else if window.is_minimized().unwrap_or(false) {
+                Some("minimized")
+            } else if !window.is_visible().unwrap_or(true) {
+                Some("hidden")
+            } else {
+                None
+            };
+            match reason {
+                Some(r) if !was_away => {
+                    stop_voice(&app, r);
+                    was_away = true;
+                }
+                None => was_away = false,
+                _ => {}
+            }
+        }
+    })?;
+    Ok(())
+}
 pub const NAVIGATE_EVENT: &str = "lazis://navigate";
 const MAIN_WINDOW: &str = "main";
 const TRAY_ID: &str = "lazis";
@@ -137,6 +184,22 @@ fn voice_stop_speaking(voice: State<'_, VoiceState>) {
 fn voice_release(voice: State<'_, VoiceState>) {
     voice.stop_speaking();
     voice.release();
+}
+
+// ----- opt-in measurements (Phase 15B; off unless LAZIS_METRICS=1) -----
+#[tauri::command]
+fn metrics_enabled() -> bool {
+    measure::enabled()
+}
+
+#[tauri::command]
+fn metrics_record(kind: String, value: f64, detail: Option<String>) {
+    if !measure::enabled() {
+        return;
+    }
+    if let Some(line) = measure::line(&kind, value, detail.as_deref().unwrap_or("")) {
+        log::info!("{line}");
+    }
 }
 
 #[tauri::command]
@@ -297,6 +360,7 @@ fn spawn_wake_detector(app: AppHandle) -> std::io::Result<()> {
             let (m, w) = (Instant::now(), SystemTime::now());
             let wall_elapsed = w.duration_since(wall).unwrap_or_default();
             if desktop::slept_between(m.duration_since(mono), wall_elapsed) {
+                stop_voice(&app, "sleep"); // a session never silently continues after sleep
                 let dto = app.state::<Shared>().on_wake();
                 let _ = app.emit_to(MAIN_WINDOW, CONNECTION_EVENT, dto);
                 let _ = app.emit_to(MAIN_WINDOW, WAKE_EVENT, wall_elapsed.as_secs());
@@ -400,7 +464,9 @@ pub fn run() {
             voice_speak,
             voice_synthesize,
             voice_stop_speaking,
-            voice_release
+            voice_release,
+            metrics_enabled,
+            metrics_record
         ])
         .on_window_event(|window, event| {
             // Closing the window keeps LAZIS in the menu bar (default) or quits, per preference.
@@ -409,8 +475,15 @@ pub fn run() {
                 && window.app_handle().state::<Shared>().preferences().close_to_menu_bar
             {
                 api.prevent_close();
+                stop_voice(window.app_handle(), "hidden"); // before hiding: no hidden microphone
                 let _ = window.hide();
                 log::info!("shell.window_hidden reason=close_to_menu_bar");
+            }
+            if let WindowEvent::Resized(_) = event
+                && window.label() == MAIN_WINDOW
+                && window.is_minimized().unwrap_or(false)
+            {
+                stop_voice(window.app_handle(), "minimized");
             }
         })
         .setup(move |app| {
@@ -444,6 +517,7 @@ pub fn run() {
                 }
             });
             spawn_wake_detector(app.handle().clone())?;
+            spawn_voice_guard(app.handle().clone())?;
             let starter = Arc::clone(&controller);
             std::thread::Builder::new().name("backend-start".into()).spawn(move || {
                 starter.start();

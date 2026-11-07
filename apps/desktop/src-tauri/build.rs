@@ -17,6 +17,8 @@ const COMMANDS: &[&str] = &[
     "voice_synthesize",
     "voice_stop_speaking",
     "voice_release",
+    "metrics_enabled",
+    "metrics_record",
 ];
 
 fn main() {

@@ -13,6 +13,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { Quality } from "@/core/scene";
 import { useCore } from "@/core/useCore";
+import { measure, measuring } from "@/measure";
 import { micLevel, speechLevel } from "@/voice/levels";
 
 const host = ref<HTMLDivElement | null>(null);
@@ -86,7 +87,29 @@ onMounted(async () => {
     }
   };
   raf = requestAnimationFrame(loop);
+  // Phase 15B (opt-in): frames actually drawn per second, every 10 s, with the window's state.
+  let drawn = 0;
+  let report: ReturnType<typeof setInterval> | null = null;
+  if (await measuring()) {
+    let since = performance.now();
+    const countFrame = () => {
+      drawn++;
+    };
+    const original = renderer.frame.bind(renderer);
+    renderer.frame = (dt, inputs) => {
+      countFrame();
+      original(dt, inputs);
+    };
+    report = setInterval(() => {
+      const now = performance.now();
+      const where = document.hidden ? "hidden" : document.hasFocus() ? "focused" : "unfocused";
+      measure("fps", (drawn * 1000) / (now - since), where);
+      drawn = 0;
+      since = now;
+    }, 10_000);
+  }
   stop = () => {
+    if (report) clearInterval(report);
     cancelAnimationFrame(raf);
     observer.disconnect();
     window.removeEventListener("pointermove", onPointer);

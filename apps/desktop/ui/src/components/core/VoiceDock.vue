@@ -7,6 +7,7 @@
 import { computed, onBeforeUnmount, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAssistantStore } from "@/stores/assistant";
+import { currentPlatform, onSystemWoke } from "@/stores/connection";
 import { useVoiceStore } from "@/stores/voice";
 
 const { t } = useI18n();
@@ -26,9 +27,26 @@ const errorText = computed(() => {
   return t(key) === key ? t("voice.error.stt_failed") : t(key);
 });
 
-onMounted(() => void voice.refresh());
-// Leaving the conversation view (or closing the window) ends the session: microphone off.
-onBeforeUnmount(() => void voice.endSession());
+// Phase 15B: the session ends — microphone off — whenever LAZIS cannot be seen: the shell
+// reports a hidden or minimized window, a locked screen or sleep; the page going away and
+// leaving this view end it too. Losing focus does not.
+const endOnPageHide = () => void voice.endSession();
+let offStop: (() => void) | null = null;
+let offWake: (() => void) | null = null;
+onMounted(async () => {
+  void voice.refresh();
+  window.addEventListener("pagehide", endOnPageHide);
+  offWake = onSystemWoke(() => void voice.endSession("sleep"));
+  offStop = (await currentPlatform()?.onVoiceStop((reason) => void voice.endSession(reason)).catch(() => null)) ?? null;
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("pagehide", endOnPageHide);
+  offWake?.();
+  offStop?.();
+  void voice.endSession();
+});
+
+const endedText = computed(() => (voice.ended && voice.mode === "off" ? t(`voice.ended.${voice.ended}`) : null));
 </script>
 
 <template>
@@ -60,6 +78,7 @@ onBeforeUnmount(() => void voice.endSession());
       {{ t("voice.speakReplies") }}
     </label>
     <p v-if="errorText" class="error" role="alert" data-testid="voice-error">{{ errorText }}</p>
+    <p v-else-if="endedText" class="ended" role="status" data-testid="voice-ended">{{ endedText }}</p>
   </div>
 </template>
 
@@ -132,6 +151,13 @@ onBeforeUnmount(() => void voice.endSession());
   color: var(--text-muted);
 }
 .note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.ended {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
   font-size: 12px;
   color: var(--text-muted);
 }

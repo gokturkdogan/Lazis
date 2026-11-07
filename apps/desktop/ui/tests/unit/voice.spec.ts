@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ApiClient, TurnSubmitRequest } from "@/api/client";
 import VoiceDock from "@/components/core/VoiceDock.vue";
 import { createAppI18n } from "@/i18n";
-import type { Platform } from "@/platform/tauri";
+import type { Platform, VoiceStopReason } from "@/platform/tauri";
 import { useAssistantStore } from "@/stores/assistant";
 import { useConnectionStore } from "@/stores/connection";
 import { RESUME_AFTER_SPEECH_MS, useMediaForTests, useVoiceStore } from "@/stores/voice";
@@ -16,7 +16,13 @@ import { assistantFixture, connection, fakeClient, fakePlatform, messageFixture 
 type Frame = (level: number) => void;
 
 export function fakeMedia(options: { fail?: string } = {}) {
-  const track = { stop: vi.fn() };
+  const ended: (() => void)[] = [];
+  const track = {
+    stop: vi.fn(),
+    addEventListener: (type: string, cb: () => void) => type === "ended" && ended.push(cb),
+    /** The system took the microphone away (permission revoked, device unplugged). */
+    lose: () => ended.forEach((cb) => cb()),
+  };
   let process: ((e: { inputBuffer: { getChannelData: () => Float32Array } }) => void) | null = null;
   const media: MediaAccess = {
     getUserMedia: vi.fn(async () => {
@@ -214,3 +220,102 @@ describe("Voice session (Phase 14: session only, no push-to-talk)", () => {
     expect(wrapper.get('[data-testid="voice-unavailable"]').text()).toContain("modeli henüz indirilmedi");
   });
 });
+
+describe("Microphone safety (Phase 15B)", () => {
+  afterEach(() => {
+    useAssistantStore().stop();
+    useConnectionStore().stop();
+  });
+
+  async function withShellEvents(media = fakeMedia()) {
+    let stop: (reason: VoiceStopReason) => void = () => undefined;
+    let wake: () => void = () => undefined;
+    const ctx = await setup(
+      {
+        onVoiceStop: vi.fn().mockImplementation(async (cb: (r: VoiceStopReason) => void) => {
+          stop = cb;
+          return () => undefined;
+        }),
+        onSystemWoke: vi.fn().mockImplementation((cb: () => void) => {
+          wake = cb;
+          return Promise.resolve(() => undefined);
+        }),
+      },
+      {},
+      media,
+    );
+    return { ...ctx, stop: (r: VoiceStopReason) => stop(r), wake: () => wake() };
+  }
+
+  it.each(["hidden", "minimized", "locked", "sleep"] as const)(
+    "the shell's %s signal ends the session: microphone off, model freed, nothing reopens",
+    async (reason) => {
+      const { wrapper, platform, media, voice, stop } = await withShellEvents();
+      await wrapper.get('[data-testid="voice-session-start"]').trigger("click");
+      await flushPromises();
+      expect(voice.micOpen).toBe(true);
+      stop(reason);
+      await flushPromises();
+      expect(voice.micOpen).toBe(false);
+      expect(media.track.stop).toHaveBeenCalled();
+      expect(platform.voiceRelease).toHaveBeenCalled();
+      expect(wrapper.get('[data-testid="voice-ended"]').text()).toContain("mikrofon kapalı");
+      // The window shown again (or any later signal) never opens the microphone by itself.
+      stop("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+      await flushPromises();
+      expect(media.media.getUserMedia).toHaveBeenCalledTimes(1);
+      expect(voice.micOpen).toBe(false);
+      expect(wrapper.find('[data-testid="voice-session-start"]').exists()).toBe(true); // a new click is needed
+    },
+  );
+
+  it("waking from sleep ends an open session", async () => {
+    const { voice, wake } = await withShellEvents();
+    await voice.startSession();
+    wake();
+    await flushPromises();
+    expect(voice.micOpen).toBe(false);
+    expect(voice.ended).toBe("sleep");
+  });
+
+  it("losing focus to another app does not end the session", async () => {
+    const { voice } = await withShellEvents();
+    await voice.startSession();
+    window.dispatchEvent(new Event("blur"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushPromises();
+    expect(voice.micOpen).toBe(true);
+    await voice.endSession();
+  });
+
+  it("a microphone taken away by the system ends the session", async () => {
+    const media = fakeMedia();
+    const { wrapper, voice } = await withShellEvents(media);
+    await voice.startSession();
+    media.track.lose();
+    await flushPromises();
+    expect(voice.micOpen).toBe(false);
+    expect(wrapper.get('[data-testid="voice-ended"]').text()).toContain("Mikrofon erişimi kesildiği");
+  });
+
+  it("the page going away ends the session", async () => {
+    const { media, voice } = await withShellEvents();
+    await voice.startSession();
+    window.dispatchEvent(new Event("pagehide"));
+    await flushPromises();
+    expect(voice.micOpen).toBe(false);
+    expect(media.track.stop).toHaveBeenCalled();
+  });
+
+  it("a stop signal without a session changes nothing", async () => {
+    const { platform, voice, stop } = await withShellEvents();
+    stop("hidden");
+    await flushPromises();
+    expect(voice.mode).toBe("off");
+    expect(voice.ended).toBeNull();
+    expect(platform.voiceRelease).not.toHaveBeenCalled();
+  });
+});
+

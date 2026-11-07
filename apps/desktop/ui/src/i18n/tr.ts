@@ -116,6 +116,13 @@ export const tr = {
   voice: {
     micOff: "Mikrofon kapalı",
     micOn: "Mikrofon açık",
+    ended: {
+      hidden: "Pencere kapatıldığı için sesli oturum bitti; mikrofon kapalı.",
+      minimized: "Pencere küçültüldüğü için sesli oturum bitti; mikrofon kapalı.",
+      locked: "Ekran kilitlendiği için sesli oturum bitti; mikrofon kapalı.",
+      sleep: "Mac uykudan uyandığı için sesli oturum bitti; mikrofon kapalı.",
+      mic_lost: "Mikrofon erişimi kesildiği için sesli oturum bitti.",
+    },
     startSession: "Sesli oturumu başlat",
     endSession: "Sesli oturumu bitir",
     stop: "Sesli yanıtı durdur",

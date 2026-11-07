@@ -15,7 +15,8 @@
  */
 import { defineStore } from "pinia";
 import { markRaw } from "vue";
-import type { VoiceStatus } from "@/platform/tauri";
+import type { VoiceStatus, VoiceStopReason } from "@/platform/tauri";
+import { measure } from "@/measure";
 import { useAssistantStore } from "@/stores/assistant";
 import { currentPlatform } from "@/stores/connection";
 import { isNoise, sentences, speakable, TurnDetector } from "@/voice/audio";
@@ -57,6 +58,8 @@ export const useVoiceStore = defineStore("voice", {
     speakReplies: readSpeak(),
     error: null as string | null,
     heard: null as string | null,
+    /** Why the last session ended without the user ending it (an info line, not an error). */
+    ended: null as VoiceStopReason | "mic_lost" | null,
     /** The sentence Yelda is saying now (the HUD caption). */
     saying: null as string | null,
     /** Real timings of the last voice turn (ms), for the HUD. */
@@ -67,6 +70,8 @@ export const useVoiceStore = defineStore("voice", {
     player: markRaw(new SpeechPlayer(audio)) as SpeechPlayer,
     cancelSpeech: false,
     resumeAt: 0,
+    /** When the user's last utterance ended (for the end-to-end measurement). */
+    spokeAt: 0,
   }),
 
   getters: {
@@ -106,9 +111,13 @@ export const useVoiceStore = defineStore("voice", {
       this.mode = "session";
       this.phase = "listening";
       this.error = null;
+      this.ended = null;
       this.resumeAt = 0;
       try {
-        await this.recorder.start((level, ms) => this.onFrame(level, ms));
+        await this.recorder.start(
+          (level, ms) => this.onFrame(level, ms),
+          () => void this.endSession("mic_lost"),
+        );
       } catch (e) {
         this.recorder.close();
         this.mode = "off";
@@ -127,6 +136,7 @@ export const useVoiceStore = defineStore("voice", {
       const event = this.detector.feed(level, ms);
       if (event === null && !this.detector.speaking) this.recorder.trim(PREROLL_FRAMES);
       if (event === "end") {
+        this.spokeAt = performance.now();
         const take = this.recorder.take();
         this.recorder.setKeeping(false); // nothing is kept while LAZIS works or speaks
         void this.handle(take).finally(() => {
@@ -139,9 +149,12 @@ export const useVoiceStore = defineStore("voice", {
       }
     },
 
-    async endSession() {
+    /** Ends the session and closes the microphone. Starting again always takes a new click:
+     *  nothing here, nor showing the window again, reopens it. */
+    async endSession(reason?: VoiceStopReason | "mic_lost") {
       if (this.mode !== "session") return;
       this.mode = "off";
+      this.ended = reason ?? null;
       this.recorder.close(); // tracks stopped: the system microphone indicator goes off
       this.detector.reset();
       this.phase = "idle";
@@ -168,6 +181,7 @@ export const useVoiceStore = defineStore("voice", {
         return;
       }
       this.lastSttMs = Math.round(performance.now() - started);
+      measure("stt_ms", this.lastSttMs);
       if (isNoise(text)) {
         this.error = "heard_nothing";
         return;
@@ -181,7 +195,9 @@ export const useVoiceStore = defineStore("voice", {
       }
       this.phase = "thinking";
       const before = assistant.messages.length;
+      const asked = performance.now();
       const sent = await assistant.send(text, { channel: "voice" });
+      measure("reply_ms", performance.now() - asked);
       if (!sent || !this.speakReplies || this.status?.tts_available !== true) return;
       const reply = [...assistant.messages.slice(before)].reverse().find((m) => m.role === "assistant");
       if (reply && reply.content.trim()) await this.speak(reply.content);
@@ -206,6 +222,9 @@ export const useVoiceStore = defineStore("voice", {
           this.saying = parts[i]!;
           if (first) {
             this.lastFirstAudioMs = Math.round(performance.now() - started);
+            measure("first_audio_ms", this.lastFirstAudioMs);
+            if (this.spokeAt > 0) measure("voice_e2e_ms", performance.now() - this.spokeAt);
+            this.spokeAt = 0;
             first = false;
           }
           await this.player.play(wav);

@@ -68,6 +68,12 @@ export interface Platform {
   onNavigate(callback: (view: View) => void): Promise<UnlistenFn>;
   /** A view requested at launch (`--show=<view>`), if any. */
   initialView(): View | null;
+  /** Phase 15B: the shell says the voice session must end (window hidden or minimized, screen
+   *  locked, after sleep). The payload is the reason. */
+  onVoiceStop(callback: (reason: VoiceStopReason) => void): Promise<UnlistenFn>;
+  /** Phase 15B: opt-in local measurements (LAZIS_METRICS=1); numbers only. */
+  metricsEnabled(): Promise<boolean>;
+  metricsRecord(kind: string, value: number, detail: string): Promise<void>;
   // ----- voice (Phase 13): local speech recognition and the system voice -----
   voiceStatus(): Promise<VoiceStatus>;
   /** A 16 kHz mono WAV, sent as raw bytes; kept in memory only. */
@@ -80,6 +86,10 @@ export interface Platform {
   /** The voice session ended: stop speaking, free the speech model. */
   voiceRelease(): Promise<void>;
 }
+
+export type VoiceStopReason = "hidden" | "minimized" | "locked" | "sleep";
+const VOICE_STOP_REASONS: readonly VoiceStopReason[] = ["hidden", "minimized", "locked", "sleep"];
+export const VOICE_STOP_EVENT = "lazis://voice-stop";
 
 export interface VoiceStatus {
   stt_available: boolean;
@@ -119,6 +129,13 @@ export const tauriPlatform: Platform = {
   openExternalUrl: (url) => invoke<void>("open_external_url", { url }),
   processMetrics: () => invoke<ProcessMetrics>("process_metrics"),
   onSystemWoke: (callback) => listen(WAKE_EVENT, () => callback()),
+  metricsEnabled: () => invoke<boolean>("metrics_enabled"),
+  metricsRecord: (kind, value, detail) => invoke<void>("metrics_record", { kind, value, detail }),
+  onVoiceStop: (callback) =>
+    listen<string>(VOICE_STOP_EVENT, (event) => {
+      const reason = VOICE_STOP_REASONS.find((r) => r === event.payload);
+      if (reason) callback(reason);
+    }),
   onNavigate: (callback) =>
     listen<string>(NAVIGATE_EVENT, (event) => {
       const view = asView(event.payload);
