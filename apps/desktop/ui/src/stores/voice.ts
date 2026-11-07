@@ -118,6 +118,7 @@ export const useVoiceStore = defineStore("voice", {
           (level, ms) => this.onFrame(level, ms),
           () => void this.endSession("mic_lost"),
         );
+        measure("mic", 1, "open");
       } catch (e) {
         this.recorder.close();
         this.mode = "off";
@@ -156,6 +157,7 @@ export const useVoiceStore = defineStore("voice", {
       this.mode = "off";
       this.ended = reason ?? null;
       this.recorder.close(); // tracks stopped: the system microphone indicator goes off
+      measure("mic", 0, reason ?? "user");
       this.detector.reset();
       this.phase = "idle";
       setMicLevel(0);

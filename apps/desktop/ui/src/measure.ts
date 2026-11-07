@@ -5,7 +5,7 @@
  */
 import { currentPlatform } from "@/stores/connection";
 
-export type MeasureKind = "fps" | "stt_ms" | "first_audio_ms" | "voice_e2e_ms" | "reply_ms";
+export type MeasureKind = "fps" | "stt_ms" | "first_audio_ms" | "voice_e2e_ms" | "reply_ms" | "mic";
 
 let enabled: Promise<boolean> | null = null;
 

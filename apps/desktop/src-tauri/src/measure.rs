@@ -5,7 +5,9 @@
 
 use std::sync::OnceLock;
 
-const KINDS: &[&str] = &["fps", "stt_ms", "first_audio_ms", "voice_e2e_ms", "reply_ms"];
+/// `mic`: 1 when the UI opened the microphone stream, 0 once every track was stopped (detail:
+/// why). Lets a test confirm the stream really ended, not only the indicator.
+const KINDS: &[&str] = &["fps", "stt_ms", "first_audio_ms", "voice_e2e_ms", "reply_ms", "mic"];
 const DETAILS: &[&str] = &[
     "",
     "focused",
@@ -18,6 +20,12 @@ const DETAILS: &[&str] = &[
     "thinking",
     "speaking",
     "error",
+    "open",
+    "user",
+    "minimized",
+    "locked",
+    "sleep",
+    "mic_lost",
 ];
 
 pub fn enabled() -> bool {
@@ -49,5 +57,6 @@ mod tests {
         assert!(line("fps", 60.0, "Merhaba LAZIS").is_none());
         assert!(line("fps", f64::NAN, "focused").is_none());
         assert!(line("fps", -1.0, "focused").is_none());
+        assert_eq!(line("mic", 0.0, "hidden").as_deref(), Some("metrics.mic value=0.0 detail=hidden"));
     }
 }
