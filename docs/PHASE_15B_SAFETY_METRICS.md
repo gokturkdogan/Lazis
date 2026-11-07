@@ -1,6 +1,6 @@
 # Faz 15B: Mikrofon güvenliği ve sınırlı performans ölçümü
 
-**Tarih:** 2026-11-07. **Dal:** `phase15/safety-metrics`, `main`'den (`83d7cc0`) açıldı; Faz 15A denetim raporu bu dala taşındı. **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı, push yapılmadı.
+**Tarih:** 2026-11-07. **Dal:** `phase15/safety-metrics`, `main`'den (`83d7cc0`) açıldı; Faz 15A denetim raporu bu dala taşındı. **Durum:** **Tamamlandı ve sahibin kararıyla kabul edildi** (2026-11-07); `main`'e alındı. Mikrofon kapanışı **sahibin gerçek mikrofon gözlemiyle** doğrulandı; uygulama ve macOS kayıtlarıyla doğrulanmadı (bölüm 6).
 
 ## 1. Mikrofon düzeltmesi
 
@@ -102,3 +102,23 @@ Bu adımlar geliştirme profilinizi kullanır (gerçek profil değil) ve hiçbir
 - **M6 tam ölçülmedi:** Odak dışı ama görünür durum, sürüm (release) derlemesi ve GPU zamanı ölçülmedi. Odaktaki işlemci değeri karışık bir aşamadan geliyor.
 - **Ölçülmeyenler:** Yelda'nın Web Audio'daki çözme ve çalma payı, insan sesiyle STT doğruluğu.
 - **M2, M5, M7 yapılmadı.** REL-001…004 ve diğer teknik borçlar açık.
+
+## 6. Gerçek mikrofon kapanış testi (2026-11-07)
+
+**Hazırlık:**
+- Geliştirme profiline ön ısıtmayı kapatan geçici bir `config.toml` kondu; test sonrası silindi.
+- Uygulama, ölçüm modunda mikrofonun açılma ve kapanma anlarını nedenleriyle kaydedecek şekilde ayarlandı.
+- `scripts/mic-in-use.swift`, macOS'a varsayılan mikrofonun kullanımda olup olmadığını soran salt okuyan bir izleyici olarak 12:31–12:46 arasında çalıştı.
+
+**Sonuç:**
+- **Sahip:** Testi yaptığını ve her şeyin beklendiği gibi çalıştığını bildirdi.
+- **Kayıtlar:** Testi göstermiyor. 12:31'den sonra hiçbir profilde LAZIS başlangıcı ya da mikrofon olayı kaydedilmemiş; macOS izleyicisi bu sürede mikrofonun hiç kullanılmadığını gördü.
+- **Karar:** Sahip, kendi gözlemine dayanarak birleştirmeye karar verdi. Kayıtla doğrulama **açık teknik borç**.
+
+## 7. Açık teknik borçlar (Faz 15B kapanışı)
+
+- **Mikrofon kapanışı kayıtla doğrulanmadı.** Ayrıca macOS izleyicisinin sorduğu özelliğin (`kAudioDevicePropertyDeviceIsRunningSomewhere`) WebKit'in mikrofon kullanımını gösterdiği henüz görülmedi. Bir sonraki gerçek denemede `LAZIS_METRICS=1` ile `metrics.mic` satırları ve izleyici birlikte kontrol edilmeli.
+- **Ekran kilidi algısı** gerçek kilitle denenmedi.
+- **Ölçülmeyenler:** M2 (Gemma yüklüyken bellek ve swap), M5 (sesli uçtan uca gecikme), M7 (uzun sohbet sıkıştırma), odak dışı FPS, sürüm derlemesi ve GPU.
+- REL-001…004 ve önceki fazlardan süren teknik borçlar açık.
+
