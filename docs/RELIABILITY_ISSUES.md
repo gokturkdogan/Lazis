@@ -81,6 +81,8 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 
 **Evidence:** `evals/reports/phase10/perf/baseline_cache2048_gap6_r2.json` and `..._gap6_r3.json`, fields `turns[32]`, `summaries`, `memories`.
 
+**Phase 15C (2026-11-07), recall checked without a model:** the active memories stored at the end of both failing runs were rebuilt in a test database: 9 for run 2, 6 for run 3. The turn-33 question "Mehmet ne zaman nereye gidiyordu? Kısaca yaz." was then run through `retrieval.recall` with the product's default budget (200 tokens, 440 characters). The Mehmet trip is in the memory block in both. So did three other phrasings, with the Mehmet memory alone. With the final memory state, recall does not lose the fact. That leaves two explanations a model-free check cannot decide: the memory did not exist yet at turn 33 (the old automatic learning ran in the background), or the reply did not use it (or trusted the summary, REL-003). No concrete code fault was found, so nothing was changed and the fault stays open. With automatic learning off, a stated fact like this one no longer becomes a memory at all; it lives only in the conversation and its summary.
+
 ## REL-003: facts disappear silently when a summary is rewritten
 
 | | |
@@ -184,6 +186,8 @@ The uncertainty is lost outright in five of nine runs. Memory jobs were still ru
 **Cause, measured 2026-11-05 (`docs/CARRY_READING3_REPORT.md` on branch `experiment/rel003-carry`):** with no reminder sentence in the prompt, 0 of 27 answers promised a reminder; with one, 12 of 18, in today's summary format and in a ledger alike. So the fault can appear in the product once a request reaches a summary. The persona rule was in the prompt every time. A better prompt cannot guarantee this: see acceptance criterion 2. Small sample, read by the developer who wrote the data.
 
 **Acceptance test, 2026-11-05 ([REL004_ACCEPTANCE_REPORT.md](REL004_ACCEPTANCE_REPORT.md)):** the fix on branch `rel004/action-claims` did not pass: 2 unverified claims shown in 72 turns, found by hand, and 1 right answer wrongly replaced. On the owner's decision it stays on its branch, not on `main`, with no new word lists and no rerun. Open.
+
+**Phase 15C (2026-11-07), model-free probe with a scripted model:** false memory claims are held to the real outcome in three of four probed paths. A spoken "Bunu hatırla" answered "Kaydettim" is shown as "Anladım". A typed statement answered "bunu hafızama kaydettim" is reworded, since automatic learning is off. A spoken "Derya'yı unut." answered "Derya'yı unuttum" was shown unchanged: the voice path skipped the memory step without telling the claim guard that nothing happened. **Fixed:** a spoken memory request now reports its real outcome ("refused") to the claim guard (`engine._memory_request`, test `test_a_spoken_request_cannot_be_answered_as_if_it_was_done`). The reminder promise ("yarın sabah size hatırlatacağım") passes unchanged, as expected. There is no reminder feature whose result code could check, and a word rule is what failed acceptance, so this part stays open.
 
 ### Acceptance criteria
 

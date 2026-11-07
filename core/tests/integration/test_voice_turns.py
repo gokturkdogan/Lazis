@@ -79,3 +79,28 @@ def test_the_api_accepts_the_voice_channel_only(
         assert c.post("/api/v1/turns", json=body, headers=auth).status_code == 200
         bad = {**body, "client_id": client_id(), "channel": "telepathy"}
         assert c.post("/api/v1/turns", json=bad, headers=auth).status_code == 422
+
+
+def test_a_spoken_request_cannot_be_answered_as_if_it_was_done(
+    tmp_path: Path, storage: StorageHandle
+) -> None:
+    """Phase 15C (REL-004): a spoken memory request changes nothing, so the reply may not say
+    it did, whatever the model writes. Shown and stored text are the same."""
+    replies = iter(["Kaydettim efendim, artık biliyorum.", "Tamam efendim, Derya'yı unuttum."])
+    llm = ScriptedLLM(reply=lambda r: next(replies))
+
+    async def go() -> list[str]:
+        engine = make_engine(storage, llm, tmp_path)
+        shown = [await _say(engine, "Bunu hatırla: Kahveyi şekersiz içerim."),
+                 await _say(engine, "Derya'yı unut.")]  # fmt: skip
+        await engine.close()
+        return shown
+
+    saved, forgot = asyncio.run(go())
+    assert "Kaydettim" not in saved and "unuttum" not in forgot.lower()
+    stored = storage.db.run_sync(
+        lambda c: [str(r[0]) for r in c.execute(
+            "SELECT content FROM messages WHERE role='assistant' ORDER BY seq")]
+    )  # fmt: skip
+    assert stored == [saved, forgot]
+    assert storage.db.run_sync(lambda c: memory_repo.count_memories(c)) == {}

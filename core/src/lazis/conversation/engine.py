@@ -1699,7 +1699,15 @@ class ConversationEngine:
         recognition can mishear a name or a number. The reply says so if it was asked."""
         user, conv = handle.user, handle.conversation
         if user.channel == "voice":
-            return VOICE_MEMORY_NOTICE if commands.detect(user.content) is not None else ""
+            intent = commands.detect(user.content)
+            if intent is None:
+                return ""
+            if intent in commands.REQUEST_INTENTS:
+                # The real outcome is that nothing changed: the claim guard then holds the reply
+                # to it ("unuttum", "kaydettim" are not shown). Phase 15C, REL-004.
+                handle.memory_intent = intent
+                handle.memory_outcome = "refused"
+            return VOICE_MEMORY_NOTICE
         pending = await self._q(lambda c: commands.pending_confirmation(c, conv.id))
         # An answer to an open "which Ahmet?" question ("Komşum olan.") completes the waiting
         # record here, deterministically — the user does not repeat the whole sentence.
