@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-11-07.
 **Dal:** `phase14/ui-refinement`, `main`'den (`348e0b1`) açıldı.
-**Durum:** Geliştirme tamamlandı; modelsiz testler geçiyor. **Masaüstünde görsel onay bekleniyor.** Onay gelmeden `main`'e birleştirilmeyecek ve GitHub'a gönderilmeyecek.
+**Durum:** Geliştirme tamamlandı; modelsiz testler geçiyor. Sohbet oku ve kayma davranışı sahip tarafından kabul edildi (2026-11-07). **Çekirdeğin nihai görsel onayı bekleniyor**; o gelmeden yeni tasarım değişikliği yapılmayacak. Onay gelmeden `main`'e birleştirilmeyecek ve GitHub'a gönderilmeyecek.
 
 ## 1. Yenilenen yapı
 
@@ -151,6 +151,12 @@ Yeni kodla yedi durumun hepsinde ortadaki beyaz alan **%0**; renk doygunluğu 0,
 - `ui/dev/core-preview.html`, çekirdeği arka uç, model ve mikrofon olmadan uygulamadaki kodun aynısıyla çiziyor.
 - `scripts/core-snapshots.swift` bu sayfayı **WebKit** ile (LAZIS penceresinin motoru) ekran dışı bir pencerede açıp beş durumu PNG olarak kaydediyor. Dinleme ve konuşma, normal (0,35–0,4) ve yüksek (0,85) ses seviyesiyle de çekildi.
 - Her değişiklik görüntülere bakılarak değerlendirildi; sayılar yalnızca destek.
+- `--clip=N` ile aynı sayfadan 30 fps'lik kareler alınabiliyor; bunlardan yan yana önce/sonra videoları yapıldı (sahibin değerlendirmesi için, depoda değil).
+- **Canlılık ölçümü:** Çekirdeğin çevresinde kareden kareye ortalama değişime bakıldı. Bu ölçü görünür hareketi yaklaşık olarak gösteriyor.
+  - Yedi durumun altısında görünür hareket öncekinden fazla, en çok iki katı. Beyaz patlama plazmanın ve halkaların hareketini örtüyormuş.
+  - Düşünmede hareket aşağı yukarı aynı (16,6 → 15,7).
+  - Orta bölgenin ortalama parlaklığı yaklaşık yarıya indi.
+  - Hız ve hareket kodu değişmedi.
 - **Sınır:** Bunlar gerçek LAZIS penceresinden değil, aynı motor ve aynı kodla çizilmiş görüntüler. Gerçek pencerede sahibin bakması gerekiyor (bölüm 9).
 
 ## 8. Testler

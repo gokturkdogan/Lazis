@@ -6,7 +6,8 @@
  *
  * With ?shot=1 it steps the scene deterministically (fixed 60 fps steps, so the colours have
  * fully eased into the state) and leaves the frame as a PNG data URL in `window.__shot`, which
- * scripts/core-snapshots.swift reads through WebKit. Without it, it just runs live.
+ * scripts/core-snapshots.swift reads through WebKit; ?seq=N does the same for an N-frame clip.
+ * Without either, it just runs live.
  */
 import type { CoreState } from "@/core/palette";
 import { CoreRenderer } from "@/core/scene";
@@ -30,7 +31,25 @@ for (const i of (q.get("hide") ?? "").split(",").filter(Boolean)) inside.layers[
 // A level that moves like speech, around the requested mean (0 stays 0).
 const levelAt = (t: number) => (level > 0 ? Math.max(0, level * (0.75 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23))) : 0);
 
-if (q.get("shot") === "1") {
+if (q.has("seq")) {
+  // A clip: after the same warm-up, N frames at 30 fps as JPEG data URLs in `window.__frames`
+  // (read one by one by scripts/core-snapshots.swift --clip=N).
+  const w = window as unknown as { __frames: string[]; __done: boolean };
+  w.__frames = [];
+  w.__done = false;
+  let t = 0;
+  for (let i = 0; i < 300; i++) {
+    t += 1 / 60;
+    renderer.frame(1 / 60, { state, level: levelAt(t) });
+  }
+  const n = Number(q.get("seq"));
+  for (let i = 0; i < n; i++) {
+    t += 1 / 30;
+    renderer.frame(1 / 30, { state, level: levelAt(t) });
+    w.__frames.push(canvas.toDataURL("image/jpeg", 0.92));
+  }
+  w.__done = true;
+} else if (q.get("shot") === "1") {
   const w = window as unknown as { __shot: string | null };
   w.__shot = null;
   let t = 0;
