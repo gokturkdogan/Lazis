@@ -29,9 +29,45 @@ if (q.has("threshold")) b.threshold = Number(q.get("threshold"));
 for (const i of (q.get("hide") ?? "").split(",").filter(Boolean)) inside.layers[Number(i)]!.object.visible = false;
 
 // A level that moves like speech, around the requested mean (0 stays 0).
-const levelAt = (t: number) => (level > 0 ? Math.max(0, level * (0.75 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23))) : 0);
+// ?drop=S: the sound stops S seconds into the clip (after the 5 s warm-up), to see the core settle.
+const drop = q.has("drop") ? 5 + Number(q.get("drop")) : Infinity;
+const levelAt = (t: number) =>
+  level > 0 && t < drop ? Math.max(0, level * (0.75 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23))) : 0;
 
-if (q.has("seq")) {
+if (q.has("bench")) {
+  // Cost per frame, GPU included (gl.finish waits for it), and what one frame draws.
+  const inner = (renderer as unknown as { renderer: { info: { autoReset: boolean; reset(): void; render: { calls: number; triangles: number; points: number; lines: number } }; getContext(): WebGLRenderingContext } }).renderer;
+  const gl = inner.getContext();
+  const w = window as unknown as { __bench: unknown };
+  w.__bench = null;
+  let t = 0;
+  for (let i = 0; i < 120; i++) {
+    t += 1 / 60;
+    renderer.frame(1 / 60, { state, level: levelAt(t) });
+  }
+  gl.finish();
+  inner.info.autoReset = false;
+  const n = Number(q.get("bench"));
+  // WebKit rounds performance.now() to 1 ms, so time batches of 10 frames.
+  const times: number[] = [];
+  let draw = { calls: 0, triangles: 0, points: 0, lines: 0 };
+  for (let b = 0; b < n / 10; b++) {
+    const t0 = performance.now();
+    for (let i = 0; i < 10; i++) {
+      t += 1 / 60;
+      inner.info.reset();
+      renderer.frame(1 / 60, { state, level: levelAt(t) });
+      gl.finish();
+    }
+    times.push((performance.now() - t0) / 10);
+    const r = inner.info.render;
+    draw = { calls: r.calls, triangles: r.triangles, points: r.points, lines: r.lines };
+  }
+  times.sort((a, b) => a - b);
+  const med = times[Math.floor(times.length / 2)]!;
+  const p95 = times[Math.floor(times.length * 0.95)]!;
+  w.__bench = { state, level, px: [canvas.width, canvas.height], median_ms: +med.toFixed(2), p95_ms: +p95.toFixed(2), ...draw };
+} else if (q.has("seq")) {
   // A clip: after the same warm-up, N frames at 30 fps as JPEG data URLs in `window.__frames`
   // (read one by one by scripts/core-snapshots.swift --clip=N).
   const w = window as unknown as { __frames: string[]; __done: boolean };

@@ -17,6 +17,11 @@ export function createCoreUniforms() {
     uPulse: { value: 0 },
     uMotion: { value: 1 },
     uPixelRatio: { value: 1 },
+    /** Phase 14.2: how far energy has travelled through the neural lattice (advanced per frame
+     *  from the state's pace and the real voice; never jumps). */
+    uFlow: { value: 0 },
+    /** Phase 14.2: the real voice level as the lattice feels it (eases back slowly). */
+    uVoice: { value: 0 },
   };
 }
 

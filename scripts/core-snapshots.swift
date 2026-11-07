@@ -4,6 +4,7 @@
 //   cd apps/desktop && pnpm vite --port 5199 &        # serve ui/ (any free port)
 //   swift scripts/core-snapshots.swift http://localhost:5199 OUT_DIR [suffix] [extra-query] [state]
 //   swift scripts/core-snapshots.swift --clip=120 http://localhost:5199 OUT_DIR [suffix] …
+//   swift scripts/core-snapshots.swift --bench=300 http://localhost:5199 OUT_DIR …
 //
 // The window is placed off-screen and never activated, so nothing appears or takes focus.
 import AppKit
@@ -12,7 +13,9 @@ import WebKit
 // --clip=N: instead of one PNG per state, N JPEG frames (30 fps) into OUT_DIR/STATE[-suffix]/,
 // for turning into a video (e.g. ffmpeg -framerate 30 -i %04d.jpg …).
 let clip = CommandLine.arguments.first { $0.hasPrefix("--clip=") }.flatMap { Int($0.dropFirst(7)) }
-let args = CommandLine.arguments.filter { !$0.hasPrefix("--clip=") }
+// --bench=N: print the preview's per-frame cost (median/p95 ms, GPU included) and draw counts.
+let bench = CommandLine.arguments.first { $0.hasPrefix("--bench=") }.flatMap { Int($0.dropFirst(8)) }
+let args = CommandLine.arguments.filter { !$0.hasPrefix("--clip=") && !$0.hasPrefix("--bench=") }
 guard args.count >= 3 else { print("usage: core-snapshots.swift BASE_URL OUT_DIR [suffix]"); exit(2) }
 let base = args[1]
 let out = URL(fileURLWithPath: args[2], isDirectory: true)
@@ -36,10 +39,23 @@ window.orderBack(nil)
 func capture(_ i: Int) {
     if i >= shots.count { exit(0) }
     let (state, level) = shots[i]
-    let mode = clip.map { "dpr=1&seq=\($0)" } ?? "dpr=1.5&shot=1"
+    let mode = bench.map { "dpr=1.5&bench=\($0)" } ?? clip.map { "dpr=1&seq=\($0)" } ?? "dpr=1.5&shot=1"
     let url = URL(string: "\(base)/dev/core-preview.html?state=\(state)&level=\(level)&\(mode)\(extra)")!
     view.load(URLRequest(url: url))
     var tries = 0
+    if bench != nil {
+        let here = "location.href === \(String(reflecting: url.absoluteString))"
+        func waitBench() {
+            tries += 1
+            view.evaluateJavaScript("\(here) && window.__bench ? JSON.stringify(window.__bench) : null") { value, _ in
+                if let s = value as? String { print(s); capture(i + 1) }
+                else if tries > 600 { print("timeout: \(state)"); exit(1) }
+                else { DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: waitBench) }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: waitBench)
+        return
+    }
     if let n = clip {
         let dir = out.appendingPathComponent("\(state)\(suffix)", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

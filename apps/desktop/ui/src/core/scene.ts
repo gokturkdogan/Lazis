@@ -9,6 +9,7 @@
  */
 import {
   AdditiveBlending,
+  BackSide,
   BufferAttribute,
   BufferGeometry,
   CatmullRomCurve3,
@@ -36,6 +37,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { buildLattice, easeVoice, edgeArrays, flowRate } from "@/core/lattice";
 import { LOOKS, type CoreState } from "@/core/palette";
 import * as S from "@/core/shaders";
 import { createCoreUniforms, type CoreUniforms } from "@/core/uniforms";
@@ -45,6 +47,8 @@ export type Quality = "high" | "low";
 /** Bloom strength at rest (Phase 14.1). It eases down as the voice gets louder, so a loud
  *  stretch of listening or speaking keeps its detail instead of melting into one glow. */
 const BLOOM = 0.5;
+/** Phase 14.2: scale of the inner core (body, lattice, shell, heart). */
+const INNER_SCALE = 1.18;
 const BLOOM_LEVEL_DROP = 0.55;
 const BLOOM_THRESHOLD = 0.55;
 /** Bloom picks what glows by luminance, and yellow and green are far brighter to the eye than
@@ -98,8 +102,9 @@ function energyCore(u: CoreUniforms, quality: Quality): Layer {
     additive(u, S.coreVertex, S.shellPlasmaFragment, { uAmp: { value: 1 } }),
   );
   const nucleus = new Mesh(
-    new IcosahedronGeometry(0.27, Math.round(detail / 2)),
-    new ShaderMaterial({ uniforms: { ...u, uAmp: { value: 1.6 } }, vertexShader: S.coreVertex, fragmentShader: S.nucleusFragment }),
+    new IcosahedronGeometry(0.16, Math.round(detail / 2)), // Phase 14.2: smaller, so the lattice shows around it
+    // Phase 14.2: a smoother heart (less displacement), so it reads as energy, not a crumpled object.
+    new ShaderMaterial({ uniforms: { ...u, uAmp: { value: 0.8 } }, vertexShader: S.coreVertex, fragmentShader: S.nucleusFragment }),
   );
   const group = new Group();
   group.add(nucleus, shell);
@@ -109,7 +114,56 @@ function energyCore(u: CoreUniforms, quality: Quality): Layer {
       const p = u.uPhase.value;
       shell.rotation.set(Math.sin(p * 0.15) * 0.25, p * 0.35, 0);
       nucleus.rotation.set(0, -p * 0.6, p * 0.2);
-      nucleus.scale.setScalar(1 + u.uLevel.value * 0.35 + Math.sin(u.uTime.value * 1.7) * 0.03);
+      // Phase 14.2: the voice lives in the lattice; the heart only breathes with it a little.
+      nucleus.scale.setScalar(1 + u.uVoice.value * 0.1 + Math.sin(u.uTime.value * 1.7) * 0.03);
+    },
+  };
+}
+
+/** Phase 14.2: the far half of a sphere around the lattice, dark and depth-writing (see bodyFragment). */
+function body(u: CoreUniforms): Layer {
+  const mesh = new Mesh(
+    new IcosahedronGeometry(0.7, 6),
+    new ShaderMaterial({
+      uniforms: { ...u, uAmp: { value: 0.5 } },
+      vertexShader: S.coreVertex,
+      fragmentShader: S.bodyFragment,
+      side: BackSide,
+      transparent: true,
+      depthWrite: true,
+    }),
+  );
+  mesh.renderOrder = -0.5; // after the halo, before everything that should be hidden behind it
+  return { object: mesh };
+}
+
+/** Phase 14.2: the neural lattice: connections (one LineSegments) and nodes (one Points). */
+function lattice(u: CoreUniforms, quality: Quality): Layer {
+  const l = buildLattice(quality === "high" ? 130 : 70);
+  const e = edgeArrays(l);
+  const lines = new BufferGeometry();
+  lines.setAttribute("position", new BufferAttribute(e.a, 3)); // bounds only; the shader places it
+  lines.setAttribute("aA", new BufferAttribute(e.a, 3));
+  lines.setAttribute("aB", new BufferAttribute(e.b, 3));
+  lines.setAttribute("aBend", new BufferAttribute(e.bend, 3));
+  lines.setAttribute("aT", new BufferAttribute(e.t, 1));
+  lines.setAttribute("aSeed", new BufferAttribute(e.seed, 1));
+  const edges = new LineSegments(lines, additive(u, S.latticeEdgeVertex, S.latticeEdgeFragment));
+  edges.frustumCulled = false;
+  const dots = new BufferGeometry();
+  dots.setAttribute("position", new BufferAttribute(l.nodes, 3));
+  dots.setAttribute("aSeed", new BufferAttribute(l.seeds, 1));
+  dots.setAttribute("aSize", new BufferAttribute(l.sizes, 1));
+  const nodes = new Points(dots, additive(u, S.latticeNodeVertex, S.latticeNodeFragment));
+  nodes.frustumCulled = false;
+  const group = new Group();
+  group.add(edges, nodes);
+  return {
+    object: group,
+    update: () => {
+      // Its own slow turn, unlike the shell's, so the layers move against each other (parallax).
+      const p = u.uPhase.value;
+      group.rotation.set(Math.sin(p * 0.05) * 0.35, p * 0.09, Math.sin(p * 0.04) * 0.15);
     },
   };
 }
@@ -359,6 +413,7 @@ export class CoreRenderer {
   private content = new Group();
   private speed = 0.35;
   private level = 0;
+  private voice = 0;
   private readonly tmp = [new Color(), new Color(), new Color()] as const;
   pointer = new Vector2(0, 0);
   quality: Quality;
@@ -393,9 +448,15 @@ export class CoreRenderer {
     this.layers.forEach((l) => dispose(l.object));
     this.content.clear();
     const high = this.quality === "high";
+    // Phase 14.2: the inner core (body, lattice, shell, heart) a little larger, so the lattice
+    // has room to be seen; the cage, waveform and rings keep their places.
+    const inner = [body(this.u), lattice(this.u, this.quality), energyCore(this.u, this.quality)];
+    inner.forEach((l) => l.object.scale.setScalar(INNER_SCALE));
+    const [coreBody, neural, heart] = inner as [Layer, Layer, Layer];
     this.layers = [
       glow(this.u, 6, 0.2, 6),
       glow(this.u, 2.3, 0.4, 7.5),
+      coreBody,
       particles(this.u, high ? 4200 : 1800),
       streams(this.u, high ? 9 : 5),
       rings(this.u),
@@ -403,7 +464,8 @@ export class CoreRenderer {
       geodesic(this.u),
       arcs(this.u, high ? 5 : 3),
       scanRing(this.u),
-      energyCore(this.u, this.quality),
+      neural,
+      heart,
     ];
     this.layers.forEach((l) => this.content.add(l.object));
   }
@@ -454,6 +516,10 @@ export class CoreRenderer {
     const rate = target > this.level ? 22 : 7; // fast attack, slower release
     this.level += (target - this.level) * (1 - Math.exp(-dt * rate));
     u.uLevel.value = this.level;
+    // Phase 14.2: the lattice's share of the real voice, and the energy flow it drives.
+    this.voice = easeVoice(this.voice, target, dt);
+    u.uVoice.value = this.voice;
+    u.uFlow.value += dt * flowRate(this.speed, this.voice) * u.uMotion.value;
     const c = u.uColorA.value;
     const luma = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
     this.bloom.strength = BLOOM * Math.min(1, BLOOM_LUMA_REF / Math.max(luma, 0.05)) * (1 - BLOOM_LEVEL_DROP * this.level);
