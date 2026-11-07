@@ -13,15 +13,26 @@ async function mountWith(conn = connection(), tab: "conversation" | "overview" =
   await store.start({ platform: fakePlatform(conn), clientFactory: () => fakeClient() });
   const wrapper = mount(App, { global: { plugins: [pinia, createAppI18n()] } });
   await flushPromises();
-  if (tab === "overview" && wrapper.find('[data-testid="tab-overview"]').exists()) {
-    await wrapper.get('[data-testid="tab-overview"]').trigger("click");
-    await flushPromises();
+  if (tab === "overview" && wrapper.find('[data-testid="menu-button"]').exists()) {
+    await go(wrapper, "overview");
   }
   return { wrapper, store };
 }
 
+/** Navigation is a drawer since Phase 14.1: open it, then pick the section. */
+async function go(wrapper: ReturnType<typeof mount>, view: string) {
+  await wrapper.get('[data-testid="menu-button"]').trigger("click");
+  await flushPromises();
+  await wrapper.get(`[data-testid="tab-${view}"]`).trigger("click");
+  await flushPromises();
+}
+
 describe("App", () => {
-  beforeEach(() => setActivePinia(createPinia()));
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    // The first-run questions are covered in onboarding.spec; here they are already done.
+    localStorage.setItem("lazis.intake.v1", JSON.stringify({ status: "done", step: 4 }));
+  });
   afterEach(() => useConnectionStore().stop());
 
   it("renders identity, connection state and verified encryption in Turkish", async () => {
@@ -36,7 +47,10 @@ describe("App", () => {
 
   it("opens on the conversation view and never invents a response", async () => {
     const { wrapper } = await mountWith(connection(), "conversation");
+    expect(wrapper.find('[data-testid="assistant-view"]').exists()).toBe(true);
+    await wrapper.get('[data-testid="menu-button"]').trigger("click");
     expect(wrapper.get('[data-testid="tab-conversation"]').classes()).toContain("active");
+    await wrapper.get('[data-testid="nav-close"]').trigger("click");
     const thread = wrapper.get('[data-testid="conversation-thread"]');
     expect(thread.text()).toContain("şifreli veritabanında saklanır");
     expect(thread.get('[data-testid="empty-thread"]').text()).toContain("tek bir konuşma geçmişinde");
@@ -45,9 +59,14 @@ describe("App", () => {
     expect(wrapper.find('[data-testid="filevault-warning"]').exists()).toBe(false);
   });
 
-  it("warns in the conversation view when FileVault is off", async () => {
+  it("keeps the FileVault state out of the chat but in Genel Bakış and Ayarlar (Phase 14.1)", async () => {
     const { wrapper } = await mountWith(connection({ fileVault: "off" }), "conversation");
-    expect(wrapper.get('[data-testid="filevault-warning"]').text()).toContain("FileVault kapalı");
+    expect(wrapper.find('[data-testid="filevault-warning"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="conversation-thread"]').text()).not.toContain("FileVault");
+    await go(wrapper, "overview");
+    expect(wrapper.get('[data-testid="card-privacy"]').text()).toContain("Kapalı — Sistem Ayarları");
+    await go(wrapper, "settings");
+    expect(wrapper.get('[data-testid="settings-view"]').text()).toContain("FileVault");
   });
 
   it("shows a Turkish startup error with a retry action", async () => {
@@ -106,9 +125,9 @@ describe("App", () => {
 
   it("switches to settings and diagnostics views", async () => {
     const { wrapper } = await mountWith();
-    await wrapper.get('[data-testid="tab-settings"]').trigger("click");
+    await go(wrapper, "settings");
     expect(wrapper.get('[data-testid="settings-view"]').text()).toContain("yalnızca görüntülenebilir");
-    await wrapper.get('[data-testid="tab-diagnostics"]').trigger("click");
+    await go(wrapper, "diagnostics");
     expect(wrapper.get('[data-testid="diagnostics-view"]').text()).toContain("127.0.0.1:51234");
   });
 });

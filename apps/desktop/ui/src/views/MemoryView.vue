@@ -89,7 +89,7 @@ onMounted(refreshPending);
 }
 .section-tab.active {
   border-color: var(--panel-border-strong);
-  background: rgba(58, 160, 255, 0.14);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
 }
 .count {

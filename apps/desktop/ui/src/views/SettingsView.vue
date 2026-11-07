@@ -13,12 +13,20 @@ import type { StatusRow } from "@/components/types";
 import { formatBytes } from "@/format";
 import { useAssistantStore } from "@/stores/assistant";
 import { useConnectionStore } from "@/stores/connection";
+import { useOnboardingStore } from "@/stores/onboarding";
 import { usePreferencesStore } from "@/stores/preferences";
 import { errorKey } from "@/i18n";
 
 const store = useConnectionStore();
 const chat = useAssistantStore();
 const prefs = usePreferencesStore();
+const onboarding = useOnboardingStore();
+const emit = defineEmits<{ onboarding: [] }>();
+/** Phase 14.1: the first setup can always be opened again from here. */
+function openOnboarding() {
+  onboarding.reopen();
+  emit("onboarding");
+}
 const { t } = useI18n();
 
 onMounted(() => {
@@ -141,6 +149,10 @@ const recoveryRows = computed<StatusRow[]>(() => [
         <li>{{ t("settings.notificationsNote") }}</li>
         <li>{{ t("settings.loginItemNote") }}</li>
       </ul>
+      <div class="onboarding-row">
+        <span>{{ t("settings.onboarding") }}<small class="muted">{{ t("settings.onboardingHint") }}</small></span>
+        <button class="btn" type="button" data-testid="open-onboarding" @click="openOnboarding">{{ t("settings.onboardingOpen") }}</button>
+      </div>
     </section>
     <StylePanel />
     <ResearchPanel />
@@ -197,5 +209,17 @@ h3 {
 }
 .error {
   color: var(--danger);
+}
+.onboarding-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid rgb(255 255 255 / 0.05);
+}
+.onboarding-row span {
+  display: flex;
+  flex-direction: column;
 }
 </style>

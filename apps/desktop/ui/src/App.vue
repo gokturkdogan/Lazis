@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import Icon from "@/components/Icon.vue";
+import NavDrawer from "@/components/NavDrawer.vue";
+import OnboardingModal from "@/components/OnboardingModal.vue";
+import { iconFor } from "@/navigation";
 import PresenceIndicator from "@/components/PresenceIndicator.vue";
 import RecoveryCodeDialog from "@/components/RecoveryCodeDialog.vue";
 import RestorePanel from "@/components/RestorePanel.vue";
@@ -25,7 +29,11 @@ const tab = ref<View>("conversation");
 // Phase 14: the accent colour of the whole UI follows the core's state.
 const core = useCore();
 const coreLabel = computed(() => t(`core.state.${core.state.value}`));
-const tabs: View[] = ["conversation", "memory", "overview", "settings", "diagnostics"];
+// Phase 14.1: navigation lives in the drawer behind the menu button.
+const menuOpen = ref(false);
+function go(view: View) {
+  tab.value = view;
+}
 
 const version = computed(() => store.info?.version ?? "—");
 const showError = computed(
@@ -55,6 +63,17 @@ onBeforeUnmount(() => offNavigate?.());
 <template>
   <div class="shell">
     <header class="topbar">
+      <button
+        class="icon-btn menu"
+        type="button"
+        data-testid="menu-button"
+        :aria-label="t('nav.open')"
+        :aria-expanded="menuOpen"
+        aria-controls="nav-panel"
+        @click="menuOpen = true"
+      >
+        <Icon name="menu" :size="20" />
+      </button>
       <div class="identity">
         <PresenceIndicator
           :state="presence.state"
@@ -73,19 +92,6 @@ onBeforeUnmount(() => offNavigate?.());
         <span class="chip-dot pulse-soft" aria-hidden="true" />
         <span class="chip-label">{{ coreLabel }}</span>
       </div>
-      <nav :aria-label="t('app.name')">
-        <button
-          v-for="item in tabs"
-          :key="item"
-          type="button"
-          class="tab"
-          :class="{ active: tab === item }"
-          :data-testid="`tab-${item}`"
-          @click="tab = item"
-        >
-          {{ t(`nav.${item}`) }}
-        </button>
-      </nav>
       <div class="meta">
         <StatusPill :phase="store.phase" />
         <span class="muted mono version">v{{ version }}</span>
@@ -100,15 +106,28 @@ onBeforeUnmount(() => offNavigate?.());
       <RestorePanel v-else-if="store.phase === 'needs_recovery'" />
       <template v-else>
         <StartupError v-if="showError" />
-        <AssistantView v-if="tab === 'conversation' && store.phase === 'connected'" />
-        <MemoryView v-else-if="tab === 'memory' && store.phase === 'connected'" />
-        <OverviewView v-else-if="tab === 'overview' && store.phase === 'connected'" />
-        <SettingsView v-else-if="tab === 'settings'" />
-        <DiagnosticsView v-else-if="tab === 'diagnostics'" />
+        <Transition name="view" mode="out-in">
+          <div :key="tab" class="view" :class="{ 'view-stage': tab === 'conversation' }" :data-view="tab">
+            <header v-if="tab !== 'conversation'" class="page-head" data-testid="page-head">
+              <span class="page-icon"><Icon :name="iconFor(tab)" :size="20" /></span>
+              <div>
+                <h2>{{ t(`nav.${tab}`) }}</h2>
+                <p class="muted">{{ t(`nav.sub.${tab}`) }}</p>
+              </div>
+            </header>
+            <AssistantView v-if="tab === 'conversation' && store.phase === 'connected'" />
+            <MemoryView v-else-if="tab === 'memory' && store.phase === 'connected'" />
+            <OverviewView v-else-if="tab === 'overview' && store.phase === 'connected'" />
+            <SettingsView v-else-if="tab === 'settings'" @onboarding="go('conversation')" />
+            <DiagnosticsView v-else-if="tab === 'diagnostics'" />
+          </div>
+        </Transition>
       </template>
     </main>
 
     <RecoveryCodeDialog v-if="store.phase === 'connected' && store.recoveryPending" />
+    <OnboardingModal v-else-if="store.phase === 'connected'" />
+    <NavDrawer :open="menuOpen" :current="tab" @close="menuOpen = false" @go="go" />
   </div>
 </template>
 
@@ -170,30 +189,11 @@ h1 {
   margin: 0;
   font-size: 12px;
 }
-nav {
-  display: flex;
-  gap: 4px;
-  margin-left: auto;
-}
-.tab {
-  border: 1px solid transparent;
-  background: transparent;
-  padding: 7px 14px;
-  border-radius: 9px;
-  color: var(--text-muted);
-}
-.tab {
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.tab.active {
-  color: #fff;
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  background: rgb(255 255 255 / 0.06);
+.menu {
+  margin-right: 2px;
 }
 .meta {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -221,14 +221,76 @@ main.stage {
   gap: 14px;
   color: var(--text-muted);
 }
-@media (max-width: 980px) {
-  .topbar {
-    flex-wrap: wrap;
-  }
-  nav {
-    order: 3;
-    margin-left: 0;
-    width: 100%;
+.view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view:not(.view-stage) {
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+}
+.view:not(.view-stage) > * {
+  max-width: none;
+}
+.page-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 12px;
+}
+.page-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent 60%);
+  opacity: 0.45;
+}
+.page-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.page-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.page-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: 0 0 22px -10px var(--accent);
+}
+.view-enter-active,
+.view-leave-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.view-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.view-leave-to {
+  opacity: 0;
+}
+@media (max-width: 760px) {
+  .chip {
+    display: none;
   }
 }
 </style>

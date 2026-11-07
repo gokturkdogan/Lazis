@@ -94,7 +94,7 @@ p {
   padding: 16px;
   border-radius: 10px;
   border: 1px solid var(--panel-border-strong);
-  background: rgba(6, 10, 19, 0.9);
+  background: rgb(4 10 22 / 0.9);
   font-size: 15px;
   letter-spacing: 0.04em;
   word-break: break-all;

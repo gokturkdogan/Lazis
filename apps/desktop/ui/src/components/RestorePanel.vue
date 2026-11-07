@@ -70,7 +70,7 @@ input {
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--panel-border-strong);
-  background: rgba(6, 10, 19, 0.9);
+  background: rgb(4 10 22 / 0.9);
   color: var(--text);
   user-select: text;
 }

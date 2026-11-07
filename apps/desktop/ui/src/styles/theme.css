@@ -48,7 +48,10 @@ body,
 }
 
 body {
-  background: var(--bg);
+  /* a faint glow at the top tinted by the core's state (eases with --accent) */
+  background:
+    radial-gradient(1100px 520px at 50% -18%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%),
+    var(--bg);
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
@@ -64,28 +67,57 @@ button {
 }
 
 button:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--state-idle);
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+/* Phase 14.1: every card and panel is LAZOS glass with a thin frame; it brightens its frame,
+   never its content, on hover. */
 .panel {
-  background: var(--panel);
+  position: relative;
+  background: linear-gradient(160deg, rgb(14 28 52 / 0.62), rgb(4 10 22 / 0.72));
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 18px 50px -24px rgb(0 0 0 / 0.75);
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+.panel:hover {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--panel-border));
+}
+.panel h2,
+.panel h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.panel h3 {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .btn {
   border: 1px solid var(--panel-border-strong);
-  background: rgba(58, 160, 255, 0.12);
+  background: rgb(255 255 255 / 0.04);
   padding: 8px 16px;
   border-radius: 10px;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
 }
 
 .btn:hover:not(:disabled) {
-  background: rgba(58, 160, 255, 0.22);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 16px -6px var(--accent);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn:disabled {
@@ -94,9 +126,83 @@ input:focus-visible {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, rgba(58, 160, 255, 0.85), rgba(110, 120, 255, 0.85));
-  border-color: transparent;
+  background: color-mix(in srgb, var(--accent) 26%, rgb(4 10 22 / 0.6));
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   color: #fff;
+  box-shadow: 0 0 18px -8px var(--accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 36%, rgb(4 10 22 / 0.6));
+}
+
+/* Icon-only buttons (menu, paperclip, close): quiet until hovered. */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.icon-btn:hover:not(:disabled) {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 0 14px -6px var(--accent);
+}
+.icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Form fields share one look. */
+input[type="text"],
+input[type="search"],
+input:not([type]),
+select,
+textarea {
+  border: 1px solid var(--panel-border-strong);
+  background: rgb(4 10 22 / 0.75);
+  color: var(--text);
+  border-radius: 10px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+select {
+  padding: 6px 10px;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+/* Thin scrollbars, as in LAZOS. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(120 170 255 / 0.18) transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(120 170 255 / 0.18);
+  border-radius: 999px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .mono {
@@ -204,5 +310,23 @@ input:focus-visible {
 .reduce-motion .animate-spin-rev,
 .reduce-motion .pulse-soft {
   animation: none;
+}
+
+/* Reduced motion (macOS setting or LAZIS preference): no transitions or animations anywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
 }
 

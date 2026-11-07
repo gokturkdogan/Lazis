@@ -68,7 +68,7 @@ input {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--panel-border-strong);
-  background: rgba(6, 10, 19, 0.9);
+  background: rgb(4 10 22 / 0.9);
   color: var(--text);
   font: inherit;
   user-select: text;

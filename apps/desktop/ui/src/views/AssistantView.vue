@@ -10,9 +10,8 @@ import { useI18n } from "vue-i18n";
 import AssistantThread from "@/components/AssistantThread.vue";
 import CoreCanvas from "@/components/core/CoreCanvas.vue";
 import HudOverlay from "@/components/core/HudOverlay.vue";
+import Icon from "@/components/Icon.vue";
 import VoiceDock from "@/components/core/VoiceDock.vue";
-import DocumentPanel from "@/components/DocumentPanel.vue";
-import IntakePanel from "@/components/IntakePanel.vue";
 import { useAssistantStore } from "@/stores/assistant";
 import { onSystemWoke } from "@/stores/connection";
 
@@ -68,6 +67,7 @@ onBeforeUnmount(() => {
         :aria-pressed="chatOpen"
         @click="toggleChat"
       >
+        <Icon name="panel" :size="15" />
         {{ chatOpen ? t("core.hideChat") : t("core.showChat") }}
       </button>
     </section>
@@ -77,8 +77,6 @@ onBeforeUnmount(() => {
           <div class="hud-label accent-text">{{ t("core.conversation") }}</div>
         </header>
         <div class="chat-body">
-          <IntakePanel />
-          <DocumentPanel />
           <AssistantThread />
         </div>
       </aside>
@@ -100,6 +98,9 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 .chat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   position: absolute;
   right: 20px;
   bottom: 30px;

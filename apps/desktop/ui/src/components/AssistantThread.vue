@@ -6,16 +6,18 @@
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ApiError, type Message, type ResearchPlan } from "@/api/client";
+import DocumentAttach from "@/components/DocumentAttach.vue";
+import DocumentChip from "@/components/DocumentChip.vue";
+import Icon from "@/components/Icon.vue";
 import MarkdownContent from "@/components/MarkdownContent.vue";
 import ResearchPrompt from "@/components/ResearchPrompt.vue";
 import { formatBytes, formatWhen } from "@/format";
 import { errorKey } from "@/i18n";
 import { copyText } from "@/platform/clipboard";
 import { useAssistantStore } from "@/stores/assistant";
-import { currentApiClient, useConnectionStore } from "@/stores/connection";
+import { currentApiClient } from "@/stores/connection";
 
 const store = useAssistantStore();
-const connection = useConnectionStore();
 const { t } = useI18n();
 const draft = ref("");
 const list = ref<HTMLElement | null>(null);
@@ -25,7 +27,7 @@ const unseen = ref(false);
 const copiedId = ref<string | null>(null);
 const BOTTOM_SLACK_PX = 48;
 
-const fileVaultOff = computed(() => connection.connection?.fileVault === "off");
+// Phase 14.1: the FileVault state is shown in Genel Bakış and Ayarlar (Gizlilik), not here.
 const turnHere = computed(() => store.turn !== null);
 
 /** Index of the first message of the active session when older messages are on screen:
@@ -234,9 +236,6 @@ watch(
       </label>
     </header>
 
-    <p v-if="fileVaultOff" class="banner warn" data-testid="filevault-warning">
-      {{ t("conversation.fileVaultOff") }}
-    </p>
     <div v-if="store.runtimeDown" class="banner danger" data-testid="runtime-down">
       <strong>{{ t("conversation.runtimeDown") }}</strong>
       <span class="muted">{{ t("conversation.runtimeDownHint") }}</span>
@@ -324,6 +323,7 @@ watch(
         :disabled="!store.canSend"
         @click="askDailySummary"
       >
+        <Icon name="calendar" :size="15" />
         {{ t("conversation.dailySummary") }}
       </button>
       <button
@@ -334,12 +334,15 @@ watch(
         :disabled="!store.canSend || research !== null"
         @click="planResearch"
       >
+        <Icon name="globe" :size="15" />
         {{ t("research.button") }}
       </button>
     </div>
     <p v-if="researchError" class="muted small" role="status">{{ researchError }}</p>
     <ResearchPrompt v-if="research" :message="research.message" :plan="research.plan" @done="researchDone" />
+    <DocumentChip />
     <form class="composer" @submit.prevent="submit">
+      <DocumentAttach />
       <textarea
         v-model="draft"
         rows="3"
@@ -357,6 +360,7 @@ watch(
         data-testid="send"
         :disabled="!store.canSend || draft.trim() === ''"
       >
+        <Icon name="send" :size="15" />
         {{ t("conversation.send") }}
       </button>
       <button
@@ -367,6 +371,7 @@ watch(
         :disabled="store.phase === 'cancelling'"
         @click="store.cancel()"
       >
+        <Icon name="stop" :size="15" />
         {{ store.phase === "cancelling" ? t("conversation.stopping") : t("conversation.stop") }}
       </button>
     </form>
@@ -471,12 +476,12 @@ select {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--panel-border);
-  background: rgba(6, 10, 19, 0.55);
+  background: rgb(4 10 22 / 0.55);
   max-width: 85%;
 }
 .message.user {
   align-self: flex-end;
-  background: rgba(58, 160, 255, 0.12);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 .message.failed {
   border-color: var(--danger);
@@ -537,8 +542,19 @@ select {
 .quick {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.quick .btn {
+  padding: 5px 11px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+.quick .btn,
+.composer .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .composer {
   display: flex;
@@ -551,7 +567,7 @@ textarea {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--panel-border-strong);
-  background: rgba(6, 10, 19, 0.9);
+  background: rgb(4 10 22 / 0.9);
   color: var(--text);
   font: inherit;
   user-select: text;

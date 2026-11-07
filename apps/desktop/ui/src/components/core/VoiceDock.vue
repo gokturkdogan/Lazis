@@ -6,6 +6,7 @@
  */
 import { computed, onBeforeUnmount, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import Icon from "@/components/Icon.vue";
 import { useAssistantStore } from "@/stores/assistant";
 import { currentPlatform, onSystemWoke } from "@/stores/connection";
 import { useVoiceStore } from "@/stores/voice";
@@ -63,14 +64,17 @@ const endedText = computed(() => (voice.ended && voice.mode === "off" ? t(`voice
         :disabled="!assistant.canSend"
         @click="voice.startSession()"
       >
+        <Icon name="mic" :size="16" />
         {{ t("voice.startSession") }}
       </button>
       <button v-else class="session active" type="button" data-testid="voice-session-end" @click="voice.endSession()">
+        <Icon name="stop" :size="15" />
         {{ t("voice.endSession") }}
       </button>
     </template>
     <span v-else class="note" data-testid="voice-unavailable">{{ unavailable }}</span>
     <button v-if="voice.phase === 'speaking'" class="btn stop" type="button" data-testid="voice-stop" @click="voice.stopSpeaking()">
+      <Icon name="stop" :size="14" />
       {{ t("voice.stop") }}
     </button>
     <label v-if="voice.status?.tts_available" class="speak">
@@ -120,6 +124,12 @@ const endedText = computed(() => (voice.ended && voice.mode === "off" ? t(`voice
 .mic.on .dot {
   background: #ff1744;
   box-shadow: 0 0 10px #ff1744;
+}
+.session,
+.stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .session {
   font-family: var(--font-display);

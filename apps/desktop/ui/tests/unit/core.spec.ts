@@ -101,7 +101,7 @@ describe("the living core (Phase 14)", () => {
     expect(wrapper.find('[data-testid="voice-ptt"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="chat-panel"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="composer"]').exists()).toBe(true); // typing still works
-    expect(wrapper.find('[data-testid="documents"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="document-attach"]').exists()).toBe(true);
     await wrapper.get('[data-testid="chat-toggle"]').trigger("click");
     await flushPromises();
     expect(wrapper.find('[data-testid="chat-panel"]').exists()).toBe(false);
