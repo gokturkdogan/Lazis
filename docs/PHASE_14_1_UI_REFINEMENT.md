@@ -2,7 +2,10 @@
 
 **Tarih:** 2026-11-07.
 **Dal:** `phase14/ui-refinement`, `main`'den (`348e0b1`) açıldı.
-**Durum:** Geliştirme tamamlandı; modelsiz testler geçiyor. Sohbet oku ve kayma davranışı sahip tarafından kabul edildi (2026-11-07). **Çekirdeğin nihai görsel onayı bekleniyor**; o gelmeden yeni tasarım değişikliği yapılmayacak. Onay gelmeden `main`'e birleştirilmeyecek ve GitHub'a gönderilmeyecek.
+**Durum:** **Tamamlandı ve sahibin görsel onayıyla kabul edildi** (2026-11-07). `main`'e birleştirildi ve GitHub'a gönderildi.
+- Sohbet oku ve panelin kayması ayrıca kabul edildi.
+- Çekirdek, WebKit önizlemesinden alınan görüntü ve videolarla onaylandı (bölüm 9).
+- Açık riskler bölüm 10'da duruyor.
 
 ## 1. Yenilenen yapı
 
@@ -198,7 +201,9 @@ Yeni kodla yedi durumun hepsinde ortadaki beyaz alan **%0**; renk doygunluğu 0,
 
 ## 9. Görsel kontrol (sahip)
 
-**Durum:** Masaüstünde henüz bakılmadı.
+**Durum:** Sahip son görselleri inceledi ve tasarımı onayladı (2026-11-07).
+- Çekirdeğin onaylanan görselleri WebKit önizlemesinden alındı: beş durumun görüntüleri ve önce/sonra videoları.
+- Çekirdeğin gerçek LAZIS penceresinde Gemma, Whisper ve Yelda ile birlikte çalışırken görülüp görülmediği bu kayıtta yok; bu açık risk olarak duruyor (bölüm 10).
 
 **Nasıl bakılır:** `make dev` geliştirme profilini kullanır, gerçek profili kullanmaz.
 
@@ -218,7 +223,7 @@ Yeni kodla yedi durumun hepsinde ortadaki beyaz alan **%0**; renk doygunluğu 0,
 
 ## 10. Açık riskler ve borçlar
 
-- **Çekirdek:** Görüntüler WebKit ile ama gerçek pencere dışında çekildi. Gerçek pencerede FPS ve GPU ölçülmedi. Işık değerleri sahibin gözüne göre yeniden ayarlanabilir: bloom değerleri `scene.ts` başında adlandırılmış sabitler; katman değerleri `shaders.ts` içinde "Phase 14.1" notuyla işaretli.
+- **Çekirdek:** Onaylanan görüntüler WebKit ile ama gerçek pencere dışında çekildi. Gerçek pencerede FPS ve GPU ölçülmedi. Işık değerleri sahibin gözüne göre yeniden ayarlanabilir: bloom değerleri `scene.ts` başında adlandırılmış sabitler; katman değerleri `shaders.ts` içinde "Phase 14.1" notuyla işaretli.
 - **Görünüm:** Gerçek pencerede görünüm, performans ve bulanıklığın GPU maliyeti ölçülmedi. Cam paneller ve üst çubuk sürekli bulanıklık kullanıyor; arka planın bulanıklaşması yalnızca çekmece veya pencere açıkken oluyor.
 - **Ekran okuyucu:** VoiceOver ile gerçek bir deneme yapılmadı; erişilebilirlik öznitelikleri yalnızca testlerle doğrulandı.
 - **Önceki fazlardan süren açık borçlar:**
