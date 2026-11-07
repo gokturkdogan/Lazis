@@ -1,6 +1,6 @@
 # Faz 15C: Performans ve güvenilirlik (küçük, kanıtlanabilir düzeltmeler)
 
-**Tarih:** 2026-11-07. **Dal:** `phase15/reliability`, `main`'den (`f1f437c`). **Durum:** Sahibin onayı bekleniyor; `main`'e alınmadı, push yapılmadı. Gemma, mikrofon ve uzun test kullanılmadı.
+**Tarih:** 2026-11-07. **Dal:** `phase15/reliability`, `main`'den (`f1f437c`). **Durum:** **Sınırlı kapsamıyla tamamlandı ve sahibin kararıyla kabul edildi** (2026-11-07); `main`'e alındı. Düzeltilen yalnızca REL-004'ün sesli hafıza işlemleri kısmı; hatırlatma sözü kısmı açık. Gemma, mikrofon ve uzun test kullanılmadı.
 
 ## 1. REL-004: Yapılmayan işlem için söz
 
