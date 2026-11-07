@@ -4,6 +4,8 @@ import App from "./App.vue";
 import { createAppI18n } from "./i18n";
 import { tauriPlatform } from "./platform/tauri";
 import { useConnectionStore } from "./stores/connection";
+import "@fontsource/chakra-petch/500.css";
+import "@fontsource/chakra-petch/600.css";
 import "./styles/theme.css";
 
 const app = createApp(App);

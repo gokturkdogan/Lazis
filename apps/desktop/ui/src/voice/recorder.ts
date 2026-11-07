@@ -88,7 +88,8 @@ export class Recorder {
 
   /** Keep only the last `frames` frames (the moments just before speech started). */
   trim(frames: number): void {
-    if (this.chunks.length > frames) this.chunks = this.chunks.slice(-frames);
+    if (frames <= 0) this.chunks = [];
+    else if (this.chunks.length > frames) this.chunks = this.chunks.slice(-frames);
   }
 
   /** Closes the microphone: tracks stopped (the system indicator goes off), context closed. */

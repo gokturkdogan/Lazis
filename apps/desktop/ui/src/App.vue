@@ -6,6 +6,7 @@ import RecoveryCodeDialog from "@/components/RecoveryCodeDialog.vue";
 import RestorePanel from "@/components/RestorePanel.vue";
 import StartupError from "@/components/StartupError.vue";
 import StatusPill from "@/components/StatusPill.vue";
+import { useCore } from "@/core/useCore";
 import type { View } from "@/platform/tauri";
 import { currentPlatform, useConnectionStore } from "@/stores/connection";
 import { usePreferencesStore } from "@/stores/preferences";
@@ -21,6 +22,9 @@ const preferences = usePreferencesStore();
 const presence = usePresence();
 const { t } = useI18n();
 const tab = ref<View>("conversation");
+// Phase 14: the accent colour of the whole UI follows the core's state.
+const core = useCore();
+const coreLabel = computed(() => t(`core.state.${core.state.value}`));
 const tabs: View[] = ["conversation", "memory", "overview", "settings", "diagnostics"];
 
 const version = computed(() => store.info?.version ?? "—");
@@ -65,6 +69,10 @@ onBeforeUnmount(() => offNavigate?.());
           </p>
         </div>
       </div>
+      <div class="chip" data-testid="core-chip">
+        <span class="chip-dot pulse-soft" aria-hidden="true" />
+        <span class="chip-label">{{ coreLabel }}</span>
+      </div>
       <nav :aria-label="t('app.name')">
         <button
           v-for="item in tabs"
@@ -84,7 +92,7 @@ onBeforeUnmount(() => offNavigate?.());
       </div>
     </header>
 
-    <main>
+    <main :class="{ stage: tab === 'conversation' && store.phase === 'connected' }">
       <div v-if="store.phase === 'initializing' || store.phase === 'starting'" class="starting" role="status">
         <PresenceIndicator state="thinking" label="starting" compact />
         <span>{{ t("connection.starting") }}…</span>
@@ -111,13 +119,38 @@ onBeforeUnmount(() => offNavigate?.());
   flex-direction: column;
 }
 .topbar {
+  position: relative;
+  z-index: 30;
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--panel-border);
-  background: rgba(6, 10, 19, 0.65);
-  backdrop-filter: blur(10px);
+  gap: 20px;
+  padding: 8px 18px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.05);
+  background: rgb(2 5 11 / 0.6);
+  backdrop-filter: blur(24px);
+}
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  background: rgb(255 255 255 / 0.02);
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+.chip-label {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  color: var(--accent);
 }
 .identity {
   display: flex;
@@ -127,8 +160,11 @@ onBeforeUnmount(() => offNavigate?.());
 }
 h1 {
   margin: 0;
-  font-size: 18px;
-  letter-spacing: 0.32em;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  color: #fff;
 }
 .identity p {
   margin: 0;
@@ -146,10 +182,16 @@ nav {
   border-radius: 9px;
   color: var(--text-muted);
 }
+.tab {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 .tab.active {
-  color: var(--text);
-  border-color: var(--panel-border);
-  background: rgba(58, 160, 255, 0.10);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: rgb(255 255 255 / 0.06);
 }
 .meta {
   display: flex;
@@ -166,6 +208,11 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+/* The conversation view is a full-bleed stage (the core, its HUD and the chat panel). */
+main.stage {
+  padding: 0;
+  overflow: hidden;
 }
 .starting {
   margin: auto;

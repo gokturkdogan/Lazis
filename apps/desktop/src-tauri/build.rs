@@ -14,6 +14,7 @@ const COMMANDS: &[&str] = &[
     "voice_status",
     "voice_transcribe",
     "voice_speak",
+    "voice_synthesize",
     "voice_stop_speaking",
     "voice_release",
 ];

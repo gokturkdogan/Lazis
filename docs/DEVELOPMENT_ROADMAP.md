@@ -479,6 +479,8 @@ A reliability step requested by the owner after P7.1, from the P7.1 real-model f
 
 ## P14 — Final neural interface (M)
 
+> **First version (2026-11-07, branch `phase14/jarvis-ui`, awaiting the owner's approval):** the owner's LAZOS visual identity ported to Vue (the same core shaders on plain three.js, HUD, glass chat panel, accent colour following five states: #00BFFF, #A855F7, #FFD600, #00E676, #FF1744); push-to-talk replaced by a user-started voice session; the core follows the real microphone and Yelda's real output ([PHASE_14_FIRST_VERSION.md](PHASE_14_FIRST_VERSION.md)). Not yet seen in the desktop window.
+
 - **Objective:** the cinematic LAZIS interface on top of the stable stores and events ([UI_ARCHITECTURE.md §1–§5](UI_ARCHITECTURE.md)).
 - **Prerequisites:** P13 (audio levels), P4.
 - **Scope:** `NeuralCore` (scene, shaders, state mapping, OKLab transitions, audio reactivity, frame scheduler, dynamic resolution, reduced motion, low-power fallback to `PulseIndicator`); final layout; restyling of all views; research and learning indicators in the final style; visual regression tests.

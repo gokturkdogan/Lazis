@@ -236,6 +236,45 @@ impl Voice {
         }
     }
 
+    /// Yelda's speech for `text` as a WAV in memory (Phase 14), so the UI plays it through Web
+    /// Audio and the core follows its real loudness. `say` cannot write to a pipe, so it writes
+    /// to a fresh owner-only directory that is removed before this returns, error or not. Only
+    /// LAZIS's own synthesized reply is ever written; the user's voice never is.
+    pub fn synthesize(&self, text: &str) -> Result<Vec<u8>, ShellError> {
+        let Some(voice) = self.tts_voice().clone() else { return Err(ShellError::new("tts_unavailable")) };
+        let text: String = text.chars().take(MAX_SPEAK_CHARS).collect();
+        if text.trim().is_empty() {
+            return Err(ShellError::new("tts_failed"));
+        }
+        let dir = private_dir().ok_or_else(|| ShellError::new("tts_failed"))?;
+        let file = dir.0.join("speech.wav");
+        let result = (|| {
+            let mut child = Command::new(SAY)
+                .args(["-v", &voice, "-f", "-", "--file-format=WAVE", "--data-format=LEI16@22050", "-o"])
+                .arg(&file)
+                .env_clear()
+                .stdin(Stdio::piped())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|_| ShellError::new("tts_failed"))?;
+            if let Some(mut stdin) = child.stdin.take() {
+                let _ = stdin.write_all(text.as_bytes());
+            }
+            let status = child.wait().map_err(|_| ShellError::new("tts_failed"))?;
+            if !status.success() {
+                return Err(ShellError::new("tts_failed"));
+            }
+            let wav = std::fs::read(&file).map_err(|_| ShellError::new("tts_failed"))?;
+            if wav.len() < 44 || &wav[0..4] != b"RIFF" {
+                return Err(ShellError::new("tts_failed"));
+            }
+            Ok(wav)
+        })();
+        drop(dir); // removed now, whatever happened
+        result
+    }
+
     pub fn stop_speaking(&self) {
         let child = self.speaking.lock().ok().and_then(|mut slot| slot.take());
         if let Some(mut child) = child {
@@ -250,6 +289,26 @@ impl Drop for Voice {
         self.stop_speaking();
         self.release();
     }
+}
+
+/// An owner-only temporary directory, removed when dropped.
+struct PrivateDir(PathBuf);
+
+impl Drop for PrivateDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+fn private_dir() -> Option<PrivateDir> {
+    use std::os::unix::fs::DirBuilderExt;
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let base = std::env::temp_dir().canonicalize().ok()?;
+    let dir = base.join(format!("lazis-tts-{}-{n}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::DirBuilder::new().mode(0o700).create(&dir).ok()?;
+    Some(PrivateDir(dir))
 }
 
 /// A 16 kHz mono 16-bit PCM WAV, within the size limit.
@@ -491,6 +550,37 @@ mod tests {
         assert_eq!(text, "Merhaba LAZIS, bugün hava nasıl?");
         let request = server.join().unwrap();
         assert!(request.starts_with(b"POST /inference HTTP/1.1\r\n"));
+    }
+
+    #[test]
+    fn yelda_speech_comes_back_in_memory_and_nothing_stays_on_disk() {
+        let voice = Voice::new(VoiceConfig {
+            server: PathBuf::from("/nonexistent"),
+            model: PathBuf::from("/nonexistent"),
+            threads: 1,
+            idle: IDLE,
+        });
+        if voice.status().tts_voice.is_none() {
+            return; // no Turkish system voice on this machine
+        }
+        let before = leftovers();
+        let wav = voice.synthesize("Merhaba efendim.").unwrap();
+        assert_eq!(&wav[0..4], b"RIFF");
+        assert_eq!(&wav[8..12], b"WAVE");
+        assert!(wav.len() > 10_000);
+        assert_eq!(leftovers(), before, "the temporary speech file is removed");
+        assert_eq!(voice.synthesize("   ").unwrap_err().code, "tts_failed");
+    }
+
+    fn leftovers() -> usize {
+        let base = std::env::temp_dir().canonicalize().unwrap();
+        std::fs::read_dir(base)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|e| {
+                e.file_name().to_string_lossy().starts_with(&format!("lazis-tts-{}-", std::process::id()))
+            })
+            .count()
     }
 
     #[test]

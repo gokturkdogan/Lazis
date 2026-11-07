@@ -114,6 +114,19 @@ async fn voice_speak(voice: State<'_, VoiceState>, text: String) -> Result<(), S
         .map_err(|_| ShellError::new("tts_failed"))?
 }
 
+/// Phase 14: Yelda's speech as WAV bytes for the UI to play (and measure).
+#[tauri::command]
+async fn voice_synthesize(
+    voice: State<'_, VoiceState>,
+    text: String,
+) -> Result<tauri::ipc::Response, ShellError> {
+    let voice = Arc::clone(&voice);
+    let wav = tauri::async_runtime::spawn_blocking(move || voice.synthesize(&text))
+        .await
+        .map_err(|_| ShellError::new("tts_failed"))??;
+    Ok(tauri::ipc::Response::new(wav))
+}
+
 #[tauri::command]
 fn voice_stop_speaking(voice: State<'_, VoiceState>) {
     voice.stop_speaking();
@@ -385,6 +398,7 @@ pub fn run() {
             voice_status,
             voice_transcribe,
             voice_speak,
+            voice_synthesize,
             voice_stop_speaking,
             voice_release
         ])

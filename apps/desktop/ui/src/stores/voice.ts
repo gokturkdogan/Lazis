@@ -1,16 +1,17 @@
 /**
- * Voice conversation (Phase 13, first version).
+ * Voice conversation (Phase 13, session-only since Phase 14).
  *
- * * **Push-to-talk:** the microphone opens while the button is held and closes on release; the
- *   recording is transcribed locally and sent as an ordinary message on the "voice" channel.
- * * **Hands-free session:** started and ended only by the user. While it is open the microphone
- *   listens; a turn ends after a short silence (loudness only, no model). While LAZIS thinks or
- *   speaks, nothing heard is kept (no echo of its own voice). Ending it closes the microphone
- *   and frees the speech model.
- * * Replies may be read aloud with the system voice, sentence by sentence; "Durdur" stops it.
+ * * **Hands-free session**, started and ended only by the user. While it is open the microphone
+ *   listens; a turn ends after a short silence (loudness only, no model). The utterance is
+ *   transcribed locally and sent as an ordinary message on the "voice" channel; the reply is
+ *   read aloud; then listening resumes. While LAZIS thinks or speaks nothing heard is kept, and
+ *   listening resumes only shortly after Yelda has finished, so its own voice never becomes a
+ *   user message. Ending the session closes the microphone and frees the speech model.
+ * * Replies are read with Yelda, sentence by sentence, through Web Audio so the core follows the
+ *   real loudness; "Durdur" stops it at once.
  *
- * Audio lives in memory only, goes to the local shell, and nothing heard is ever stored; the
- * backend never writes memory from a spoken message.
+ * Audio lives in memory only; nothing heard is ever stored, and the backend never writes memory
+ * from a spoken message.
  */
 import { defineStore } from "pinia";
 import { markRaw } from "vue";
@@ -18,20 +19,26 @@ import type { VoiceStatus } from "@/platform/tauri";
 import { useAssistantStore } from "@/stores/assistant";
 import { currentPlatform } from "@/stores/connection";
 import { isNoise, sentences, speakable, TurnDetector } from "@/voice/audio";
+import { setMicLevel } from "@/voice/levels";
+import { browserAudio, SpeechPlayer, type AudioOut } from "@/voice/player";
 import { browserMedia, micError, Recorder, type MediaAccess } from "@/voice/recorder";
 
-export type VoiceMode = "off" | "ptt" | "session";
-export type VoicePhase = "idle" | "recording" | "listening" | "transcribing" | "thinking" | "speaking";
+export type VoiceMode = "off" | "session";
+export type VoicePhase = "idle" | "listening" | "transcribing" | "thinking" | "speaking";
 
 const SPEAK_KEY = "lazis.voice.speak";
 const PREROLL_FRAMES = 6; // about 0.25 s kept from just before speech started
 const MIN_SECONDS = 0.3;
 const MIN_PEAK = 0.008; // quieter than this is silence: not even transcribed
+/** After Yelda stops, wait this long before hearing again (room echo, speaker tail). */
+export const RESUME_AFTER_SPEECH_MS = 600;
 
 let media: MediaAccess = browserMedia;
-/** Tests replace the microphone. */
-export function useMediaForTests(m: MediaAccess): void {
+let audio: AudioOut = browserAudio;
+/** Tests replace the microphone and the speaker. */
+export function useMediaForTests(m: MediaAccess, out?: AudioOut): void {
   media = m;
+  if (out) audio = out;
 }
 
 function readSpeak(): boolean {
@@ -50,14 +57,21 @@ export const useVoiceStore = defineStore("voice", {
     speakReplies: readSpeak(),
     error: null as string | null,
     heard: null as string | null,
+    /** The sentence Yelda is saying now (the HUD caption). */
+    saying: null as string | null,
+    /** Real timings of the last voice turn (ms), for the HUD. */
+    lastSttMs: null as number | null,
+    lastFirstAudioMs: null as number | null,
     recorder: markRaw(new Recorder(media)) as Recorder,
     detector: markRaw(new TurnDetector()) as TurnDetector,
+    player: markRaw(new SpeechPlayer(audio)) as SpeechPlayer,
     cancelSpeech: false,
+    resumeAt: 0,
   }),
 
   getters: {
     /** True exactly while the microphone stream is open (the system indicator is on). */
-    micOpen: (s) => s.mode === "session" || (s.mode === "ptt" && s.phase === "recording"),
+    micOpen: (s) => s.mode === "session",
     canListen: (s) => s.status?.stt_available === true,
   },
 
@@ -82,46 +96,17 @@ export const useVoiceStore = defineStore("voice", {
       if (!on) void this.stopSpeaking();
     },
 
-    newRecorder() {
-      this.recorder.close();
-      this.recorder = markRaw(new Recorder(media));
-      this.detector = markRaw(new TurnDetector());
-    },
-
-    // ----- push-to-talk ----------------------------------------------------------------------
-    async pttStart() {
-      if (this.mode !== "off" || !this.canListen) return;
-      await this.stopSpeaking();
-      this.newRecorder();
-      this.mode = "ptt";
-      this.phase = "recording";
-      this.error = null;
-      try {
-        await this.recorder.start();
-      } catch (e) {
-        this.recorder.close();
-        this.mode = "off";
-        this.phase = "idle";
-        this.error = micError(e);
-      }
-    },
-
-    async pttEnd() {
-      if (this.mode !== "ptt") return;
-      const take = this.recorder.take();
-      this.recorder.close(); // the microphone is off before anything else happens
-      this.mode = "off";
-      await this.handle(take);
-      if (this.mode === "off") this.phase = "idle";
-    },
-
     // ----- hands-free session ----------------------------------------------------------------
     async startSession() {
       if (this.mode !== "off" || !this.canListen) return;
-      this.newRecorder();
+      this.player.warm(); // inside the user's click: the speaker may play later
+      this.recorder.close();
+      this.recorder = markRaw(new Recorder(media));
+      this.detector = markRaw(new TurnDetector());
       this.mode = "session";
       this.phase = "listening";
       this.error = null;
+      this.resumeAt = 0;
       try {
         await this.recorder.start((level, ms) => this.onFrame(level, ms));
       } catch (e) {
@@ -134,6 +119,11 @@ export const useVoiceStore = defineStore("voice", {
 
     onFrame(level: number, ms: number) {
       if (this.mode !== "session" || this.phase !== "listening") return;
+      if (performance.now() < this.resumeAt) {
+        this.recorder.trim(0); // the tail of Yelda's voice is never heard as the user
+        return;
+      }
+      setMicLevel(level);
       const event = this.detector.feed(level, ms);
       if (event === null && !this.detector.speaking) this.recorder.trim(PREROLL_FRAMES);
       if (event === "end") {
@@ -152,9 +142,10 @@ export const useVoiceStore = defineStore("voice", {
     async endSession() {
       if (this.mode !== "session") return;
       this.mode = "off";
-      this.recorder.close();
+      this.recorder.close(); // tracks stopped: the system microphone indicator goes off
       this.detector.reset();
       this.phase = "idle";
+      setMicLevel(0);
       await this.stopSpeaking();
       await currentPlatform()?.voiceRelease().catch(() => undefined);
     },
@@ -169,12 +160,14 @@ export const useVoiceStore = defineStore("voice", {
       }
       this.phase = "transcribing";
       let text: string;
+      const started = performance.now();
       try {
         text = await platform.voiceTranscribe(take.wav);
       } catch (e) {
         this.error = (e as { code?: string } | null)?.code ?? "stt_failed";
         return;
       }
+      this.lastSttMs = Math.round(performance.now() - started);
       if (isNoise(text)) {
         this.error = "heard_nothing";
         return;
@@ -194,25 +187,43 @@ export const useVoiceStore = defineStore("voice", {
       if (reply && reply.content.trim()) await this.speak(reply.content);
     },
 
+    /** Sentence by sentence; the next one is synthesized while the current one plays. */
     async speak(text: string) {
       const platform = currentPlatform();
       if (platform === null) return;
+      const parts = sentences(speakable(text));
+      if (parts.length === 0) return;
       this.cancelSpeech = false;
       this.phase = "speaking";
+      const started = performance.now();
+      let first = true;
       try {
-        for (const sentence of sentences(speakable(text))) {
+        let next: Promise<ArrayBuffer> | null = platform.voiceSynthesize(parts[0]!);
+        for (let i = 0; i < parts.length && next !== null; i++) {
+          const wav = await next;
+          next = i + 1 < parts.length ? platform.voiceSynthesize(parts[i + 1]!) : null;
           if (this.cancelSpeech) break;
-          await platform.voiceSpeak(sentence);
+          this.saying = parts[i]!;
+          if (first) {
+            this.lastFirstAudioMs = Math.round(performance.now() - started);
+            first = false;
+          }
+          await this.player.play(wav);
+          if (this.cancelSpeech) break;
         }
+        next?.catch(() => undefined);
       } catch (e) {
         this.error = (e as { code?: string } | null)?.code ?? "tts_failed";
       } finally {
+        this.saying = null;
+        this.resumeAt = performance.now() + RESUME_AFTER_SPEECH_MS;
         this.phase = this.mode === "session" ? "listening" : "idle";
       }
     },
 
     async stopSpeaking() {
       this.cancelSpeech = true;
+      this.player.stop();
       await currentPlatform()?.voiceStopSpeaking().catch(() => undefined);
     },
   },

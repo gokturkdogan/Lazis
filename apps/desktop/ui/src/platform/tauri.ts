@@ -72,8 +72,10 @@ export interface Platform {
   voiceStatus(): Promise<VoiceStatus>;
   /** A 16 kHz mono WAV, sent as raw bytes; kept in memory only. */
   voiceTranscribe(wav: Uint8Array): Promise<string>;
-  /** Resolves when the text was spoken, or stopped. */
+  /** Resolves when the text was spoken, or stopped (direct system playback). */
   voiceSpeak(text: string): Promise<void>;
+  /** Yelda's speech for the text as WAV bytes, for Web Audio playback (Phase 14). */
+  voiceSynthesize(text: string): Promise<ArrayBuffer>;
   voiceStopSpeaking(): Promise<void>;
   /** The voice session ended: stop speaking, free the speech model. */
   voiceRelease(): Promise<void>;
@@ -101,6 +103,7 @@ export const tauriPlatform: Platform = {
   voiceStatus: () => invoke<VoiceStatus>("voice_status"),
   voiceTranscribe: (wav) => invoke<string>("voice_transcribe", wav),
   voiceSpeak: (text) => invoke<void>("voice_speak", { text }),
+  voiceSynthesize: (text) => invoke<ArrayBuffer>("voice_synthesize", { text }),
   voiceStopSpeaking: () => invoke<void>("voice_stop_speaking"),
   voiceRelease: () => invoke<void>("voice_release"),
   onConnectionChanged: (callback) =>
