@@ -2,7 +2,9 @@
 
 **Tarih:** 2026-11-07.
 **Dal:** `phase14/cinematic-core`, `main`'den (`201bddf`, Faz 14.1 birleştirilmiş hali) açıldı.
-**Durum:** Geliştirme tamamlandı; modelsiz testler ve `make check` geçti. **Sahibin görsel onayı bekleniyor.** Onay gelmeden `main`'e birleştirilmeyecek ve GitHub'a gönderilmeyecek.
+**Durum:** **Tamamlandı ve sahibin görsel onayıyla kabul edildi** (2026-11-07); `main`'e birleştirildi ve GitHub'a gönderildi.
+- Onay, WebKit önizlemesinden alınan önce/sonra görselleri ve videolarıyla verildi.
+- Açık riskler bölüm 9'da duruyor.
 
 **Kapsam:** Yalnızca merkezdeki çekirdek değişti. Arayüz, sohbet paneli, menü ve diğer ekranlar değişmedi.
 
