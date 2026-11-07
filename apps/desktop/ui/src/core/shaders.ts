@@ -104,8 +104,10 @@ void main(){
   float f2 = snoise(vPos * 6.5 - vec3(t * 0.35));
   float filaments = pow(1.0 - abs(f1), 6.0) * 0.9 + pow(1.0 - abs(f2), 10.0) * 0.5;
   float pulse = 1.0 + uPulse * (0.35 + 0.35 * sin(uTime * 3.1));
-  vec3 col = uColorB * fres * (1.35 + uLevel * 1.6) + uColorA * filaments * (0.35 + uEnergy * 0.75 + uLevel);
-  col += uColorC * 0.06;
+  // Phase 14.1: less light per layer (the core was saturating to white); the deep tint fills
+  // the body so the plasma reads as colour with depth, not as a white ball.
+  vec3 col = uColorB * fres * (1.0 + uLevel * 0.5) + uColorA * filaments * (0.3 + uEnergy * 0.55 + uLevel * 0.45);
+  col += uColorC * (0.06 + 0.1 * (1.0 - fres));
   float a = clamp(fres * 0.95 + filaments * 0.45 + 0.04, 0.0, 1.0);
   col *= pulse;
   gl_FragColor = vec4(col * a, a);
@@ -123,9 +125,15 @@ void main(){
   float t = uTime * uMotion;
   float facing = max(dot(vNormal, vView), 0.0);
   float plasma = snoise(vPos * 5.0 + vec3(t * 0.6, -t * 0.4, t * 0.3)) * 0.5 + 0.5;
-  vec3 hot = mix(uColorB, vec3(1.0), 0.55 + 0.25 * facing);
-  vec3 col = mix(uColorA * 1.2, hot, smoothstep(0.15, 0.9, facing));
-  col *= 1.15 + plasma * 0.55 + uLevel * 1.4 + uEnergy * 0.4;
+  float fine = snoise(vPos * 11.0 - vec3(t * 0.5)) * 0.5 + 0.5;
+  // Phase 14.1: the state's own tones instead of white. Plasma troughs sink into the deep tint,
+  // the body is the primary colour, the crests take the highlight; only a small spot right at
+  // the centre turns pale, and even that keeps the hue.
+  vec3 col = mix(uColorC * 0.75, uColorA, smoothstep(0.2, 0.62, plasma));
+  col = mix(col, uColorB, smoothstep(0.58, 0.95, plasma) * 0.75);
+  float hot = pow(facing, 7.0);
+  col = mix(col, mix(uColorB, vec3(1.0), 0.3), hot * 0.6);
+  col *= 1.05 + fine * 0.35 + uLevel * 0.6 + uEnergy * 0.3;
   col *= 1.0 + uPulse * (0.3 + 0.3 * sin(uTime * 3.1));
   gl_FragColor = vec4(col, 1.0);
 }`;
@@ -144,7 +152,8 @@ void main(){
   float d = length(vUv - 0.5) * 2.0;
   float g = exp(-d * d * uFalloff);
   float pulse = 1.0 + uPulse * (0.3 + 0.3 * sin(uTime * 3.1));
-  float k = g * uStrength * (0.55 + uEnergy * 0.6 + uLevel * 0.9) * pulse;
+  // Phase 14.1: the voice moves the core; it no longer floods the whole halo with light.
+  float k = g * uStrength * (0.55 + uEnergy * 0.45 + uLevel * 0.35) * pulse;
   vec3 col = mix(uColorC, uColorA, g) * k;
   gl_FragColor = vec4(col, k);
 }`;
@@ -192,7 +201,7 @@ void main(){
   }
   float shimmer = 0.85 + 0.15 * sin(uTime * 2.0 + a * 40.0);
   float alpha = pattern * edge * uOpacity * shimmer * (0.4 + uEnergy * 0.6 + uLevel * 0.8);
-  vec3 col = mix(uColorA, uColorB, ang) * (1.2 + uLevel);
+  vec3 col = mix(uColorA, uColorB, ang) * (1.1 + uLevel * 0.6);
   gl_FragColor = vec4(col * alpha, alpha);
 }`;
 
@@ -220,8 +229,10 @@ ${COMMON_UNIFORMS}
 uniform float uOpacity;
 varying float vAmp;
 void main(){
-  float a = uOpacity * (0.25 + uLevel * 1.4 + vAmp * 3.0);
-  vec3 col = mix(uColorA, uColorB, clamp(vAmp * 5.0, 0.0, 1.0)) * 1.4;
+  // Phase 14.1: the ring still swings with the voice (same displacement), with less light, so
+  // a loud stretch of speech no longer melts into one glowing band.
+  float a = uOpacity * (0.25 + uLevel * 0.4 + vAmp * 0.9);
+  vec3 col = mix(uColorA, uColorB, clamp(vAmp * 2.0, 0.0, 0.35)) * 1.1;
   gl_FragColor = vec4(col * a, a);
 }`;
 
@@ -378,3 +389,38 @@ void main(){
   col += uColorA * line * 0.025 * smoothstep(0.25, 0.6, d) * smoothstep(1.4, 0.7, d);
   gl_FragColor = vec4(col, 1.0);
 }`;
+
+
+// ── Final grade (Phase 14.1): vignette + hue-preserving highlight roll-off ──
+// Replaces three's VignetteShader in the same place (same vignette formula), so no pass is
+// added. Bright pixels are compressed by their strongest channel, which keeps the ratio
+// between channels: a hot yellow stays yellow instead of clipping to white.
+export const gradeShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    offset: { value: 1.05 },
+    darkness: { value: 1.15 },
+    knee: { value: 0.72 },
+  },
+  vertexShader: /* glsl */ `
+varying vec2 vUv;
+void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */ `
+uniform sampler2D tDiffuse;
+uniform float offset;
+uniform float darkness;
+uniform float knee;
+varying vec2 vUv;
+void main(){
+  vec4 texel = texture2D(tDiffuse, vUv);
+  vec3 c = max(texel.rgb, 0.0);
+  float m = max(max(c.r, c.g), c.b);
+  if (m > knee) {
+    float over = (m - knee) / (1.0 - knee);
+    float rolled = knee + (1.0 - knee) * (over / (1.0 + over));
+    c *= rolled / m;
+  }
+  vec2 uv = (vUv - vec2(0.5)) * vec2(offset);
+  gl_FragColor = vec4(mix(c, vec3(1.0 - darkness), dot(uv, uv)), texel.a);
+}`,
+};

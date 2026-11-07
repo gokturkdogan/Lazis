@@ -36,12 +36,21 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { LOOKS, type CoreState } from "@/core/palette";
 import * as S from "@/core/shaders";
 import { createCoreUniforms, type CoreUniforms } from "@/core/uniforms";
 
 export type Quality = "high" | "low";
+
+/** Bloom strength at rest (Phase 14.1). It eases down as the voice gets louder, so a loud
+ *  stretch of listening or speaking keeps its detail instead of melting into one glow. */
+const BLOOM = 0.5;
+const BLOOM_LEVEL_DROP = 0.55;
+const BLOOM_THRESHOLD = 0.55;
+/** Bloom picks what glows by luminance, and yellow and green are far brighter to the eye than
+ *  purple or red at the same strength, so they used to bloom over everything. Above this
+ *  luminance of the state's colour, bloom is toned down and starts higher. */
+const BLOOM_LUMA_REF = 0.45;
 
 type Extra = Record<string, { value: unknown }>;
 
@@ -368,12 +377,12 @@ export class CoreRenderer {
     this.scene.add(this.back.object, this.content);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new Vector2(256, 256), 0.9, 0.7, 0.14);
+    // Phase 14.1: bloom starts higher, is gentler and stays close to what glows (a wide radius
+    // spread a haze over the whole core and washed the centre to white);
+    // the final pass keeps the vignette and rolls bright colours off without whitening them.
+    this.bloom = new UnrealBloomPass(new Vector2(256, 256), BLOOM, 0.1, BLOOM_THRESHOLD);
     this.composer.addPass(this.bloom);
-    const vignette = new ShaderPass(VignetteShader);
-    (vignette.uniforms.offset as { value: number }).value = 1.05;
-    (vignette.uniforms.darkness as { value: number }).value = 1.15;
-    this.composer.addPass(vignette);
+    this.composer.addPass(new ShaderPass(S.gradeShader));
     this.composer.addPass(new OutputPass());
     this.build();
   }
@@ -385,8 +394,8 @@ export class CoreRenderer {
     this.content.clear();
     const high = this.quality === "high";
     this.layers = [
-      glow(this.u, 6, 0.32, 6),
-      glow(this.u, 2.3, 0.6, 7.5),
+      glow(this.u, 6, 0.2, 6),
+      glow(this.u, 2.3, 0.4, 7.5),
       particles(this.u, high ? 4200 : 1800),
       streams(this.u, high ? 9 : 5),
       rings(this.u),
@@ -445,6 +454,10 @@ export class CoreRenderer {
     const rate = target > this.level ? 22 : 7; // fast attack, slower release
     this.level += (target - this.level) * (1 - Math.exp(-dt * rate));
     u.uLevel.value = this.level;
+    const c = u.uColorA.value;
+    const luma = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    this.bloom.strength = BLOOM * Math.min(1, BLOOM_LUMA_REF / Math.max(luma, 0.05)) * (1 - BLOOM_LEVEL_DROP * this.level);
+    this.bloom.threshold = BLOOM_THRESHOLD + 0.4 * Math.max(0, luma - BLOOM_LUMA_REF);
 
     const px = this.reducedMotion ? 0 : this.pointer.x * 0.28;
     const py = this.reducedMotion ? 0 : this.pointer.y * 0.18;

@@ -14,6 +14,8 @@
 | Sohbetteki FileVault uyarısı | Kaldırıldı; durum Genel Bakış ve Ayarlar'da gösteriliyor |
 | Karışık düğme ve kart stilleri | Ortak tema: cam kartlar, ince çerçeveler, duruma göre renk alan vurgular (`theme.css`) |
 | Simge yok | Tek bir SVG simge seti (`Icon.vue`, Lucide çizimleri, ISC lisansı). Emoji yok. |
+| Sahnenin sağ altında yazılı "Konuşmayı gizle" düğmesi | Sohbet panelinin başlık satırının sağında yazısız küçük bir ok; panel kapalıyken sahnenin sağ kenarında ince bir ok sekmesi (ek istek 1) |
+| Çekirdeğin ortasında patlamış beyaz ışık | Durum renginin kendi tonları, katmanlar ve plazma görünür (ek istek 2, bölüm 7) |
 
 **Yeni dosyalar:**
 - `components/Icon.vue`
@@ -25,6 +27,8 @@
 - `navigation.ts`
 - `stores/onboarding.ts`
 - `stores/documentUi.ts`
+- `ui/dev/core-preview.html` ve `ui/dev/core-preview.ts`: yalnızca geliştirme için, arka uçsuz çekirdek önizlemesi. Uygulama derlemesine girmez (doğrulandı).
+- `scripts/core-snapshots.swift`: çekirdeği beş durumda WebKit ile çizip PNG olarak kaydeder.
 
 **Kaldırılan dosyalar:** `IntakePanel.vue`, `DocumentPanel.vue`.
 
@@ -54,6 +58,20 @@
 - **Görüntüleme:** Çekmece kapalıyken hiç çizilmez. Genişliği `min(300px, 86vw)`, bu yüzden küçük pencerede de sığar.
 - **Ekranlar arası geçiş:** Kısa bir saydamlık ve kayma geçişi var. Gizli ekranlar çizilmez.
 - **Sayfa başlıkları:** Sohbet dışındaki ekranların üstünde simge, başlık ve tek satırlık açıklama bulunan bir başlık var.
+
+## 3a. Sohbet panelini gizleme oku (ek istek 1)
+
+- **Yer:** Sohbet panelinin başlık satırının sağı. Yazı yok, yalnızca 16 px'lik bir SVG ok.
+- **Görünüm:** Sakin durumda çerçevesiz ve soluk. Üzerine gelince durum rengini alır, hafif bir çerçeve ve ışıma belirir, ok gideceği yöne 2 px kayar.
+- **Kapanış:** Panel 380 ms'de sağa kayarak ve solarak kapanır.
+- **Kapalıyken:** Sahnenin sağ kenarının ortasında ince bir cam sekme (26×64 px) kalır. Sola bakan okla sohbeti yeniden açar.
+- **Ok yönü:** Açıkken sağa bakar (panelin gideceği yön), kapalıyken sola bakar (panelin geleceği yön).
+- **Erişilebilirlik:**
+  - Her iki düğmede `aria-label` ("Konuşmayı gizle" / "Konuşmayı göster"), `aria-expanded`, `aria-controls` ve `title` var.
+  - Enter ve boşluk tuşuyla çalışır.
+  - Tıklanınca odak diğer düğmeye geçer, böylece klavye kullanıcısı boşta kalmaz.
+- **Değişmeyen:** Panelin açık/kapalı durumu önceki gibi hatırlanır.
+- **Bilinen:** Panel kapandığında çekirdek, önceki gibi, kayma bittikten sonra sahnenin yeni ortasına geçer.
 
 ## 4. Ataç akışı
 
@@ -91,11 +109,49 @@ Tanılama ekranında FileVault bilgisi önceden de yoktu; eklenmedi.
 ## 7. Korunanlar
 
 - **Ses:** Whisper, Yelda, kullanıcının başlattığı sesli oturum, mikrofon güvenliği (Faz 15B) ve gerçek mikrofon ile konuşma eşlemesi.
-- **Çekirdek:** Beş durum rengi korunuyor. Çekirdek gölgelendiricilerine (`scene.ts`) dokunulmadı.
+- **Çekirdek:** Beş ana durum rengi aynı. Geometri, halkalar, parçacıklar, arklar, hareket hızları ve sesin çekirdeği nasıl oynattığı aynı. Değişen yalnızca ışık değerleri (bölüm 7a).
 - **Hafıza:** Elle hafıza işlemleri ve Unutma sözleşmesi korunuyor. Otomatik öğrenme kapalı.
 - **Diğer özellikler:** Belgeler, Wikipedia araştırma izni ve üslup tercihleri.
 - **Güvenlik:** Güvenlik sınırları değişmedi.
 - **Dokunulmayanlar:** Arka uç, kabuk, veritabanı ve göç dosyaları değişmedi; yalnızca arayüz değişti. Gerçek profile, Ollama ve Whisper ayarlarına dokunulmadı.
+
+## 7a. Çekirdeğin ışığı (ek istek 2 ve 3)
+
+**Sorun ne idi:** Ölçüm, çekirdeğin ortasında (yarıçapı ekran yüksekliğinin %22'si olan dairede) beyaza yakın piksellerin payına baktı. Eski kodla sonuçlar:
+
+| Durum | Ortadaki beyaz alan | Renk doygunluğu |
+|---|---|---|
+| Bekleme | %5,7 | 0,58 |
+| Dinleme (normal ses) | **%86** | 0,02 |
+| Dinleme (yüksek ses) | **%100** | 0,00 |
+| Düşünme | %23 | 0,22 |
+| Konuşma (normal ses) | %33 | 0,18 |
+| Konuşma (yüksek ses) | **%99,7** | 0,00 |
+| Hata | %8,8 | 0,44 |
+
+Yeni kodla yedi durumun hepsinde ortadaki beyaz alan **%0**; renk doygunluğu 0,50–0,85.
+
+**Nedenler ve değişiklikler:**
+
+| Neden | Değişiklik |
+|---|---|
+| Çekirdeğin merkezi (nucleus) rengini %55–80 saf beyazla karıştırıp 3 kata kadar parlatıyordu. | Merkez artık durum renginin üç tonundan oluşuyor: koyu ton çukurlarda, ana renk gövdede, açık ton tepelerde. Yalnızca tam ortadaki küçük bir nokta açılıyor ve o da rengini koruyor. İkinci, ince bir gürültü katmanı ayrıntı ekliyor. |
+| Bloom 0,14 eşikle neredeyse her şeyi parlatıyordu; geniş yarıçapı bütün sahneye sis yayıyordu. | Bloom gücü 0,9'dan 0,5'e, yarıçapı 0,7'den 0,1'e indi; eşik 0,14'ten 0,55'e çıktı. |
+| Sarı ve yeşil, aynı güçte mordan ve kırmızıdan çok daha parlak algılanır (parlaklık: sarı ~0,69, yeşil ~0,58, mor ~0,21). Bloom parlaklığa baktığı için bu iki durumda bütün çekirdeği yakıyordu. | Bloom, durum renginin parlaklığına göre kendini ayarlıyor: parlak renklerde biraz daha zayıf ve daha yüksek eşikli. Renklerin kendisi değişmedi. |
+| Ses yükseldikçe kabuk, dalga halkası ve büyük ışımalar çok fazla ışık ekliyordu. Gerçek konuşma seviyesi 0,5–1,0 arasında. | Sesin ışığa katkısı azaltıldı. Bloom da ses yükseldikçe yumuşakça azalıyor (yüksek seste %55'e kadar). **Sesin şekle ve harekete etkisi aynı:** halkanın salınımı, merkezin büyümesi ve parçacıklar değişmedi. |
+| Ton eşleme yoktu: 1'i aşan renkler tek tek kanallarda kırpılıp beyaza kayıyordu. | Son geçiş, aynı vinyet formülünü korurken parlak renkleri en güçlü kanallarına göre yumuşakça sıkıştırıyor. Kanallar arasındaki oran korunduğu için sarı sarı kalıyor. Bu geçiş eski vinyet geçişinin yerini aldı; geçiş sayısı artmadı. |
+
+**Performans:**
+- Ek kütüphane yok, ek geçiş yok.
+- Merkeze bir gürültü çağrısı eklendi; bu küçük bir yüzeyde çalışıyor.
+- Kare başına işlemciye birkaç çarpma eklendi.
+- Gerçek pencerede FPS ölçülmedi.
+
+**Görsel doğrulama nasıl yapıldı:**
+- `ui/dev/core-preview.html`, çekirdeği arka uç, model ve mikrofon olmadan uygulamadaki kodun aynısıyla çiziyor.
+- `scripts/core-snapshots.swift` bu sayfayı **WebKit** ile (LAZIS penceresinin motoru) ekran dışı bir pencerede açıp beş durumu PNG olarak kaydediyor. Dinleme ve konuşma, normal (0,35–0,4) ve yüksek (0,85) ses seviyesiyle de çekildi.
+- Her değişiklik görüntülere bakılarak değerlendirildi; sayılar yalnızca destek.
+- **Sınır:** Bunlar gerçek LAZIS penceresinden değil, aynı motor ve aynı kodla çizilmiş görüntüler. Gerçek pencerede sahibin bakması gerekiyor (bölüm 9).
 
 ## 8. Testler
 
@@ -132,12 +188,17 @@ Tanılama ekranında FileVault bilgisi önceden de yoktu; eklenmedi.
   - Yeni dosya seçilince eski hata temizleniyor.
   - Önceki dört test de korunuyor.
 - `app.spec.ts`: FileVault sohbette yok, Genel Bakış ve Ayarlar'da var. Menüyle gezinme.
+- `core.spec.ts`: Gizleme oku yazısız; `aria-label` ve `aria-expanded` doğru; ok yönleri doğru; kapanınca kenar sekmesi çıkıyor ve odak ona geçiyor; açılınca odak başlıktaki oka dönüyor.
 
 ## 9. Görsel kontrol (sahip)
 
 **Durum:** Masaüstünde henüz bakılmadı.
 
-**Nasıl bakılır:** `make dev` geliştirme profilini kullanır, gerçek profili kullanmaz. Gemma yalnızca bir mesaj gönderilirse yüklenir.
+**Nasıl bakılır:** `make dev` geliştirme profilini kullanır, gerçek profili kullanmaz.
+
+**Düzeltme:** İlk raporda "Gemma yalnızca mesaj gönderilirse yüklenir" yazılmıştı; bu yanlıştı. Ön ısıtma (`prewarm`) varsayılan olarak açık ve LAZIS açılınca modeli ısıtır. Yani `make dev` ile Gemma geliştirme profilinde yüklenir.
+
+**Gemma'sız bakmak için:** Yalnızca çekirdek için, `pnpm vite` çalışırken `http://localhost:1420/dev/core-preview.html?state=thinking` adresi açılabilir. Durumlar: `idle`, `listening`, `thinking`, `speaking`, `error`. Ses seviyesi `&level=0.8` ile verilir.
 
 **Bakılacaklar:**
 - Çekmecenin açılışı ve kapanışı.
@@ -146,9 +207,12 @@ Tanılama ekranında FileVault bilgisi önceden de yoktu; eklenmedi.
 - Ekran geçişleri.
 - Küçük pencere genişliği.
 - Hareketi azaltma ayarı.
+- Sohbet panelini gizleme oku ve kenar sekmesi.
+- Çekirdek: beş durumda, özellikle sarı ve yeşilde ortanın beyaza dönmemesi; yüksek seste konuşurken ayrıntının kalması; çekirdeğin sönük durmaması.
 
 ## 10. Açık riskler ve borçlar
 
+- **Çekirdek:** Görüntüler WebKit ile ama gerçek pencere dışında çekildi. Gerçek pencerede FPS ve GPU ölçülmedi. Işık değerleri sahibin gözüne göre yeniden ayarlanabilir: bloom değerleri `scene.ts` başında adlandırılmış sabitler; katman değerleri `shaders.ts` içinde "Phase 14.1" notuyla işaretli.
 - **Görünüm:** Gerçek pencerede görünüm, performans ve bulanıklığın GPU maliyeti ölçülmedi. Cam paneller ve üst çubuk sürekli bulanıklık kullanıyor; arka planın bulanıklaşması yalnızca çekmece veya pencere açıkken oluyor.
 - **Ekran okuyucu:** VoiceOver ile gerçek bir deneme yapılmadı; erişilebilirlik öznitelikleri yalnızca testlerle doğrulandı.
 - **Önceki fazlardan süren açık borçlar:**

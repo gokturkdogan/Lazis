@@ -93,7 +93,7 @@ describe("the living core (Phase 14)", () => {
   it("the conversation view: core, HUD, voice dock, and a chat panel that opens and closes", async () => {
     const client = fakeClient({ assistantState: vi.fn().mockResolvedValue(assistantFixture({ timeline_messages: 0 })) });
     await useConnectionStore().start({ platform: fakePlatform(connection()), clientFactory: () => client });
-    const wrapper = mount(AssistantView, { global: { plugins: [createAppI18n()] } });
+    const wrapper = mount(AssistantView, { attachTo: document.body, global: { plugins: [createAppI18n()] } });
     await flushPromises();
     expect(wrapper.find('[data-testid="core"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="core-label"]').text()).toBe("BEKLEMEDE");
@@ -102,12 +102,27 @@ describe("the living core (Phase 14)", () => {
     expect(wrapper.find('[data-testid="chat-panel"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="composer"]').exists()).toBe(true); // typing still works
     expect(wrapper.find('[data-testid="document-attach"]').exists()).toBe(true);
-    await wrapper.get('[data-testid="chat-toggle"]').trigger("click");
+    // Phase 14.1: a text-free chevron at the right of the panel header closes it…
+    const collapse = wrapper.get('.chat-head [data-testid="chat-toggle"]');
+    expect(collapse.text()).toBe("");
+    expect(collapse.attributes("aria-label")).toBe("Konuşmayı gizle");
+    expect(collapse.attributes("aria-expanded")).toBe("true");
+    expect(collapse.html()).toContain("m9 18 6-6-6-6"); // points right: where the panel goes
+    await collapse.trigger("click");
     await flushPromises();
     expect(wrapper.find('[data-testid="chat-panel"]').exists()).toBe(false);
-    await wrapper.get('[data-testid="chat-toggle"]').trigger("click");
+    // …and a chevron tab on the stage brings it back.
+    const expand = wrapper.get('.stage [data-testid="chat-toggle"]');
+    expect(expand.text()).toBe("");
+    expect(expand.attributes("aria-label")).toBe("Konuşmayı göster");
+    expect(expand.attributes("aria-expanded")).toBe("false");
+    expect(expand.html()).toContain("m15 18-6-6 6-6"); // points left: where it comes from
+    expect(document.activeElement).toBe(expand.element);
+    await expand.trigger("click");
     await flushPromises();
     expect(wrapper.find('[data-testid="chat-panel"]').exists()).toBe(true);
+    expect(wrapper.find('.stage [data-testid="chat-toggle"]').exists()).toBe(false);
+    expect(document.activeElement).toBe(wrapper.get('.chat-head [data-testid="chat-toggle"]').element);
     wrapper.unmount();
   });
 });
