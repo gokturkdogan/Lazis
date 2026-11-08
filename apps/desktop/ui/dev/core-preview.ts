@@ -34,6 +34,14 @@ const drop = q.has("drop") ? 5 + Number(q.get("drop")) : Infinity;
 const levelAt = (t: number) =>
   level > 0 && t < drop ? Math.max(0, level * (0.75 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23))) : 0;
 
+// ?cycle=S (with ?seq): walk through the five states, S seconds each, so a clip shows how the
+// core eases from one state into the next; listening and speaking get a speech-like level.
+const ORDER: CoreState[] = ["idle", "listening", "thinking", "speaking", "error"];
+const cycle = Number(q.get("cycle") ?? "0");
+const stateAt = (clipT: number): CoreState => (cycle > 0 ? ORDER[Math.floor(clipT / cycle) % ORDER.length]! : state);
+const levelFor = (s: CoreState, t: number) =>
+  cycle > 0 ? (s === "listening" || s === "speaking" ? Math.max(0, 0.45 * (0.75 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23))) : 0) : levelAt(t);
+
 if (q.has("bench")) {
   // Cost per frame, GPU included (gl.finish waits for it), and what one frame draws.
   const inner = (renderer as unknown as { renderer: { info: { autoReset: boolean; reset(): void; render: { calls: number; triangles: number; points: number; lines: number } }; getContext(): WebGLRenderingContext } }).renderer;
@@ -81,7 +89,8 @@ if (q.has("bench")) {
   const n = Number(q.get("seq"));
   for (let i = 0; i < n; i++) {
     t += 1 / 30;
-    renderer.frame(1 / 30, { state, level: levelAt(t) });
+    const s = stateAt(i / 30);
+    renderer.frame(1 / 30, { state: s, level: levelFor(s, t) });
     w.__frames.push(canvas.toDataURL("image/jpeg", 0.92));
   }
   w.__done = true;
